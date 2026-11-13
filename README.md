@@ -34,7 +34,8 @@ Object
              ├── ConfirmDialog  (модальне підтвердження видалення)
              ├── InputDialog    (UTF-8 редактор рядка для Mkdir/Rename/Copy/Move/Filter/GoTo)
              ├── ViewerDialog   (вбудований переглядач файлів у режимах Text та Hex)
-             └── HelpDialog     (довідка по клавішах, миші та архітектурі)
+             ├── HelpDialog     (довідка по клавішах, миші та архітектурі)
+             └── ProgressDialog (прогрес фонової операції: файл, смуга, байти/файли, швидкість, ETA, Пауза/У фоні/Скасувати)
 ```
 
 ## Структура проєкту
@@ -43,7 +44,7 @@ Object
 duop/
 ├── AGENTS.md                 # Правила модульної архітектури, SemVer і комітів
 ├── LICENSE                   # Відкрита ліцензія MIT
-├── VERSION                   # Поточна SemVer-версія (1.1.0)
+├── VERSION                   # Поточна SemVer-версія (1.2.0)
 ├── Makefile                  # Збірка (OS/ARCH compile-time PAL, all / release / run / test / verify / hooks / clean)
 ├── .agents/                  # Antigravity скіли (duop-*) та lifecycle-хуки (hooks.json)
 ├── .githooks/                # Git-хуки (pre-commit, commit-msg, post-commit)
@@ -59,14 +60,15 @@ duop/
 │   ├── os/linux/x86_64/      # pal_os.s, pal_uring.s (io_uring IORING_OP_STATX пакетний stat з fallback)
 │   ├── core/                 # memory.s, string.s, utf8.s, oop_rt.s, syscall.s
 │   ├── tui/                  # theme.s (3 TrueColor теми), i18n.s (UA/EN таблиці), screen.s, input.s (клавіатура + SGR 1006)
-│   ├── fs/                   # dir_model.s (32Б FileEntry + потокове читання), dir_sort.s (Introsort/Radix), file_ops.s
-│   ├── ui/                   # header_bar.s, function_bar.s, status_bar.s, file_pane.s, preview_pane.s, dialogs.s
-│   └── app/                  # app.s
+│   ├── fs/                   # dir_model.s (32Б FileEntry + потокове читання), dir_sort.s (Introsort/Radix), file_ops.s, task.s (fork-воркер фонових операцій)
+│   ├── ui/                   # header_bar.s, function_bar.s, status_bar.s, file_pane.s, preview_pane.s, dialogs.s, progress_dialog.s
+│   └── app/                  # app.s, app_task.s (контролер фонових операцій)
 └── tests/
     ├── test_pal_architecture.py # Перевірка compile-time PAL, ізоляції сисколів, макросів OS_* та ELF .data==0
     ├── test_pty.py           # Наскрізні тести в реальному PTY (клавіатура, миша, resize, ФС)
     ├── test_fs_reliability.py # Стрес- та відмовостійкі тести copy/move/delete/rename/EXDEV
     ├── test_performance_dir.py # Тести 32B/pool, lazy stat, Radix/Introsort, huge-mode [FS-order] та Esc-скасування
+    ├── test_bg_tasks.py      # Фонові операції: неблокуючий UI, прогрес, пауза/скасування, EBUSY, вихід, EN/UA
     └── bench_million.py       # Бенчмарк відкриття великих директорій (TTFF, Full, RSS, syscalls)
 ```
 
@@ -101,6 +103,7 @@ make hooks    # Активувати Git-хуки з .githooks/ та права 
 - `Alt+T` — перемикання теми (`Tokyo Night`, `Catppuccin`, `Emerald`)
 - `Alt+L` (або кнопка `Мова:UA`/`Lang:EN` у верхній панелі) — миттєве перемикання мови (Українська / English), працює навіть при увімкненій українській розкладці (`Alt+д`)
 - `F1` — довідка, `F2` — перейменування, `F3` — перегляд (`H` перемикає `Text/Hex`), `F4` — зовнішній `$EDITOR`, `F5` — копіювання, `F6` — переміщення, `F7` — створити каталог, `F8` / `Del` — видалення, `F9` / `Ctrl+P` — режим Live Preview, `Ctrl+N` — новий файл, `Ctrl+G` — перейти за шляхом, `Ctrl+O` — shell, `F10` / `q` — вихід
+- **Фонові операції** (`F5`/`F6`/`F8` виконуються в окремому `fork`-процесі, інтерфейс не блокується): `ProgressDialog` з'являється для операцій довших за 300 мс — поточний файл, прогрес-бар, байти/файли, швидкість, ETA; `P`/`Space` — пауза/продовження (`SIGSTOP`/`SIGCONT`), `Esc`/`B` — у фон (прогрес лишається у статус-рядку), `C` — скасувати (недописаний файл видаляється), `Alt+J` або клік по статус-рядку — повернути діалог. В українській розкладці працюють `з`/`и`/`с`/`Alt+о`. Вихід під час операції просить підтвердження й коректно зупиняє воркер
 
 ### Миша (SGR 1006)
 - **Лівий клік / Подвійний клік** — вибір панелі й рядка / вхід у директорію або відкриття переглядача

@@ -27,6 +27,7 @@ App_vtbl:
 .global App_open_selected_entry
 .global App_close_dialog
 .global App_dispatch_f_action
+.global App_reload_panes
 
 .global App_cmd_help
 .global App_cmd_rename
@@ -491,6 +492,8 @@ App_open_selected_entry:
     ret
 
 # Helper: reload both panes preserving cursors (or focusing given name on active)
+# void App_reload_panes(App *this, const char *focus_name_or_null)
+App_reload_panes:
 reload_both_panes:
     # rdi=app, rsi=focus_name_or_null
     push rbx
@@ -510,245 +513,6 @@ reload_both_panes:
     mov rdi, rbx
     call App_sync_preview
     mov dword ptr [rbx + App.need_redraw], 1
-    pop r12
-    pop rbx
-    ret
-
-# Helper: run copy / move / delete on marked items (or single cursor item)
-# int exec_batch_transfer(App *app, const char *dst_input, int is_move)
-exec_batch_transfer:
-    push rbx
-    push r12
-    push r13
-    push r14
-    push r15
-    sub rsp, PATH_MAX * 2 + 176
-    # [rsp + 0 .. PATH_MAX-1]          = src_path
-    # [rsp + PATH_MAX .. 2*PATH_MAX-1] = dst_path
-    # [rsp + 2*PATH_MAX .. +143]       = stat buf
-    # [rsp + 2*PATH_MAX + 144]         = dst_is_dir (4)
-    # [rsp + 2*PATH_MAX + 148]         = sel_count (4)
-    # [rsp + 2*PATH_MAX + 152]         = last_err (8)
-
-    mov rbx, rdi              # app
-    mov r12, rsi              # dst_input
-    mov r13d, edx             # is_move (0=copy, 1=move)
-    mov qword ptr [rsp + PATH_MAX*2 + 152], 0
-
-    mov r14, [rbx + App.active_pane]
-    mov r15, [r14 + FilePane.model]
-
-    # Check if dst_input is an existing directory
-    mov edi, AT_FDCWD
-    mov rsi, r12
-    lea rdx, [rsp + PATH_MAX*2]
-    mov ecx, 1                # follow symlinks
-    call os_statat
-    xor ecx, ecx
-    test rax, rax
-    js .Lebt_dst_flag
-    mov eax, [rsp + PATH_MAX*2 + FileStat.mode]
-    and eax, S_IFMT
-    cmp eax, S_IFDIR
-    sete cl
-.Lebt_dst_flag:
-    mov [rsp + PATH_MAX*2 + 144], ecx
-
-    mov rdi, r15
-    xor esi, esi
-    call DirModel_count_selected
-    mov [rsp + PATH_MAX*2 + 148], eax
-    test eax, eax
-    jnz .Lebt_multi
-
-    # Single cursor entry
-    mov rdi, r14
-    call FilePane_get_selected_entry
-    test rax, rax
-    jz .Lebt_done
-    test dword ptr [rax + FileEntry.flags], FE_IS_PARENT
-    jnz .Lebt_err_parent
-    push rax
-    sub rsp, 8
-    mov rdi, r15
-    mov rsi, rax
-    call DirModel_entry_name
-    mov rdx, rax
-    lea rdi, [rsp + 16]
-    lea rsi, [r15 + DirModel.path]
-    mov ecx, PATH_MAX
-    call path_join
-    add rsp, 8
-    pop rax
-
-    cmp dword ptr [rsp + PATH_MAX*2 + 144], 0
-    je .Lebt_single_direct
-    push rax
-    sub rsp, 8
-    mov rdi, r15
-    mov rsi, rax
-    call DirModel_entry_name
-    mov rdx, rax
-    add rsp, 8
-    pop rax
-    lea rdi, [rsp + PATH_MAX]
-    mov rsi, r12
-    mov ecx, PATH_MAX
-    call path_join
-    jmp .Lebt_single_go
-.Lebt_single_direct:
-    lea rdi, [rsp + PATH_MAX]
-    mov rsi, r12
-    mov edx, PATH_MAX
-    call str_copy
-.Lebt_single_go:
-    mov rdi, rsp
-    lea rsi, [rsp + PATH_MAX]
-    test r13d, r13d
-    jnz .Lebt_s_move
-    call fs_copy_recursive
-    jmp .Lebt_s_res
-.Lebt_s_move:
-    call fs_move_recursive
-.Lebt_s_res:
-    mov [rsp + PATH_MAX*2 + 152], rax
-    jmp .Lebt_done
-
-.Lebt_multi:
-    xor r14d, r14d            # idx = 0
-.Lebt_mloop:
-    cmp r14, [r15 + DirModel.count]
-    jae .Lebt_done
-    mov rdi, r15
-    mov rsi, r14
-    call DirModel_get_entry
-    test dword ptr [rax + FileEntry.flags], FE_SELECTED
-    jz .Lebt_mnext
-
-    push rax
-    sub rsp, 8
-    mov rdi, r15
-    mov rsi, rax
-    call DirModel_entry_name
-    mov rdx, rax
-    lea rdi, [rsp + 16]
-    lea rsi, [r15 + DirModel.path]
-    mov ecx, PATH_MAX
-    call path_join
-    add rsp, 8
-    pop rax
-
-    push rax
-    sub rsp, 8
-    mov rdi, r15
-    mov rsi, rax
-    call DirModel_entry_name
-    mov rdx, rax
-    add rsp, 8
-    pop rax
-    lea rdi, [rsp + PATH_MAX]
-    mov rsi, r12
-    mov ecx, PATH_MAX
-    call path_join
-
-    mov rdi, rsp
-    lea rsi, [rsp + PATH_MAX]
-    test r13d, r13d
-    jnz .Lebt_m_move
-    call fs_copy_recursive
-    jmp .Lebt_m_chk
-.Lebt_m_move:
-    call fs_move_recursive
-.Lebt_m_chk:
-    test rax, rax
-    jns .Lebt_mnext
-    mov [rsp + PATH_MAX*2 + 152], rax
-    jmp .Lebt_done
-.Lebt_mnext:
-    inc r14
-    jmp .Lebt_mloop
-
-.Lebt_err_parent:
-    mov rax, -22
-    jmp .Lebt_ret
-.Lebt_done:
-    mov rax, [rsp + PATH_MAX*2 + 152]
-.Lebt_ret:
-    add rsp, PATH_MAX * 2 + 176
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop rbx
-    ret
-
-# int exec_batch_delete(App *app)
-exec_batch_delete:
-    push rbx
-    push r12
-    push r13
-    push r14
-    sub rsp, PATH_MAX + 16
-    mov rbx, rdi
-    mov r12, [rbx + App.active_pane]
-    mov r13, [r12 + FilePane.model]
-
-    mov rdi, r13
-    xor esi, esi
-    call DirModel_count_selected
-    test eax, eax
-    jnz .Lebd_multi
-
-    mov rdi, r12
-    call FilePane_get_selected_entry
-    test rax, rax
-    jz .Lebd_ok
-    test dword ptr [rax + FileEntry.flags], FE_IS_PARENT
-    jnz .Lebd_ok
-    mov rdi, r13
-    mov rsi, rax
-    call DirModel_entry_name
-    mov rdx, rax
-    mov rdi, rsp
-    lea rsi, [r13 + DirModel.path]
-    mov ecx, PATH_MAX
-    call path_join
-    mov rdi, rsp
-    call fs_delete_recursive
-    jmp .Lebd_ret
-
-.Lebd_multi:
-    xor r14d, r14d
-.Lebd_loop:
-    cmp r14, [r13 + DirModel.count]
-    jae .Lebd_ok
-    mov rdi, r13
-    mov rsi, r14
-    call DirModel_get_entry
-    test dword ptr [rax + FileEntry.flags], FE_SELECTED
-    jz .Lebd_next
-    mov rdi, r13
-    mov rsi, rax
-    call DirModel_entry_name
-    mov rdx, rax
-    mov rdi, rsp
-    lea rsi, [r13 + DirModel.path]
-    mov ecx, PATH_MAX
-    call path_join
-    mov rdi, rsp
-    call fs_delete_recursive
-    test rax, rax
-    js .Lebd_ret
-.Lebd_next:
-    inc r14
-    jmp .Lebd_loop
-
-.Lebd_ok:
-    xor eax, eax
-.Lebd_ret:
-    add rsp, PATH_MAX + 16
-    pop r14
-    pop r13
     pop r12
     pop rbx
     ret
@@ -792,6 +556,8 @@ App_close_dialog:
     je .Lacd_filter
     cmp eax, OP_GOTO
     je .Lacd_goto
+    cmp eax, OP_QUIT
+    je .Lacd_quit
     jmp .Lacd_free
 
 .Lacd_mkdir:
@@ -889,52 +655,26 @@ App_close_dialog:
     jmp .Lacd_free
 
 .Lacd_copy:
-    mov rdi, rbx
-    lea rsi, [r13 + InputDialog.buf]
-    xor edx, edx
-    call exec_batch_transfer
-    test rax, rax
-    js .Lacd_fs_err
-    mov rdi, rbx
-    xor esi, esi
-    call reload_both_panes
-    call i18n_get
-    mov rsi, [rax + LangStrings.app_ok_copy]
-    mov rdi, rbx
-    mov edx, MSG_OK
-    call App_set_status
-    jmp .Lacd_free
-
+    mov esi, TASK_OP_COPY
+    jmp .Lacd_task
 .Lacd_move:
+    mov esi, TASK_OP_MOVE
+.Lacd_task:
+    # Copy / Move / Delete run in a background worker (non-blocking UI, see app_task.s)
     mov rdi, rbx
-    lea rsi, [r13 + InputDialog.buf]
-    mov edx, 1
-    call exec_batch_transfer
-    test rax, rax
-    js .Lacd_fs_err
-    mov rdi, rbx
-    xor esi, esi
-    call reload_both_panes
-    call i18n_get
-    mov rsi, [rax + LangStrings.app_ok_move]
-    mov rdi, rbx
-    mov edx, MSG_OK
-    call App_set_status
+    lea rdx, [r13 + InputDialog.buf]
+    call App_task_start
     jmp .Lacd_free
 
 .Lacd_delete:
     mov rdi, rbx
-    call exec_batch_delete
-    test rax, rax
-    js .Lacd_fs_err
-    mov rdi, rbx
-    xor esi, esi
-    call reload_both_panes
-    call i18n_get
-    mov rsi, [rax + LangStrings.app_ok_delete]
-    mov rdi, rbx
-    mov edx, MSG_OK
-    call App_set_status
+    mov esi, TASK_OP_DELETE
+    xor edx, edx
+    call App_task_start
+    jmp .Lacd_free
+
+.Lacd_quit:
+    mov dword ptr [rbx + App.running], 0
     jmp .Lacd_free
 
 .Lacd_filter:
@@ -1428,6 +1168,8 @@ App_cmd_toggle_lang:
     ret
 
 App_cmd_quit:
+    cmp dword ptr [rdi + App.task_active], 0
+    jne App_task_confirm_quit
     mov dword ptr [rdi + App.running], 0
     ret
 
@@ -1489,6 +1231,10 @@ handle_key:
     cmp eax, 'L'; je .Lhk_lang
     cmp eax, 0x0434; je .Lhk_lang    # Cyrillic 'д' (Alt+L in UA layout)
     cmp eax, 0x0414; je .Lhk_lang    # Cyrillic 'Д'
+    cmp eax, 'j'; je .Lhk_tasks
+    cmp eax, 'J'; je .Lhk_tasks
+    cmp eax, 0x043E; je .Lhk_tasks   # Cyrillic 'о' (Alt+J in UA layout)
+    cmp eax, 0x041E; je .Lhk_tasks   # Cyrillic 'О'
     jmp .Lhk_pane
 
 .Lhk_plain:
@@ -1592,6 +1338,7 @@ handle_key:
 .Lhk_goto:    mov rdi, rbx; call App_cmd_goto; jmp .Lhk_done
 .Lhk_shell:   mov rdi, rbx; call App_cmd_shell; jmp .Lhk_done
 .Lhk_del:     mov rdi, rbx; call App_cmd_delete; jmp .Lhk_done
+.Lhk_tasks:   mov rdi, rbx; call App_task_show; jmp .Lhk_done
 
 .Lhk_done:
     pop r12
@@ -1652,6 +1399,19 @@ handle_mouse:
     jmp .Lhm_done
 
 .Lhm_hit_test:
+    cmp dword ptr [rbx + App.task_active], 0
+    je .Lhm_ht_hdr
+    cmp dword ptr [r12 + Event.mouse_kind], MACT_PRESS
+    jne .Lhm_ht_hdr
+    mov rax, [rbx + App.status_bar]
+    mov ecx, [rax + Widget.y]
+    cmp ecx, [r12 + Event.mouse_y]
+    jne .Lhm_ht_hdr
+    mov rdi, rbx
+    call App_task_show
+    jmp .Lhm_done
+
+.Lhm_ht_hdr:
     mov r8d, [r12 + Event.mouse_x]
     mov r9d, [r12 + Event.mouse_y]
 
@@ -1739,6 +1499,12 @@ App_run:
     xor eax, eax
     test edx, edx
     cmovnz esi, eax
+    cmp dword ptr [rbx + App.task_active], 0
+    je .Larun_poll
+    mov eax, TASK_TICK_MS
+    cmp esi, eax
+    cmova esi, eax
+.Larun_poll:
     mov rdi, rsp
     call input_poll_event
 
@@ -1792,6 +1558,8 @@ App_run:
 .Larun_stream_step:
     cmp dword ptr [rbx + App.running], 0
     je .Larun_exit
+    mov rdi, rbx
+    call App_task_tick
     mov rax, [rbx + App.left_pane]
     mov rdi, [rax + FilePane.model]
     cmp dword ptr [rdi + DirModel.is_loading], 0
@@ -1830,6 +1598,8 @@ App_run:
     jmp .Larun_loop
 
 .Larun_exit:
+    mov rdi, rbx
+    call App_task_shutdown
     add rsp, Event._size + 16
     pop rbx
     ret

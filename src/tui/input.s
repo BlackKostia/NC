@@ -12,16 +12,33 @@ in_pos:
     .space 4
 in_len:
     .space 4
+in_wake_fd1:
+    .space 4                  # auxiliary wake fd + 1 (0 = none), e.g. background worker pipe
 
 .section .text
 .global input_poll_event
+.global input_set_wake_fd
+
+# void input_set_wake_fd(int fd)
+# Registers an extra descriptor (or -1) whose readability/hang-up ends the idle wait of
+# input_poll_event early (returning "no event"), so the app loop reacts instantly.
+input_set_wake_fd:
+    inc edi
+    mov [rip + in_wake_fd1], edi
+    ret
 
 # Internal: int wait_and_read(int timeout_ms)
 # Appends incoming bytes to in_buf (compacting if needed). Returns bytes read, 0 on timeout, -1 on EINTR.
 wait_and_read:
+    mov esi, -1
+# Internal: int wait_and_read_fd(int timeout_ms, int wake_fd)
+# Same as wait_and_read, but also returns 0 early when wake_fd becomes ready.
+wait_and_read_fd:
     push rbx
-    sub rsp, 16               # struct pollfd (8 bytes)
+    push r12
+    sub rsp, 8
     mov ebx, edi              # timeout_ms
+    mov r12d, esi             # wake fd (-1 = none)
 
     # Compact buffer if needed
     mov eax, [rip + in_pos]
@@ -46,13 +63,16 @@ wait_and_read:
 
 .Lwar_poll:
     mov edi, STDIN_FD
-    mov esi, ebx
-    call os_poll_in
+    mov esi, r12d
+    mov edx, ebx
+    call os_poll_in2
 
     cmp rax, -EINTR
     je .Lwar_eintr
     test rax, rax
     jle .Lwar_none
+    test eax, 1               # only the wake fd fired -> let the app loop run its tick
+    jz .Lwar_none
 
     mov r8d, [rip + in_len]
     mov edx, 512
@@ -65,18 +85,21 @@ wait_and_read:
     test rax, rax
     jle .Lwar_none
     add [rip + in_len], eax
-    add rsp, 16
+    add rsp, 8
+    pop r12
     pop rbx
     ret
 
 .Lwar_eintr:
     mov eax, -1
-    add rsp, 16
+    add rsp, 8
+    pop r12
     pop rbx
     ret
 .Lwar_none:
     xor eax, eax
-    add rsp, 16
+    add rsp, 8
+    pop r12
     pop rbx
     ret
 
@@ -125,7 +148,9 @@ input_poll_event:
     jb .Lipe_have_data
 
     mov edi, r12d
-    call wait_and_read
+    mov esi, [rip + in_wake_fd1]
+    dec esi
+    call wait_and_read_fd
     cmp eax, -1
     je .Lipe_check_sig_after_poll
     test eax, eax

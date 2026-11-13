@@ -27,4 +27,12 @@ FileStat._size:
 .equ PAL_DT_LNK,     10
 .equ PAL_DT_SOCK,    12
 
+# --- Process / Event-Loop ABI helpers (implemented in src/os/<os>/<arch>/pal_os.s) ---
+#   int  os_poll_in2(int fd0, int fd1, int timeout_ms)
+#        Waits until fd0 and/or fd1 is readable or hung up (fd1 < 0 is ignored).
+#        Returns bitmask (bit0 = fd0 ready, bit1 = fd1 ready), 0 on timeout, or -errno.
+#   int  os_pipe_cloexec(int fds[2])            -> 0 or -errno (fds[0] read end, fds[1] write end)
+#   void os_signals_worker_mode(void)           -> background worker: ignore SIGWINCH/SIGINT,
+#        SIGTERM interrupts blocking syscalls with -EINTR (no SA_RESTART) instead of terminating.
+
 .endif

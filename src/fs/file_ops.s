@@ -1,4 +1,6 @@
 # Filesystem Operations: mkdir, touch, rename, copy, move, delete (recursive), file read
+# Copy / delete report progress and honor cancellation through fs_progress_* hooks
+# (src/fs/task.s); the hooks are no-ops outside a background worker.
 
 .intel_syntax noprefix
 .include "pal.inc"
@@ -34,8 +36,14 @@ fs_errno_message:
     je .Lem_notdir
     cmp edi, 9999
     je .Lem_same
+    cmp edi, ECANCELED
+    je .Lem_canceled
+    cmp edi, EBUSY
+    je .Lem_busy
     mov rax, [rax + LangStrings.err_generic]
     ret
+.Lem_canceled: mov rax, [rax + LangStrings.err_canceled]; ret
+.Lem_busy:     mov rax, [rax + LangStrings.err_busy]; ret
 .Lem_perm:     mov rax, [rax + LangStrings.err_perm]; ret
 .Lem_exists:   mov rax, [rax + LangStrings.err_exists]; ret
 .Lem_noent:    mov rax, [rax + LangStrings.err_noent]; ret
@@ -140,12 +148,21 @@ fs_copy_file:
     test rax, rax
     jz .Lfcf_mem_err
     mov rbx, rax
+    mov rdi, r12
+    call fs_progress_begin
 
 .Lfcf_loop:
     mov edi, r14d
     mov rsi, rbx
     mov edx, 32768
-    call sys_read_retry
+    OS_READ
+    cmp rax, -EINTR
+    jne .Lfcf_read_done
+    call fs_progress_cancelled        # SIGTERM from a cancel request breaks blocking reads
+    test eax, eax
+    jnz .Lfcf_cancel
+    jmp .Lfcf_loop
+.Lfcf_read_done:
     test rax, rax
     js .Lfcf_io_err
     jz .Lfcf_copy_ok
@@ -156,6 +173,11 @@ fs_copy_file:
     call sys_write_all
     test rax, rax
     js .Lfcf_io_err
+    mov rdi, rax
+    call fs_progress_bytes
+    call fs_progress_cancelled
+    test eax, eax
+    jnz .Lfcf_cancel
     jmp .Lfcf_loop
 
 .Lfcf_copy_ok:
@@ -165,7 +187,23 @@ fs_copy_file:
     OS_CLOSE
     mov edi, r14d
     OS_CLOSE
+    call fs_progress_item
     xor eax, eax
+    jmp .Lfcf_done
+
+.Lfcf_cancel:
+    # Canceled mid-file: never leave a truncated (corrupt-looking) destination behind
+    mov rdi, rbx
+    call mem_free
+    mov edi, r15d
+    OS_CLOSE
+    mov edi, r14d
+    OS_CLOSE
+    mov edi, AT_FDCWD
+    mov rsi, r13
+    xor edx, edx
+    OS_UNLINKAT
+    mov rax, -ECANCELED
     jmp .Lfcf_done
 
 .Lfcf_io_err:
@@ -317,6 +355,9 @@ path_is_same_or_descendant:
     mov rdi, rbx
     call mem_free
     pop rax
+    test rax, rax
+    js .Lfcr_done
+    call fs_progress_item
     jmp .Lfcr_done
 
 .Lfcr_sym_free_err:
@@ -360,9 +401,13 @@ path_is_same_or_descendant:
     or edx, 0700
     OS_MKDIRAT
     test rax, rax
-    jns .Lfcr_open_dir
+    jns .Lfcr_dir_made
     cmp rax, -EEXIST
     jne .Lfcr_done
+.Lfcr_dir_made:
+    mov rdi, r12
+    call fs_progress_begin
+    call fs_progress_item
 
 .Lfcr_open_dir:
     mov edi, AT_FDCWD
@@ -413,6 +458,12 @@ path_is_same_or_descendant:
 
 .Lfcr_recurse:
     mov [rbx + OPS_DIRENTS_BUF_SIZE + PATH_MAX * 2 + 8], r10
+    call fs_progress_cancelled        # clobbers only rax
+    test eax, eax
+    jz .Lfcr_recurse_go
+    mov rax, -ECANCELED
+    jmp .Lfcr_dir_err
+.Lfcr_recurse_go:
     lea rdi, [rbx + OPS_DIRENTS_BUF_SIZE]
     mov rsi, r12
     mov rdx, r10
@@ -479,6 +530,8 @@ fs_delete_recursive:
     call os_statat
     test rax, rax
     js .Lfdr_done
+    mov rdi, r12
+    call fs_progress_begin
 
     mov eax, [rsp + FileStat.mode]
     and eax, S_IFMT
@@ -490,7 +543,7 @@ fs_delete_recursive:
     mov rsi, r12
     xor edx, edx
     OS_UNLINKAT
-    jmp .Lfdr_done
+    jmp .Lfdr_counted
 
 .Lfdr_dir:
     mov edi, AT_FDCWD
@@ -538,6 +591,12 @@ fs_delete_recursive:
     je .Lfdr_entry
 
 .Lfdr_del_child:
+    call fs_progress_cancelled        # clobbers only rax
+    test eax, eax
+    jz .Lfdr_del_go
+    mov rax, -ECANCELED
+    jmp .Lfdr_dir_err
+.Lfdr_del_go:
     lea rdi, [rbx + OPS_DIRENTS_BUF_SIZE]
     mov rsi, r12
     mov rdx, r10
@@ -568,6 +627,10 @@ fs_delete_recursive:
     mov rsi, r12
     mov edx, AT_REMOVEDIR
     OS_UNLINKAT
+.Lfdr_counted:
+    test rax, rax
+    js .Lfdr_done
+    call fs_progress_item
     jmp .Lfdr_done
 
 .Lfdr_close_nomem:
@@ -599,8 +662,13 @@ fs_move_recursive:
     call fs_copy_recursive
     test rax, rax
     js .Lfmr_done
+    # Copy is complete: finish removing the source atomically from the user's view
+    # (no cancel, no double counting) so a move never ends half-deleted.
+    push qword ptr [rip + g_fs_progress]
+    mov qword ptr [rip + g_fs_progress], 0
     mov rdi, rbx
     call fs_delete_recursive
+    pop qword ptr [rip + g_fs_progress]
 .Lfmr_done:
     pop r12
     pop rbx

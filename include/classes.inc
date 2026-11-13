@@ -15,7 +15,8 @@
 #                 ├── ConfirmDialog
 #                 ├── InputDialog
 #                 ├── ViewerDialog
-#                 └── HelpDialog
+#                 ├── HelpDialog
+#                 └── ProgressDialog
 
 .intel_syntax noprefix
 
@@ -244,6 +245,11 @@ CLASS_BEGIN HelpDialog
     FIELD HelpDialog.pad,    4
 CLASS_END HelpDialog
 
+CLASS_BEGIN ProgressDialog
+    EXTENDS Dialog
+    FIELD ProgressDialog.btn_lbl, 3*8   # current labels of [Pause|Resume, Background, Cancel]
+CLASS_END ProgressDialog
+
 CLASS_BEGIN App
     EXTENDS Object
     FIELD App.screen,        8
@@ -268,6 +274,11 @@ CLASS_BEGIN App
     FIELD App.mouse_x,       4
     FIELD App.mouse_y,       4
     FIELD App.pad,           4
+    FIELD App.task_dlg_at,   8          # monotonic ms when ProgressDialog may auto-open
+    FIELD App.task_last_ms,  8          # last snapshot refresh
+    FIELD App.task_active,   4          # 1 while a background worker runs
+    FIELD App.task_hidden,   4          # 1 after user sent the dialog to background
+    FIELD App.task_snap,     TaskSnap._size
 CLASS_END App
 
 # --- Language IDs ---
@@ -285,6 +296,8 @@ CLASS_END App
 .equ OP_FILTER,  7
 .equ OP_GOTO,    8
 .equ OP_CHMOD,   9
+.equ OP_PROGRESS, 10
+.equ OP_QUIT,     11
 
 # --- HeaderBar Action IDs ---
 .equ HDR_BTN_THEME,   1

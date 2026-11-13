@@ -103,7 +103,7 @@ en_hl_13: .asciz "  Left Click / Double Click        Select row / Open dir or Vi
 en_hl_14: .asciz "  Right Click / Scroll Wheel       Mark file / Scroll panel under mouse"
 en_hl_15: .asciz "  Click Column Header / Scrollbar  Sort Name/Size/Date / Drag scrollbar"
 en_hl_16: .asciz "◆ ARCHITECTURE (Pure x86-64 GAS + Linux Syscalls)"
-en_hl_17: .asciz "  OOP VTables: Object -> Widget -> Pane/Bars/Dialog -> Confirm/Input/Viewer"
+en_hl_17: .asciz "  F5/F6/F8 run in a fork worker: Alt+J progress, P pause, Esc hide, C cancel"
 en_hl_18: .asciz "◆ AUTHOR & OPEN-SOURCE LICENSE"
 en_hl_19: .asciz "  Developer: Kostiantyn Nedbailo (Недбайло Костянтин Геннадійович)"
 en_hl_20: .asciz "  Email:     ChessPlayerSedoy@gmail.com"
@@ -140,6 +140,22 @@ en_fp_loading_pfx:    .asciz " Loading: "
 en_fp_huge_badge:     .asciz " [FS-order]"
 en_fp_abort_badge:    .asciz " [Esc:stopped]"
 en_app_load_aborted:  .asciz "Directory streaming stopped by Esc"
+en_task_title_copy:   .asciz "Copying"
+en_task_title_move:   .asciz "Moving"
+en_task_title_delete: .asciz "Deleting"
+en_task_btn_pause:    .asciz " Pause "
+en_task_btn_resume:   .asciz " Resume "
+en_task_btn_bg:       .asciz " Background "
+en_task_lbl_files:    .asciz "Files: "
+en_task_lbl_eta:      .asciz "ETA "
+en_task_lbl_scan:     .asciz "Scanning… "
+en_task_lbl_paused:   .asciz "Paused"
+en_task_lbl_cancel:   .asciz "Canceling…"
+en_task_sb_hint:      .asciz "Alt+J: details"
+en_err_canceled:      .asciz "Operation canceled"
+en_err_busy:          .asciz "Another background operation is running"
+en_app_title_quit_tk: .asciz "Background Operation"
+en_app_msg_quit_tk:   .asciz "An operation is still running. Cancel it and quit?"
 
 # ==============================================================================
 # Ukrainian String Table (LANG_UA = 1)
@@ -234,7 +250,7 @@ ua_hl_13: .asciz "  Лівий клік / Подвійний клік    Виб�
 ua_hl_14: .asciz "  Правий клік / Колесо           Позначити файл / Прокрутка під курсором"
 ua_hl_15: .asciz "  Заголовок колонки / Повзунок   Сортувати / Перетягувати скролбар"
 ua_hl_16: .asciz "◆ АРХІТЕКТУРА (Чистий x86-64 GAS + Системні виклики Linux)"
-ua_hl_17: .asciz "  ООП VTable: Object -> Widget -> Pane/Bars/Dialog -> Confirm/Input/View"
+ua_hl_17: .asciz "  F5/F6/F8 у фоновому процесі: Alt+J прогрес, P пауза, Esc сховати, C стоп"
 ua_hl_18: .asciz "◆ РОЗРОБНИК І ВІДКРИТА ЛІЦЕНЗІЯ"
 ua_hl_19: .asciz "  Розробник: Недбайло Костянтин Геннадійович"
 ua_hl_20: .asciz "  Контакт:   ChessPlayerSedoy@gmail.com"
@@ -271,6 +287,22 @@ ua_fp_loading_pfx:    .asciz " Читання: "
 ua_fp_huge_badge:     .asciz " [Порядок ФС]"
 ua_fp_abort_badge:    .asciz " [Зупинено Esc]"
 ua_app_load_aborted:  .asciz "Дочитування теки зупинено клавішею Esc"
+ua_task_title_copy:   .asciz "Копіювання"
+ua_task_title_move:   .asciz "Переміщення"
+ua_task_title_delete: .asciz "Видалення"
+ua_task_btn_pause:    .asciz " Пауза "
+ua_task_btn_resume:   .asciz " Продовжити "
+ua_task_btn_bg:       .asciz " У фоні "
+ua_task_lbl_files:    .asciz "Файли: "
+ua_task_lbl_eta:      .asciz "Залишилось "
+ua_task_lbl_scan:     .asciz "Підрахунок… "
+ua_task_lbl_paused:   .asciz "Призупинено"
+ua_task_lbl_cancel:   .asciz "Скасування…"
+ua_task_sb_hint:      .asciz "Alt+J: деталі"
+ua_err_canceled:      .asciz "Операцію скасовано"
+ua_err_busy:          .asciz "Уже виконується інша фонова операція"
+ua_app_title_quit_tk: .asciz "Фонова операція"
+ua_app_msg_quit_tk:   .asciz "Операція ще триває. Скасувати її та вийти?"
 
 .align 8
 .global lang_en_table
@@ -297,6 +329,10 @@ lang_en_table:
     .quad en_app_sel_items_sfx, en_app_ok_mkdir, en_app_ok_newfile, en_app_ok_rename
     .quad en_app_ok_copy, en_app_ok_move, en_app_ok_delete, en_app_ok_refresh, en_app_err_parent, en_app_err_isdir
     .quad en_fp_loading_pfx, en_fp_huge_badge, en_fp_abort_badge, en_app_load_aborted
+    .quad en_task_title_copy, en_task_title_move, en_task_title_delete
+    .quad en_task_btn_pause, en_task_btn_resume, en_task_btn_bg
+    .quad en_task_lbl_files, en_task_lbl_eta, en_task_lbl_scan, en_task_lbl_paused, en_task_lbl_cancel
+    .quad en_task_sb_hint, en_err_canceled, en_err_busy, en_app_title_quit_tk, en_app_msg_quit_tk
 .if (. - lang_en_table) != LangStrings._size
     .error "lang_en_table size does not match LangStrings._size"
 .endif
@@ -326,6 +362,10 @@ lang_ua_table:
     .quad ua_app_sel_items_sfx, ua_app_ok_mkdir, ua_app_ok_newfile, ua_app_ok_rename
     .quad ua_app_ok_copy, ua_app_ok_move, ua_app_ok_delete, ua_app_ok_refresh, ua_app_err_parent, ua_app_err_isdir
     .quad ua_fp_loading_pfx, ua_fp_huge_badge, ua_fp_abort_badge, ua_app_load_aborted
+    .quad ua_task_title_copy, ua_task_title_move, ua_task_title_delete
+    .quad ua_task_btn_pause, ua_task_btn_resume, ua_task_btn_bg
+    .quad ua_task_lbl_files, ua_task_lbl_eta, ua_task_lbl_scan, ua_task_lbl_paused, ua_task_lbl_cancel
+    .quad ua_task_sb_hint, ua_err_canceled, ua_err_busy, ua_app_title_quit_tk, ua_app_msg_quit_tk
 .if (. - lang_ua_table) != LangStrings._size
     .error "lang_ua_table size does not match LangStrings._size"
 .endif

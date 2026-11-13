@@ -50,6 +50,51 @@ FileEntry.disp_width: .space 1    # terminal columns of name (clamped 0..255)
 FileEntry.ext_offset: .space 1    # offset of '.' after index 0, or 0
 FileEntry._size:
 
+# --- TaskShared (MAP_SHARED page written by the background worker, read by the UI) ---
+# Counters are naturally aligned qwords (atomic on all targets); cur_name uses a seqlock.
+.struct 0
+TaskShared.total_bytes: .space 8   # bytes of regular files discovered by the scan phase
+TaskShared.total_files: .space 8   # entries (files + dirs + links) discovered by the scan phase
+TaskShared.done_bytes:  .space 8   # bytes copied so far
+TaskShared.done_files:  .space 8   # entries processed so far
+TaskShared.result:      .space 8   # final 0 / -errno (valid once phase == TASK_PHASE_DONE)
+TaskShared.seq:         .space 4   # seqlock counter for cur_name (odd = writer active)
+TaskShared.phase:       .space 4   # TASK_PHASE_*
+TaskShared.cancel:      .space 4   # set to 1 by the UI process to request cooperative cancel
+TaskShared.pad:         .space 4
+TaskShared.cur_name:    .space 256      # == NAME_MAX (asserted in src/fs/task.s)
+TaskShared._size:
+
+# --- TaskSnap (UI-side consistent snapshot of the running task) ---
+.struct 0
+TaskSnap.total_bytes: .space 8
+TaskSnap.total_files: .space 8
+TaskSnap.done_bytes:  .space 8
+TaskSnap.done_files:  .space 8
+TaskSnap.elapsed_ms:  .space 8     # active time (pauses excluded)
+TaskSnap.speed_bps:   .space 8     # bytes per second (0 = unknown)
+TaskSnap.eta_sec:     .space 8     # seconds remaining (-1 = unknown)
+TaskSnap.op:          .space 4     # TASK_OP_*
+TaskSnap.phase:       .space 4     # TASK_PHASE_*
+TaskSnap.paused:      .space 4
+TaskSnap.percent:     .space 4     # 0..100
+TaskSnap.canceling:   .space 4
+TaskSnap.pad:         .space 4
+TaskSnap.cur_name:    .space 256        # == NAME_MAX
+TaskSnap._size:
+
+# --- TaskJob (heap job description handed to fs_task_start; names are NUL-separated) ---
+.struct 0
+TaskJob.names_len: .space 8        # bytes used in names[]
+TaskJob.op:        .space 4        # TASK_OP_*
+TaskJob.count:     .space 4        # number of names
+TaskJob.join_dst:  .space 4        # 1 = dst/<name>, 0 = dst used verbatim (single item)
+TaskJob.pad:       .space 4
+TaskJob.src_dir:   .space 4096         # == PATH_MAX (asserted in src/fs/task.s)
+TaskJob.dst:       .space 4096
+TaskJob.names:                     # variable-length "a\0b\0..." block follows
+TaskJob._size:
+
 # --- Theme (128 bytes) ---
 .struct 0
 Theme.name:               .space 8
@@ -172,6 +217,22 @@ LangStrings.fp_loading_pfx:     .space 8
 LangStrings.fp_huge_badge:      .space 8
 LangStrings.fp_abort_badge:     .space 8
 LangStrings.app_load_aborted:   .space 8
+LangStrings.task_title_copy:    .space 8
+LangStrings.task_title_move:    .space 8
+LangStrings.task_title_delete:  .space 8
+LangStrings.task_btn_pause:     .space 8
+LangStrings.task_btn_resume:    .space 8
+LangStrings.task_btn_bg:        .space 8
+LangStrings.task_lbl_files:     .space 8
+LangStrings.task_lbl_eta:       .space 8
+LangStrings.task_lbl_scan:      .space 8
+LangStrings.task_lbl_paused:    .space 8
+LangStrings.task_lbl_canceling: .space 8
+LangStrings.task_sb_hint:       .space 8
+LangStrings.err_canceled:       .space 8
+LangStrings.err_busy:           .space 8
+LangStrings.app_title_quit_task: .space 8
+LangStrings.app_msg_quit_task:  .space 8
 LangStrings._size:
 
 .section .text

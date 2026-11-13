@@ -26,6 +26,9 @@ g_raw_active:
 .global os_term_save_and_raw
 .global os_term_restore
 .global os_signals_install
+.global os_poll_in2
+.global os_pipe_cloexec
+.global os_signals_worker_mode
 
 # Helper: void copy_kstat_to_filestat(const struct stat *kstat [rsi], FileStat *out [rdi])
 copy_kstat_to_filestat:
@@ -171,6 +174,59 @@ os_poll_in:
     add rsp, 40
     ret
 
+# int os_poll_in2(int fd0, int fd1, int timeout_ms)
+# ppoll on two descriptors (fd1 < 0 is ignored by the kernel). POLLHUP/POLLERR count as ready.
+# Returns bitmask (bit0 = fd0, bit1 = fd1), 0 on timeout, or -errno.
+os_poll_in2:
+    sub rsp, 40               # [0..7]=pollfd0, [8..15]=pollfd1, [16..31]=timespec
+    mov dword ptr [rsp + POLLFD_FD], edi
+    mov word ptr [rsp + POLLFD_EVENTS], POLLIN
+    mov word ptr [rsp + POLLFD_REVENTS], 0
+    mov dword ptr [rsp + 8 + POLLFD_FD], esi
+    mov word ptr [rsp + 8 + POLLFD_EVENTS], POLLIN
+    mov word ptr [rsp + 8 + POLLFD_REVENTS], 0
+
+    xor r9d, r9d              # NULL timespec if timeout_ms < 0
+    test edx, edx
+    js .Lopi2_call
+    movsxd rax, edx
+    cqo
+    mov ecx, 1000
+    idiv rcx
+    imul rdx, rdx, 1000000
+    mov [rsp + 16 + TIMESPEC_SEC], rax
+    mov [rsp + 16 + TIMESPEC_NSEC], rdx
+    lea r9, [rsp + 16]
+
+.Lopi2_call:
+    mov rdi, rsp
+    mov esi, 2
+    mov rdx, r9
+    xor r10d, r10d
+    mov r8d, 8
+    mov eax, OS_SYS_ppoll
+    syscall
+    test rax, rax
+    jle .Lopi2_done
+    xor eax, eax
+    cmp word ptr [rsp + POLLFD_REVENTS], 0
+    je .Lopi2_chk1
+    or eax, 1
+.Lopi2_chk1:
+    cmp word ptr [rsp + 8 + POLLFD_REVENTS], 0
+    je .Lopi2_done
+    or eax, 2
+.Lopi2_done:
+    add rsp, 40
+    ret
+
+# int os_pipe_cloexec(int fds[2])
+os_pipe_cloexec:
+    mov esi, O_CLOEXEC
+    mov eax, OS_SYS_pipe2
+    syscall
+    ret
+
 # int64_t os_clock_ms(void)
 os_clock_ms:
     sub rsp, 24               # 16-byte aligned
@@ -302,6 +358,47 @@ os_term_restore:
 sig_restorer:
     mov eax, OS_SYS_rt_sigreturn
     syscall
+
+# No-op handler: its only purpose is to make blocking syscalls return -EINTR
+sig_noop:
+    ret
+
+# void os_signals_worker_mode(void)
+# Background worker policy: SIGWINCH/SIGINT ignored (never interrupt I/O), SIGTERM -> no-op
+# handler without SA_RESTART so a parent cancel request breaks blocking open()/read() with -EINTR.
+os_signals_worker_mode:
+    sub rsp, KSIGACTION_SIZE + 8
+    mov qword ptr [rsp + KSIG_HANDLER], KSIG_IGN
+    mov qword ptr [rsp + KSIG_FLAGS], SA_RESTORER
+    lea rax, [rip + sig_restorer]
+    mov [rsp + KSIG_RESTORER], rax
+    mov qword ptr [rsp + KSIG_MASK], 0
+
+    mov edi, SIGWINCH
+    mov rsi, rsp
+    xor edx, edx
+    mov r10d, 8
+    mov eax, OS_SYS_rt_sigaction
+    syscall
+
+    mov edi, SIGINT
+    mov rsi, rsp
+    xor edx, edx
+    mov r10d, 8
+    mov eax, OS_SYS_rt_sigaction
+    syscall
+
+    lea rax, [rip + sig_noop]
+    mov [rsp + KSIG_HANDLER], rax
+    mov edi, SIGTERM
+    mov rsi, rsp
+    xor edx, edx
+    mov r10d, 8
+    mov eax, OS_SYS_rt_sigaction
+    syscall
+
+    add rsp, KSIGACTION_SIZE + 8
+    ret
 
 # void os_signals_install(void (*on_winch)(void), void (*on_term)(void))
 os_signals_install:

@@ -45,6 +45,7 @@
   - **вкладки у кожній панелі** (`Ctrl+T` — нова, `Ctrl+W` — закрити, клік мишею по смужці вкладок, середній клік для закриття).
 
 ### 1.4 Асинхронні файлові операції, `copy_file_range` і діалоги прогресу/конфліктів
+- **Статус (`v1.2.0`)**: ✅ фоновий `fork`-воркер ([task.s](src/fs/task.s)) зі спільною `MAP_SHARED`-сторінкою прогресу (seqlock для імені файлу) та `pipe2(O_CLOEXEC)`-пробудженням циклу подій через `ppoll` ([input.s](src/tui/input.s)); ✅ `ProgressDialog` ([progress_dialog.s](src/ui/progress_dialog.s)): файл, прогрес-бар, байти/файли, швидкість, ETA, пауза (`SIGSTOP`/`SIGCONT`), режим «у фоні» з прогресом у `StatusBar`, кооперативне скасування + `SIGTERM` для переривання блокуючих `open`/`read` із видаленням недописаного файлу; ✅ підтвердження виходу та гарантоване завершення воркера. ⏳ Залишилось: `copy_file_range`, черга з кількох задач, діалог конфліктів.
 - **Файли**: [file_ops.s](src/fs/file_ops.s), [dialogs.s](src/ui/dialogs.s), [classes.inc](include/classes.inc) (`TaskQueue`), [linux_sys.inc](include/linux_sys.inc).
 - **Архітектура**:
   - фонова черга задач у окремому процесі (`fork`/`clone(SIGCHLD)` + двосторонні `pipe2`) замість спільного `CLONE_VM`, що гарантує відсутність data race у алокаторі [memory.s](src/core/memory.s) та глобальних буферах;

@@ -22,6 +22,7 @@
 .equ OS_SYS_execve,         59
 .equ OS_SYS_exit,           60
 .equ OS_SYS_wait4,          61
+.equ OS_SYS_kill,           62
 .equ OS_SYS_getcwd,         79
 .equ OS_SYS_chdir,          80
 .equ OS_SYS_getdents64,     217
@@ -34,6 +35,7 @@
 .equ OS_SYS_symlinkat,      266
 .equ OS_SYS_readlinkat,     267
 .equ OS_SYS_ppoll,          271
+.equ OS_SYS_pipe2,          293
 .equ OS_SYS_statx,          332
 .equ OS_SYS_io_uring_setup, 425
 .equ OS_SYS_io_uring_enter, 426
@@ -66,6 +68,7 @@
 .equ MAP_PRIVATE,           0x02
 .equ MAP_ANONYMOUS,         0x20
 .equ MAP_PRIVATE_ANON,      0x22
+.equ MAP_SHARED_ANON,       0x21
 .equ MAP_POPULATE,          0x8000
 .equ MREMAP_MAYMOVE,        0x1
 
@@ -77,16 +80,27 @@
 
 # --- Common Errno Values (PAL normalizes failures to -errno) ---
 .equ ENOENT,                2
+.equ ESRCH,                 3
 .equ EINTR,                 4
+.equ EIO,                   5
+.equ ECHILD,                10
 .equ EAGAIN,                11
 .equ ENOMEM,                12
 .equ EACCES,                13
+.equ EBUSY,                 16
 .equ EEXIST,                17
 .equ EXDEV,                 18
 .equ ENOTDIR,               20
 .equ EISDIR,                21
 .equ EINVAL,                22
 .equ ENOTEMPTY,             39
+.equ ECANCELED,             125
+
+# --- Portable Process Control (signals & wait flags) ---
+.equ SIGKILL,               9
+.equ SIGCONT,               18
+.equ SIGSTOP,               19
+.equ WNOHANG,               1
 
 # --- Linux Kernel ABI Struct Offsets (only used inside src/os/linux/x86_64/) ---
 .equ TCGETS,                0x5401
@@ -123,6 +137,7 @@
 .equ KSIG_RESTORER,         16
 .equ KSIG_MASK,             24
 .equ SA_RESTORER,           0x04000000
+.equ KSIG_IGN,              1
 .equ SIGINT,                2
 .equ SIGTERM,               15
 .equ SIGWINCH,              28
@@ -285,6 +300,21 @@
 
 .macro OS_WAIT4
     mov eax, OS_SYS_wait4
+    syscall
+.endm
+
+# Send signal: rdi=pid, rsi=sig
+.macro OS_KILL
+    mov eax, OS_SYS_kill
+    syscall
+.endm
+
+# Allocate anonymous pages shared with forked children: rdi=addr(0), rsi=length, rdx=prot
+.macro OS_MMAP_SHARED_ANON
+    mov r10d, MAP_SHARED_ANON
+    mov r8, -1
+    xor r9d, r9d
+    mov eax, OS_SYS_mmap
     syscall
 .endm
 

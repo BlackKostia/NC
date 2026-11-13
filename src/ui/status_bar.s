@@ -1,5 +1,6 @@
 # StatusBar Widget (Inherits from Widget)
-# Shows temporary status notifications, active filter indicator, or detailed entry info.
+# Shows temporary status notifications, background task progress, active filter indicator,
+# or detailed entry info.
 
 .intel_syntax noprefix
 .include "pal.inc"
@@ -151,6 +152,8 @@ StatusBar_render:
 
 .Lsbr_check_filter:
     mov r14, [rbx + StatusBar.app]
+    cmp dword ptr [r14 + App.task_active], 0
+    jne .Lsbr_task
     mov r14, [r14 + App.active_pane]
     test r14, r14
     jz .Lsbr_done
@@ -356,6 +359,48 @@ StatusBar_render:
     dec esi
     mov edx, [rbx + Widget.y]
     mov rcx, [r15 + LangStrings.sb_hint_right]
+    lea r8d, [r14d + 1]
+    call ScreenBuffer_draw_text
+
+    jmp .Lsbr_done
+
+.Lsbr_task:
+    # Background operation: " ⟳ Copying 45%  ·  5.1 M/s  ·  ETA 0:03"  ...  "Alt+J: details"
+    lea rdi, [r14 + App.task_snap]
+    mov rsi, rsp
+    call ProgressDialog_format_summary
+    call i18n_get
+    mov r15, [rax + LangStrings.task_sb_hint]
+    mov rdi, r15
+    call utf8_display_width
+    mov r14d, eax                 # hint width
+
+    mov rdi, r12
+    mov esi, [r13 + Theme.accent]
+    mov edx, [r13 + Theme.bg]
+    mov ecx, ATTR_BOLD
+    call ScreenBuffer_set_pen
+    mov rdi, r12
+    mov esi, [rbx + Widget.x]
+    mov edx, [rbx + Widget.y]
+    mov rcx, rsp
+    mov r8d, [rbx + Widget.w]
+    sub r8d, r14d
+    sub r8d, 2
+    call ScreenBuffer_draw_text
+
+    mov rdi, r12
+    mov esi, [r13 + Theme.muted]
+    mov edx, [r13 + Theme.bg]
+    xor ecx, ecx
+    call ScreenBuffer_set_pen
+    mov rdi, r12
+    mov esi, [rbx + Widget.x]
+    add esi, [rbx + Widget.w]
+    sub esi, r14d
+    dec esi
+    mov edx, [rbx + Widget.y]
+    mov rcx, r15
     lea r8d, [r14d + 1]
     call ScreenBuffer_draw_text
 

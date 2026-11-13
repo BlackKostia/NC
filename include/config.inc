@@ -18,6 +18,18 @@
 .equ STREAM_BATCH_BUDGET, 4096      # entries per incremental load batch in App_run
 .equ HUGE_DIR_THRESHOLD,  50000     # switch to ls -f unsorted mode above this threshold
 
+# --- Background Task (fork worker) ---
+.equ TASK_OP_COPY,        1
+.equ TASK_OP_MOVE,        2
+.equ TASK_OP_DELETE,      3
+.equ TASK_PHASE_SCAN,     1
+.equ TASK_PHASE_RUN,      2
+.equ TASK_PHASE_DONE,     3
+.equ TASK_SHM_SIZE,       4096      # one shared page for TaskShared
+.equ TASK_DLG_DELAY_MS,   300       # show ProgressDialog only for operations slower than this
+.equ TASK_TICK_MS,        100       # UI refresh cadence while a task runs
+.equ TASK_KILL_GRACE_MS,  3000      # shutdown: SIGKILL a worker that ignores cancel this long
+
 # --- Double-click threshold (milliseconds) ---
 .equ DBLCLICK_MS,         420
 

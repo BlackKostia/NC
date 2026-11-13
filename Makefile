@@ -27,13 +27,16 @@ SRCS := \
 	src/fs/dir_model.s \
 	src/fs/dir_sort.s \
 	src/fs/file_ops.s \
+	src/fs/task.s \
 	src/ui/header_bar.s \
 	src/ui/function_bar.s \
 	src/ui/status_bar.s \
 	src/ui/file_pane.s \
 	src/ui/preview_pane.s \
 	src/ui/dialogs.s \
-	src/app/app.s
+	src/ui/progress_dialog.s \
+	src/app/app.s \
+	src/app/app_task.s
 
 PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_os.s \
@@ -69,6 +72,7 @@ test: $(TARGET)
 	python3 tests/test_pty.py
 	python3 tests/test_fs_reliability.py
 	python3 tests/test_performance_dir.py
+	python3 tests/test_bg_tasks.py
 
 verify:
 	./.agents/skills/duop-pty-verify/scripts/verify_build.sh
