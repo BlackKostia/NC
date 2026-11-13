@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
+cd "$ROOT"
+
+MODE="full"
+if [[ "${1:-}" == "--release-only" ]]; then
+    MODE="release-only"
+elif [[ "${1:-}" == "--full" || -z "${1:-}" ]]; then
+    MODE="full"
+else
+    echo "Usage: $0 [--full|--release-only]" >&2
+    exit 2
+fi
+
+echo "==> [1/4] Checking NeoCommander modularity & i18n contracts..."
+python3 ./.agents/skills/nc-modular-asm/scripts/check_modularity.py --root "$ROOT"
+
+VER="$(tr -d '[:space:]' < "$ROOT/VERSION")"
+
+echo "==> [2/4] Building stripped release binary (v${VER})..."
+make -s release
+
+echo "==> [3/4] Auditing ELF sections & --version..."
+SIZE_OUT="$(size "$ROOT/nc")"
+echo "$SIZE_OUT"
+DATA_BYTES="$(printf '%s\n' "$SIZE_OUT" | awk 'NR==2 {print $2}')"
+if [[ -z "$DATA_BYTES" || "$DATA_BYTES" -ne 0 ]]; then
+    echo "ERROR: ELF .data section must be 0 bytes (got '${DATA_BYTES}')." >&2
+    exit 1
+fi
+
+VER_OUT="$("$ROOT/nc" --version)"
+if [[ "$VER_OUT" != *"v${VER}"* ]]; then
+    echo "ERROR: './nc --version' output '${VER_OUT}' does not match VERSION '${VER}'." >&2
+    exit 1
+fi
+echo "Verified binary version: $VER_OUT"
+
+echo "==> [4/4] Running end-to-end PTY test suite (release)..."
+make -s test
+
+if [[ "$MODE" == "full" ]]; then
+    echo "==> [Extra] Rebuilding DWARF debug binary & running PTY tests..."
+    make -s clean
+    make -s
+    make -s test
+fi
+
+echo "ALL CHECKS PASSED (NeoCommander v${VER}, mode=${MODE})."

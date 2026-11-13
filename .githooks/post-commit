@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+VER="$(tr -d '[:space:]' < "$ROOT/VERSION")"
+HEAD_SHORT="$(git rev-parse --short HEAD)"
+BRANCH="$(git branch --show-current 2>/dev/null || echo 'detached')"
+
+echo "[post-commit] ${BRANCH}@${HEAD_SHORT} | NeoCommander VERSION=${VER}"
+
+if git rev-parse -q --verify HEAD~1 >/dev/null 2>&1; then
+    PREV_VER="$(git show HEAD~1:VERSION 2>/dev/null | tr -d '[:space:]' || true)"
+    if [[ -n "$PREV_VER" && "$PREV_VER" != "$VER" ]]; then
+        if ! git rev-parse -q --verify "refs/tags/v${VER}" >/dev/null 2>&1; then
+            if [[ "${NC_AUTO_TAG:-0}" == "1" ]]; then
+                git tag -a "v${VER}" -m "NeoCommander v${VER}"
+                echo "[post-commit] Auto-created release tag v${VER}"
+            else
+                echo "[post-commit] VERSION bumped (${PREV_VER} -> ${VER})."
+                echo "              Tag release when ready: git tag -a v${VER} -m \"NeoCommander v${VER}\""
+            fi
+        fi
+    fi
+fi

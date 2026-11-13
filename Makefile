@@ -34,7 +34,7 @@ SRCS := \
 OBJS := $(patsubst src/%.s,$(BUILD)/%.o,$(SRCS))
 INCS := $(wildcard include/*.inc)
 
-.PHONY: all release run test clean
+.PHONY: all release run test verify hooks clean
 
 all: $(TARGET)
 
@@ -58,6 +58,13 @@ run: $(TARGET)
 
 test: $(TARGET)
 	python3 tests/test_pty.py
+
+verify:
+	./.agents/skills/nc-pty-verify/scripts/verify_build.sh
+
+hooks:
+	git config core.hooksPath .githooks
+	chmod +x .githooks/* .agents/hooks/*.py .agents/skills/*/scripts/*
 
 clean:
 	rm -rf $(BUILD) $(TARGET)

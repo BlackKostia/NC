@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+"""Conventional Commits validator for NeoCommander (.githooks/commit-msg)."""
+
+from __future__ import annotations
+
+import re
+import sys
+from pathlib import Path
+
+HEADER_RE = re.compile(
+    r"^(?:feat|fix|refactor|perf|docs|test|build|ci|chore|style|revert)"
+    r"(?:\([a-z0-9_.,/ -]+\))?!?: .{3,}$"
+)
+
+
+def main() -> int:
+    if len(sys.argv) < 2:
+        print("ERROR [commit-msg]: Missing commit message file argument", file=sys.stderr)
+        return 1
+
+    msg_path = Path(sys.argv[1])
+    lines = [
+        line.strip()
+        for line in msg_path.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    if not lines:
+        print("ERROR [commit-msg]: Commit message cannot be empty.", file=sys.stderr)
+        return 1
+
+    header = lines[0]
+    if header.startswith("Merge ") or header.startswith('Revert "'):
+        return 0
+
+    if not HEADER_RE.match(header):
+        print(
+            "ERROR [commit-msg]: Use Conventional Commits format:\n"
+            f"  Got: '{header}'\n"
+            "  Expected: <type>(<scope>): <summary> (at least 3 chars)\n"
+            "  Types: feat, fix, refactor, perf, docs, test, build, ci, chore, style, revert\n"
+            "  Example: feat(config): add ncrc keybind parser (v1.1.0)",
+            file=sys.stderr,
+        )
+        return 1
+
+    if len(header) > 85:
+        print(f"WARN [commit-msg]: Commit subject is {len(header)} chars (aim for <= 85).")
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

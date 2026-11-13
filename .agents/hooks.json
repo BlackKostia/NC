@@ -1,0 +1,46 @@
+{
+  "nc-session-context": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "python3 ./hooks/nc_lifecycle.py",
+        "timeout": 5
+      }
+    ]
+  },
+  "nc-tool-guards": {
+    "PreToolUse": [
+      {
+        "matcher": "write_file|edit_file|run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ./hooks/nc_lifecycle.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "write_file|edit_file|run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ./hooks/nc_lifecycle.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
+  "nc-verify-and-commit-gate": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "python3 ./hooks/nc_lifecycle.py",
+        "timeout": 5
+      }
+    ]
+  }
+}

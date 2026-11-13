@@ -41,8 +41,11 @@ Object
 
 ```text
 NC/
+├── AGENTS.md                 # Правила модульної архітектури, SemVer і комітів
 ├── VERSION                   # Поточна SemVer-версія (1.0.0)
-├── Makefile                  # Збірка (all / release / run / test / clean)
+├── Makefile                  # Збірка (all / release / run / test / verify / hooks / clean)
+├── .agents/                  # Antigravity скіли (nc-*) та lifecycle-хуки (hooks.json)
+├── .githooks/                # Git-хуки (pre-commit, commit-msg, post-commit)
 ├── include/
 │   ├── linux_sys.inc         # Системні виклики x86-64, kernel termios/stat/sigaction
 │   ├── config.inc            # Ліміти, коди клавіш/миші, UTF-8 гліфи інтерфейсу
@@ -67,6 +70,8 @@ make          # Зібрати ./nc (з DWARF debug-інформацією)
 make release  # Зібрати оптимізований stripped-бінарник
 make run      # Запустити ./nc
 make test     # Запустити наскрізні PTY-тести
+make verify   # Повна перевірка (модульність + release + debug + ELF .data==0 + PTY)
+make hooks    # Активувати Git-хуки з .githooks/ та права на скрипти
 ```
 
 Можна передавати початкові каталоги та мову інтерфейсу (`ua` або `en`; також автовизначення з `LC_ALL`/`LC_MESSAGES`/`LANG`), або перевірити версію через `-V`/`--version`:

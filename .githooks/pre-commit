@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+STAGED="$(git diff --cached --name-only --diff-filter=ACMR)"
+if [[ -z "$STAGED" ]]; then
+    exit 0
+fi
+
+# 1. Forbid staging build outputs or Python caches
+BAD_ARTIFACTS="$(printf '%s\n' "$STAGED" | grep -E '^(build/|nc$|__pycache__/)|\.o$|\.py[co]$' || true)"
+if [[ -n "$BAD_ARTIFACTS" ]]; then
+    echo "ERROR [pre-commit]: Refusing to commit generated build/cache artifacts:" >&2
+    printf '%s\n' "$BAD_ARTIFACTS" >&2
+    exit 1
+fi
+
+# 2. Prevent partial staging mismatch on tested source/build files
+UNSTAGED="$(git diff --name-only)"
+CODE_STAGED="$(printf '%s\n' "$STAGED" | grep -E '^(src/|include/|Makefile$|VERSION$|tests/)' || true)"
+if [[ -n "$CODE_STAGED" && -n "$UNSTAGED" ]]; then
+    MIXED="$(comm -12 <(printf '%s\n' "$CODE_STAGED" | sort) <(printf '%s\n' "$UNSTAGED" | sort) || true)"
+    if [[ -n "$MIXED" ]]; then
+        echo "ERROR [pre-commit]: Partially staged files would diverge tested tree from commit:" >&2
+        printf '%s\n' "$MIXED" >&2
+        echo "Stage all changes in those files (git add ...) or stash unstaged edits first." >&2
+        exit 1
+    fi
+fi
+
+# 3. Validate VERSION format, Makefile SRCS sync, layer rules, and i18n symmetry
+python3 ./.agents/skills/nc-modular-asm/scripts/check_modularity.py --root "$ROOT"
+
+VER="$(tr -d '[:space:]' < "$ROOT/VERSION")"
+
+# 4. Enforce continuous SemVer progression whenever src/ or include/ changes
+BIN_CODE_STAGED="$(printf '%s\n' "$STAGED" | grep -E '^(src/|include/)' || true)"
+if [[ -n "$BIN_CODE_STAGED" ]]; then
+    if git rev-parse -q --verify "refs/tags/v${VER}" >/dev/null 2>&1; then
+        if [[ "${NC_ALLOW_SAME_VERSION:-0}" != "1" ]]; then
+            echo "ERROR [pre-commit]: Git tag v${VER} already exists, but src/ or include/ modified!" >&2
+            echo "Bump VERSION before committing code changes:" >&2
+            echo "  python3 ./.agents/skills/nc-version-release/scripts/bump_version.py --bump patch  # bugfix/refactor" >&2
+            echo "  python3 ./.agents/skills/nc-version-release/scripts/bump_version.py --bump minor  # new feature" >&2
+            echo "Then 'git add VERSION' and re-run commit (emergency override: NC_ALLOW_SAME_VERSION=1)." >&2
+            exit 1
+        fi
+    fi
+fi
+
+# 5. Build stripped release binary, verify ELF .data==0 & --version, and run PTY suite
+NEEDS_BUILD="$(printf '%s\n' "$STAGED" | grep -E '^(src/|include/|Makefile$|VERSION$|tests/test_pty\.py$)' || true)"
+if [[ -n "$NEEDS_BUILD" && "${NC_SKIP_PTY_HOOK:-0}" != "1" ]]; then
+    echo "[pre-commit] Running release build + ELF audit + PTY test suite..."
+    ./.agents/skills/nc-pty-verify/scripts/verify_build.sh --release-only
+fi
