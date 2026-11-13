@@ -51,7 +51,7 @@ if [[ -n "$BIN_CODE_STAGED" ]]; then
 fi
 
 # 5. Build stripped release binary, verify ELF .data==0 & --version, and run PTY suite
-NEEDS_BUILD="$(printf '%s\n' "$STAGED" | grep -E '^(src/|include/|Makefile$|VERSION$|tests/test_pty\.py$)' || true)"
+NEEDS_BUILD="$(printf '%s\n' "$STAGED" | grep -E '^(src/|include/|Makefile$|VERSION$|tests/.*\.py$)' || true)"
 if [[ -n "$NEEDS_BUILD" && "${DUOP_SKIP_PTY_HOOK:-${NC_SKIP_PTY_HOOK:-0}}" != "1" ]]; then
     echo "[pre-commit] Running release build + ELF audit + PTY test suite..."
     ./.agents/skills/duop-pty-verify/scripts/verify_build.sh --release-only

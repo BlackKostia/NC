@@ -934,7 +934,11 @@ App_close_dialog:
     jmp .Lacd_free
 
 .Lacd_fs_err:
-    mov edi, eax
+    mov r14d, eax
+    mov rdi, rbx
+    xor esi, esi
+    call reload_both_panes
+    mov edi, r14d
     call fs_errno_message
     mov rdi, rbx
     mov rsi, rax

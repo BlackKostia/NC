@@ -250,6 +250,63 @@ fs_copy_recursive:
     call fs_copy_file
     jmp .Lfcr_done
 
+# int path_is_same_or_descendant(const char *src, const char *dst)
+# Returns 1 if dst == src (ignoring trailing '/') or dst is strictly inside src/
+path_is_same_or_descendant:
+    mov r8, rdi
+    mov r9, rsi
+    xor ecx, ecx
+.Lpis_slen:
+    cmp byte ptr [r8 + rcx], 0
+    je .Lpis_strim
+    inc rcx
+    jmp .Lpis_slen
+.Lpis_strim:
+    cmp rcx, 1
+    jbe .Lpis_slen_done
+    cmp byte ptr [r8 + rcx - 1], '/'
+    jne .Lpis_slen_done
+    dec rcx
+    jmp .Lpis_strim
+.Lpis_slen_done:
+    test rcx, rcx
+    jz .Lpis_no
+
+    xor edx, edx
+.Lpis_cmp:
+    cmp rdx, rcx
+    jae .Lpis_prefix_ok
+    mov al, [r8 + rdx]
+    cmp al, [r9 + rdx]
+    jne .Lpis_no
+    inc rdx
+    jmp .Lpis_cmp
+
+.Lpis_prefix_ok:
+    cmp rcx, 1
+    jne .Lpis_boundary
+    cmp byte ptr [r8], '/'
+    je .Lpis_yes
+
+.Lpis_boundary:
+    mov al, [r9 + rcx]
+    test al, al
+    jz .Lpis_yes
+    cmp al, '/'
+    je .Lpis_yes
+.Lpis_no:
+    xor eax, eax
+    ret
+.Lpis_yes:
+    mov eax, 1
+    ret
+
+.Lfcr_err_same_pop:
+    add rsp, 160
+.Lfcr_err_same:
+    mov rax, -9999
+    jmp .Lfcr_done
+
 .Lfcr_symlink:
     # Read link target and create symlink at dst
     mov edi, PATH_MAX
@@ -286,6 +343,32 @@ fs_copy_recursive:
     jmp .Lfcr_done
 
 .Lfcr_dir:
+    # Reject copying a directory into itself or any descendant path (prevents infinite recursion)
+    mov rdi, r12
+    mov rsi, r13
+    call path_is_same_or_descendant
+    test eax, eax
+    jnz .Lfcr_err_same
+
+    # Also reject symlinked dst pointing to same directory inode as src
+    sub rsp, 160
+    mov edi, AT_FDCWD
+    mov rsi, r13
+    mov rdx, rsp
+    xor r10d, r10d
+    mov rax, SYS_newfstatat
+    syscall
+    test rax, rax
+    js .Lfcr_dst_stat_ok
+    mov rax, [rsp]
+    cmp rax, [rsp + 160]
+    jne .Lfcr_dst_stat_ok
+    mov rax, [rsp + STAT_INO]
+    cmp rax, [rsp + 160 + STAT_INO]
+    je .Lfcr_err_same_pop
+.Lfcr_dst_stat_ok:
+    add rsp, 160
+
     # Create destination directory
     mov edi, AT_FDCWD
     mov rsi, r13

@@ -27,6 +27,7 @@ Code flows downward only — never introduce upward or cyclic dependencies acros
 ## 3. Verification, SemVer & Git Commits
 
 - Use workspace skills in `.agents/skills/`:
+  - `duop-tdd-first` to design and write failing tests in `tests/` (happy-path + edge/fault cases) **before** implementing changes in `src/` or `include/`
   - `duop-modular-asm` when adding/splitting modules, OOP classes, or syscalls
   - `duop-ui-i18n-widget` when building UI widgets, themes, mouse zones, or translations
   - `duop-pty-verify` to validate modularity, ELF footprint, release/debug builds, and PTY tests

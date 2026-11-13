@@ -58,7 +58,28 @@ def load_state(path: Path) -> dict:
                 return data
         except Exception:
             pass
-    return {"modified_files": [], "edited_code": False, "edited_any": False, "needs_verify": False}
+    return {
+        "modified_files": [],
+        "edited_code": False,
+        "edited_any": False,
+        "tests_edited": False,
+        "needs_verify": False,
+    }
+
+
+def is_test_path(rel_path: str) -> bool:
+    return rel_path.startswith("tests/") and rel_path.endswith(".py")
+
+
+def has_session_or_dirty_tests(root: Path, state: dict) -> bool:
+    if state.get("tests_edited"):
+        return True
+    rc, out = run_git(root, "status", "--porcelain", "--untracked-files=all", "tests")
+    if rc == 0:
+        for p in parse_porcelain_paths(out):
+            if is_test_path(p):
+                return True
+    return False
 
 
 def save_state(path: Path, state: dict) -> None:
@@ -99,7 +120,8 @@ def handle_session_start(payload: dict, root: Path) -> dict:
         f"[Duop Workspace] VERSION={ver} | branch={branch or 'detached'} ({head or 'unborn'}) "
         f"| latest_tag={tag or 'none'} | dirty_files={dirty_count} | git_hooks={hooks_path or 'default'}.\n"
         "Use workspace rules in AGENTS.md and skills in .agents/skills/: "
-        "duop-modular-asm, duop-ui-i18n-widget, duop-pty-verify, duop-version-release. "
+        "duop-tdd-first, duop-modular-asm, duop-ui-i18n-widget, duop-pty-verify, duop-version-release. "
+        "Always design & write tests under tests/ before editing src/ or include/. "
         "Verify with ./.agents/skills/duop-pty-verify/scripts/verify_build.sh, maintain SemVer in VERSION, "
         "and commit after verified changes."
     )
@@ -133,6 +155,17 @@ def handle_pre_tool_use(payload: dict, root: Path) -> dict:
                     return {
                         "decision": "deny",
                         "reason": f"Invalid SemVer '{content}' for VERSION; expected X.Y.Z (e.g. 1.0.2).",
+                    }
+            if rel.startswith(CODE_PATH_PREFIXES) and os.environ.get("DUOP_TDD_BYPASS") != "1":
+                spath = state_file_for(payload, root)
+                state = load_state(spath)
+                if not has_session_or_dirty_tests(root, state):
+                    return {
+                        "decision": "deny",
+                        "reason": (
+                            f"TDD-first gate (duop-tdd-first): create or update tests under tests/ before editing '{rel}'. "
+                            "Write happy-path and fault/edge assertions first (or set DUOP_TDD_BYPASS=1 only for pure non-functional refactors)."
+                        ),
                     }
         return {"decision": "allow"}
 
@@ -196,6 +229,8 @@ def handle_post_tool_use(payload: dict, root: Path) -> dict:
             state["modified_files"] = files
             state["edited_any"] = True
             state["stop_nudged_sig"] = ""
+            if is_test_path(rel):
+                state["tests_edited"] = True
             if is_verify_relevant(rel):
                 state["edited_code"] = True
                 state["needs_verify"] = True
@@ -203,7 +238,10 @@ def handle_post_tool_use(payload: dict, root: Path) -> dict:
 
     elif name == "run_command" and not error:
         cmd = str(args.get("CommandLine") or args.get("command") or "")
-        if re.search(r"(?:verify_build\.sh|\bmake\b[^\n]*\bverify\b|\bmake\b[^\n]*\btest\b|test_pty\.py)", cmd):
+        if re.search(
+            r"(?:verify_build\.sh|\bmake\b[^\n]*\b(?:verify|test)\b|tests/test_[A-Za-z0-9_]+\.py|test_pty\.py)",
+            cmd,
+        ):
             state["needs_verify"] = False
             state["stop_nudged_sig"] = ""
             save_state(spath, state)
@@ -215,6 +253,7 @@ def handle_post_tool_use(payload: dict, root: Path) -> dict:
             if not remaining:
                 state["edited_code"] = False
                 state["edited_any"] = False
+                state["tests_edited"] = False
             save_state(spath, state)
 
     return {}

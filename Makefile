@@ -58,6 +58,7 @@ run: $(TARGET)
 
 test: $(TARGET)
 	python3 tests/test_pty.py
+	python3 tests/test_fs_reliability.py
 
 verify:
 	./.agents/skills/duop-pty-verify/scripts/verify_build.sh

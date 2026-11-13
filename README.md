@@ -43,7 +43,7 @@ Object
 duop/
 ├── AGENTS.md                 # Правила модульної архітектури, SemVer і комітів
 ├── LICENSE                   # Відкрита ліцензія MIT
-├── VERSION                   # Поточна SemVer-версія (1.0.2)
+├── VERSION                   # Поточна SemVer-версія (1.0.3)
 ├── Makefile                  # Збірка (all / release / run / test / verify / hooks / clean)
 ├── .agents/                  # Antigravity скіли (duop-*) та lifecycle-хуки (hooks.json)
 ├── .githooks/                # Git-хуки (pre-commit, commit-msg, post-commit)
@@ -61,7 +61,8 @@ duop/
 │   ├── ui/                   # header_bar.s, function_bar.s, status_bar.s, file_pane.s, preview_pane.s, dialogs.s
 │   └── app/                  # app.s
 └── tests/
-    └── test_pty.py           # Наскрізні тести в реальному PTY (клавіатура, миша, resize, ФС)
+    ├── test_pty.py           # Наскрізні тести в реальному PTY (клавіатура, миша, resize, ФС)
+    └── test_fs_reliability.py # Стрес- та відмовостійкі тести copy/move/delete/rename/EXDEV
 ```
 
 ## Збірка, запуск та тестування
