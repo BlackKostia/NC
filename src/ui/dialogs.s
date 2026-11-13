@@ -11,7 +11,7 @@ str_InputDialog:   .asciz "InputDialog"
 str_ViewerDialog:  .asciz "ViewerDialog"
 str_HelpDialog:    .asciz "HelpDialog"
 
-.equ HELP_LINE_COUNT, 18
+.equ HELP_LINE_COUNT, 22
 
 .global Dialog_vtbl
 Dialog_vtbl:
@@ -1544,6 +1544,24 @@ HelpDialog_new:
     pop rbx
     ret
 
+# int help_max_scroll(HelpDialog *this)
+# Returns maximum valid HelpDialog.scroll based on current visible dialog height.
+help_max_scroll:
+    mov eax, [rdi + Widget.h]
+    sub eax, 4
+    cmp eax, 1
+    jge .Lhms_vis_ok
+    mov eax, 1
+.Lhms_vis_ok:
+    mov edx, HELP_LINE_COUNT
+    sub edx, eax
+    xor eax, eax
+    cmp edx, 0
+    jle .Lhms_ret
+    mov eax, edx
+.Lhms_ret:
+    ret
+
 HelpDialog_layout:
     push rbx
     mov rbx, rdi
@@ -1557,7 +1575,7 @@ HelpDialog_layout:
     jge .Lhdl_wok
     mov r9d, ecx
 .Lhdl_wok:
-    mov r10d, 22
+    mov r10d, HELP_LINE_COUNT + 4
     cmp r10d, r8d
     jle .Lhdl_hok
     mov r10d, r8d
@@ -1577,6 +1595,13 @@ HelpDialog_layout:
     mov ecx, r9d
     mov r8d, r10d
     call Widget_layout
+
+    mov rdi, rbx
+    call help_max_scroll
+    cmp [rbx + HelpDialog.scroll], eax
+    jle .Lhdl_scroll_ok
+    mov [rbx + HelpDialog.scroll], eax
+.Lhdl_scroll_ok:
 
     # Single Close button bottom-right
     call i18n_get
@@ -1707,8 +1732,8 @@ HelpDialog_on_key:
     mov dword ptr [rdi + HelpDialog.scroll], 0
     jmp .Lhdk_dirty
 .Lhdk_dn:
-    mov eax, [rdi + HelpDialog.scroll]
-    cmp eax, HELP_LINE_COUNT - 5
+    call help_max_scroll
+    cmp [rdi + HelpDialog.scroll], eax
     jge .Lhdk_dirty
     inc dword ptr [rdi + HelpDialog.scroll]
 .Lhdk_dirty:
@@ -1720,17 +1745,19 @@ HelpDialog_on_key:
 HelpDialog_on_mouse:
     cmp dword ptr [rsi + Event.mouse_kind], MACT_WHEEL
     jne Dialog_on_mouse
-    mov eax, [rdi + HelpDialog.scroll]
     cmp dword ptr [rsi + Event.mouse_btn], MOUSE_WHEEL_UP
     jne .Lhdm_dn
+    mov eax, [rdi + HelpDialog.scroll]
     dec eax
     jns .Lhdm_apply
     xor eax, eax
     jmp .Lhdm_apply
 .Lhdm_dn:
-    cmp eax, HELP_LINE_COUNT - 5
+    call help_max_scroll
+    mov ecx, [rdi + HelpDialog.scroll]
+    cmp ecx, eax
     jge .Lhdm_done
-    inc eax
+    lea eax, [rcx + 1]
 .Lhdm_apply:
     mov [rdi + HelpDialog.scroll], eax
     mov rax, [rdi + Dialog.app]

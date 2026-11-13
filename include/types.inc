@@ -141,7 +141,7 @@ LangStrings.dlg_title_help:     .space 8
 LangStrings.dlg_title_viewer:   .space 8
 LangStrings.dlg_vw_hint:        .space 8
 LangStrings.dlg_hlp_hint:       .space 8
-LangStrings.help_lines:         .space 18*8
+LangStrings.help_lines:         .space 22*8
 LangStrings.app_title_mkdir:    .space 8
 LangStrings.app_prm_mkdir:      .space 8
 LangStrings.app_title_newfile:  .space 8

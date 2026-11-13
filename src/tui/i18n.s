@@ -104,6 +104,10 @@ en_hl_14: .asciz "  Right Click / Scroll Wheel       Mark file / Scroll panel un
 en_hl_15: .asciz "  Click Column Header / Scrollbar  Sort Name/Size/Date / Drag scrollbar"
 en_hl_16: .asciz "◆ ARCHITECTURE (Pure x86-64 GAS + Linux Syscalls)"
 en_hl_17: .asciz "  OOP VTables: Object -> Widget -> Pane/Bars/Dialog -> Confirm/Input/Viewer"
+en_hl_18: .asciz "◆ AUTHOR & OPEN-SOURCE LICENSE"
+en_hl_19: .asciz "  Developer: Kostiantyn Nedbailo (Недбайло Костянтин Геннадійович)"
+en_hl_20: .asciz "  Email:     ChessPlayerSedoy@gmail.com"
+en_hl_21: .asciz "  License:   MIT License (OSI Open Source — see LICENSE)"
 
 en_app_title_mkdir:   .asciz "Create Directory"
 en_app_prm_mkdir:     .asciz "Directory name:"
@@ -227,6 +231,10 @@ ua_hl_14: .asciz "  Правий клік / Колесо           Познач�
 ua_hl_15: .asciz "  Заголовок колонки / Повзунок   Сортувати / Перетягувати скролбар"
 ua_hl_16: .asciz "◆ АРХІТЕКТУРА (Чистий x86-64 GAS + Системні виклики Linux)"
 ua_hl_17: .asciz "  ООП VTable: Object -> Widget -> Pane/Bars/Dialog -> Confirm/Input/View"
+ua_hl_18: .asciz "◆ РОЗРОБНИК І ВІДКРИТА ЛІЦЕНЗІЯ"
+ua_hl_19: .asciz "  Розробник: Недбайло Костянтин Геннадійович"
+ua_hl_20: .asciz "  Контакт:   ChessPlayerSedoy@gmail.com"
+ua_hl_21: .asciz "  Ліцензія:  MIT License (відкритий код — файл LICENSE)"
 
 ua_app_title_mkdir:   .asciz "Створити теку"
 ua_app_prm_mkdir:     .asciz "Назва теки:"
@@ -273,6 +281,7 @@ lang_en_table:
     .quad en_dlg_title_help, en_dlg_title_view, en_dlg_vw_hint, en_dlg_hlp_hint
     .quad en_hl_0, en_hl_1, en_hl_2, en_hl_3, en_hl_4, en_hl_5, en_hl_6, en_hl_7, en_hl_8
     .quad en_hl_9, en_hl_10, en_hl_11, en_hl_12, en_hl_13, en_hl_14, en_hl_15, en_hl_16, en_hl_17
+    .quad en_hl_18, en_hl_19, en_hl_20, en_hl_21
     .quad en_app_title_mkdir, en_app_prm_mkdir, en_app_title_newfile, en_app_prm_newfile
     .quad en_app_title_rename, en_app_prm_rename, en_app_title_copy, en_app_prm_copy
     .quad en_app_title_move, en_app_prm_move, en_app_title_filter, en_app_prm_filter
@@ -300,6 +309,7 @@ lang_ua_table:
     .quad ua_dlg_title_help, ua_dlg_title_view, ua_dlg_vw_hint, ua_dlg_hlp_hint
     .quad ua_hl_0, ua_hl_1, ua_hl_2, ua_hl_3, ua_hl_4, ua_hl_5, ua_hl_6, ua_hl_7, ua_hl_8
     .quad ua_hl_9, ua_hl_10, ua_hl_11, ua_hl_12, ua_hl_13, ua_hl_14, ua_hl_15, ua_hl_16, ua_hl_17
+    .quad ua_hl_18, ua_hl_19, ua_hl_20, ua_hl_21
     .quad ua_app_title_mkdir, ua_app_prm_mkdir, ua_app_title_newfile, ua_app_prm_newfile
     .quad ua_app_title_rename, ua_app_prm_rename, ua_app_title_copy, ua_app_prm_copy
     .quad ua_app_title_move, ua_app_prm_move, ua_app_title_filter, ua_app_prm_filter

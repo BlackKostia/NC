@@ -454,14 +454,24 @@ def run_tests():
             assert "item_3" in sess.vt.full_text(), "Scrollbar drag did not scroll to bottom items"
             print("[PASS] 9d. Double-click enter dir + Backspace + Mouse Hover + Scrollbar Drag")
 
-            # 10. Help Dialog (F1) + Terminal Resize (SIGWINCH)
+            # 10. Help Dialog (F1) + Developer/License Metadata + Terminal Resize (SIGWINCH)
             sess.send(b"\x1bOP")  # F1
             assert "NeoCommander Help" in sess.vt.full_text(), "Help dialog did not open"
+            for token in (
+                "◆ AUTHOR & OPEN-SOURCE LICENSE",
+                "Kostiantyn Nedbailo (Недбайло Костянтин Геннадійович)",
+                "ChessPlayerSedoy@gmail.com",
+                "MIT License",
+            ):
+                assert token in sess.vt.full_text(), f"Missing metadata in HelpDialog: {token!r}"
+            sess.resize(80, 22)
+            sess.send(b"\x1b[B\x1b[B\x1b[B\x1b[B")
+            assert "MIT License" in sess.vt.full_text(), "Scrolled HelpDialog missing license line"
             sess.send(b"\x1b")
             sess.resize(100, 26)
             assert "NeoCommander" in sess.vt.row_text(0), "Header missing after SIGWINCH resize"
             assert "Quit" in sess.vt.row_text(25), f"FunctionBar missing at row 25 after resize: {sess.vt.row_text(25)!r}"
-            print("[PASS] 10. Help Dialog (F1) & SIGWINCH responsive resize (120x35 -> 100x26)")
+            print("[PASS] 10. Help Dialog (F1 + Author/License) & SIGWINCH responsive resize (120x35 -> 80x22 -> 100x26)")
 
             # 11. Click Quit button in HeaderBar -> clean exit & terminal restoration
             qx, qy = sess.vt.find_text(" Quit ")
@@ -528,6 +538,13 @@ def run_tests():
             ver_str = open(os.path.join(repo_root, "VERSION"), encoding="utf-8").read().strip()
             assert f"v{ver_str}" in sess_ua.vt.full_text(), f"Version v{ver_str} missing in HelpDialog"
             assert "◆ НАВІГАЦІЯ З КЛАВІАТУРИ" in sess_ua.vt.full_text()
+            for token in (
+                "◆ РОЗРОБНИК І ВІДКРИТА ЛІЦЕНЗІЯ",
+                "Недбайло Костянтин Геннадійович",
+                "ChessPlayerSedoy@gmail.com",
+                "MIT License",
+            ):
+                assert token in sess_ua.vt.full_text(), f"UA HelpDialog missing {token!r}"
             hx, hy = sess_ua.vt.find_text(" Закрити ", rightmost=True)
             sess_ua.send_mouse(0, hx + 2, hy, "M")
             sess_ua.send_mouse(0, hx + 2, hy, "m")
@@ -583,12 +600,23 @@ def run_tests():
             sess_cli.send(b"q", wait=0.1)
             assert sess_cli.wait_exit(timeout=2.0) == 0
 
-            # Verify --version / -V / --help output against VERSION file
+            # Verify --version / -V / --help / --license output against VERSION & metadata
             out_ver = subprocess.check_output([binary, "--version"], text=True)
             assert f"NeoCommander v{ver_str}" in out_ver, f"--version mismatch: {out_ver!r}"
+            assert "Kostiantyn Nedbailo (Недбайло Костянтин Геннадійович)" in out_ver
+            assert "ChessPlayerSedoy@gmail.com" in out_ver and "MIT License" in out_ver
             out_ver_ua = subprocess.check_output([binary, "-V", "--lang", "ua"], text=True)
             assert "без libc" in out_ver_ua and ver_str in out_ver_ua, f"-V ua mismatch: {out_ver_ua!r}"
-            print("[PASS] 14. Locale auto-detection (LANG=uk_UA.UTF-8), --lang ua & --version CLI flags")
+            assert "Недбайло Костянтин Геннадійович" in out_ver_ua and "MIT License" in out_ver_ua
+            out_help = subprocess.check_output([binary, "--help"], text=True)
+            assert "Kostiantyn Nedbailo" in out_help and "MIT License" in out_help
+            out_help_ua = subprocess.check_output([binary, "-h", "--lang", "ua"], text=True)
+            assert "Недбайло Костянтин Геннадійович" in out_help_ua and "MIT License" in out_help_ua
+            out_lic = subprocess.check_output([binary, "--license"], text=True)
+            assert "MIT License" in out_lic and "Copyright (c) 2026 Kostiantyn Nedbailo (Недбайло Костянтин Геннадійович)" in out_lic
+            out_lic_short = subprocess.check_output([binary, "-L"], text=True)
+            assert out_lic_short == out_lic
+            print("[PASS] 14. Locale auto-detection, --lang ua, --version, --help & --license CLI flags")
         except Exception:
             print(sess_cli.vt.full_text())
             raise
