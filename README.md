@@ -42,6 +42,7 @@ Object
 ```text
 NC/
 ├── AGENTS.md                 # Правила модульної архітектури, SemVer і комітів
+├── LICENSE                   # Відкрита ліцензія MIT
 ├── VERSION                   # Поточна SemVer-версія (1.0.0)
 ├── Makefile                  # Збірка (all / release / run / test / verify / hooks / clean)
 ├── .agents/                  # Antigravity скіли (nc-*) та lifecycle-хуки (hooks.json)
@@ -105,3 +106,12 @@ make hooks    # Активувати Git-хуки з .githooks/ та права 
 ## План розвитку
 
 Детальну архітектурну дорожню карту (`v1.1` → `v2.0`) задокументовано у [`ROADMAP.md`](ROADMAP.md).
+
+## Розробник
+
+- **Автор**: Недбайло Костянтин Геннадійович (`Kostiantyn Nedbailo`)
+- **E-mail**: [ChessPlayerSedoy@gmail.com](mailto:ChessPlayerSedoy@gmail.com)
+
+## Ліцензія
+
+**NeoCommander** — це програмне забезпечення з відкритим вихідним кодом (Open Source), яке поширюється за ліцензією [**MIT License**](LICENSE).

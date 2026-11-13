@@ -136,20 +136,42 @@ def handle_pre_tool_use(payload: dict, root: Path) -> dict:
         return {"decision": "allow"}
 
     if name == "run_command":
+        import shlex
+
         cmd = str(args.get("CommandLine") or args.get("command") or "")
-        if re.search(r"\bgit\b[^\n]*\bcommit\b", cmd):
-            if re.search(r"(?:^|\s)(?:--no-verify|-n)(?:\s|$)", cmd):
-                return {
-                    "decision": "deny",
-                    "reason": "Bypassing Git pre-commit/commit-msg hooks (--no-verify) violates NeoCommander quality rules.",
-                }
-            if os.environ.get("NC_ALLOW_UNCONFIGURED_HOOKS") != "1":
-                _, hooks_path = run_git(root, "config", "core.hooksPath")
-                if (root / ".githooks/pre-commit").is_file() and hooks_path != ".githooks":
+        for segment in re.split(r"(?:&&|\|\||[;\n|])", cmd):
+            try:
+                toks = shlex.split(segment)
+            except ValueError:
+                toks = segment.split()
+            if not toks or Path(toks[0]).name != "git":
+                continue
+            # Locate git subcommand (skip git global options like -C <dir>)
+            subcmd = None
+            idx = 1
+            while idx < len(toks):
+                t = toks[idx]
+                if t in ("-C", "-c", "--git-dir", "--work-tree"):
+                    idx += 2
+                    continue
+                if t.startswith("-"):
+                    idx += 1
+                    continue
+                subcmd = t
+                break
+            if subcmd == "commit":
+                if any(t == "--no-verify" or re.match(r"^-[A-Za-z]*n[A-Za-z]*$", t) for t in toks[idx + 1 :]):
                     return {
                         "decision": "deny",
-                        "reason": "Git hooks are not active (core.hooksPath != .githooks). Run 'make hooks' first.",
+                        "reason": "Bypassing Git pre-commit/commit-msg hooks (--no-verify) violates NeoCommander quality rules.",
                     }
+                if os.environ.get("NC_ALLOW_UNCONFIGURED_HOOKS") != "1":
+                    _, hooks_path = run_git(root, "config", "core.hooksPath")
+                    if (root / ".githooks/pre-commit").is_file() and hooks_path != ".githooks":
+                        return {
+                            "decision": "deny",
+                            "reason": "Git hooks are not active (core.hooksPath != .githooks). Run 'make hooks' first.",
+                        }
         return {"decision": "allow"}
 
     return {"decision": "allow"}
