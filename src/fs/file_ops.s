@@ -374,8 +374,8 @@ path_is_same_or_descendant:
     js .Lfcr_done
     mov r14d, eax             # dirfd
 
-    # Allocate dents_buf (DIRENTS_BUF_SIZE) + child_src (PATH_MAX) + child_dst (PATH_MAX) + cursor(8) + tmp(8)
-    mov edi, DIRENTS_BUF_SIZE + PATH_MAX * 2 + 16
+    # Allocate dents_buf (OPS_DIRENTS_BUF_SIZE) + child_src (PATH_MAX) + child_dst (PATH_MAX) + cursor(8) + tmp(8)
+    mov edi, OPS_DIRENTS_BUF_SIZE + PATH_MAX * 2 + 16
     call mem_alloc
     test rax, rax
     jz .Lfcr_dir_close_nomem
@@ -384,18 +384,18 @@ path_is_same_or_descendant:
 .Lfcr_dents_loop:
     mov edi, r14d
     mov rsi, rbx
-    mov edx, DIRENTS_BUF_SIZE
+    mov edx, OPS_DIRENTS_BUF_SIZE
     call os_dir_read
     test rax, rax
     js .Lfcr_dir_err
     jz .Lfcr_dir_ok
     mov r15, rax              # bytes read
-    mov qword ptr [rbx + DIRENTS_BUF_SIZE + PATH_MAX * 2], 0
+    mov qword ptr [rbx + OPS_DIRENTS_BUF_SIZE + PATH_MAX * 2], 0
 
 .Lfcr_entry_loop:
     mov rdi, rbx
     mov rsi, r15
-    lea rdx, [rbx + DIRENTS_BUF_SIZE + PATH_MAX * 2]
+    lea rdx, [rbx + OPS_DIRENTS_BUF_SIZE + PATH_MAX * 2]
     call os_dir_next
     test rax, rax
     jz .Lfcr_dents_loop
@@ -412,21 +412,21 @@ path_is_same_or_descendant:
     je .Lfcr_entry_loop
 
 .Lfcr_recurse:
-    mov [rbx + DIRENTS_BUF_SIZE + PATH_MAX * 2 + 8], r10
-    lea rdi, [rbx + DIRENTS_BUF_SIZE]
+    mov [rbx + OPS_DIRENTS_BUF_SIZE + PATH_MAX * 2 + 8], r10
+    lea rdi, [rbx + OPS_DIRENTS_BUF_SIZE]
     mov rsi, r12
     mov rdx, r10
     mov ecx, PATH_MAX
     call path_join
 
-    mov rdx, [rbx + DIRENTS_BUF_SIZE + PATH_MAX * 2 + 8]
-    lea rdi, [rbx + DIRENTS_BUF_SIZE + PATH_MAX]
+    mov rdx, [rbx + OPS_DIRENTS_BUF_SIZE + PATH_MAX * 2 + 8]
+    lea rdi, [rbx + OPS_DIRENTS_BUF_SIZE + PATH_MAX]
     mov rsi, r13
     mov ecx, PATH_MAX
     call path_join
 
-    lea rdi, [rbx + DIRENTS_BUF_SIZE]
-    lea rsi, [rbx + DIRENTS_BUF_SIZE + PATH_MAX]
+    lea rdi, [rbx + OPS_DIRENTS_BUF_SIZE]
+    lea rsi, [rbx + OPS_DIRENTS_BUF_SIZE + PATH_MAX]
     call fs_copy_recursive
     test rax, rax
     jns .Lfcr_entry_loop
@@ -502,27 +502,27 @@ fs_delete_recursive:
     js .Lfdr_done
     mov r13d, eax             # dirfd
 
-    mov edi, DIRENTS_BUF_SIZE + PATH_MAX + 16
+    mov edi, OPS_DIRENTS_BUF_SIZE + PATH_MAX + 16
     call mem_alloc
     test rax, rax
     jz .Lfdr_close_nomem
-    mov rbx, rax              # [rbx]=dents, [rbx+DIRENTS_BUF_SIZE]=child, [rbx+DIRENTS_BUF_SIZE+PATH_MAX]=cursor
+    mov rbx, rax              # [rbx]=dents, [rbx+OPS_DIRENTS_BUF_SIZE]=child, [rbx+OPS_DIRENTS_BUF_SIZE+PATH_MAX]=cursor
 
 .Lfdr_dents:
     mov edi, r13d
     mov rsi, rbx
-    mov edx, DIRENTS_BUF_SIZE
+    mov edx, OPS_DIRENTS_BUF_SIZE
     call os_dir_read
     test rax, rax
     js .Lfdr_dir_err
     jz .Lfdr_rmdir
     mov r14, rax
-    mov qword ptr [rbx + DIRENTS_BUF_SIZE + PATH_MAX], 0
+    mov qword ptr [rbx + OPS_DIRENTS_BUF_SIZE + PATH_MAX], 0
 
 .Lfdr_entry:
     mov rdi, rbx
     mov rsi, r14
-    lea rdx, [rbx + DIRENTS_BUF_SIZE + PATH_MAX]
+    lea rdx, [rbx + OPS_DIRENTS_BUF_SIZE + PATH_MAX]
     call os_dir_next
     test rax, rax
     jz .Lfdr_dents
@@ -538,13 +538,13 @@ fs_delete_recursive:
     je .Lfdr_entry
 
 .Lfdr_del_child:
-    lea rdi, [rbx + DIRENTS_BUF_SIZE]
+    lea rdi, [rbx + OPS_DIRENTS_BUF_SIZE]
     mov rsi, r12
     mov rdx, r10
     mov ecx, PATH_MAX
     call path_join
 
-    lea rdi, [rbx + DIRENTS_BUF_SIZE]
+    lea rdi, [rbx + OPS_DIRENTS_BUF_SIZE]
     call fs_delete_recursive
     test rax, rax
     jns .Lfdr_entry

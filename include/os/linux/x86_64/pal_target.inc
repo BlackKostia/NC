@@ -34,6 +34,9 @@
 .equ OS_SYS_symlinkat,      266
 .equ OS_SYS_readlinkat,     267
 .equ OS_SYS_ppoll,          271
+.equ OS_SYS_statx,          332
+.equ OS_SYS_io_uring_setup, 425
+.equ OS_SYS_io_uring_enter, 426
 
 # --- Portable POSIX File Descriptors & *at Flags ---
 .equ STDIN_FD,              0
@@ -59,9 +62,11 @@
 .equ PROT_READ,             0x1
 .equ PROT_WRITE,            0x2
 .equ PROT_RW,               0x3
+.equ MAP_SHARED,            0x01
 .equ MAP_PRIVATE,           0x02
 .equ MAP_ANONYMOUS,         0x20
 .equ MAP_PRIVATE_ANON,      0x22
+.equ MAP_POPULATE,          0x8000
 .equ MREMAP_MAYMOVE,        0x1
 
 # --- POSIX File Mode Types ---
@@ -140,7 +145,58 @@
 
 .equ KDIRENT_INO,           0
 .equ KDIRENT_RECLEN,        16
+.equ KDIRENT_TYPE,          18
 .equ KDIRENT_NAME,          19
+
+# --- Linux statx & io_uring Kernel ABI Constants (private to OS PAL) ---
+.equ STATX_BASIC_STATS,     0x7ff
+.equ KSTATX_SIZE,           256
+.equ KSTATX_MASK,           0
+.equ KSTATX_MODE,           28
+.equ KSTATX_INO,            32
+.equ KSTATX_ST_SIZE,        40
+.equ KSTATX_MTIME,          112
+.equ KSTATX_DEV_MAJOR,      136
+.equ KSTATX_DEV_MINOR,      140
+
+.equ IORING_OP_STATX,       21
+.equ IORING_ENTER_GETEVENTS, 1
+.equ IORING_FEAT_SINGLE_MMAP, 1
+.equ IORING_OFF_SQ_RING,    0
+.equ IORING_OFF_CQ_RING,    0x8000000
+.equ IORING_OFF_SQES,       0x10000000
+
+.equ KSQE_SIZE,             64
+.equ KSQE_OP,               0
+.equ KSQE_FLAGS,            1
+.equ KSQE_FD,               4
+.equ KSQE_OFF,              8
+.equ KSQE_ADDR,             16
+.equ KSQE_LEN,              24
+.equ KSQE_STATX_FLAGS,      28
+.equ KSQE_UDATA,            32
+
+.equ KCQE_SIZE,             16
+.equ KCQE_UDATA,            0
+.equ KCQE_RES,              8
+.equ KCQE_FLAGS,            12
+
+.equ KIOU_PARAMS_SIZE,      120
+.equ KIOU_P_SQ_ENT,         0
+.equ KIOU_P_CQ_ENT,         4
+.equ KIOU_P_FEAT,           20
+.equ KIOU_P_SQ_OFF,         40
+.equ KIOU_P_CQ_OFF,         80
+.equ KIOU_SQO_HEAD,         0
+.equ KIOU_SQO_TAIL,         4
+.equ KIOU_SQO_MASK,         8
+.equ KIOU_SQO_ENT,          12
+.equ KIOU_SQO_ARRAY,        24
+.equ KIOU_CQO_HEAD,         0
+.equ KIOU_CQO_TAIL,         4
+.equ KIOU_CQO_MASK,         8
+.equ KIOU_CQO_ENT,          12
+.equ KIOU_CQO_CQES,         20
 
 # ==============================================================================
 # Zero-Overhead Inline Syscall PAL Macros (Linux x86-64)

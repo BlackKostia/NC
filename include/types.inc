@@ -38,17 +38,16 @@ HitZone.y:     .space 2    # row
 HitZone.id:    .space 2    # action / button ID
 HitZone._size:
 
-# --- FileEntry (288 bytes) ---
+# --- FileEntry (32 bytes, compact metadata + name_off into DirModel.name_pool) ---
 .struct 0
 FileEntry.size:       .space 8    # st_size (i64)
 FileEntry.mtime:      .space 8    # st_mtime seconds (i64)
 FileEntry.mode:       .space 4    # st_mode (u32)
 FileEntry.flags:      .space 4    # FE_* bitmask
+FileEntry.name_off:   .space 4    # byte offset inside DirModel.name_pool
 FileEntry.name_len:   .space 2    # bytes in name (without NUL)
-FileEntry.disp_width: .space 2    # terminal columns of name
-FileEntry.ext_offset: .space 2    # offset of '.' in name, or 0
-FileEntry.pad:        .space 2
-FileEntry.name:       .space 256  # NUL-terminated UTF-8 name
+FileEntry.disp_width: .space 1    # terminal columns of name (clamped 0..255)
+FileEntry.ext_offset: .space 1    # offset of '.' after index 0, or 0
 FileEntry._size:
 
 # --- Theme (128 bytes) ---
@@ -169,6 +168,10 @@ LangStrings.app_ok_delete:      .space 8
 LangStrings.app_ok_refresh:     .space 8
 LangStrings.app_err_parent:     .space 8
 LangStrings.app_err_isdir:      .space 8
+LangStrings.fp_loading_pfx:     .space 8
+LangStrings.fp_huge_badge:      .space 8
+LangStrings.fp_abort_badge:     .space 8
+LangStrings.app_load_aborted:   .space 8
 LangStrings._size:
 
 .section .text

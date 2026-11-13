@@ -136,6 +136,10 @@ en_app_ok_delete:     .asciz "Deleted successfully"
 en_app_ok_refresh:    .asciz "Refreshed"
 en_app_err_parent:    .asciz "Cannot operate on '..'"
 en_app_err_isdir:     .asciz "Cannot view/edit a directory"
+en_fp_loading_pfx:    .asciz " Loading: "
+en_fp_huge_badge:     .asciz " [FS-order]"
+en_fp_abort_badge:    .asciz " [Esc:stopped]"
+en_app_load_aborted:  .asciz "Directory streaming stopped by Esc"
 
 # ==============================================================================
 # Ukrainian String Table (LANG_UA = 1)
@@ -263,6 +267,10 @@ ua_app_ok_delete:     .asciz "Успішно видалено"
 ua_app_ok_refresh:    .asciz "Оновлено"
 ua_app_err_parent:    .asciz "Неможливо виконати над '..'"
 ua_app_err_isdir:     .asciz "Неможливо переглянути/редагувати теку"
+ua_fp_loading_pfx:    .asciz " Читання: "
+ua_fp_huge_badge:     .asciz " [Порядок ФС]"
+ua_fp_abort_badge:    .asciz " [Зупинено Esc]"
+ua_app_load_aborted:  .asciz "Дочитування теки зупинено клавішею Esc"
 
 .align 8
 .global lang_en_table
@@ -288,6 +296,7 @@ lang_en_table:
     .quad en_app_title_goto, en_app_prm_goto, en_app_title_delete, en_app_msg_del_one, en_app_msg_del_many
     .quad en_app_sel_items_sfx, en_app_ok_mkdir, en_app_ok_newfile, en_app_ok_rename
     .quad en_app_ok_copy, en_app_ok_move, en_app_ok_delete, en_app_ok_refresh, en_app_err_parent, en_app_err_isdir
+    .quad en_fp_loading_pfx, en_fp_huge_badge, en_fp_abort_badge, en_app_load_aborted
 .if (. - lang_en_table) != LangStrings._size
     .error "lang_en_table size does not match LangStrings._size"
 .endif
@@ -316,6 +325,7 @@ lang_ua_table:
     .quad ua_app_title_goto, ua_app_prm_goto, ua_app_title_delete, ua_app_msg_del_one, ua_app_msg_del_many
     .quad ua_app_sel_items_sfx, ua_app_ok_mkdir, ua_app_ok_newfile, ua_app_ok_rename
     .quad ua_app_ok_copy, ua_app_ok_move, ua_app_ok_delete, ua_app_ok_refresh, ua_app_err_parent, ua_app_err_isdir
+    .quad ua_fp_loading_pfx, ua_fp_huge_badge, ua_fp_abort_badge, ua_app_load_aborted
 .if (. - lang_ua_table) != LangStrings._size
     .error "lang_ua_table size does not match LangStrings._size"
 .endif

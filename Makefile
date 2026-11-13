@@ -25,6 +25,7 @@ SRCS := \
 	src/tui/screen.s \
 	src/tui/input.s \
 	src/fs/dir_model.s \
+	src/fs/dir_sort.s \
 	src/fs/file_ops.s \
 	src/ui/header_bar.s \
 	src/ui/function_bar.s \
@@ -35,7 +36,8 @@ SRCS := \
 	src/app/app.s
 
 PAL_SRCS := \
-	src/os/$(OS)/$(ARCH)/pal_os.s
+	src/os/$(OS)/$(ARCH)/pal_os.s \
+	src/os/$(OS)/$(ARCH)/pal_uring.s
 
 OBJS := $(patsubst src/%.s,$(BUILD)/%.o,$(SRCS) $(PAL_SRCS))
 INCS := $(wildcard include/*.inc) $(wildcard $(PAL_INC)/*.inc)
@@ -66,6 +68,7 @@ test: $(TARGET)
 	python3 tests/test_pal_architecture.py
 	python3 tests/test_pty.py
 	python3 tests/test_fs_reliability.py
+	python3 tests/test_performance_dir.py
 
 verify:
 	./.agents/skills/duop-pty-verify/scripts/verify_build.sh

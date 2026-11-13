@@ -103,18 +103,32 @@ CLASS_END ScreenBuffer
 
 CLASS_BEGIN DirModel
     EXTENDS Object
-    FIELD DirModel.entries,     8
-    FIELD DirModel.count,       8
-    FIELD DirModel.cap,         8
-    FIELD DirModel.total_bytes, 8
-    FIELD DirModel.dir_count,   4
-    FIELD DirModel.file_count,  4
-    FIELD DirModel.sort_mode,   4
-    FIELD DirModel.sort_desc,   4
-    FIELD DirModel.show_hidden, 4
-    FIELD DirModel.pad,         4
-    FIELD DirModel.path,        PATH_MAX
-    FIELD DirModel.filter,      FILTER_MAX
+    FIELD DirModel.entries,        8   # compact FileEntry[] array (raw_cap * 32B)
+    FIELD DirModel.order,          8   # uint32_t[] visible/sorted indices into entries[]
+    FIELD DirModel.name_pool,      8   # contiguous NUL-terminated UTF-8 filename arena
+    FIELD DirModel.count,          8   # visible filtered count (elements in order[])
+    FIELD DirModel.raw_count,      8   # total loaded entries (elements in entries[])
+    FIELD DirModel.raw_cap,        8   # capacity of entries[] and order[]
+    FIELD DirModel.name_used,      8   # bytes used in name_pool
+    FIELD DirModel.name_cap,       8   # byte capacity of name_pool
+    FIELD DirModel.total_bytes,    8   # sum of bytes for stat'd non-dir entries
+    FIELD DirModel.load_buf,       8   # DIRENTS_BUF_SIZE read buffer during streaming
+    FIELD DirModel.load_pos,       8   # byte cursor inside load_buf
+    FIELD DirModel.load_bytes,     8   # valid bytes in load_buf
+    FIELD DirModel.load_dirfd,     4   # active O_DIRECTORY fd while streaming (or -1)
+    FIELD DirModel.is_loading,     4   # 1 while incremental streaming active
+    FIELD DirModel.load_aborted,   4   # 1 if user canceled streaming via Esc
+    FIELD DirModel.huge_mode,      4   # 1 once raw_count >= g_huge_threshold
+    FIELD DirModel.is_unsorted,    4   # 1 when in ls -f unsorted filesystem order
+    FIELD DirModel.stats_complete, 4   # 1 when all raw entries have FE_STAT_READY
+    FIELD DirModel.dir_count,      4
+    FIELD DirModel.file_count,     4
+    FIELD DirModel.sort_mode,      4
+    FIELD DirModel.sort_desc,      4
+    FIELD DirModel.show_hidden,    4
+    FIELD DirModel.has_dotdot,     4   # 1 if entry 0 is '..'
+    FIELD DirModel.path,           PATH_MAX
+    FIELD DirModel.filter,         FILTER_MAX
 CLASS_END DirModel
 
 CLASS_BEGIN Widget

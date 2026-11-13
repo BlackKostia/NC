@@ -197,12 +197,18 @@ StatusBar_render:
     test rax, rax
     jz .Lsbr_show_filter_empty
     mov r14, rax              # FileEntry *
+    mov rdi, r15
+    mov rsi, r14
+    call DirModel_ensure_entry_stat
 
     # Build info string: " <name>  │  <size>  │  <perms>  │  <date>"
     mov byte ptr [rsp], ' '
     mov byte ptr [rsp + 1], 0
+    mov rdi, r15
+    mov rsi, r14
+    call DirModel_entry_name
+    mov rsi, rax
     mov rdi, rsp
-    lea rsi, [r14 + FileEntry.name]
     mov edx, 512
     call str_cat
 
@@ -263,9 +269,14 @@ StatusBar_render:
     test rax, rax
     jz .Lsbr_draw_info
     push rax
-    mov rdi, rax
+    sub rsp, 8
+    mov rdi, r15
+    mov rsi, r14
+    call DirModel_entry_name
+    add rsp, 8
+    mov rdx, rax
+    mov rdi, [rsp]
     lea rsi, [r15 + DirModel.path]
-    lea rdx, [r14 + FileEntry.name]
     mov ecx, PATH_MAX
     call path_join
 

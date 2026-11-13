@@ -64,6 +64,8 @@ App_new:
     mov rbx, rax
 
     mov [rbx + App.envp], r14
+    mov rdi, r14
+    call DirModel_init_env
     mov dword ptr [rbx + App.running], 1
     mov dword ptr [rbx + App.need_redraw], 1
     mov dword ptr [rbx + App.theme_idx], 0
@@ -383,14 +385,17 @@ App_sync_preview:
     jz .Lasp_empty
 
     push rax                  # FileEntry *
-    mov rdi, rsp
-    add rdi, 8
+    sub rsp, 8
+    mov rdi, [r12 + FilePane.model]
+    mov rsi, rax
+    call DirModel_entry_name
+    mov rdx, rax
+    lea rdi, [rsp + 16]
     mov rcx, [r12 + FilePane.model]
     lea rsi, [rcx + DirModel.path]
-    lea rdx, [rax + FileEntry.name]
     mov ecx, PATH_MAX
     call path_join
-
+    add rsp, 8
     pop rdx                   # FileEntry *
     mov rdi, [rbx + App.preview_pane]
     mov rsi, rsp
@@ -434,10 +439,13 @@ App_open_selected_entry:
 
 .Laos_chk_dir:
     # Build full path
+    mov rdi, [r12 + FilePane.model]
+    mov rsi, r13
+    call DirModel_entry_name
+    mov rdx, rax
     mov rdi, rsp
     mov rcx, [r12 + FilePane.model]
     lea rsi, [rcx + DirModel.path]
-    lea rdx, [r13 + FileEntry.name]
     mov ecx, PATH_MAX
     call path_join
 
@@ -561,19 +569,30 @@ exec_batch_transfer:
     test dword ptr [rax + FileEntry.flags], FE_IS_PARENT
     jnz .Lebt_err_parent
     push rax
-    mov rdi, rsp
-    add rdi, 8
+    sub rsp, 8
+    mov rdi, r15
+    mov rsi, rax
+    call DirModel_entry_name
+    mov rdx, rax
+    lea rdi, [rsp + 16]
     lea rsi, [r15 + DirModel.path]
-    lea rdx, [rax + FileEntry.name]
     mov ecx, PATH_MAX
     call path_join
+    add rsp, 8
     pop rax
 
     cmp dword ptr [rsp + PATH_MAX*2 + 144], 0
     je .Lebt_single_direct
+    push rax
+    sub rsp, 8
+    mov rdi, r15
+    mov rsi, rax
+    call DirModel_entry_name
+    mov rdx, rax
+    add rsp, 8
+    pop rax
     lea rdi, [rsp + PATH_MAX]
     mov rsi, r12
-    lea rdx, [rax + FileEntry.name]
     mov ecx, PATH_MAX
     call path_join
     jmp .Lebt_single_go
@@ -607,17 +626,28 @@ exec_batch_transfer:
     jz .Lebt_mnext
 
     push rax
-    mov rdi, rsp
-    add rdi, 8
+    sub rsp, 8
+    mov rdi, r15
+    mov rsi, rax
+    call DirModel_entry_name
+    mov rdx, rax
+    lea rdi, [rsp + 16]
     lea rsi, [r15 + DirModel.path]
-    lea rdx, [rax + FileEntry.name]
     mov ecx, PATH_MAX
     call path_join
+    add rsp, 8
     pop rax
 
+    push rax
+    sub rsp, 8
+    mov rdi, r15
+    mov rsi, rax
+    call DirModel_entry_name
+    mov rdx, rax
+    add rsp, 8
+    pop rax
     lea rdi, [rsp + PATH_MAX]
     mov rsi, r12
-    lea rdx, [rax + FileEntry.name]
     mov ecx, PATH_MAX
     call path_join
 
@@ -675,9 +705,12 @@ exec_batch_delete:
     jz .Lebd_ok
     test dword ptr [rax + FileEntry.flags], FE_IS_PARENT
     jnz .Lebd_ok
+    mov rdi, r13
+    mov rsi, rax
+    call DirModel_entry_name
+    mov rdx, rax
     mov rdi, rsp
     lea rsi, [r13 + DirModel.path]
-    lea rdx, [rax + FileEntry.name]
     mov ecx, PATH_MAX
     call path_join
     mov rdi, rsp
@@ -694,9 +727,12 @@ exec_batch_delete:
     call DirModel_get_entry
     test dword ptr [rax + FileEntry.flags], FE_SELECTED
     jz .Lebd_next
+    mov rdi, r13
+    mov rsi, rax
+    call DirModel_entry_name
+    mov rdx, rax
     mov rdi, rsp
     lea rsi, [r13 + DirModel.path]
-    lea rdx, [rax + FileEntry.name]
     mov ecx, PATH_MAX
     call path_join
     mov rdi, rsp
@@ -809,10 +845,14 @@ App_close_dialog:
     call FilePane_get_selected_entry
     test rax, rax
     jz .Lacd_free
+    mov r8, [r14 + FilePane.model]
+    mov rdi, r8
+    mov rsi, rax
+    call DirModel_entry_name
+    mov rdx, rax
     mov rdi, rsp
     mov r8, [r14 + FilePane.model]
     lea rsi, [r8 + DirModel.path]
-    lea rdx, [rax + FileEntry.name]
     mov ecx, PATH_MAX
     call path_join
 
@@ -905,7 +945,7 @@ App_close_dialog:
     mov edx, FILTER_MAX
     call str_copy
     mov rdi, r8
-    call DirModel_reload
+    call DirModel_apply_filter
     mov dword ptr [r14 + FilePane.cursor], 0
     mov dword ptr [r14 + FilePane.scroll], 0
     mov rdi, r14
@@ -1039,8 +1079,15 @@ App_cmd_rename:
     jz .Lacr_done
     test dword ptr [rax + FileEntry.flags], FE_IS_PARENT
     jnz .Lacr_parent
-    lea rcx, [rax + FileEntry.name]
+    mov rcx, [rbx + App.active_pane]
+    mov rdi, [rcx + FilePane.model]
+    mov rsi, rax
+    call DirModel_entry_name
+    push rax
+    sub rsp, 8
     call i18n_get
+    mov rcx, [rsp + 8]
+    add rsp, 16
     mov rsi, [rax + LangStrings.app_title_rename]
     mov rdx, [rax + LangStrings.app_prm_rename]
     mov rdi, rbx
@@ -1071,10 +1118,14 @@ App_cmd_view:
     test dword ptr [rax + FileEntry.flags], (FE_IS_DIR | FE_LINK_DIR)
     jnz .Lacv_isdir
     mov rcx, [rbx + App.active_pane]
+    mov rdi, [rcx + FilePane.model]
+    mov rsi, rax
+    call DirModel_entry_name
+    mov rdx, rax
+    mov rcx, [rbx + App.active_pane]
     mov rcx, [rcx + FilePane.model]
     mov rdi, rsp
     lea rsi, [rcx + DirModel.path]
-    lea rdx, [rax + FileEntry.name]
     mov ecx, PATH_MAX
     call path_join
     mov rdi, rbx
@@ -1105,10 +1156,14 @@ App_cmd_edit:
     test dword ptr [rax + FileEntry.flags], (FE_IS_DIR | FE_LINK_DIR)
     jnz .Lace_isdir
     mov rcx, [rbx + App.active_pane]
+    mov rdi, [rcx + FilePane.model]
+    mov rsi, rax
+    call DirModel_entry_name
+    mov rdx, rax
+    mov rcx, [rbx + App.active_pane]
     mov rcx, [rcx + FilePane.model]
     mov rdi, rsp
     lea rsi, [rcx + DirModel.path]
-    lea rdx, [rax + FileEntry.name]
     mov ecx, PATH_MAX
     call path_join
     lea rdi, [rip + str_sh_edit]
@@ -1243,8 +1298,15 @@ App_cmd_delete:
     test dword ptr [rax + FileEntry.flags], FE_IS_PARENT
     jnz .Lacd_parent
 
-    lea rcx, [rax + FileEntry.name]
+    mov rcx, [rbx + App.active_pane]
+    mov rdi, [rcx + FilePane.model]
+    mov rsi, rax
+    call DirModel_entry_name
+    push rax
+    sub rsp, 8
     call i18n_get
+    mov rcx, [rsp + 8]
+    add rsp, 16
     mov rsi, [rax + LangStrings.app_title_delete]
     mov rdx, [rax + LangStrings.app_msg_del_one]
     mov rdi, rbx
@@ -1312,9 +1374,22 @@ App_cmd_toggle_hidden:
     mov rax, [rbx + App.right_pane]
     mov rcx, [rax + FilePane.model]
     mov [rcx + DirModel.show_hidden], edx
+
+    mov rax, [rbx + App.left_pane]
+    mov rdi, [rax + FilePane.model]
+    call DirModel_apply_filter
+    mov rdi, [rbx + App.left_pane]
+    call FilePane_ensure_visible
+
+    mov rax, [rbx + App.right_pane]
+    mov rdi, [rax + FilePane.model]
+    call DirModel_apply_filter
+    mov rdi, [rbx + App.right_pane]
+    call FilePane_ensure_visible
+
     mov rdi, rbx
-    xor esi, esi
-    call reload_both_panes
+    call App_sync_preview
+    mov dword ptr [rbx + App.need_redraw], 1
     pop rbx
     ret
 
@@ -1452,14 +1527,48 @@ handle_key:
     jmp .Lhk_done
 
 .Lhk_esc:
-    mov r8, [rbx + App.active_pane]
-    mov r8, [r8 + FilePane.model]
+    mov rcx, [rbx + App.active_pane]
+    mov r8, [rcx + FilePane.model]
+    cmp dword ptr [r8 + DirModel.is_loading], 0
+    jne .Lhk_cancel_stream
+    mov rcx, [rbx + App.left_pane]
+    mov r8, [rcx + FilePane.model]
+    cmp dword ptr [r8 + DirModel.is_loading], 0
+    jne .Lhk_cancel_stream
+    mov rcx, [rbx + App.right_pane]
+    mov r8, [rcx + FilePane.model]
+    cmp dword ptr [r8 + DirModel.is_loading], 0
+    jne .Lhk_cancel_stream
+
+    mov rcx, [rbx + App.active_pane]
+    mov r8, [rcx + FilePane.model]
     cmp byte ptr [r8 + DirModel.filter], 0
     je .Lhk_done
     mov byte ptr [r8 + DirModel.filter], 0
+    mov rdi, r8
+    call DirModel_apply_filter
+    mov rdi, [rbx + App.active_pane]
+    mov dword ptr [rdi + FilePane.cursor], 0
+    mov dword ptr [rdi + FilePane.scroll], 0
+    call FilePane_ensure_visible
     mov rdi, rbx
-    xor esi, esi
-    call reload_both_panes
+    call App_sync_preview
+    mov dword ptr [rbx + App.need_redraw], 1
+    jmp .Lhk_done
+
+.Lhk_cancel_stream:
+    mov rdi, r8
+    call DirModel_cancel_load
+    call i18n_get
+    mov rsi, [rax + LangStrings.app_load_aborted]
+    mov rdi, rbx
+    mov edx, MSG_INFO
+    call App_set_status
+    mov rdi, [rbx + App.active_pane]
+    call FilePane_ensure_visible
+    mov rdi, rbx
+    call App_sync_preview
+    mov dword ptr [rbx + App.need_redraw], 1
     jmp .Lhk_done
 
 .Lhk_refresh:
@@ -1609,6 +1718,7 @@ App_run:
     push rbx
     sub rsp, Event._size + 16
     mov rbx, rdi
+    mov qword ptr [rsp + Event._size], 0
 
     call App_render
 
@@ -1618,8 +1728,18 @@ App_run:
     cmp dword ptr [rip + g_sigterm], 0
     jne .Larun_exit
 
+    # Non-blocking poll (0ms) while streaming large dirs so UI/Esc stay responsive
+    mov rcx, [rbx + App.left_pane]
+    mov rcx, [rcx + FilePane.model]
+    mov edx, [rcx + DirModel.is_loading]
+    mov rcx, [rbx + App.right_pane]
+    mov rcx, [rcx + FilePane.model]
+    or edx, [rcx + DirModel.is_loading]
+    mov esi, 200
+    xor eax, eax
+    test edx, edx
+    cmovnz esi, eax
     mov rdi, rsp
-    mov esi, 200              # 200ms poll timeout for status auto-clear
     call input_poll_event
 
     # Check if temporary status message expired
@@ -1638,7 +1758,7 @@ App_run:
 
 .Larun_chk_evt:
     test eax, eax
-    jz .Larun_redraw
+    jz .Larun_stream_step
 
     mov eax, [rsp + Event.type]
     cmp eax, EVT_RESIZE
@@ -1647,7 +1767,7 @@ App_run:
     je .Larun_key
     cmp eax, EVT_MOUSE
     je .Larun_mouse
-    jmp .Larun_redraw
+    jmp .Larun_stream_step
 
 .Larun_resize:
     lea rdi, [rbx + App.term_w]
@@ -1656,18 +1776,51 @@ App_run:
     mov rdi, rbx
     call App_layout
     mov dword ptr [rbx + App.need_redraw], 1
-    jmp .Larun_redraw
+    jmp .Larun_stream_step
 
 .Larun_key:
     mov rdi, rbx
     mov rsi, rsp
     call handle_key
-    jmp .Larun_redraw
+    jmp .Larun_stream_step
 
 .Larun_mouse:
     mov rdi, rbx
     mov rsi, rsp
     call handle_mouse
+
+.Larun_stream_step:
+    cmp dword ptr [rbx + App.running], 0
+    je .Larun_exit
+    mov rax, [rbx + App.left_pane]
+    mov rdi, [rax + FilePane.model]
+    cmp dword ptr [rdi + DirModel.is_loading], 0
+    jne .Larun_do_step
+    mov rax, [rbx + App.right_pane]
+    mov rdi, [rax + FilePane.model]
+    cmp dword ptr [rdi + DirModel.is_loading], 0
+    je .Larun_redraw
+
+.Larun_do_step:
+    xor esi, esi
+    call DirModel_step_load
+    test rax, rax
+    jz .Larun_stream_finished
+
+    # Throttle progress footer redraws (~30 FPS) to keep 1M scan at max speed
+    call sys_clock_ms
+    mov rcx, rax
+    sub rcx, [rsp + Event._size]
+    cmp rcx, 33
+    jb .Larun_redraw
+    mov [rsp + Event._size], rax
+    mov dword ptr [rbx + App.need_redraw], 1
+    jmp .Larun_redraw
+
+.Larun_stream_finished:
+    mov rdi, rbx
+    call App_sync_preview
+    mov dword ptr [rbx + App.need_redraw], 1
 
 .Larun_redraw:
     cmp dword ptr [rbx + App.need_redraw], 0

@@ -156,9 +156,25 @@ FilePane_ensure_visible:
 
 # FileEntry *FilePane_get_selected_entry(FilePane *this)
 FilePane_get_selected_entry:
+    push rbx
+    push r12
+    sub rsp, 8
+    mov rbx, [rdi + FilePane.model]
     mov esi, [rdi + FilePane.cursor]
-    mov rdi, [rdi + FilePane.model]
-    jmp DirModel_get_entry
+    mov rdi, rbx
+    call DirModel_get_entry
+    test rax, rax
+    jz .Lfpge_done
+    mov r12, rax
+    mov rdi, rbx
+    mov rsi, r12
+    call DirModel_ensure_entry_stat
+    mov rax, r12
+.Lfpge_done:
+    add rsp, 8
+    pop r12
+    pop rbx
+    ret
 
 # void FilePane_reload_keep_cursor(FilePane *this, const char *focus_name_or_null)
 FilePane_reload_keep_cursor:
@@ -174,8 +190,11 @@ FilePane_reload_keep_cursor:
     call FilePane_get_selected_entry
     test rax, rax
     jz .Lfrkc_reload
+    mov rdi, [rbx + FilePane.model]
+    mov rsi, rax
+    call DirModel_entry_name
     mov rdi, rsp
-    lea rsi, [rax + FileEntry.name]
+    mov rsi, rax
     mov edx, NAME_MAX
     call str_copy
     mov r12, rsp
@@ -536,6 +555,8 @@ FilePane_render:
     mov rdi, rsp
     mov edx, 128
     call str_copy
+    cmp dword ptr [r14 + DirModel.is_unsorted], 0
+    jne .Lfpr_nh_draw
     cmp dword ptr [r14 + DirModel.sort_mode], SORT_NAME
     jne .Lfpr_nh_draw
     lea rsi, [rip + str_sort_asc]
@@ -591,6 +612,8 @@ FilePane_render:
     mov rdi, rsp
     mov edx, 128
     call str_copy
+    cmp dword ptr [r14 + DirModel.is_unsorted], 0
+    jne .Lfpr_sh_draw
     cmp dword ptr [r14 + DirModel.sort_mode], SORT_SIZE
     jne .Lfpr_sh_draw
     lea rsi, [rip + str_sort_asc]
@@ -653,6 +676,8 @@ FilePane_render:
     mov edx, 128
     call str_copy
     pop rax
+    cmp dword ptr [r14 + DirModel.is_unsorted], 0
+    jne .Lfpr_eh_draw
     cmp eax, [r14 + DirModel.sort_mode]
     jne .Lfpr_eh_draw
     lea rsi, [rip + str_sort_asc]
@@ -679,6 +704,10 @@ FilePane_render:
 
     # 5. Render File Rows
 .Lfpr_rows_start:
+    mov rdi, r14
+    mov esi, [rbx + FilePane.scroll]
+    mov edx, [rsp + 184]
+    call DirModel_stat_range
     mov dword ptr [rsp + 188], 0  # r = 0
 .Lfpr_row_loop:
     mov eax, [rsp + 188]
@@ -822,17 +851,24 @@ FilePane_render:
     jge .Lfpr_name_w_ok
     mov r8d, 1
 .Lfpr_name_w_ok:
+    push r8
+    sub rsp, 8
+    mov rdi, r14
+    mov rsi, r15
+    call DirModel_entry_name
+    add rsp, 8
+    pop r8
+    mov rcx, rax
     mov rdi, r12
     mov esi, [rbx + Widget.x]
     add esi, 5
     mov edx, [rbx + Widget.y]
     add edx, 3
     add edx, [rsp + 188]
-    lea rcx, [r15 + FileEntry.name]
     call ScreenBuffer_draw_text
 
     # Ellipsis if name disp_width > available name_w - 5
-    movzx eax, word ptr [r15 + FileEntry.disp_width]
+    movzx eax, byte ptr [r15 + FileEntry.disp_width]
     mov ecx, [rsp + 168]
     sub ecx, 5
     cmp eax, ecx
@@ -1091,6 +1127,45 @@ FilePane_render:
     mov edx, 128
     call str_cat
 
+    # Append streaming counter, Esc-aborted badge, or ls -f [FS-order] badge
+    cmp dword ptr [r14 + DirModel.is_loading], 0
+    je .Lfpr_chk_aborted
+    call i18n_get
+    mov rsi, [rax + LangStrings.fp_loading_pfx]
+    mov rdi, rsp
+    mov edx, 128
+    call str_cat
+    mov rdi, [r14 + DirModel.raw_count]
+    lea rsi, [rsp + 128]
+    call u64_to_dec
+    mov rdi, rsp
+    lea rsi, [rsp + 128]
+    mov edx, 128
+    call str_cat
+    jmp .Lfpr_foot_pen
+
+.Lfpr_chk_aborted:
+    cmp dword ptr [r14 + DirModel.load_aborted], 0
+    je .Lfpr_chk_huge
+    call i18n_get
+    mov rsi, [rax + LangStrings.fp_abort_badge]
+    mov rdi, rsp
+    mov edx, 128
+    call str_cat
+    jmp .Lfpr_foot_pen
+
+.Lfpr_chk_huge:
+    cmp dword ptr [r14 + DirModel.huge_mode], 0
+    je .Lfpr_foot_pen
+    cmp dword ptr [r14 + DirModel.is_unsorted], 0
+    je .Lfpr_foot_pen
+    call i18n_get
+    mov rsi, [rax + LangStrings.fp_huge_badge]
+    mov rdi, rsp
+    mov edx, 128
+    call str_cat
+
+.Lfpr_foot_pen:
     mov rdi, r12
     mov esi, [r13 + Theme.muted]
     mov edx, [r13 + Theme.surface]
@@ -1482,6 +1557,8 @@ FilePane_on_mouse:
     cmp r8d, edx
     jge .Lfpm_hc_next
     movsx edi, word ptr [r10 + HitZone.id]
+    cmp dword ptr [r13 + DirModel.is_unsorted], 0
+    jne .Lfpm_hc_new
     cmp edi, [r13 + DirModel.sort_mode]
     jne .Lfpm_hc_new
     xor dword ptr [r13 + DirModel.sort_desc], 1
@@ -1492,6 +1569,10 @@ FilePane_on_mouse:
 .Lfpm_hc_sort:
     mov rdi, r13
     call DirModel_sort
+    mov dword ptr [rbx + FilePane.cursor], 0
+    mov dword ptr [rbx + FilePane.scroll], 0
+    mov rdi, [rbx + FilePane.app]
+    call App_sync_preview
     jmp .Lfpm_handled
 .Lfpm_hc_next:
     inc ecx

@@ -17,4 +17,14 @@ FileStat.mode:   .space 4     # POSIX file mode & type bits (S_IF* | perm)
 FileStat.pad:    .space 4
 FileStat._size:
 
+# --- Portable Directory Entry Types (from OS d_type when available) ---
+.equ PAL_DT_UNKNOWN, 0
+.equ PAL_DT_FIFO,    1
+.equ PAL_DT_CHR,     2
+.equ PAL_DT_DIR,     4
+.equ PAL_DT_BLK,     6
+.equ PAL_DT_REG,     8
+.equ PAL_DT_LNK,     10
+.equ PAL_DT_SOCK,    12
+
 .endif

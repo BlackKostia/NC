@@ -18,6 +18,7 @@ g_raw_active:
 .global os_fstat
 .global os_dir_read
 .global os_dir_next
+.global os_dir_next_ex
 .global os_mem_remap
 .global os_poll_in
 .global os_clock_ms
@@ -95,21 +96,34 @@ os_dir_read:
 # const char *os_dir_next(void *buf, size_t bytes, size_t *pos_ptr)
 # Advances *pos_ptr and returns d_name pointer, or NULL when batch exhausted.
 os_dir_next:
+    xor ecx, ecx
+# const char *os_dir_next_ex(void *buf, size_t bytes, size_t *pos_ptr, uint8_t *out_type)
+# Same as os_dir_next, additionally writing normalized PAL_DT_* to *out_type when non-NULL.
+os_dir_next_ex:
 .Lodn_loop:
     mov r8, [rdx]
     cmp r8, rsi
     jae .Lodn_eof
     lea r9, [rdi + r8]
-    movzx ecx, word ptr [r9 + KDIRENT_RECLEN]
-    test ecx, ecx
+    movzx r11d, word ptr [r9 + KDIRENT_RECLEN]
+    test r11d, r11d
     jz .Lodn_eof
-    lea r10, [r8 + rcx]
+    lea r10, [r8 + r11]
     mov [rdx], r10
     cmp qword ptr [r9 + KDIRENT_INO], 0
     je .Lodn_loop
+    test rcx, rcx
+    jz .Lodn_name
+    movzx r10d, byte ptr [r9 + KDIRENT_TYPE]
+    mov [rcx], r10b
+.Lodn_name:
     lea rax, [r9 + KDIRENT_NAME]
     ret
 .Lodn_eof:
+    test rcx, rcx
+    jz .Lodn_zero
+    mov byte ptr [rcx], 0
+.Lodn_zero:
     xor eax, eax
     ret
 
