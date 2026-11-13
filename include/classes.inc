@@ -128,6 +128,11 @@ CLASS_BEGIN DirModel
     FIELD DirModel.sort_desc,      4
     FIELD DirModel.show_hidden,    4
     FIELD DirModel.has_dotdot,     4   # 1 if entry 0 is '..'
+    FIELD DirModel.dir_dev,        8   # identity + mtime of the listed directory at load
+    FIELD DirModel.dir_ino,        8   # (validates LRU dir-cache snapshots)
+    FIELD DirModel.dir_mtime,      8
+    FIELD DirModel.dir_mtime_ns,   4
+    FIELD DirModel.dir_pad,        4
     FIELD DirModel.flt_raw,        8   # raw_count when order[] was last filtered
     FIELD DirModel.flt_lc_len,     4   # byte length of flt_lc
     FIELD DirModel.flt_valid,      4   # 1: order[] == filter(flt_applied) over all raw entries
@@ -237,12 +242,15 @@ CLASS_END InputDialog
 
 CLASS_BEGIN ViewerDialog
     EXTENDS Dialog
-    FIELD ViewerDialog.data,        8
+    FIELD ViewerDialog.data,        8   # mmap'ed file (map_len != 0) or heap fallback buffer
     FIELD ViewerDialog.data_len,    8
-    FIELD ViewerDialog.scroll_line, 4
-    FIELD ViewerDialog.total_lines, 4
+    FIELD ViewerDialog.map_len,     8   # nonzero when data is a read-only file mapping
+    FIELD ViewerDialog.top_off,     8   # text mode: byte offset of the top line
+    FIELD ViewerDialog.top_line,    8   # text mode: 0-based index of the top line
+    FIELD ViewerDialog.total_lines, 8   # lazily counted (SIMD) on End; -1 = unknown
+    FIELD ViewerDialog.hex_row,     8   # hex mode: top 16-byte row
     FIELD ViewerDialog.hex_mode,    4
-    FIELD ViewerDialog.pad,         4
+    FIELD ViewerDialog.vis_rows,    4   # rows rendered last frame (page size)
     FIELD ViewerDialog.path,        PATH_MAX
 CLASS_END ViewerDialog
 
@@ -280,7 +288,7 @@ CLASS_BEGIN App
     FIELD App.term_h,        4
     FIELD App.mouse_x,       4
     FIELD App.mouse_y,       4
-    FIELD App.pad,           4
+    FIELD App.stream_turn,   4          # alternates streaming steps between panes
     FIELD App.task_dlg_at,   8          # monotonic ms when ProgressDialog may auto-open
     FIELD App.task_last_ms,  8          # last snapshot refresh
     FIELD App.task_active,   4          # 1 while a background worker runs

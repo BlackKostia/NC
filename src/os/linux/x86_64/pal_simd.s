@@ -23,6 +23,8 @@
 .global os_str_len_fast
 .global os_str_contains_ci_fast
 .global os_mem_mismatch16
+.global os_mem_find_byte
+.global os_mem_count_byte
 
 # void os_mem_copy_fast(void *dst, const void *src, size_t len) -- non-overlapping
 os_mem_copy_fast:
@@ -328,6 +330,79 @@ os_str_contains_ci_fast:
     ret
 .Lci_yes_fast:
     mov eax, 1
+    ret
+
+# size_t os_mem_find_byte(const void *p, size_t len, int byte) -> index or len
+# Clobbers rax, rcx, r8, r9, xmm0-xmm1.
+os_mem_find_byte:
+    movzx eax, dl
+    imul eax, eax, 0x01010101
+    movd xmm1, eax
+    pshufd xmm1, xmm1, 0
+    xor eax, eax                      # index
+.Lfb_blk:
+    lea r8, [rax + 16]
+    cmp r8, rsi
+    ja .Lfb_tail
+    movdqu xmm0, [rdi + rax]
+    pcmpeqb xmm0, xmm1
+    pmovmskb ecx, xmm0
+    test ecx, ecx
+    jnz .Lfb_hit
+    mov rax, r8
+    jmp .Lfb_blk
+.Lfb_hit:
+    bsf ecx, ecx
+    add rax, rcx
+    ret
+.Lfb_tail:
+    cmp rax, rsi
+    jae .Lfb_none
+    cmp byte ptr [rdi + rax], dl
+    je .Lfb_ret
+    inc rax
+    jmp .Lfb_tail
+.Lfb_none:
+    mov rax, rsi
+.Lfb_ret:
+    ret
+
+# size_t os_mem_count_byte(const void *p, size_t len, int byte)
+# Clobbers rax, rcx, r8, r9, r10, xmm0-xmm1.
+os_mem_count_byte:
+    movzx eax, dl
+    imul eax, eax, 0x01010101
+    movd xmm1, eax
+    pshufd xmm1, xmm1, 0
+    xor eax, eax                      # count
+    xor r8d, r8d                      # index
+.Lcb_blk:
+    lea r9, [r8 + 16]
+    cmp r9, rsi
+    ja .Lcb_tail
+    movdqu xmm0, [rdi + r8]
+    pcmpeqb xmm0, xmm1
+    pmovmskb ecx, xmm0
+.Lcb_pop:                             # baseline x86-64 has no POPCNT: clear lowest set bit
+    test ecx, ecx
+    jz .Lcb_adv
+    lea r10d, [rcx - 1]
+    and ecx, r10d
+    inc rax
+    jmp .Lcb_pop
+.Lcb_adv:
+    mov r8, r9
+    jmp .Lcb_blk
+.Lcb_tail:
+    cmp r8, rsi
+    jae .Lcb_ret
+    cmp byte ptr [rdi + r8], dl
+    jne .Lcb_next
+    inc rax
+.Lcb_next:
+    inc r8
+    jmp .Lcb_tail
+.Lcb_ret:
     ret
 
 # size_t os_mem_mismatch16(const void *a, const void *b, size_t n16)

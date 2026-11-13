@@ -26,6 +26,7 @@ SRCS := \
 	src/tui/input.s \
 	src/fs/dir_model.s \
 	src/fs/dir_sort.s \
+	src/fs/dir_cache.s \
 	src/fs/file_ops.s \
 	src/fs/task.s \
 	src/ui/header_bar.s \
@@ -34,6 +35,7 @@ SRCS := \
 	src/ui/file_pane.s \
 	src/ui/preview_pane.s \
 	src/ui/dialogs.s \
+	src/ui/viewer_dialog.s \
 	src/ui/progress_dialog.s \
 	src/app/app.s \
 	src/app/app_task.s
@@ -75,6 +77,7 @@ test: $(TARGET)
 	python3 tests/test_performance_dir.py
 	python3 tests/test_bg_tasks.py
 	python3 tests/test_fastpath.py
+	python3 tests/test_nav_viewer.py
 
 verify:
 	./.agents/skills/duop-pty-verify/scripts/verify_build.sh

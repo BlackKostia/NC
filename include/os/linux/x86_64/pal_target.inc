@@ -71,6 +71,7 @@
 .equ MAP_ANONYMOUS,         0x20
 .equ MAP_PRIVATE_ANON,      0x22
 .equ MAP_SHARED_ANON,       0x21
+.equ MAP_FIXED,             0x10
 .equ MAP_POPULATE,          0x8000
 .equ MREMAP_MAYMOVE,        0x1
 
@@ -144,6 +145,9 @@
 .equ KSIG_MASK,             24
 .equ SA_RESTORER,           0x04000000
 .equ KSIG_IGN,              1
+.equ SA_SIGINFO,            0x00000004
+.equ SIGBUS,                7
+.equ KSIGINFO_ADDR,         16
 .equ SIGINT,                2
 .equ SIGTERM,               15
 .equ SIGWINCH,              28
@@ -163,6 +167,7 @@
 .equ KSTAT_MODE,            24
 .equ KSTAT_ST_SIZE,         48
 .equ KSTAT_MTIME,           88
+.equ KSTAT_MTIME_NSEC,      96
 
 .equ KDIRENT_INO,           0
 .equ KDIRENT_RECLEN,        16

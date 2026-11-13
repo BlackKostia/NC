@@ -30,6 +30,10 @@
 .equ TASK_TICK_MS,        100       # UI refresh cadence while a task runs
 .equ TASK_KILL_GRACE_MS,  3000      # shutdown: SIGKILL a worker that ignores cancel this long
 
+# --- LRU Directory Cache ---
+.equ DC_SLOTS,            16
+.equ DC_BUDGET,           33554432  # 32 MiB of cached entries/order/name pools at most
+
 # --- Double-click threshold (milliseconds) ---
 .equ DBLCLICK_MS,         420
 

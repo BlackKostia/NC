@@ -1560,14 +1560,26 @@ App_run:
     je .Larun_exit
     mov rdi, rbx
     call App_task_tick
+    # Stream both panes concurrently: alternate batches when both are loading
     mov rax, [rbx + App.left_pane]
     mov rdi, [rax + FilePane.model]
-    cmp dword ptr [rdi + DirModel.is_loading], 0
-    jne .Larun_do_step
     mov rax, [rbx + App.right_pane]
-    mov rdi, [rax + FilePane.model]
-    cmp dword ptr [rdi + DirModel.is_loading], 0
-    je .Larun_redraw
+    mov rsi, [rax + FilePane.model]
+    mov ecx, [rdi + DirModel.is_loading]
+    mov edx, [rsi + DirModel.is_loading]
+    test ecx, ecx
+    jz .Larun_only_right
+    test edx, edx
+    jz .Larun_do_step
+    xor dword ptr [rbx + App.stream_turn], 1
+    cmp dword ptr [rbx + App.stream_turn], 0
+    je .Larun_do_step
+    mov rdi, rsi
+    jmp .Larun_do_step
+.Larun_only_right:
+    test edx, edx
+    jz .Larun_redraw
+    mov rdi, rsi
 
 .Larun_do_step:
     xor esi, esi

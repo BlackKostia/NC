@@ -28,6 +28,7 @@ size_units:
 .global path_join
 .global path_dirname
 .global path_basename
+.global path_normalize
 
 # size_t str_len(const char *s) -- NULL-safe; preserves all registers except rax (SSE2 PAL)
 str_len:
@@ -781,4 +782,115 @@ path_basename:
 .Lpb_ret_full:
     mov rax, rbx
     pop rbx
+    ret
+
+# size_t path_normalize(const char *base, const char *target, char *out, size_t cap)
+# Lexically resolves `target` (absolute, or relative to absolute `base`) into a canonical
+# absolute path: collapses "//", ".", "..", never climbs above "/", no trailing slash.
+# Pure string work (no chdir/getcwd). Returns length, or 0 if it does not fit in `cap`.
+path_normalize:
+    push rbx
+    push r12
+    push r13
+    push r14
+    push r15
+    mov r12, rdi              # base
+    mov r13, rsi              # target
+    mov r14, rdx              # out
+    mov r15, rcx              # cap
+    cmp r15, 2
+    jb .Lpn_fail
+    mov byte ptr [r14], '/'
+    mov ebx, 1                # len
+    cmp byte ptr [r13], '/'
+    je .Lpn_target
+    mov rdi, r12
+    call .Lpn_feed
+    test rax, rax
+    js .Lpn_fail
+.Lpn_target:
+    mov rdi, r13
+    call .Lpn_feed
+    test rax, rax
+    js .Lpn_fail
+    mov byte ptr [r14 + rbx], 0
+    mov rax, rbx
+    jmp .Lpn_ret
+.Lpn_fail:
+    xor eax, eax
+.Lpn_ret:
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbx
+    ret
+
+# Local: append the components of rdi to out[0..rbx); returns rax=0 or -1 on overflow
+.Lpn_feed:
+.Lpnf_skip:
+    movzx eax, byte ptr [rdi]
+    cmp eax, '/'
+    jne .Lpnf_comp
+    inc rdi
+    jmp .Lpnf_skip
+.Lpnf_comp:
+    test eax, eax
+    jz .Lpnf_ok
+    xor ecx, ecx              # component length
+.Lpnf_len:
+    movzx eax, byte ptr [rdi + rcx]
+    test eax, eax
+    jz .Lpnf_have
+    cmp eax, '/'
+    je .Lpnf_have
+    inc rcx
+    jmp .Lpnf_len
+.Lpnf_have:
+    cmp rcx, 1
+    jne .Lpnf_dotdot
+    cmp byte ptr [rdi], '.'
+    je .Lpnf_next             # "."
+.Lpnf_dotdot:
+    cmp rcx, 2
+    jne .Lpnf_append
+    cmp word ptr [rdi], 0x2E2E
+    jne .Lpnf_append
+    # ".." -> drop the last component (stay at "/")
+    cmp rbx, 1
+    je .Lpnf_next
+.Lpnf_pop:
+    dec rbx
+    cmp byte ptr [r14 + rbx], '/'
+    jne .Lpnf_pop
+    test rbx, rbx
+    jnz .Lpnf_next
+    mov ebx, 1
+    jmp .Lpnf_next
+.Lpnf_append:
+    lea rax, [rbx + rcx + 2]
+    cmp rax, r15
+    ja .Lpnf_overflow
+    cmp rbx, 1
+    je .Lpnf_copy
+    mov byte ptr [r14 + rbx], '/'
+    inc rbx
+.Lpnf_copy:
+    xor edx, edx
+.Lpnf_cloop:
+    cmp rdx, rcx
+    jae .Lpnf_next
+    mov al, [rdi + rdx]
+    mov [r14 + rbx], al
+    inc rbx
+    inc rdx
+    jmp .Lpnf_cloop
+.Lpnf_next:
+    add rdi, rcx
+    jmp .Lpnf_skip
+.Lpnf_ok:
+    xor eax, eax
+    ret
+.Lpnf_overflow:
+    mov rax, -1
     ret

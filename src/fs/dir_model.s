@@ -147,28 +147,10 @@ DirModel_new:
     mov dword ptr [rbx + DirModel.show_hidden], 1
     mov dword ptr [rbx + DirModel.sort_mode], SORT_NAME
 
-    # entries[INITIAL_FILE_CAP] (32B each)
-    mov rdi, INITIAL_FILE_CAP * FileEntry._size
-    call mem_alloc
-    test rax, rax
-    jz .Ldmn_fail_free
-    mov [rbx + DirModel.entries], rax
-
-    # order[INITIAL_FILE_CAP] (4B each)
-    mov rdi, INITIAL_FILE_CAP * 4
-    call mem_alloc
-    test rax, rax
-    jz .Ldmn_fail_free
-    mov [rbx + DirModel.order], rax
-    mov qword ptr [rbx + DirModel.raw_cap], INITIAL_FILE_CAP
-
-    # contiguous filename arena pool
-    mov rdi, INITIAL_NAME_CAP
-    call mem_alloc
-    test rax, rax
-    jz .Ldmn_fail_free
-    mov [rbx + DirModel.name_pool], rax
-    mov qword ptr [rbx + DirModel.name_cap], INITIAL_NAME_CAP
+    mov rdi, rbx
+    call alloc_initial_arrays
+    test eax, eax
+    jnz .Ldmn_fail_free
 
     test r12, r12
     jnz .Ldmn_use_arg
@@ -206,6 +188,61 @@ DirModel_new:
     add rsp, 8
     pop r12
     pop rbx
+    ret
+
+# ==============================================================================
+# Helper: int alloc_initial_arrays(DirModel *this) -> 0 or -ENOMEM
+# entries[INITIAL_FILE_CAP] (32 B), order[INITIAL_FILE_CAP] (4 B), name_pool[INITIAL_NAME_CAP]
+# ==============================================================================
+alloc_initial_arrays:
+    push rbx
+    mov rbx, rdi
+    mov edi, INITIAL_FILE_CAP * FileEntry._size
+    call mem_alloc
+    test rax, rax
+    jz .Laia_fail
+    mov [rbx + DirModel.entries], rax
+    mov edi, INITIAL_FILE_CAP * 4
+    call mem_alloc
+    test rax, rax
+    jz .Laia_fail
+    mov [rbx + DirModel.order], rax
+    mov qword ptr [rbx + DirModel.raw_cap], INITIAL_FILE_CAP
+    mov edi, INITIAL_NAME_CAP
+    call mem_alloc
+    test rax, rax
+    jz .Laia_fail
+    mov [rbx + DirModel.name_pool], rax
+    mov qword ptr [rbx + DirModel.name_cap], INITIAL_NAME_CAP
+    xor eax, eax
+    pop rbx
+    ret
+.Laia_fail:
+    mov eax, -ENOMEM
+    pop rbx
+    ret
+
+# ==============================================================================
+# Helper: void reset_entry_stats(DirModel *this)
+# After restoring a cached listing: forget cached stat data and selections so visible rows
+# are lazily re-stat'ed exactly like a fresh load (file contents may change without the
+# directory mtime changing).
+# ==============================================================================
+reset_entry_stats:
+    mov rcx, [rdi + DirModel.entries]
+    mov rdx, [rdi + DirModel.raw_count]
+    mov eax, [rdi + DirModel.has_dotdot]
+.Lres_loop:
+    cmp rax, rdx
+    jae .Lres_done
+    mov r8, rax
+    shl r8, 5
+    and dword ptr [rcx + r8 + FileEntry.flags], ~(FE_STAT_READY | FE_SELECTED)
+    inc rax
+    jmp .Lres_loop
+.Lres_done:
+    mov qword ptr [rdi + DirModel.total_bytes], 0
+    mov dword ptr [rdi + DirModel.stats_complete], 0
     ret
 
 # ==============================================================================
@@ -424,7 +461,7 @@ finish_load_internal:
 DirModel_reload:
     push rbx
     push r12
-    sub rsp, 8
+    sub rsp, 56               # [rsp] = FileStat of the directory
     mov rbx, rdi
 
     call close_stream_resources
@@ -450,6 +487,22 @@ DirModel_reload:
     test rax, rax
     js .Ldmr_err
     mov [rbx + DirModel.load_dirfd], eax
+    # Stamp the listing (dev/ino/mtime) for LRU dir-cache validation
+    mov edi, eax
+    mov rsi, rsp
+    call os_fstat
+    xor ecx, ecx
+    test rax, rax
+    js .Ldmr_stamp
+    mov rcx, [rsp + FileStat.ino]
+    mov rax, [rsp + FileStat.dev]
+    mov [rbx + DirModel.dir_dev], rax
+    mov rax, [rsp + FileStat.mtime]
+    mov [rbx + DirModel.dir_mtime], rax
+    mov eax, [rsp + FileStat.mtime_nsec]
+    mov [rbx + DirModel.dir_mtime_ns], eax
+.Ldmr_stamp:
+    mov [rbx + DirModel.dir_ino], rcx
 
     mov rdi, DIRENTS_BUF_SIZE
     call mem_alloc
@@ -508,7 +561,7 @@ DirModel_reload:
 .Ldmr_ok:
     xor eax, eax
 .Ldmr_err:
-    add rsp, 8
+    add rsp, 56
     pop r12
     pop rbx
     ret
@@ -521,7 +574,7 @@ DirModel_reload:
     call close_stream_resources
     mov dword ptr [rbx + DirModel.is_loading], 0
     pop rax
-    add rsp, 8
+    add rsp, 56
     pop r12
     pop rbx
     ret
@@ -952,61 +1005,90 @@ DirModel_apply_filter:
 
 # ==============================================================================
 # int DirModel_chdir(DirModel *this, const char *target)
-# Resolves target via kernel chdir/getcwd, clears filter, and reloads.
+# Lexically resolves target against this->path (no process-wide chdir/getcwd), verifies it
+# is an accessible directory, donates the current listing to the LRU dir cache, then either
+# restores a valid cached snapshot in O(1) or reloads. Clears the filter.
+# On failure this->path and the listing stay untouched.
 # ==============================================================================
 DirModel_chdir:
     push rbx
     push r12
     push r13
-    sub rsp, PATH_MAX + 32
+    sub rsp, PATH_MAX + 64            # [0]=resolved path, [PATH_MAX]=FileStat
     mov rbx, rdi
     mov r12, rsi
 
-    mov rdi, rsp
-    mov esi, PATH_MAX
-    OS_GETCWD
-    mov r13, rax
-
-    cmp byte ptr [r12], '/'
-    je .Ldmc_go_target
     lea rdi, [rbx + DirModel.path]
-    OS_CHDIR
+    mov rsi, r12
+    mov rdx, rsp
+    mov ecx, PATH_MAX
+    call path_normalize
     test rax, rax
-    js .Ldmc_restore_err
+    jz .Ldmc_toolong
 
-.Ldmc_go_target:
-    mov rdi, r12
-    OS_CHDIR
+    mov edi, AT_FDCWD
+    mov rsi, rsp
+    mov edx, O_RDONLY | O_DIRECTORY | O_CLOEXEC
+    xor r10d, r10d
+    OS_OPENAT
     test rax, rax
-    js .Ldmc_restore_err
+    js .Ldmc_ret
+    mov r13d, eax
+    mov edi, r13d
+    lea rsi, [rsp + PATH_MAX]
+    call os_fstat
+    mov r12, rax
+    mov edi, r13d
+    OS_CLOSE
+    mov rax, r12
+    test rax, rax
+    js .Ldmc_ret
 
+    mov rdi, rbx
+    call close_stream_resources
+    mov rdi, rbx
+    call dircache_store
     lea rdi, [rbx + DirModel.path]
-    mov esi, PATH_MAX
-    OS_GETCWD
-    test rax, rax
-    js .Ldmc_restore_err
-
-    test r13, r13
-    js .Ldmc_reload
-    mov rdi, rsp
-    OS_CHDIR
-
-.Ldmc_reload:
+    mov rsi, rsp
+    mov edx, PATH_MAX
+    call str_copy
     mov byte ptr [rbx + DirModel.filter], 0
+
+    mov rdi, rbx
+    lea rsi, [rsp + PATH_MAX]
+    call dircache_fetch
+    test eax, eax
+    jz .Ldmc_miss
+    mov r12d, eax
+    mov dword ptr [rbx + DirModel.is_loading], 0
+    mov dword ptr [rbx + DirModel.load_aborted], 0
+    mov dword ptr [rbx + DirModel.flt_valid], 0
+    mov rdi, rbx
+    call reset_entry_stats
+    cmp r12d, 1
+    je .Ldmc_ok
+    mov dword ptr [rbx + DirModel.is_unsorted], 0
+    mov rdi, rbx
+    call DirModel_apply_filter
+.Ldmc_ok:
+    xor eax, eax
+    jmp .Ldmc_ret
+
+.Ldmc_miss:
+    cmp qword ptr [rbx + DirModel.entries], 0
+    jne .Ldmc_reload
+    mov rdi, rbx
+    call alloc_initial_arrays
+    test eax, eax
+    js .Ldmc_ret
+.Ldmc_reload:
     mov rdi, rbx
     call DirModel_reload
-    jmp .Ldmc_done
-
-.Ldmc_restore_err:
-    push rax
-    test r13, r13
-    js .Ldmc_err_pop
-    lea rdi, [rsp + 8]
-    OS_CHDIR
-.Ldmc_err_pop:
-    pop rax
-.Ldmc_done:
-    add rsp, PATH_MAX + 32
+    jmp .Ldmc_ret
+.Ldmc_toolong:
+    mov rax, -EINVAL
+.Ldmc_ret:
+    add rsp, PATH_MAX + 64
     pop r13
     pop r12
     pop rbx
@@ -1028,6 +1110,21 @@ DirModel_get_entry:
     ret
 .Ldge_null:
     xor eax, eax
+    ret
+
+# ==============================================================================
+# Helper: void mark_link_dir(DirModel *model, FileEntry *entry)
+# A symlink resolved to a directory: count it as a dir once and flag FE_LINK_DIR.
+# ==============================================================================
+mark_link_dir:
+    test dword ptr [rsi + FileEntry.flags], FE_IS_DIR | FE_LINK_DIR
+    jnz .Lmld_flag
+    inc dword ptr [rdi + DirModel.dir_count]
+    cmp dword ptr [rdi + DirModel.file_count], 0
+    je .Lmld_flag
+    dec dword ptr [rdi + DirModel.file_count]
+.Lmld_flag:
+    or dword ptr [rsi + FileEntry.flags], FE_LINK_DIR
     ret
 
 # ==============================================================================
@@ -1086,6 +1183,8 @@ apply_stat_to_entry:
 .Lase_lnk:
     or r8d, FE_IS_LINK | FE_STAT_READY
     mov [r12 + FileEntry.flags], r8d
+    cmp dword ptr [rsp + FileStat._size], -2
+    je .Lase_done                     # batch caller resolves link targets via io_uring
     mov edi, [rsp + FileStat._size]
     mov esi, [r12 + FileEntry.name_off]
     add rsi, [rbx + DirModel.name_pool]
@@ -1098,14 +1197,9 @@ apply_stat_to_entry:
     and eax, S_IFMT
     cmp eax, S_IFDIR
     jne .Lase_done
-    test dword ptr [r12 + FileEntry.flags], FE_IS_DIR | FE_LINK_DIR
-    jnz .Lase_lnk_dir_flag
-    inc dword ptr [rbx + DirModel.dir_count]
-    cmp dword ptr [rbx + DirModel.file_count], 0
-    je .Lase_lnk_dir_flag
-    dec dword ptr [rbx + DirModel.file_count]
-.Lase_lnk_dir_flag:
-    or dword ptr [r12 + FileEntry.flags], FE_LINK_DIR
+    mov rdi, rbx
+    mov rsi, r12
+    call mark_link_dir
     jmp .Lase_done
 
 .Lase_commit:
@@ -1371,14 +1465,14 @@ DirModel_ensure_all_stats:
     mov r15, [rsp + 8]
 .Leas_apply:
     cmp rbp, r15
-    jae .Leas_outer
+    jae .Leas_links
     mov rsi, [r12 + CHUNK_ENTRIES_OFF + rbp * 8]
     cmp dword ptr [r12 + CHUNK_ERRS_OFF + rbp * 4], 0
     jne .Leas_err_item
     mov rdi, rbx
     imul rdx, rbp, FileStat._size
     lea rdx, [r12 + CHUNK_STATS_OFF + rdx]
-    mov ecx, [rsp + 0]
+    mov ecx, -2                       # defer symlink targets to one batched pass
     call apply_stat_to_entry
     jmp .Leas_a_next
 .Leas_err_item:
@@ -1386,6 +1480,59 @@ DirModel_ensure_all_stats:
 .Leas_a_next:
     inc rbp
     jmp .Leas_apply
+
+.Leas_links:
+    # Second pass: compact this chunk's symlinks in place and resolve all targets with
+    # one follow=1 batch (io_uring) instead of one synchronous stat per link.
+    xor ebp, ebp                      # read index
+    xor r15d, r15d                    # write index
+    mov rcx, [rsp + 8]
+.Leas_lk_scan:
+    cmp rbp, rcx
+    jae .Leas_lk_go
+    cmp dword ptr [r12 + CHUNK_ERRS_OFF + rbp * 4], 0
+    jne .Leas_lk_next
+    imul rax, rbp, FileStat._size
+    mov eax, [r12 + CHUNK_STATS_OFF + rax + FileStat.mode]
+    and eax, S_IFMT
+    cmp eax, S_IFLNK
+    jne .Leas_lk_next
+    mov rax, [r12 + CHUNK_ENTRIES_OFF + rbp * 8]
+    mov [r12 + CHUNK_ENTRIES_OFF + r15 * 8], rax
+    mov rax, [r12 + CHUNK_NAMES_OFF + rbp * 8]
+    mov [r12 + CHUNK_NAMES_OFF + r15 * 8], rax
+    inc r15
+.Leas_lk_next:
+    inc rbp
+    jmp .Leas_lk_scan
+.Leas_lk_go:
+    test r15, r15
+    jz .Leas_outer
+    mov [rsp + 16], r15
+    mov edi, [rsp + 0]
+    lea rsi, [r12 + CHUNK_NAMES_OFF]
+    lea rdx, [r12 + CHUNK_STATS_OFF]
+    lea rcx, [r12 + CHUNK_ERRS_OFF]
+    mov r8, r15
+    mov r9d, 1                        # follow
+    call os_batch_stat
+    xor ebp, ebp
+.Leas_lk_apply:
+    cmp rbp, [rsp + 16]
+    jae .Leas_outer
+    cmp dword ptr [r12 + CHUNK_ERRS_OFF + rbp * 4], 0
+    jne .Leas_lk_anext
+    imul rax, rbp, FileStat._size
+    mov eax, [r12 + CHUNK_STATS_OFF + rax + FileStat.mode]
+    and eax, S_IFMT
+    cmp eax, S_IFDIR
+    jne .Leas_lk_anext
+    mov rdi, rbx
+    mov rsi, [r12 + CHUNK_ENTRIES_OFF + rbp * 8]
+    call mark_link_dir
+.Leas_lk_anext:
+    inc rbp
+    jmp .Leas_lk_apply
 
 .Leas_finish:
     mov dword ptr [rbx + DirModel.stats_complete], 1

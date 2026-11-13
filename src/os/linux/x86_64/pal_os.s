@@ -30,6 +30,9 @@ g_raw_active:
 .global os_pipe_cloexec
 .global os_signals_worker_mode
 .global os_clone_file
+.global os_mmap_file_ro
+.global os_munmap
+.global os_sigbus_guard_install
 .global os_copy_file_range
 
 # Helper: void copy_kstat_to_filestat(const struct stat *kstat [rsi], FileStat *out [rdi])
@@ -44,7 +47,8 @@ copy_kstat_to_filestat:
     mov [rdi + FileStat.mtime], rax
     mov eax, [rsi + KSTAT_MODE]
     mov [rdi + FileStat.mode], eax
-    mov dword ptr [rdi + FileStat.pad], 0
+    mov eax, [rsi + KSTAT_MTIME_NSEC]
+    mov [rdi + FileStat.mtime_nsec], eax
     ret
 
 # int os_statat(int dirfd, const char *path, FileStat *out, int follow_symlinks)
@@ -242,6 +246,32 @@ os_copy_file_range:
     syscall
     ret
 
+# void *os_mmap_file_ro(int fd, size_t len) -> mapping or 0
+os_mmap_file_ro:
+    mov r8d, edi              # fd
+    mov rsi, rsi              # len
+    xor edi, edi
+    mov edx, PROT_READ
+    mov r10d, MAP_PRIVATE
+    xor r9d, r9d
+    mov eax, OS_SYS_mmap
+    syscall
+    cmp rax, -4095
+    jae .Lomf_fail
+    ret
+.Lomf_fail:
+    xor eax, eax
+    ret
+
+# void os_munmap(void *addr, size_t len)
+os_munmap:
+    test rdi, rdi
+    jz .Lomu_ret
+    mov eax, OS_SYS_munmap
+    syscall
+.Lomu_ret:
+    ret
+
 # int os_pipe_cloexec(int fds[2])
 os_pipe_cloexec:
     mov esi, O_CLOEXEC
@@ -380,6 +410,38 @@ os_term_restore:
 sig_restorer:
     mov eax, OS_SYS_rt_sigreturn
     syscall
+
+# SIGBUS guard (SA_SIGINFO): replace the faulting page of a truncated file mapping with an
+# anonymous zero page, then return so the faulting load simply reads zeros.
+sig_bus_patch:
+    mov rdi, [rsi + KSIGINFO_ADDR]
+    and rdi, -4096
+    mov esi, 4096
+    mov edx, PROT_READ | PROT_WRITE
+    mov r10d, MAP_PRIVATE_ANON | MAP_FIXED
+    mov r8, -1
+    xor r9d, r9d
+    mov eax, OS_SYS_mmap
+    syscall
+    ret
+
+# void os_sigbus_guard_install(void)
+os_sigbus_guard_install:
+    sub rsp, KSIGACTION_SIZE + 8
+    lea rax, [rip + sig_bus_patch]
+    mov [rsp + KSIG_HANDLER], rax
+    mov qword ptr [rsp + KSIG_FLAGS], SA_RESTORER | SA_SIGINFO
+    lea rax, [rip + sig_restorer]
+    mov [rsp + KSIG_RESTORER], rax
+    mov qword ptr [rsp + KSIG_MASK], 0
+    mov edi, SIGBUS
+    mov rsi, rsp
+    xor edx, edx
+    mov r10d, 8
+    mov eax, OS_SYS_rt_sigaction
+    syscall
+    add rsp, KSIGACTION_SIZE + 8
+    ret
 
 # No-op handler: its only purpose is to make blocking syscalls return -EINTR
 sig_noop:

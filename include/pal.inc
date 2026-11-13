@@ -14,7 +14,7 @@ FileStat.ino:    .space 8     # Inode number
 FileStat.size:   .space 8     # File byte size
 FileStat.mtime:  .space 8     # Modification time (seconds since epoch)
 FileStat.mode:   .space 4     # POSIX file mode & type bits (S_IF* | perm)
-FileStat.pad:    .space 4
+FileStat.mtime_nsec: .space 4 # Modification time nanoseconds (cache invalidation)
 FileStat._size:
 
 # --- Portable Directory Entry Types (from OS d_type when available) ---
@@ -40,6 +40,12 @@ FileStat._size:
 #     int  os_str_contains_ci_fast(const char *hay, const char *needle_lc, size_t nlen) -- ASCII ci, 1/0
 #     size_t os_mem_mismatch16(const void *a, const void *b, size_t n16) -- index of first differing
 #          16-byte block (Cell) among n16 blocks, or n16 when equal
+#   void *os_mmap_file_ro(int fd, size_t len)  -> read-only private file mapping, or 0
+#   void os_munmap(void *addr, size_t len)
+#   void os_sigbus_guard_install(void)          -> a SIGBUS on a mapped file page (file truncated
+#        while viewed) is answered by mapping a zero page there instead of killing the process
+#   size_t os_mem_find_byte(const void *p, size_t len, int byte)   -> index, or len if absent (SIMD)
+#   size_t os_mem_count_byte(const void *p, size_t len, int byte)  -> occurrences (SIMD)
 #   void os_signals_worker_mode(void)           -> background worker: ignore SIGWINCH/SIGINT,
 #        SIGTERM interrupts blocking syscalls with -EINTR (no SA_RESTART) instead of terminating.
 

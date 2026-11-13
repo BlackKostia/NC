@@ -139,9 +139,13 @@ on_sigterm:
 
 # void signals_install(void)
 signals_install:
+    sub rsp, 8
     lea rdi, [rip + on_sigwinch]
     lea rsi, [rip + on_sigterm]
-    jmp os_signals_install
+    call os_signals_install
+    call os_sigbus_guard_install      # mmap'ed viewer survives files truncated under it
+    add rsp, 8
+    ret
 
 # const char *env_getenv(char **envp, const char *name)
 # rdi = envp, rsi = name (without '=') -> rax = value ptr or 0

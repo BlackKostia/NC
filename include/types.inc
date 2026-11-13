@@ -95,6 +95,35 @@ TaskJob.dst:       .space 4096
 TaskJob.names:                     # variable-length "a\0b\0..." block follows
 TaskJob._size:
 
+# --- DCSlot (LRU directory cache snapshot, see src/fs/dir_cache.s) ---
+.struct 0
+DCSlot.entries:     .space 8
+DCSlot.order:       .space 8
+DCSlot.name_pool:   .space 8
+DCSlot.raw_count:   .space 8
+DCSlot.raw_cap:     .space 8
+DCSlot.name_used:   .space 8
+DCSlot.name_cap:    .space 8
+DCSlot.count:       .space 8
+DCSlot.dev:         .space 8
+DCSlot.ino:         .space 8
+DCSlot.mtime:       .space 8
+DCSlot.lru:         .space 8
+DCSlot.bytes:       .space 8
+DCSlot.mtime_ns:    .space 4
+DCSlot.used:        .space 4
+DCSlot.dir_count:   .space 4
+DCSlot.file_count:  .space 4
+DCSlot.has_dotdot:  .space 4
+DCSlot.sort_mode:   .space 4
+DCSlot.sort_desc:   .space 4
+DCSlot.show_hidden: .space 4
+DCSlot.is_unsorted: .space 4
+DCSlot.huge_mode:   .space 4
+DCSlot.filter:      .space 64      # == FILTER_MAX
+DCSlot.path:        .space 4096    # == PATH_MAX
+DCSlot._size:
+
 # --- Theme (128 bytes) ---
 .struct 0
 Theme.name:               .space 8
