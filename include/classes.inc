@@ -1,4 +1,4 @@
-# Class Hierarchy & Virtual Table Specifications for NeoCommander
+# Class Hierarchy & Virtual Table Specifications for Duop
 #
 # Inheritance tree:
 #   Object

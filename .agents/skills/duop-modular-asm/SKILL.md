@@ -1,14 +1,14 @@
 ---
-name: nc-modular-asm
+name: duop-modular-asm
 description: >-
-  Guides modular x86-64 GNU Assembler development in NeoCommander. Use when creating,
+  Guides modular x86-64 GNU Assembler development in Duop. Use when creating,
   splitting, or refactoring .s modules, adding OOP classes/vtables in include/classes.inc,
   adding Linux syscalls, extending structs in include/types.inc, or registering objects in Makefile.
 ---
 
-# NeoCommander Modular Assembly Workflow
+# Duop Modular Assembly Workflow
 
-Keep every NeoCommander subsystem small, decoupled, zero-libc, and single-purpose.
+Keep every Duop subsystem small, decoupled, zero-libc, and single-purpose.
 
 ## Layer Ownership & Dependency Matrix
 
@@ -24,7 +24,7 @@ Keep every NeoCommander subsystem small, decoupled, zero-libc, and single-purpos
 ## Adding a New Module (or Splitting an Existing Large Module)
 
 1. **Choose the narrowest layer** matching the responsibility:
-   - Config parser (`ncrc`), checksum/crypto, timers -> `src/core/`
+   - Config parser (`duoprc`), checksum/crypto, timers -> `src/core/`
    - Kitty graphics / Sixel encoder -> `src/tui/`
    - Inflate/VFS, `Trash` + Undo log, async worker `TaskQueue`, `ncdu` scanner -> `src/fs/`
    - Dedicated dialog/widget (`FuzzyDialog`, `ProgressDialog`, `ChmodDialog`, `Tabs`) -> separate file `src/ui/<widget>.s` instead of appending to `src/ui/dialogs.s` or `src/ui/file_pane.s`!
@@ -44,6 +44,6 @@ Keep every NeoCommander subsystem small, decoupled, zero-libc, and single-purpos
    - Add `src/<layer>/<name>.s` to `SRCS` in dependency-logical order.
 5. **Validate modularity automatically**:
    ```bash
-   python3 ./.agents/skills/nc-modular-asm/scripts/check_modularity.py
+   python3 ./.agents/skills/duop-modular-asm/scripts/check_modularity.py
    ```
    Confirm zero errors and check any file-size warnings before continuing.

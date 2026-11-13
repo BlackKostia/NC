@@ -1,12 +1,12 @@
 ---
-name: nc-ui-i18n-widget
+name: duop-ui-i18n-widget
 description: >-
   Guides TUI widgets, dialogs, themes, Kitty/ANSI graphics, SGR-1006 mouse hit zones,
-  and synchronized English/Ukrainian i18n strings in NeoCommander. Use when editing or
+  and synchronized English/Ukrainian i18n strings in Duop. Use when editing or
   adding files in src/ui/ or src/tui/, adding Theme colors, or adding localized UI text.
 ---
 
-# NeoCommander UI Widget & I18n Workflow
+# Duop UI Widget & I18n Workflow
 
 ## 1. Synchronized English + Ukrainian Localization
 
@@ -32,4 +32,4 @@ Every user-visible string MUST live in both English and Ukrainian — never hard
 ## 4. Verification
 
 - Add or extend a scenario in `tests/test_pty.py` testing BOTH English and Ukrainian modes (`--lang en` and `--lang ua` or `Alt+L` switch) plus mouse clicks (`\x1b[<btn;x;yM`) when applicable.
-- Run `./.agents/skills/nc-pty-verify/scripts/verify_build.sh`.
+- Run `./.agents/skills/duop-pty-verify/scripts/verify_build.sh`.

@@ -1,12 +1,12 @@
 ---
-name: nc-version-release
+name: duop-version-release
 description: >-
   Manages Semantic Versioning (VERSION, build/version.inc, vX.Y.Z Git tags, ROADMAP.md)
-  and atomic Conventional Commits after verified NeoCommander changes. Use before committing
+  and atomic Conventional Commits after verified Duop changes. Use before committing
   changes or bumping the application version.
 ---
 
-# NeoCommander Continuous Versioning & Commit Workflow
+# Duop Continuous Versioning & Commit Workflow
 
 Keep `VERSION`, binary metadata (`--version`, `HelpDialog`), `ROADMAP.md`, and Git history synchronized on every successful change.
 
@@ -14,7 +14,7 @@ Keep `VERSION`, binary metadata (`--version`, `HelpDialog`), `ROADMAP.md`, and G
 
 Check current state first:
 ```bash
-python3 ./.agents/skills/nc-version-release/scripts/bump_version.py --show
+python3 ./.agents/skills/duop-version-release/scripts/bump_version.py --show
 ```
 
 Choose the version action before committing:
@@ -27,7 +27,7 @@ Choose the version action before committing:
 
 Bump cleanly with:
 ```bash
-python3 ./.agents/skills/nc-version-release/scripts/bump_version.py --bump patch
+python3 ./.agents/skills/duop-version-release/scripts/bump_version.py --bump patch
 ```
 
 ## 2. Update Documentation & Verify Build
@@ -35,7 +35,7 @@ python3 ./.agents/skills/nc-version-release/scripts/bump_version.py --bump patch
 1. If completing a `ROADMAP.md` item, mark/update its status in `ROADMAP.md`.
 2. Run verification **after** updating `VERSION` so `build/version.inc`, `--version`, `HelpDialog`, and `tests/test_pty.py` build and validate the bumped version:
    ```bash
-   ./.agents/skills/nc-pty-verify/scripts/verify_build.sh
+   ./.agents/skills/duop-pty-verify/scripts/verify_build.sh
    ```
 
 ## 3. Commit & Tag
@@ -49,5 +49,5 @@ python3 ./.agents/skills/nc-version-release/scripts/bump_version.py --bump patch
    Note: `.githooks/pre-commit` enforces modularity checks, version currency, and PTY tests; `.githooks/commit-msg` enforces Conventional Commit format.
 3. When cutting a version milestone/release where `VERSION` increased, create an annotated tag (do not push unless the user asks):
    ```bash
-   git tag -a "v$(cat VERSION)" -m "NeoCommander v$(cat VERSION)"
+   git tag -a "v$(cat VERSION)" -m "Duop v$(cat VERSION)"
    ```

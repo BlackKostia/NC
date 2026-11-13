@@ -1,4 +1,4 @@
-# NeoCommander Entry Point (_start)
+# Duop Entry Point (_start)
 # Pure Linux x86-64 ELF64 binary with zero libc dependencies.
 
 .intel_syntax noprefix
@@ -19,26 +19,26 @@ str_flag_L:      .asciz "-L"
 str_flag_lic:    .asciz "--license"
 
 str_version:
-    .ascii "NeoCommander v"
-    NC_VER_ASCII
+    .ascii "Duop v"
+    DUOP_VER_ASCII
     .ascii " (x86-64 Linux ELF64, zero-libc)\n"
     .ascii "Copyright (C) 2026 Kostiantyn Nedbailo (Недбайло Костянтин Геннадійович) <ChessPlayerSedoy@gmail.com>\n"
     .ascii "License: MIT License (Open Source — run with --license for full text)\n"
 .equ str_version_len, . - str_version
 
 str_version_ua:
-    .ascii "NeoCommander v"
-    NC_VER_ASCII
+    .ascii "Duop v"
+    DUOP_VER_ASCII
     .ascii " (x86-64 Linux ELF64, без libc)\n"
     .ascii "Розробник: Недбайло Костянтин Геннадійович (Kostiantyn Nedbailo) <ChessPlayerSedoy@gmail.com>\n"
     .ascii "Ліцензія: MIT License (відкритий вихідний код — див. --license)\n"
 .equ str_version_ua_len, . - str_version_ua
 
 str_usage:
-    .ascii "NeoCommander v"
-    NC_VER_ASCII
-    .ascii " — Modern Terminal File Manager (Pure x86-64 Assembly)\n"
-    .ascii "Usage: nc [--lang en|ua] [-V|--version] [-L|--license] [LEFT_DIR [RIGHT_DIR]]\n"
+    .ascii "Duop v"
+    DUOP_VER_ASCII
+    .ascii " — Modern Dual-Pane Terminal File Manager (Pure x86-64 Assembly)\n"
+    .ascii "Usage: duop [--lang en|ua] [-V|--version] [-L|--license] [LEFT_DIR [RIGHT_DIR]]\n"
     .ascii "\n"
     .ascii "Features:\n"
     .ascii "  • 24-bit TrueColor UI with 3 switchable themes (Alt+T)\n"
@@ -49,14 +49,14 @@ str_usage:
     .ascii "\n"
     .ascii "Author: Kostiantyn Nedbailo (Недбайло Костянтин Геннадійович) <ChessPlayerSedoy@gmail.com>\n"
     .ascii "License: MIT License (Open Source)\n"
-    .ascii "Press F1 inside NeoCommander for full keyboard and mouse shortcuts.\n"
+    .ascii "Press F1 inside Duop for full keyboard and mouse shortcuts.\n"
 .equ str_usage_len, . - str_usage
 
 str_usage_ua:
-    .ascii "NeoCommander v"
-    NC_VER_ASCII
-    .ascii " — Сучасний термінальний файловий менеджер (чистий x86-64 Assembler)\n"
-    .ascii "Використання: nc [--lang ua|en] [-V|--version] [-L|--license] [ЛІВА_ТЕКА [ПРАВА_ТЕКА]]\n"
+    .ascii "Duop v"
+    DUOP_VER_ASCII
+    .ascii " — Сучасний двопанельний термінальний файловий менеджер (чистий x86-64 Assembler)\n"
+    .ascii "Використання: duop [--lang ua|en] [-V|--version] [-L|--license] [ЛІВА_ТЕКА [ПРАВА_ТЕКА]]\n"
     .ascii "\n"
     .ascii "Можливості:\n"
     .ascii "  • 24-бітний TrueColor інтерфейс з 3 темами оформлення (Alt+T)\n"
@@ -67,7 +67,7 @@ str_usage_ua:
     .ascii "\n"
     .ascii "Розробник: Недбайло Костянтин Геннадійович <ChessPlayerSedoy@gmail.com>\n"
     .ascii "Ліцензія: MIT License (відкритий вихідний код)\n"
-    .ascii "Натисніть F1 усередині NeoCommander для повної довідки гарячих клавіш.\n"
+    .ascii "Натисніть F1 усередині Duop для повної довідки гарячих клавіш.\n"
 .equ str_usage_ua_len, . - str_usage_ua
 
 str_license:

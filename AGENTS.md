@@ -1,6 +1,6 @@
-# NeoCommander Engineering Rules
+# Duop Engineering Rules
 
-NeoCommander (`nc`) is a dual-pane TUI file manager in pure x86-64 GNU Assembler (`.intel_syntax noprefix`, zero `libc`, direct Linux syscalls, OOP via vtable macros). Preserve tiny static ELF size, instant startup, strict modularity, continuous SemVer versioning, and commit-after-verify discipline.
+Duop (`duop`) is a dual-pane TUI file manager in pure x86-64 GNU Assembler (`.intel_syntax noprefix`, zero `libc`, direct Linux syscalls, OOP via vtable macros). Preserve tiny static ELF size, instant startup, strict modularity, continuous SemVer versioning, and commit-after-verify discipline.
 
 ## 1. Strict Modular Layering & Dependencies
 
@@ -27,9 +27,9 @@ Code flows downward only — never introduce upward or cyclic dependencies acros
 ## 3. Verification, SemVer & Git Commits
 
 - Use workspace skills in `.agents/skills/`:
-  - `nc-modular-asm` when adding/splitting modules, OOP classes, or syscalls
-  - `nc-ui-i18n-widget` when building UI widgets, themes, mouse zones, or translations
-  - `nc-pty-verify` to validate modularity, ELF footprint, release/debug builds, and PTY tests
-  - `nc-version-release` to manage `VERSION`, `ROADMAP.md`, Conventional Commits, and Git tags
-- Never consider code changes complete until `.agents/skills/nc-pty-verify/scripts/verify_build.sh` passes cleanly.
+  - `duop-modular-asm` when adding/splitting modules, OOP classes, or syscalls
+  - `duop-ui-i18n-widget` when building UI widgets, themes, mouse zones, or translations
+  - `duop-pty-verify` to validate modularity, ELF footprint, release/debug builds, and PTY tests
+  - `duop-version-release` to manage `VERSION`, `ROADMAP.md`, Conventional Commits, and Git tags
+- Never consider code changes complete until `.agents/skills/duop-pty-verify/scripts/verify_build.sh` passes cleanly.
 - Whenever modifying `src/` or `include/`, ensure `VERSION` is ahead of any existing release tag `vX.Y.Z` (bump via `bump_version.py`), rebuild so `build/version.inc` matches, verify with PTY tests, and commit with a Conventional Commit (`feat|fix|refactor|perf|build|docs|test|chore`).

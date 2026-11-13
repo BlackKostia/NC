@@ -16,7 +16,7 @@ env_lang:        .asciz "LANG"
 en_code:            .asciz "EN"
 en_name:            .asciz "English"
 
-en_hdr_brand:       .asciz " ◆ NeoCommander "
+en_hdr_brand:       .asciz " ◆ Duop "
 en_hdr_mode_dual:   .asciz " Dual "
 en_hdr_mode_prev:   .asciz " Preview "
 en_hdr_btn_quit:    .asciz " Quit "
@@ -79,8 +79,8 @@ en_dlg_btn_no:      .asciz "  No   "
 en_dlg_btn_close:   .asciz " Close "
 en_dlg_btn_hex:     .asciz " Hex/Text "
 en_dlg_title_help:
-    .ascii "NeoCommander Help & Architecture (v"
-    NC_VER_ASCII
+    .ascii "Duop Help & Architecture (v"
+    DUOP_VER_ASCII
     .asciz ")"
 en_dlg_title_view:  .asciz "File Viewer"
 en_dlg_vw_hint:     .asciz "↑↓/Wheel: Scroll   H: Text/Hex   Esc/Q: Close"
@@ -143,7 +143,7 @@ en_app_err_isdir:     .asciz "Cannot view/edit a directory"
 ua_code:            .asciz "UA"
 ua_name:            .asciz "Українська"
 
-ua_hdr_brand:       .asciz " ◆ NeoCommander "
+ua_hdr_brand:       .asciz " ◆ Duop "
 ua_hdr_mode_dual:   .asciz " 2 панелі "
 ua_hdr_mode_prev:   .asciz " Перегляд "
 ua_hdr_btn_quit:    .asciz " Вихід "
@@ -206,8 +206,8 @@ ua_dlg_btn_no:      .asciz "  Ні   "
 ua_dlg_btn_close:   .asciz " Закрити "
 ua_dlg_btn_hex:     .asciz " Hex/Текст "
 ua_dlg_title_help:
-    .ascii "Довідка та архітектура NeoCommander (v"
-    NC_VER_ASCII
+    .ascii "Довідка та архітектура Duop (v"
+    DUOP_VER_ASCII
     .asciz ")"
 ua_dlg_title_view:  .asciz "Переглядач файлів"
 ua_dlg_vw_hint:     .asciz "↑↓/Колесо: Прокрутка   H: Текст/Hex   Esc/Q: Закрити"

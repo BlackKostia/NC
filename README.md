@@ -1,4 +1,4 @@
-# NeoCommander (`nc`)
+# Duop (`duop`)
 
 Сучасний двопанельний термінальний файловий менеджер, написаний **повністю на чистому x86-64 асемблері** (**GNU Assembler / GAS**, `.intel_syntax noprefix`) без жодних сторонніх залежностей (навіть без `libc` та `ncurses` — лише прямі системні виклики ядра Linux).
 
@@ -40,12 +40,12 @@ Object
 ## Структура проєкту
 
 ```text
-NC/
+duop/
 ├── AGENTS.md                 # Правила модульної архітектури, SemVer і комітів
 ├── LICENSE                   # Відкрита ліцензія MIT
-├── VERSION                   # Поточна SemVer-версія (1.0.0)
+├── VERSION                   # Поточна SemVer-версія (1.0.2)
 ├── Makefile                  # Збірка (all / release / run / test / verify / hooks / clean)
-├── .agents/                  # Antigravity скіли (nc-*) та lifecycle-хуки (hooks.json)
+├── .agents/                  # Antigravity скіли (duop-*) та lifecycle-хуки (hooks.json)
 ├── .githooks/                # Git-хуки (pre-commit, commit-msg, post-commit)
 ├── include/
 │   ├── linux_sys.inc         # Системні виклики x86-64, kernel termios/stat/sigaction
@@ -54,7 +54,7 @@ NC/
 │   ├── types.inc             # Структури даних (Rect, Cell, Event, HitZone, FileEntry, Theme, LangStrings)
 │   └── classes.inc           # Повна специфікація класів і vtable
 ├── src/
-│   ├── main.s                # Точка входу _start (прапорці --lang / -l / -h / --help)
+│   ├── main.s                # Точка входу _start (прапорці --lang / -l / -h / --help / -V / --version / -L / --license)
 │   ├── core/                 # memory.s, string.s, utf8.s, oop_rt.s, syscall.s
 │   ├── tui/                  # theme.s (3 TrueColor теми), i18n.s (UA/EN таблиці), screen.s, input.s (клавіатура + SGR 1006)
 │   ├── fs/                   # dir_model.s, file_ops.s (рекурсивні copy/move/delete, mkdir/touch/rename)
@@ -67,18 +67,19 @@ NC/
 ## Збірка, запуск та тестування
 
 ```bash
-make          # Зібрати ./nc (з DWARF debug-інформацією)
+make          # Зібрати ./duop (з DWARF debug-інформацією)
 make release  # Зібрати оптимізований stripped-бінарник
-make run      # Запустити ./nc
+make run      # Запустити ./duop
 make test     # Запустити наскрізні PTY-тести
 make verify   # Повна перевірка (модульність + release + debug + ELF .data==0 + PTY)
 make hooks    # Активувати Git-хуки з .githooks/ та права на скрипти
 ```
 
-Можна передавати початкові каталоги та мову інтерфейсу (`ua` або `en`; також автовизначення з `LC_ALL`/`LC_MESSAGES`/`LANG`), або перевірити версію через `-V`/`--version`:
+Можна передавати початкові каталоги та мову інтерфейсу (`ua` або `en`; також автовизначення з `LC_ALL`/`LC_MESSAGES`/`LANG`), або перевірити версію/ліцензію через `-V`/`--version` та `-L`/`--license`:
 ```bash
-./nc --lang ua /path/to/left /path/to/right
-./nc --version
+./duop --lang ua /path/to/left /path/to/right
+./duop --version
+./duop --license
 ```
 
 ## Керування
@@ -114,4 +115,4 @@ make hooks    # Активувати Git-хуки з .githooks/ та права 
 
 ## Ліцензія
 
-**NeoCommander** — це програмне забезпечення з відкритим вихідним кодом (Open Source), яке поширюється за ліцензією [**MIT License**](LICENSE).
+**Duop** — це програмне забезпечення з відкритим вихідним кодом (Open Source), яке поширюється за ліцензією [**MIT License**](LICENSE).

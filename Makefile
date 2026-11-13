@@ -1,6 +1,6 @@
-# NeoCommander — Pure x86-64 GNU Assembler Project Makefile
+# Duop — Pure x86-64 GNU Assembler Project Makefile
 
-TARGET  := nc
+TARGET  := duop
 BUILD   := build
 VERSION := $(strip $(shell cat VERSION))
 VER_INC := $(BUILD)/version.inc
@@ -47,7 +47,7 @@ $(TARGET): $(OBJS)
 
 $(VER_INC): VERSION
 	@mkdir -p $(BUILD)
-	@printf '.macro NC_VER_ASCII\n    .ascii "$(VERSION)"\n.endm\n.macro NC_VER_ASCIZ\n    .asciz "$(VERSION)"\n.endm\n' > $@
+	@printf '.macro DUOP_VER_ASCII\n    .ascii "$(VERSION)"\n.endm\n.macro DUOP_VER_ASCIZ\n    .asciz "$(VERSION)"\n.endm\n' > $@
 
 $(BUILD)/%.o: src/%.s $(INCS) $(VER_INC)
 	@mkdir -p $(dir $@)
@@ -60,7 +60,7 @@ test: $(TARGET)
 	python3 tests/test_pty.py
 
 verify:
-	./.agents/skills/nc-pty-verify/scripts/verify_build.sh
+	./.agents/skills/duop-pty-verify/scripts/verify_build.sh
 
 hooks:
 	git config core.hooksPath .githooks

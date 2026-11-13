@@ -14,8 +14,8 @@ else
     exit 2
 fi
 
-echo "==> [1/4] Checking NeoCommander modularity & i18n contracts..."
-python3 ./.agents/skills/nc-modular-asm/scripts/check_modularity.py --root "$ROOT"
+echo "==> [1/4] Checking Duop modularity & i18n contracts..."
+python3 ./.agents/skills/duop-modular-asm/scripts/check_modularity.py --root "$ROOT"
 
 VER="$(tr -d '[:space:]' < "$ROOT/VERSION")"
 
@@ -23,7 +23,7 @@ echo "==> [2/4] Building stripped release binary (v${VER})..."
 make -s release
 
 echo "==> [3/4] Auditing ELF sections & --version..."
-SIZE_OUT="$(size "$ROOT/nc")"
+SIZE_OUT="$(size "$ROOT/duop")"
 echo "$SIZE_OUT"
 DATA_BYTES="$(printf '%s\n' "$SIZE_OUT" | awk 'NR==2 {print $2}')"
 if [[ -z "$DATA_BYTES" || "$DATA_BYTES" -ne 0 ]]; then
@@ -31,9 +31,9 @@ if [[ -z "$DATA_BYTES" || "$DATA_BYTES" -ne 0 ]]; then
     exit 1
 fi
 
-VER_OUT="$("$ROOT/nc" --version)"
+VER_OUT="$("$ROOT/duop" --version)"
 if [[ "$VER_OUT" != *"v${VER}"* ]]; then
-    echo "ERROR: './nc --version' output '${VER_OUT}' does not match VERSION '${VER}'." >&2
+    echo "ERROR: './duop --version' output '${VER_OUT}' does not match VERSION '${VER}'." >&2
     exit 1
 fi
 echo "Verified binary version: $VER_OUT"
@@ -48,4 +48,4 @@ if [[ "$MODE" == "full" ]]; then
     make -s test
 fi
 
-echo "ALL CHECKS PASSED (NeoCommander v${VER}, mode=${MODE})."
+echo "ALL CHECKS PASSED (Duop v${VER}, mode=${MODE})."

@@ -1,6 +1,6 @@
-# План розвитку NeoCommander (`ROADMAP`)
+# План розвитку Duop (`ROADMAP`)
 
-Цей документ описує покрокову архітектурну дорожню карту розвитку **NeoCommander (`nc`)** — двопанельного TUI-менеджера на чистому x86-64 GNU Assembler (`.intel_syntax noprefix`, нуль `libc`, прямі системні виклики Linux).
+Цей документ описує покрокову архітектурну дорожню карту розвитку **Duop (`duop`)** — двопанельного TUI-менеджера на чистому x86-64 GNU Assembler (`.intel_syntax noprefix`, нуль `libc`, прямі системні виклики Linux).
 
 **Головна стратегічна перевага проєкту**, яку необхідно зберігати й підсилювати на кожному етапі: **миттєвий старт (~1 мс), мізерне споживання RAM, один переносимий статичний ELF без жодних залежностей** (працює будь-де: rescue-диски, мінімальні контейнери, embedded, SSH-сервери без встановлених пакетів).
 
@@ -21,16 +21,16 @@
 
 ### 1.0 `cd-on-exit` (`--choosedir=FILE`)
 - **Файли**: [main.s](src/main.s), [app.s](src/app/app.s), shell-обгортка у `README.md` / `scripts/`.
-- **Реалізація**: при виході з прапорцем `--choosedir=FILE` записувати шлях активної панелі у `FILE`, щоб shell (`bash`/`zsh`/`fish`) після закриття `nc` переходив у вибраний каталог.
+- **Реалізація**: при виході з прапорцем `--choosedir=FILE` записувати шлях активної панелі у `FILE`, щоб shell (`bash`/`zsh`/`fish`) після закриття `duop` переходив у вибраний каталог.
 
-### 1.1 Конфігурація `~/.config/nc/ncrc` та User Menu
+### 1.1 Конфігурація `~/.config/duop/duoprc` та User Menu
 - **Новий файл**: `src/core/config.s`; інтеграція в [app.s](src/app/app.s) і [theme.s](src/tui/theme.s).
 - **Можливості**:
   - перевизначення гарячих клавіш (`bind`);
   - власні RGB-теми (TrueColor);
   - правила відкриття файлів за розширенням (`*.png`, `*.pdf`, `*.mp4` → `$EDITOR` / `xdg-open` / довільна команда);
   - **User Menu / плагіни без інтерпретатора**: кастомні команди в конфігу з плейсхолдерами `%f` (поточний файл), `%F` (усі позначені), `%d`/`%D` (каталог активної/пасивної панелі), `%s` (виділення) — із виводом результату в діалог або панель.
-- **Принцип**: зашиті в `.rodata` дефолти гарантують 100% працездатність і без файлу `ncrc`.
+- **Принцип**: зашиті в `.rodata` дефолти гарантують 100% працездатність і без файлу `duoprc`.
 
 ### 1.2 Єдиний цикл подій (`poll`/`ppoll`) та автооновлення через `inotify`
 - **Файли**: [app.s](src/app/app.s), [input.s](src/tui/input.s), [linux_sys.inc](include/linux_sys.inc).
@@ -138,7 +138,7 @@
 
 1. **`--choosedir=FILE` (`cd-on-exit`)** + shell-обгортка → миттєва щоденна придатність.
 2. **Уніфікований `poll`/`ppoll`-цикл + `inotify`**.
-3. **Конфіг `ncrc`** (`src/core/config.s` + User Menu `%f %F %d %D %s` + розширення відкриття).
+3. **Конфіг `duoprc`** (`src/core/config.s` + User Menu `%f %F %d %D %s` + розширення відкриття).
 4. **Історія (`Alt+←/→`), закладки (`Ctrl+D`), `frecency` (`z`), вкладки (`Ctrl+T`/`Ctrl+W`)**.
 5. **Асинхронні операції (`fork`+`pipe2`+`copy_file_range`) + `ProgressDialog` + конфлікти + Trash/Undo**.
 6. **Fuzzy finder + Command Palette (`Ctrl+K`) + рекурсивний пошук у віртуальну панель**.
@@ -154,7 +154,7 @@
 | Файл | Основне призначення у плані розвитку |
 |---|---|
 | [src/main.s](src/main.s) | Обробка `--choosedir=FILE`, старт конфігу та CLI-прапорців |
-| `src/core/config.s` *(новий)* | Парсер `~/.config/nc/ncrc`, біндинги клавіш, кастомні теми, асоціації та User Menu |
+| `src/core/config.s` *(новий)* | Парсер `~/.config/duop/duoprc`, біндинги клавіш, кастомні теми, асоціації та User Menu |
 | [src/app/app.s](src/app/app.s) | Єдиний цикл `poll`/`ppoll` (`STDIN_FD`, `inotify`, фонові воркери, `git`), `CommandPalette`, `Undo` |
 | [src/fs/file_ops.s](src/fs/file_ops.s) | `copy_file_range`, асинхронна черга задач `TaskQueue`, `XDG Trash`, `Undo`-журнал, `chmod`/`chown`/`link` |
 | [src/fs/dir_model.s](src/fs/dir_model.s) | Віртуальні панелі (пошук, `.tar`/`.zip` VFS, `ncdu`-дерево), кешування Git-статусу |
@@ -167,7 +167,7 @@
 
 ## Критерії готовності та перевірки (Definition of Done)
 
-1. **Чистий static ELF без `libc`**: збірка `make release` і контроль розміру секцій (`size nc`).
+1. **Чистий static ELF без `libc`**: збірка `make release` і контроль розміру секцій (`size duop`).
 2. **ООП та двомовність**: кожен новий віджет/діалог наслідує `Widget`/`Dialog`, усі тексти додаються в `lang_en_table` та `lang_ua_table` ([i18n.s](src/tui/i18n.s)), хіт-зони миші розраховуються через `utf8_display_width`.
 3. **PTY-тести**: кожна нова фіча покривається автоматичним сценарієм у [test_pty.py](tests/test_pty.py) (`make clean && make && make test`).
 4. **Бенчмарки**: автоматизований замір часу старту (`hyperfine`), пам'яті (`/usr/bin/time -v`) і пропускної здатності каталогу на `100k` файлів.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Conventional Commits validator for NeoCommander (.githooks/commit-msg)."""
+"""Conventional Commits validator for Duop (.githooks/commit-msg)."""
 
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ def main() -> int:
             f"  Got: '{header}'\n"
             "  Expected: <type>(<scope>): <summary> (at least 3 chars)\n"
             "  Types: feat, fix, refactor, perf, docs, test, build, ci, chore, style, revert\n"
-            "  Example: feat(config): add ncrc keybind parser (v1.1.0)",
+            "  Example: feat(config): add duoprc keybind parser (v1.1.0)",
             file=sys.stderr,
         )
         return 1

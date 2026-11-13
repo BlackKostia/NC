@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-End-to-end PTY test suite for NeoCommander (pure x86-64 assembly).
+End-to-end PTY test suite for Duop (pure x86-64 assembly).
 Simulates a real 120x35 (and resized 100x28) terminal with SGR 1006 mouse events,
 keyboard sequences, ANSI TrueColor framebuffer parsing, and real filesystem ops.
 """
@@ -225,7 +225,7 @@ class PtySession:
 
 def run_tests():
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    binary = os.path.join(repo_root, "nc")
+    binary = os.path.join(repo_root, "duop")
     assert os.path.exists(binary), f"Binary not found: {binary}"
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -240,7 +240,7 @@ def run_tests():
         with open(os.path.join(left_dir, ".hidden_file"), "w") as f:
             f.write("secret\n")
         with open(os.path.join(left_dir, "hello.txt"), "w") as f:
-            f.write("Hello NeoCommander\nLine two in assembly!\n")
+            f.write("Hello Duop\nLine two in assembly!\n")
         os.symlink("hello.txt", os.path.join(left_dir, "ln_hello"))
         with open(os.path.join(left_dir, "notes_cyr.txt"), "w") as f:
             f.write("Привіт світ!\n")
@@ -261,7 +261,7 @@ def run_tests():
             assert sess.vt.saw_alt_enter, "Missing alternate screen entry"
             assert sess.vt.saw_mouse_enable, "Missing SGR 1006 mouse activation"
             screen = sess.vt.full_text()
-            assert "NeoCommander" in sess.vt.row_text(0), f"Header missing: {sess.vt.row_text(0)!r}"
+            assert " ◆ Duop " in sess.vt.row_text(0), f"Header missing: {sess.vt.row_text(0)!r}"
             assert "alpha_dir" in screen, "Directory entry alpha_dir missing"
             assert "hello.txt" in screen, "File entry hello.txt missing"
             assert "dest_existing.txt" in screen, "Right pane file missing"
@@ -284,7 +284,7 @@ def run_tests():
             hx, hy = sess.vt.find_text("hello.txt")
             sess.send_mouse(0, hx, hy, "M")
             sess.send_mouse(0, hx, hy, "m")
-            assert "Hello NeoCommander" in sess.vt.full_text(), "Live preview did not load hello.txt"
+            assert "Hello Duop" in sess.vt.full_text(), "Live preview did not load hello.txt"
             print("[PASS] 2. Mouse click HeaderBar Preview pill + row selection + Live Preview")
 
             # 3. Double-click hello.txt -> opens built-in ViewerDialog, test Hex toggle & Close click
@@ -456,7 +456,7 @@ def run_tests():
 
             # 10. Help Dialog (F1) + Developer/License Metadata + Terminal Resize (SIGWINCH)
             sess.send(b"\x1bOP")  # F1
-            assert "NeoCommander Help" in sess.vt.full_text(), "Help dialog did not open"
+            assert "Duop Help" in sess.vt.full_text(), "Help dialog did not open"
             for token in (
                 "◆ AUTHOR & OPEN-SOURCE LICENSE",
                 "Kostiantyn Nedbailo (Недбайло Костянтин Геннадійович)",
@@ -469,7 +469,7 @@ def run_tests():
             assert "MIT License" in sess.vt.full_text(), "Scrolled HelpDialog missing license line"
             sess.send(b"\x1b")
             sess.resize(100, 26)
-            assert "NeoCommander" in sess.vt.row_text(0), "Header missing after SIGWINCH resize"
+            assert " ◆ Duop " in sess.vt.row_text(0), "Header missing after SIGWINCH resize"
             assert "Quit" in sess.vt.row_text(25), f"FunctionBar missing at row 25 after resize: {sess.vt.row_text(25)!r}"
             print("[PASS] 10. Help Dialog (F1 + Author/License) & SIGWINCH responsive resize (120x35 -> 80x22 -> 100x26)")
 
@@ -534,7 +534,7 @@ def run_tests():
             assert "Створити теку" not in sess_ua.vt.full_text(), "Click on Скасувати did not cancel dialog"
 
             sess_ua.send(b"\x1bOP")  # F1 Help
-            assert "Довідка та архітектура NeoCommander" in sess_ua.vt.full_text()
+            assert "Довідка та архітектура Duop" in sess_ua.vt.full_text()
             ver_str = open(os.path.join(repo_root, "VERSION"), encoding="utf-8").read().strip()
             assert f"v{ver_str}" in sess_ua.vt.full_text(), f"Version v{ver_str} missing in HelpDialog"
             assert "◆ НАВІГАЦІЯ З КЛАВІАТУРИ" in sess_ua.vt.full_text()
@@ -602,16 +602,16 @@ def run_tests():
 
             # Verify --version / -V / --help / --license output against VERSION & metadata
             out_ver = subprocess.check_output([binary, "--version"], text=True)
-            assert f"NeoCommander v{ver_str}" in out_ver, f"--version mismatch: {out_ver!r}"
+            assert f"Duop v{ver_str}" in out_ver, f"--version mismatch: {out_ver!r}"
             assert "Kostiantyn Nedbailo (Недбайло Костянтин Геннадійович)" in out_ver
             assert "ChessPlayerSedoy@gmail.com" in out_ver and "MIT License" in out_ver
             out_ver_ua = subprocess.check_output([binary, "-V", "--lang", "ua"], text=True)
-            assert "без libc" in out_ver_ua and ver_str in out_ver_ua, f"-V ua mismatch: {out_ver_ua!r}"
+            assert f"Duop v{ver_str}" in out_ver_ua and "без libc" in out_ver_ua, f"-V ua mismatch: {out_ver_ua!r}"
             assert "Недбайло Костянтин Геннадійович" in out_ver_ua and "MIT License" in out_ver_ua
             out_help = subprocess.check_output([binary, "--help"], text=True)
-            assert "Kostiantyn Nedbailo" in out_help and "MIT License" in out_help
+            assert "Usage: duop " in out_help and "Kostiantyn Nedbailo" in out_help and "MIT License" in out_help
             out_help_ua = subprocess.check_output([binary, "-h", "--lang", "ua"], text=True)
-            assert "Недбайло Костянтин Геннадійович" in out_help_ua and "MIT License" in out_help_ua
+            assert "Використання: duop " in out_help_ua and "Недбайло Костянтин Геннадійович" in out_help_ua and "MIT License" in out_help_ua
             out_lic = subprocess.check_output([binary, "--license"], text=True)
             assert "MIT License" in out_lic and "Copyright (c) 2026 Kostiantyn Nedbailo (Недбайло Костянтин Геннадійович)" in out_lic
             out_lic_short = subprocess.check_output([binary, "-L"], text=True)

@@ -1,21 +1,21 @@
 {
-  "nc-session-context": {
+  "duop-session-context": {
     "SessionStart": [
       {
         "type": "command",
-        "command": "python3 ./hooks/nc_lifecycle.py",
+        "command": "python3 ./hooks/duop_lifecycle.py",
         "timeout": 5
       }
     ]
   },
-  "nc-tool-guards": {
+  "duop-tool-guards": {
     "PreToolUse": [
       {
         "matcher": "write_file|edit_file|run_command",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ./hooks/nc_lifecycle.py",
+            "command": "python3 ./hooks/duop_lifecycle.py",
             "timeout": 5
           }
         ]
@@ -27,18 +27,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ./hooks/nc_lifecycle.py",
+            "command": "python3 ./hooks/duop_lifecycle.py",
             "timeout": 5
           }
         ]
       }
     ]
   },
-  "nc-verify-and-commit-gate": {
+  "duop-verify-and-commit-gate": {
     "Stop": [
       {
         "type": "command",
-        "command": "python3 ./hooks/nc_lifecycle.py",
+        "command": "python3 ./hooks/duop_lifecycle.py",
         "timeout": 5
       }
     ]

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SemVer inspection and bump helper for NeoCommander VERSION."""
+"""SemVer inspection and bump helper for Duop VERSION."""
 
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ def parse_semver(ver: str) -> tuple[int, int, int]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Inspect or bump NeoCommander VERSION")
+    parser = argparse.ArgumentParser(description="Inspect or bump Duop VERSION")
     parser.add_argument("--root", default=".", help="Repository root")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--show", action="store_true", help="Print version & tag status")

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static modularity, ABI-hygiene, i18n-parity, and version checker for NeoCommander."""
+"""Static modularity, ABI-hygiene, i18n-parity, and version checker for Duop."""
 
 from __future__ import annotations
 
@@ -119,7 +119,7 @@ def check_i18n_symmetry(root: Path, errors: list[str]) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Validate NeoCommander modular rules")
+    parser = argparse.ArgumentParser(description="Validate Duop modular rules")
     parser.add_argument("--root", default=".", help="Repository root path")
     parser.add_argument("--strict-size", action="store_true", help="Fail if any .s exceeds line limit")
     args = parser.parse_args()
