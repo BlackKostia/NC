@@ -1,0 +1,15 @@
+# Build artifacts
+build/
+nc
+*.o
+
+# Python test caches
+__pycache__/
+*.py[cod]
+
+# Editor & backup files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/

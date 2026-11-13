@@ -1,0 +1,148 @@
+# Configuration, UI constants, key codes, mouse constants, and Unicode glyphs
+
+.intel_syntax noprefix
+
+# --- Path & Buffer Limits ---
+.equ PATH_MAX,            4096
+.equ NAME_MAX,            256
+.equ FILTER_MAX,          64
+.equ STATUS_MAX,          512
+.equ INPUT_MAX,           512
+.equ PREVIEW_BUF_SIZE,    32768
+.equ VIEWER_MAX_SIZE,     1048576   # 1 MiB max file load into built-in viewer
+.equ DIRENTS_BUF_SIZE,    16384
+.equ OUT_BUF_INIT_CAP,    131072    # 128 KiB ANSI flush buffer
+.equ INITIAL_FILE_CAP,    128
+
+# --- Double-click threshold (milliseconds) ---
+.equ DBLCLICK_MS,         420
+
+# --- Cell & Attribute Bits ---
+.equ CELL_WIDE_TAIL,      0xFFFFFFFF
+.equ ATTR_NONE,           0
+.equ ATTR_BOLD,           1
+.equ ATTR_DIM,            2
+.equ ATTR_ITALIC,         4
+.equ ATTR_UNDERLINE,      8
+.equ ATTR_REVERSE,        16
+
+# --- Event Types ---
+.equ EVT_NONE,            0
+.equ EVT_KEY,             1
+.equ EVT_MOUSE,           2
+.equ EVT_RESIZE,          3
+.equ EVT_TICK,            4
+
+# --- Key Modifiers ---
+.equ MOD_SHIFT,           1
+.equ MOD_ALT,             2
+.equ MOD_CTRL,            4
+
+# --- Special Key Codes (non-Unicode range >= 0x100000) ---
+.equ KEY_NONE,            0
+.equ KEY_UP,              0x100001
+.equ KEY_DOWN,            0x100002
+.equ KEY_LEFT,            0x100003
+.equ KEY_RIGHT,           0x100004
+.equ KEY_HOME,            0x100005
+.equ KEY_END,             0x100006
+.equ KEY_PGUP,            0x100007
+.equ KEY_PGDN,            0x100008
+.equ KEY_INSERT,          0x100009
+.equ KEY_DELETE,          0x10000A
+.equ KEY_BACKSPACE,       0x10000B
+.equ KEY_TAB,             0x10000C
+.equ KEY_BTAB,            0x10000D
+.equ KEY_ENTER,           0x10000E
+.equ KEY_ESC,             0x10000F
+.equ KEY_F1,              0x100011
+.equ KEY_F2,              0x100012
+.equ KEY_F3,              0x100013
+.equ KEY_F4,              0x100014
+.equ KEY_F5,              0x100015
+.equ KEY_F6,              0x100016
+.equ KEY_F7,              0x100017
+.equ KEY_F8,              0x100018
+.equ KEY_F9,              0x100019
+.equ KEY_F10,             0x10001A
+.equ KEY_F11,             0x10001B
+.equ KEY_F12,             0x10001C
+
+# --- Mouse Buttons & Actions ---
+.equ MOUSE_LEFT,          0
+.equ MOUSE_MID,           1
+.equ MOUSE_RIGHT,         2
+.equ MOUSE_NONE,          3
+.equ MOUSE_WHEEL_UP,      64
+.equ MOUSE_WHEEL_DOWN,    65
+
+.equ MACT_PRESS,          1
+.equ MACT_RELEASE,        2
+.equ MACT_DRAG,           3
+.equ MACT_MOVE,           4
+.equ MACT_WHEEL,          5
+
+# --- FileEntry Flags ---
+.equ FE_IS_DIR,           1
+.equ FE_IS_LINK,          2
+.equ FE_IS_EXEC,          4
+.equ FE_IS_HIDDEN,        8
+.equ FE_SELECTED,         16
+.equ FE_IS_PARENT,        32
+.equ FE_LINK_DIR,         64
+
+# --- Sort Modes ---
+.equ SORT_NAME,           0
+.equ SORT_SIZE,           1
+.equ SORT_MTIME,          2
+.equ SORT_EXT,            3
+
+# --- Widget Flags ---
+.equ WF_VISIBLE,          1
+.equ WF_FOCUSED,          2
+.equ WF_HOVERED,          4
+.equ WF_DIRTY,            8
+.equ WF_ENABLED,          16
+
+# --- Dialog Result Codes ---
+.equ DLG_OPEN,            0
+.equ DLG_OK,              1
+.equ DLG_CANCEL,          2
+
+# --- App Modes / Right Pane Mode ---
+.equ RIGHT_MODE_PANE,     0
+.equ RIGHT_MODE_PREVIEW,  1
+
+# --- Unicode Codepoints for Modern UI ---
+.equ CH_BOX_TL,           0x256D   # ╭
+.equ CH_BOX_TR,           0x256E   # ╮
+.equ CH_BOX_BL,           0x2570   # ╰
+.equ CH_BOX_BR,           0x256F   # ╯
+.equ CH_BOX_H,            0x2500   # ─
+.equ CH_BOX_V,            0x2502   # │
+.equ CH_BOX_LT,           0x251C   # ├
+.equ CH_BOX_RT,           0x2524   # ┤
+.equ CH_BOX_TT,           0x252C   # ┬
+.equ CH_BOX_BT,           0x2534   # ┴
+.equ CH_BOX_VH,           0x253C   # ┼
+.equ CH_BOX_HV,           0x2503   # ┃
+.equ CH_BLOCK_FULL,       0x2588   # █
+.equ CH_SHADE_LIGHT,      0x2591   # ░
+.equ CH_TRI_RIGHT,        0x25B8   # ▸
+.equ CH_TRI_DOWN,         0x25BE   # ▾
+.equ CH_TRI_UP,           0x25B2   # ▲
+.equ CH_TRI_DN_SOLID,     0x25BC   # ▼
+.equ CH_SQ_SMALL,         0x25AA   # ▪
+.equ CH_SQ_EMPTY,         0x25AB   # ▫
+.equ CH_DIAMOND,          0x25C6   # ◆
+.equ CH_DIAMOND_DOT,      0x25C8   # ◈
+.equ CH_DIAMOND_OPEN,     0x25C7   # ◇
+.equ CH_ARROW_NE,         0x2197   # ↗
+.equ CH_CHECK,            0x2713   # ✓
+.equ CH_LAQUO,            0x00AB   # «
+.equ CH_RAQUO,            0x00BB   # »
+.equ CH_LSAQUO,           0x2039   # ‹
+.equ CH_RSAQUO,           0x203A   # ›
+.equ CH_BULLET,           0x2022   # •
+.equ CH_ELLIPSIS,         0x2026   # …
+.equ CH_TIMES,            0x00D7   # ×
