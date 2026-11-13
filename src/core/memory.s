@@ -1,8 +1,30 @@
 # Core Memory Allocator & Low-Level Memory Routines
-# Uses anonymous mmap/mremap/munmap with a 16-byte header storing mapped length.
+#
+# Hybrid allocator:
+#   * Small objects (size + 16 <= 64 KiB): power-of-two slab classes 64 B .. 64 KiB carved
+#     from 256 KiB anonymous arenas, recycled through per-class free lists -> O(1), no syscall
+#     after warm-up (copy buffers, dirent frames, dialogs, widgets, jobs).
+#   * Large objects: dedicated anonymous mmap / mremap / munmap (DirModel arrays, screens).
+# Every block carries a 16-byte header; header[0] holds either the mapped byte size of a
+# large block (always a multiple of 4096) or the slab tag (class index + 1, never page-aligned).
+# All returned memory is zero-filled. Single-threaded by design (background work runs in a
+# forked process with its own copy-on-write allocator state).
+# Bulk copy/fill/compare delegate to PAL SIMD kernels (src/os/<os>/<arch>/pal_simd.s).
 
 .intel_syntax noprefix
 .include "pal.inc"
+
+.equ SLAB_MIN_SHIFT, 6               # 64 B blocks
+.equ SLAB_MAX_SHIFT, 16              # 64 KiB blocks
+.equ SLAB_CLASSES,   SLAB_MAX_SHIFT - SLAB_MIN_SHIFT + 1
+.equ SLAB_ARENA,     262144          # refill granularity (256 KiB)
+.equ SLAB_MAX_REQ,   (1 << SLAB_MAX_SHIFT) - 16
+
+.section .bss
+.align 8
+slab_free: .space 8 * SLAB_CLASSES   # free-list heads (block header addresses)
+slab_bump: .space 8 * SLAB_CLASSES   # next uncarved block in the current arena
+slab_end:  .space 8 * SLAB_CLASSES   # end of the current arena
 
 .section .text
 .global mem_alloc
@@ -18,44 +40,116 @@
 # rdi = size -> returns rax = zeroed 16-byte aligned pointer, or 0 on error
 mem_alloc:
     test rdi, rdi
-    jnz .Lalloc_non_zero
-    mov rdi, 16
-.Lalloc_non_zero:
+    jnz .Lalloc_nz
+    mov edi, 1
+.Lalloc_nz:
+    cmp rdi, SLAB_MAX_REQ
+    ja .Lalloc_big
+
+    # class k = max(6, bsr(size + 15) + 1); idx = k - 6
+    lea rax, [rdi + 15]
+    bsr rcx, rax
+    inc ecx
+    cmp ecx, SLAB_MIN_SHIFT
+    jae .Lalloc_cls
+    mov ecx, SLAB_MIN_SHIFT
+.Lalloc_cls:
+    sub ecx, SLAB_MIN_SHIFT           # idx
+    lea r8, [rip + slab_free]
+    mov rax, [r8 + rcx * 8]
+    test rax, rax
+    jz .Lalloc_carve
+    mov rdx, [rax + 8]                # pop free list
+    mov [r8 + rcx * 8], rdx
+    # Recycled block: zero header link + payload (block_size - 8 bytes from +8)
+    mov r9, rax
+    add ecx, SLAB_MIN_SHIFT
+    mov edx, 1
+    shl rdx, cl                       # block size
+    lea rdi, [r9 + 8]
+    sub rdx, 8
+    xor esi, esi
+    call os_mem_set_fast
+    lea rax, [r9 + 16]
+    ret
+
+.Lalloc_carve:
+    lea r9, [rip + slab_bump]
+    lea r10, [rip + slab_end]
+.Lalloc_try:
+    mov rax, [r9 + rcx * 8]
+    test rax, rax
+    jz .Lalloc_refill
+    mov r11, rcx
+    add ecx, SLAB_MIN_SHIFT
+    mov edx, 1
+    shl rdx, cl                       # block size
+    mov rcx, r11
+    add rdx, rax
+    cmp rdx, [r10 + rcx * 8]
+    ja .Lalloc_refill
+    mov [r9 + rcx * 8], rdx
+    lea edx, [ecx + 1]
+    mov [rax], rdx                    # slab tag (fresh arena memory is already zero)
+    add rax, 16
+    ret
+
+.Lalloc_refill:
+    push rcx
+    xor edi, edi
+    mov esi, SLAB_ARENA
+    mov edx, PROT_RW
+    OS_MMAP_ANON
+    pop rcx
+    cmp rax, -4095
+    jae .Lalloc_fail
+    lea r9, [rip + slab_bump]
+    lea r10, [rip + slab_end]
+    mov [r9 + rcx * 8], rax
+    add rax, SLAB_ARENA
+    mov [r10 + rcx * 8], rax
+    jmp .Lalloc_try
+
+.Lalloc_big:
     # total = align_up_page(size + 16)
     lea rsi, [rdi + 16 + 4095]
     and rsi, -4096
-
-    push rsi                  # save mapped_size across syscall
-    xor rdi, rdi              # addr = NULL
-    # rsi = length (already set)
+    push rsi
+    xor edi, edi
     mov rdx, PROT_RW
     OS_MMAP_ANON
     pop rsi
-
     cmp rax, -4095
     jae .Lalloc_fail
-
-    mov [rax], rsi            # store total mapped size at [base + 0]
-    add rax, 16               # return 16-byte aligned payload ptr
+    mov [rax], rsi                    # mapped size
+    add rax, 16
     ret
-
 .Lalloc_fail:
     xor eax, eax
     ret
 
-# void mem_free(void *ptr)
-# rdi = ptr (safe if NULL)
+# void mem_free(void *ptr) -- safe on NULL
 mem_free:
     test rdi, rdi
     jz .Lfree_done
     sub rdi, 16
-    mov rsi, [rdi]            # mapped size
+    mov rax, [rdi]
+    test eax, 4095
+    jnz .Lfree_slab
+    mov rsi, rax
     OS_MUNMAP
 .Lfree_done:
     ret
+.Lfree_slab:
+    dec eax                           # idx
+    lea rcx, [rip + slab_free]
+    mov rdx, [rcx + rax * 8]
+    mov [rdi + 8], rdx
+    mov [rcx + rax * 8], rdi
+    ret
 
 # void *mem_realloc(void *ptr, size_t new_size)
-# rdi = ptr, rsi = new_size -> returns rax = new ptr, or 0 on failure
+# rdi = ptr, rsi = new_size -> returns rax = new ptr, or 0 on failure (old block intact)
 mem_realloc:
     test rdi, rdi
     jnz .Lrealloc_existing
@@ -64,100 +158,78 @@ mem_realloc:
 
 .Lrealloc_existing:
     push rbx
-    sub rdi, 16
-    mov rbx, [rdi]            # old_mapped_size
-    lea rdx, [rsi + 16 + 4095]
-    and rdx, -4096            # new_mapped_size
+    push r12
+    push r13
+    mov rbx, rdi
+    mov r12, rsi
+    mov rax, [rbx - 16]
+    test eax, 4095
+    jnz .Lrealloc_slab
 
-    cmp rdx, rbx
-    jbe .Lrealloc_same        # already fits within mapped pages
-
-    sub rsp, 16
-    mov [rsp], rdx
-    mov rsi, rbx              # old_size
-    # rdx = new_size
+    lea rdx, [r12 + 16 + 4095]
+    and rdx, -4096                    # new_mapped_size
+    cmp rdx, rax
+    jbe .Lrealloc_same
+    mov r13, rdx
+    lea rdi, [rbx - 16]
+    mov rsi, rax
     call os_mem_remap
-    mov rdx, [rsp]
-    add rsp, 16
-
     test rax, rax
     jz .Lrealloc_fail
-
-    mov [rax], rdx
+    mov [rax], r13
     add rax, 16
-    pop rbx
-    ret
+    jmp .Lrealloc_ret
+
+.Lrealloc_slab:
+    lea ecx, [eax - 1 + SLAB_MIN_SHIFT]
+    mov r13d, 1
+    shl r13, cl                       # block size
+    lea rax, [r12 + 16]
+    cmp rax, r13
+    jbe .Lrealloc_same
+    mov rdi, r12
+    call mem_alloc
+    test rax, rax
+    jz .Lrealloc_fail
+    mov r12, rax
+    mov rdi, rax
+    mov rsi, rbx
+    lea rdx, [r13 - 16]
+    call os_mem_copy_fast
+    mov rdi, rbx
+    call mem_free
+    mov rax, r12
+    jmp .Lrealloc_ret
 
 .Lrealloc_same:
-    lea rax, [rdi + 16]
-    pop rbx
-    ret
-
+    mov rax, rbx
+    jmp .Lrealloc_ret
 .Lrealloc_fail:
     xor eax, eax
+.Lrealloc_ret:
+    pop r13
+    pop r12
     pop rbx
     ret
 
-# void mem_copy(void *dst, const void *src, size_t len)
+# void mem_copy(void *dst, const void *src, size_t len)  (clobbers rcx, rdi, rsi)
 mem_copy:
-    test rdx, rdx
-    jz .Lmc_done
-    mov rcx, rdx
-    rep movsb
-.Lmc_done:
-    ret
+    jmp os_mem_copy_fast
 
-# void mem_move(void *dst, const void *src, size_t len)
+# void mem_move(void *dst, const void *src, size_t len)  (overlap-safe)
 mem_move:
-    test rdx, rdx
-    jz .Lmm_done
-    cmp rdi, rsi
-    je .Lmm_done
-    jb .Lmm_fwd
-    lea rax, [rsi + rdx]
-    cmp rdi, rax
-    jae .Lmm_fwd
-    # Backward copy for overlapping dst > src
-    lea rdi, [rdi + rdx - 1]
-    lea rsi, [rsi + rdx - 1]
-    mov rcx, rdx
-    std
-    rep movsb
-    cld
-    ret
-.Lmm_fwd:
-    mov rcx, rdx
-    rep movsb
-.Lmm_done:
-    ret
+    jmp os_mem_move_fast
 
 # void mem_set(void *dst, int byte, size_t len)
 mem_set:
-    test rdx, rdx
-    jz .Lms_done
-    mov eax, esi
-    mov rcx, rdx
-    rep stosb
-.Lms_done:
-    ret
+    jmp os_mem_set_fast
 
 # void mem_zero(void *dst, size_t len)
 mem_zero:
     mov rdx, rsi
     xor esi, esi
-    jmp mem_set
+    jmp os_mem_set_fast
 
 # int mem_cmp(const void *a, const void *b, size_t len)
 mem_cmp:
-    test rdx, rdx
-    jz .Lmcmp_eq
-    mov rcx, rdx
-    repe cmpsb
-    je .Lmcmp_eq
-    movzx eax, byte ptr [rdi - 1]
-    movzx edx, byte ptr [rsi - 1]
-    sub eax, edx
-    ret
-.Lmcmp_eq:
-    xor eax, eax
-    ret
+    jmp os_mem_cmp_fast

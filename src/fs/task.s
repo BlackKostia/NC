@@ -43,6 +43,7 @@ g_task_pid:       .space 4
 g_task_wake_fd:   .space 4
 g_task_op:        .space 4
 g_task_paused:    .space 4
+g_measure_bytes:  .space 4     # worker: 1 = scan needs regular-file sizes (copy/move)
 
 .section .text
 .global fs_task_start
@@ -122,15 +123,11 @@ fs_progress_cancelled:
 task_measure:
     push rbx
     push r12
-    push r13
-    push r14
-    push r15
-    sub rsp, 48                       # FileStat
+    sub rsp, 56                       # FileStat
     mov r12, rdi
     call fs_progress_cancelled
     test eax, eax
     jnz .Ltm_cancel
-
     mov edi, AT_FDCWD
     mov rsi, r12
     mov rdx, rsp
@@ -138,7 +135,6 @@ task_measure:
     call os_statat
     test rax, rax
     js .Ltm_ok
-
     mov rbx, [rip + g_fs_progress]
     inc qword ptr [rbx + TaskShared.total_files]
     mov eax, [rsp + FileStat.mode]
@@ -151,83 +147,147 @@ task_measure:
 .Ltm_chk_dir:
     cmp eax, S_IFDIR
     jne .Ltm_ok
-
     mov rdi, r12
     call fs_progress_begin
     mov edi, AT_FDCWD
     mov rsi, r12
-    mov edx, O_RDONLY | O_DIRECTORY | O_CLOEXEC
+    mov edx, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC
     xor r10d, r10d
     OS_OPENAT
     test rax, rax
     js .Ltm_ok
-    mov r13d, eax                     # dirfd
-
-    mov edi, OPS_DIRENTS_BUF_SIZE + PATH_MAX + 16
-    call mem_alloc
-    test rax, rax
-    jz .Ltm_close_ok
-    mov rbx, rax                      # [0]=dents, [+BUF]=child path, [+BUF+PATH_MAX]=cursor
-
-.Ltm_dents:
-    mov edi, r13d
-    mov rsi, rbx
-    mov edx, OPS_DIRENTS_BUF_SIZE
-    call os_dir_read
-    test rax, rax
-    jle .Ltm_free_ok
-    mov r14, rax
-    mov qword ptr [rbx + OPS_DIRENTS_BUF_SIZE + PATH_MAX], 0
-.Ltm_entry:
-    mov rdi, rbx
-    mov rsi, r14
-    lea rdx, [rbx + OPS_DIRENTS_BUF_SIZE + PATH_MAX]
-    call os_dir_next
-    test rax, rax
-    jz .Ltm_dents
-    cmp byte ptr [rax], '.'
-    jne .Ltm_child
-    cmp byte ptr [rax + 1], 0
-    je .Ltm_entry
-    cmp byte ptr [rax + 1], '.'
-    jne .Ltm_child
-    cmp byte ptr [rax + 2], 0
-    je .Ltm_entry
-.Ltm_child:
-    lea rdi, [rbx + OPS_DIRENTS_BUF_SIZE]
-    mov rsi, r12
-    mov rdx, rax
-    mov ecx, PATH_MAX
-    call path_join
-    lea rdi, [rbx + OPS_DIRENTS_BUF_SIZE]
-    call task_measure
-    test rax, rax
-    jns .Ltm_entry
-    mov r15, rax
-    mov rdi, rbx
-    call mem_free
-    mov edi, r13d
+    mov ebx, eax
+    mov edi, ebx
+    call measure_dir_fd
+    mov r12, rax
+    mov edi, ebx
     OS_CLOSE
-    mov rax, r15
+    mov rax, r12
     jmp .Ltm_done
-
-.Ltm_free_ok:
-    mov rdi, rbx
-    call mem_free
-.Ltm_close_ok:
-    mov edi, r13d
-    OS_CLOSE
 .Ltm_ok:
     xor eax, eax
     jmp .Ltm_done
 .Ltm_cancel:
     mov rax, -ECANCELED
 .Ltm_done:
-    add rsp, 48
+    add rsp, 56
+    pop r12
+    pop rbx
+    ret
+
+# Internal: int measure_dir_fd(int dfd) -- fd-relative, d_type-driven tree measurement
+measure_dir_fd:
+    push rbx
+    push rbp
+    push r12
+    push r13
+    push r14
+    push r15
+    sub rsp, 72                       # [0]=cursor, [8]=d_type, [16..63]=FileStat
+    mov r12d, edi
+    mov r13, [rip + g_fs_progress]
+    mov edi, 32752
+    call mem_alloc
+    test rax, rax
+    jz .Lmd_ok_nofree
+    mov rbx, rax
+.Lmd_read:
+    mov edi, r12d
+    mov rsi, rbx
+    mov edx, 32752
+    call os_dir_read
+    test rax, rax
+    jle .Lmd_ok
+    mov r14, rax
+    mov qword ptr [rsp], 0
+.Lmd_next:
+    mov rdi, rbx
+    mov rsi, r14
+    mov rdx, rsp
+    lea rcx, [rsp + 8]
+    call os_dir_next_ex
+    test rax, rax
+    jz .Lmd_read
+    mov r15, rax
+    cmp byte ptr [r15], '.'
+    jne .Lmd_entry
+    cmp byte ptr [r15 + 1], 0
+    je .Lmd_next
+    cmp byte ptr [r15 + 1], '.'
+    jne .Lmd_entry
+    cmp byte ptr [r15 + 2], 0
+    je .Lmd_next
+.Lmd_entry:
+    call fs_progress_cancelled
+    test eax, eax
+    jnz .Lmd_cancel
+    inc qword ptr [r13 + TaskShared.total_files]
+    movzx eax, byte ptr [rsp + 8]
+    cmp eax, PAL_DT_DIR
+    je .Lmd_dir
+    cmp eax, PAL_DT_REG
+    jne .Lmd_chk_unk
+    cmp dword ptr [rip + g_measure_bytes], 0
+    je .Lmd_next                      # delete: entry count only, no stat per file
+    jmp .Lmd_stat
+.Lmd_chk_unk:
+    cmp eax, PAL_DT_UNKNOWN
+    jne .Lmd_next
+.Lmd_stat:
+    mov edi, r12d
+    mov rsi, r15
+    lea rdx, [rsp + 16]
+    xor ecx, ecx
+    call os_statat
+    test rax, rax
+    js .Lmd_next
+    mov eax, [rsp + 16 + FileStat.mode]
+    and eax, S_IFMT
+    cmp eax, S_IFDIR
+    je .Lmd_dir
+    cmp eax, S_IFREG
+    jne .Lmd_next
+    mov rax, [rsp + 16 + FileStat.size]
+    add [r13 + TaskShared.total_bytes], rax
+    jmp .Lmd_next
+.Lmd_dir:
+    mov edi, r12d
+    mov rsi, r15
+    mov edx, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC
+    xor r10d, r10d
+    OS_OPENAT
+    test rax, rax
+    js .Lmd_next
+    mov ebp, eax
+    mov edi, ebp
+    call measure_dir_fd
+    mov [rsp + 64], rax
+    mov edi, ebp
+    OS_CLOSE
+    mov rax, [rsp + 64]
+    test rax, rax
+    jns .Lmd_next
+    jmp .Lmd_free_ret
+.Lmd_cancel:
+    mov rax, -ECANCELED
+    jmp .Lmd_free_ret
+.Lmd_ok:
+    xor eax, eax
+.Lmd_free_ret:
+    mov rbp, rax
+    mov rdi, rbx
+    call mem_free
+    mov rax, rbp
+    jmp .Lmd_ret
+.Lmd_ok_nofree:
+    xor eax, eax
+.Lmd_ret:
+    add rsp, 72
     pop r15
     pop r14
     pop r13
     pop r12
+    pop rbp
     pop rbx
     ret
 
@@ -243,6 +303,10 @@ task_worker_main:
     call os_signals_worker_mode
     mov qword ptr [rsp + TW_RES], 0
     mov qword ptr [rsp + TW_DEV], -1
+    xor eax, eax
+    cmp dword ptr [r12 + TaskJob.op], TASK_OP_DELETE
+    setne al
+    mov [rip + g_measure_bytes], eax
 
     # Per-item cumulative (bytes, entries) after scan -> exact resync after each item
     mov eax, [r12 + TaskJob.count]

@@ -6,6 +6,7 @@
 
 .equ RADIX_MIN_N,     64
 .equ INSERTION_MIN_N, 16
+.equ PREFIX_MIN_N,    512       # prefix-key radix for SORT_NAME / SORT_EXT from this size
 
 .section .text
 .global DirModel_sort
@@ -784,6 +785,257 @@ radix_sort_u32:
     ret
 
 # ==============================================================================
+# Helper: uint64_t make_prefix_key(uint32_t idx, const FileEntry *entries,
+#                                  const char *name_pool, uint32_t mode, uint32_t desc)
+# Order-preserving 64-bit key consistent with cmp_indices:
+#   SORT_NAME: first 8 ASCII-folded bytes, big-endian, NUL padded.
+#   SORT_EXT : bit63 = has extension, bits 55..0 = first 7 folded bytes of the extension.
+# Different keys => cmp_indices agrees with key order; equal keys are tie-broken later.
+# ==============================================================================
+make_prefix_key:
+    mov eax, edi
+    shl rax, 5
+    add rsi, rax                      # entry
+    mov eax, [rsi + FileEntry.name_off]
+    add rdx, rax                      # name
+    xor r10d, r10d                    # key
+    mov r11d, 8                       # bytes to take
+    cmp ecx, SORT_EXT
+    jne .Lmpk_take
+    movzx eax, byte ptr [rsi + FileEntry.ext_offset]
+    test eax, eax
+    jz .Lmpk_desc                     # no extension: key 0
+    lea rdx, [rdx + rax + 1]
+    mov r10d, 1                       # has-ext flag, shifted into bit 63 below
+    mov r11d, 7
+.Lmpk_take:
+    xor ecx, ecx                      # taken
+.Lmpk_loop:
+    cmp ecx, r11d
+    jae .Lmpk_desc
+    movzx eax, byte ptr [rdx]
+    test eax, eax
+    jz .Lmpk_pad
+    cmp eax, 'A'
+    jb .Lmpk_put
+    cmp eax, 'Z'
+    ja .Lmpk_put
+    add eax, 32
+.Lmpk_put:
+    shl r10, 8
+    or r10, rax
+    inc rdx
+    inc ecx
+    jmp .Lmpk_loop
+.Lmpk_pad:
+    shl r10, 8
+    inc ecx
+    cmp ecx, r11d
+    jb .Lmpk_pad
+.Lmpk_desc:
+    mov rax, r10
+    test r8d, r8d
+    jz .Lmpk_ret
+    not rax
+.Lmpk_ret:
+    ret
+
+# ==============================================================================
+# Prefix-key LSD radix sort for SORT_NAME / SORT_EXT
+# void prefix_sort_u32(uint32_t *arr, size_t len, const FileEntry *entries,
+#                      const char *name_pool, uint32_t mode, uint32_t desc)
+# Builds compact 16-byte {key, idx} records (one sequential pass touching name_pool),
+# radix-sorts them by key with byte-lane skipping, then introsorts only equal-key runs.
+# ==============================================================================
+prefix_sort_u32:
+    push rbx
+    push rbp
+    push r12
+    push r13
+    push r14
+    push r15
+    sub rsp, 2048 + 72
+    # Frame at [rsp + 2048]: +0 arr, +8 len, +16 entries, +24 pool, +32 mode, +36 desc,
+    #                        +40 recs (2*len*16), +48 diff mask
+    mov [rsp + 2048 + 0], rdi
+    mov [rsp + 2048 + 8], rsi
+    mov [rsp + 2048 + 16], rdx
+    mov [rsp + 2048 + 24], rcx
+    mov [rsp + 2048 + 32], r8d
+    mov [rsp + 2048 + 36], r9d
+    mov rdi, rsi
+    shl rdi, 5                        # 2 record arrays of 16 B
+    call mem_alloc
+    test rax, rax
+    jz .Lps_fallback
+    mov [rsp + 2048 + 40], rax
+
+    # Build records + diff mask
+    mov rbx, rax                      # src recs
+    mov r12, [rsp + 2048 + 8]         # len
+    xor r13d, r13d                    # i
+    xor r14d, r14d                    # diff mask
+.Lps_build:
+    cmp r13, r12
+    jae .Lps_built
+    mov rax, [rsp + 2048 + 0]
+    mov edi, [rax + r13 * 4]
+    mov r15d, edi
+    mov rsi, [rsp + 2048 + 16]
+    mov rdx, [rsp + 2048 + 24]
+    mov ecx, [rsp + 2048 + 32]
+    mov r8d, [rsp + 2048 + 36]
+    call make_prefix_key
+    mov rcx, r13
+    shl rcx, 4
+    mov [rbx + rcx], rax
+    mov [rbx + rcx + 8], r15d
+    xor rax, [rbx]                    # vs first key
+    or r14, rax
+    inc r13
+    jmp .Lps_build
+.Lps_built:
+    mov [rsp + 2048 + 48], r14
+    mov rbp, r12
+    shl rbp, 4
+    add rbp, rbx                      # dst recs
+    xor ecx, ecx                      # shift
+.Lps_pass:
+    cmp ecx, 64
+    jae .Lps_passes_done
+    mov rax, [rsp + 2048 + 48]
+    shr rax, cl
+    test al, 0xff
+    jz .Lps_next_byte
+
+    push rcx
+    xor eax, eax
+    mov ecx, 256
+    lea rdi, [rsp + 8]
+    rep stosq
+    pop rcx
+
+    xor r11d, r11d
+.Lps_hist:
+    cmp r11, r12
+    jae .Lps_prefix
+    mov rax, r11
+    shl rax, 4
+    mov rax, [rbx + rax]
+    shr rax, cl
+    movzx eax, al
+    inc qword ptr [rsp + rax * 8]
+    inc r11
+    jmp .Lps_hist
+.Lps_prefix:
+    xor r8d, r8d
+    xor r9d, r9d
+.Lps_pfx:
+    mov rax, [rsp + r9 * 8]
+    mov [rsp + r9 * 8], r8
+    add r8, rax
+    inc r9d
+    cmp r9d, 256
+    jb .Lps_pfx
+
+    xor r11d, r11d
+.Lps_scat:
+    cmp r11, r12
+    jae .Lps_swap
+    mov r9, r11
+    shl r9, 4
+    mov r10, [rbx + r9]               # key
+    mov r9d, [rbx + r9 + 8]           # idx
+    mov rax, r10
+    shr rax, cl
+    movzx eax, al
+    mov rdx, [rsp + rax * 8]
+    inc qword ptr [rsp + rax * 8]
+    shl rdx, 4
+    mov [rbp + rdx], r10
+    mov [rbp + rdx + 8], r9d
+    inc r11
+    jmp .Lps_scat
+.Lps_swap:
+    xchg rbx, rbp
+.Lps_next_byte:
+    add ecx, 8
+    jmp .Lps_pass
+
+.Lps_passes_done:
+    # Write sorted indices back
+    mov rdi, [rsp + 2048 + 0]
+    xor r11d, r11d
+.Lps_wb:
+    cmp r11, r12
+    jae .Lps_ties
+    mov rax, r11
+    shl rax, 4
+    mov eax, [rbx + rax + 8]
+    mov [rdi + r11 * 4], eax
+    inc r11
+    jmp .Lps_wb
+
+    # Introsort only runs of equal prefix keys (full comparator)
+.Lps_ties:
+    xor r13d, r13d                    # i
+.Lps_tie_loop:
+    cmp r13, r12
+    jae .Lps_free
+    mov rax, r13
+    shl rax, 4
+    mov rbp, [rbx + rax]              # run key
+    lea r14, [r13 + 1]
+.Lps_tie_scan:
+    cmp r14, r12
+    jae .Lps_tie_run
+    mov rax, r14
+    shl rax, 4
+    cmp [rbx + rax], rbp
+    jne .Lps_tie_run
+    inc r14
+    jmp .Lps_tie_scan
+.Lps_tie_run:
+    mov rax, r14
+    sub rax, r13
+    cmp rax, 2
+    jb .Lps_tie_next
+    mov rdi, [rsp + 2048 + 0]
+    lea rdi, [rdi + r13 * 4]
+    mov rsi, rax
+    mov rdx, [rsp + 2048 + 16]
+    mov rcx, [rsp + 2048 + 24]
+    mov r8d, [rsp + 2048 + 32]
+    mov r9d, [rsp + 2048 + 36]
+    call introsort_u32
+.Lps_tie_next:
+    mov r13, r14
+    jmp .Lps_tie_loop
+
+.Lps_free:
+    mov rdi, [rsp + 2048 + 40]
+    call mem_free
+    jmp .Lps_exit
+
+.Lps_fallback:
+    mov rdi, [rsp + 2048 + 0]
+    mov rsi, [rsp + 2048 + 8]
+    mov rdx, [rsp + 2048 + 16]
+    mov rcx, [rsp + 2048 + 24]
+    mov r8d, [rsp + 2048 + 32]
+    mov r9d, [rsp + 2048 + 36]
+    call introsort_u32
+.Lps_exit:
+    add rsp, 2048 + 72
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbp
+    pop rbx
+    ret
+
+# ==============================================================================
 # Helper: void sort_half(uint32_t *arr, size_t len, const DirModel *model)
 # ==============================================================================
 sort_half:
@@ -797,7 +1049,10 @@ sort_half:
     cmp eax, SORT_SIZE
     je .Lsh_check_radix
     cmp eax, SORT_MTIME
-    jne .Lsh_intro
+    je .Lsh_check_radix
+    cmp rsi, PREFIX_MIN_N
+    jae prefix_sort_u32               # SORT_NAME / SORT_EXT
+    jmp introsort_u32
 .Lsh_check_radix:
     cmp rsi, RADIX_MIN_N
     jae .Lsh_radix

@@ -36,6 +36,7 @@
 .equ OS_SYS_readlinkat,     267
 .equ OS_SYS_ppoll,          271
 .equ OS_SYS_pipe2,          293
+.equ OS_SYS_copy_file_range, 326
 .equ OS_SYS_statx,          332
 .equ OS_SYS_io_uring_setup, 425
 .equ OS_SYS_io_uring_enter, 426
@@ -58,6 +59,7 @@
 .equ O_APPEND,              0x400
 .equ O_NONBLOCK,            0x800
 .equ O_DIRECTORY,           0x10000
+.equ O_NOFOLLOW,            0x20000
 .equ O_CLOEXEC,             0x80000
 
 # --- Memory Mapping Flags ---
@@ -83,6 +85,7 @@
 .equ ESRCH,                 3
 .equ EINTR,                 4
 .equ EIO,                   5
+.equ EBADF,                 9
 .equ ECHILD,                10
 .equ EAGAIN,                11
 .equ ENOMEM,                12
@@ -93,7 +96,9 @@
 .equ ENOTDIR,               20
 .equ EISDIR,                21
 .equ EINVAL,                22
+.equ ENOSYS,                38
 .equ ENOTEMPTY,             39
+.equ EOPNOTSUPP,            95
 .equ ECANCELED,             125
 
 # --- Portable Process Control (signals & wait flags) ---
@@ -107,6 +112,7 @@
 .equ TCSETS,                0x5402
 .equ TCSETSW,               0x5403
 .equ TIOCGWINSZ,            0x5413
+.equ FICLONE,               0x40049409
 
 .equ KTERMIOS_SIZE,         64
 .equ KTERMIOS_IFLAG,        0

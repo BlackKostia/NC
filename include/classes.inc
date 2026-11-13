@@ -128,8 +128,15 @@ CLASS_BEGIN DirModel
     FIELD DirModel.sort_desc,      4
     FIELD DirModel.show_hidden,    4
     FIELD DirModel.has_dotdot,     4   # 1 if entry 0 is '..'
+    FIELD DirModel.flt_raw,        8   # raw_count when order[] was last filtered
+    FIELD DirModel.flt_lc_len,     4   # byte length of flt_lc
+    FIELD DirModel.flt_valid,      4   # 1: order[] == filter(flt_applied) over all raw entries
+    FIELD DirModel.flt_hidden,     4   # show_hidden used for flt_applied
+    FIELD DirModel.flt_pad,        4
     FIELD DirModel.path,           PATH_MAX
     FIELD DirModel.filter,         FILTER_MAX
+    FIELD DirModel.flt_lc,         FILTER_MAX  # ASCII-lowercased filter (SIMD needle)
+    FIELD DirModel.flt_applied,    FILTER_MAX  # filter that produced the current order[]
 CLASS_END DirModel
 
 CLASS_BEGIN Widget

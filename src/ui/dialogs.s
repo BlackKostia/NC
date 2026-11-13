@@ -347,8 +347,10 @@ ConfirmDialog_new:
     call str_copy
 
     mov rdi, rbx
-    mov esi, [r12 + App.term_w]
-    mov edx, [r12 + App.term_h]
+    xor esi, esi
+    xor edx, edx
+    mov ecx, [r12 + App.term_w]
+    mov r8d, [r12 + App.term_h]
     call ConfirmDialog_layout
 
     mov rax, rbx

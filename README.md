@@ -44,7 +44,7 @@ Object
 duop/
 ├── AGENTS.md                 # Правила модульної архітектури, SemVer і комітів
 ├── LICENSE                   # Відкрита ліцензія MIT
-├── VERSION                   # Поточна SemVer-версія (1.2.0)
+├── VERSION                   # Поточна SemVer-версія (1.3.0)
 ├── Makefile                  # Збірка (OS/ARCH compile-time PAL, all / release / run / test / verify / hooks / clean)
 ├── .agents/                  # Antigravity скіли (duop-*) та lifecycle-хуки (hooks.json)
 ├── .githooks/                # Git-хуки (pre-commit, commit-msg, post-commit)
@@ -57,8 +57,8 @@ duop/
 │   └── classes.inc           # Повна специфікація класів і vtable
 ├── src/
 │   ├── main.s                # Точка входу _start (прапорці --lang / -l / -h / --help / -V / --version / -L / --license)
-│   ├── os/linux/x86_64/      # pal_os.s, pal_uring.s (io_uring IORING_OP_STATX пакетний stat з fallback)
-│   ├── core/                 # memory.s, string.s, utf8.s, oop_rt.s, syscall.s
+│   ├── os/linux/x86_64/      # pal_os.s, pal_uring.s (io_uring IORING_OP_STATX пакетний stat з fallback), pal_simd.s (SSE2 memcpy/memset/memcmp/strlen/ci-пошук)
+│   ├── core/                 # memory.s (slab-алокатор 64 Б–64 КіБ + mmap для великих), string.s, utf8.s, oop_rt.s, syscall.s
 │   ├── tui/                  # theme.s (3 TrueColor теми), i18n.s (UA/EN таблиці), screen.s, input.s (клавіатура + SGR 1006)
 │   ├── fs/                   # dir_model.s (32Б FileEntry + потокове читання), dir_sort.s (Introsort/Radix), file_ops.s, task.s (fork-воркер фонових операцій)
 │   ├── ui/                   # header_bar.s, function_bar.s, status_bar.s, file_pane.s, preview_pane.s, dialogs.s, progress_dialog.s
@@ -69,6 +69,7 @@ duop/
     ├── test_fs_reliability.py # Стрес- та відмовостійкі тести copy/move/delete/rename/EXDEV
     ├── test_performance_dir.py # Тести 32B/pool, lazy stat, Radix/Introsort, huge-mode [FS-order] та Esc-скасування
     ├── test_bg_tasks.py      # Фонові операції: неблокуючий UI, прогрес, пауза/скасування, EBUSY, вихід, EN/UA
+    ├── test_fastpath.py      # Бюджет сисколів (strace): slab, copy_file_range, d_type-видалення; prefix-сортування, звуження фільтра
     └── bench_million.py       # Бенчмарк відкриття великих директорій (TTFF, Full, RSS, syscalls)
 ```
 

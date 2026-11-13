@@ -14,7 +14,7 @@
 .equ DIRENTS_BUF_SIZE,    1048576   # 1 MiB getdents64 read buffer for DirModel streaming
 .equ OUT_BUF_INIT_CAP,    131072    # 128 KiB ANSI flush buffer
 .equ INITIAL_FILE_CAP,    512
-.equ INITIAL_NAME_CAP,    32768     # 32 KiB contiguous UTF-8 filename pool
+.equ INITIAL_NAME_CAP,    65536     # 64 KiB contiguous UTF-8 filename pool
 .equ STREAM_BATCH_BUDGET, 4096      # entries per incremental load batch in App_run
 .equ HUGE_DIR_THRESHOLD,  50000     # switch to ls -f unsorted mode above this threshold
 

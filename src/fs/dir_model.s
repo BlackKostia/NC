@@ -333,7 +333,33 @@ ensure_capacity:
     ret
 
 # ==============================================================================
+# Helper: void prepare_filter(DirModel *this)
+# Lowercases DirModel.filter once into flt_lc so per-entry matching is a pure SIMD scan.
+# ==============================================================================
+prepare_filter:
+    xor ecx, ecx
+.Lpf_loop:
+    movzx eax, byte ptr [rdi + DirModel.filter + rcx]
+    cmp eax, 'A'
+    jb .Lpf_store
+    cmp eax, 'Z'
+    ja .Lpf_store
+    add eax, 32
+.Lpf_store:
+    mov [rdi + DirModel.flt_lc + rcx], al
+    test eax, eax
+    jz .Lpf_done
+    inc ecx
+    cmp ecx, FILTER_MAX - 1
+    jb .Lpf_loop
+    mov byte ptr [rdi + DirModel.flt_lc + rcx], 0
+.Lpf_done:
+    mov [rdi + DirModel.flt_lc_len], ecx
+    ret
+
+# ==============================================================================
 # Helper: int entry_passes_filter(const DirModel *this, uint32_t flags, const char *name)
+# Requires prepare_filter() to have run for the current DirModel.filter.
 # ==============================================================================
 entry_passes_filter:
     test edx, FE_IS_PARENT
@@ -343,11 +369,12 @@ entry_passes_filter:
     cmp dword ptr [rdi + DirModel.show_hidden], 0
     je .Lepf_no
 .Lepf_chk_str:
-    cmp byte ptr [rdi + DirModel.filter], 0
-    je .Lepf_yes
-    lea rsi, [rdi + DirModel.filter]
+    mov edx, [rdi + DirModel.flt_lc_len]
+    test edx, edx
+    jz .Lepf_yes
+    lea rsi, [rdi + DirModel.flt_lc]
     mov rdi, rcx              # name
-    jmp str_contains_ci       # returns 1 or 0
+    jmp os_str_contains_ci_fast
 .Lepf_yes:
     mov eax, 1
     ret
@@ -401,6 +428,7 @@ DirModel_reload:
     mov rbx, rdi
 
     call close_stream_resources
+    mov dword ptr [rbx + DirModel.flt_valid], 0
     mov dword ptr [rbx + DirModel.is_loading], 0
     mov dword ptr [rbx + DirModel.load_aborted], 0
     mov dword ptr [rbx + DirModel.huge_mode], 0
@@ -523,6 +551,12 @@ DirModel_step_load:
     # [rsp + 24] = name_len (qword)
     # [rsp + 32] = ext_off (byte), d_type (byte at +33), disp_w (byte at +34)
     mov rbx, rdi
+    mov dword ptr [rbx + DirModel.flt_valid], 0
+    push rsi
+    sub rsp, 8
+    call prepare_filter
+    add rsp, 8
+    pop rsi
     test rsi, rsi
     jnz .Ldsl_got_budget
     mov rsi, [rip + g_stream_batch]
@@ -775,7 +809,71 @@ DirModel_apply_filter:
     push r15
     sub rsp, 8
     mov rbx, rdi
+    call prepare_filter
 
+    # Incremental narrowing: when the new filter extends the one that produced order[]
+    # (same raw set, same hidden mode, finished load), re-filter order[] in place: the
+    # result keeps its sorted order, so neither a full raw scan nor a re-sort is needed.
+    cmp dword ptr [rbx + DirModel.flt_valid], 0
+    je .Ldaf_full
+    cmp dword ptr [rbx + DirModel.is_loading], 0
+    jne .Ldaf_full
+    mov rax, [rbx + DirModel.raw_count]
+    cmp rax, [rbx + DirModel.flt_raw]
+    jne .Ldaf_full
+    mov eax, [rbx + DirModel.show_hidden]
+    cmp eax, [rbx + DirModel.flt_hidden]
+    jne .Ldaf_full
+    lea rdi, [rbx + DirModel.filter]
+    lea rsi, [rbx + DirModel.flt_applied]
+    call str_starts_with
+    test eax, eax
+    jz .Ldaf_full
+
+    mov dword ptr [rbx + DirModel.dir_count], 0
+    mov dword ptr [rbx + DirModel.file_count], 0
+    mov r12, [rbx + DirModel.count]
+    xor r13d, r13d            # read index
+    xor ebp, ebp              # write index
+    mov r14, [rbx + DirModel.entries]
+    mov r15, [rbx + DirModel.order]
+.Ldaf_nar_loop:
+    cmp r13, r12
+    jae .Ldaf_nar_done
+    mov eax, [r15 + r13 * 4]
+    mov [rsp], eax
+    shl rax, 5
+    add rax, r14
+    mov edx, [rax + FileEntry.flags]
+    mov ecx, [rax + FileEntry.name_off]
+    add rcx, [rbx + DirModel.name_pool]
+    push rdx
+    sub rsp, 8
+    mov rdi, rbx
+    call entry_passes_filter
+    add rsp, 8
+    pop rdx
+    test eax, eax
+    jz .Ldaf_nar_next
+    mov eax, [rsp]
+    mov [r15 + rbp * 4], eax
+    inc rbp
+    test edx, FE_IS_PARENT
+    jnz .Ldaf_nar_next
+    test edx, FE_IS_DIR | FE_LINK_DIR
+    jz .Ldaf_nar_file
+    inc dword ptr [rbx + DirModel.dir_count]
+    jmp .Ldaf_nar_next
+.Ldaf_nar_file:
+    inc dword ptr [rbx + DirModel.file_count]
+.Ldaf_nar_next:
+    inc r13
+    jmp .Ldaf_nar_loop
+.Ldaf_nar_done:
+    mov [rbx + DirModel.count], rbp
+    jmp .Ldaf_remember
+
+.Ldaf_full:
     mov qword ptr [rbx + DirModel.count], 0
     mov dword ptr [rbx + DirModel.dir_count], 0
     mov dword ptr [rbx + DirModel.file_count], 0
@@ -830,6 +928,19 @@ DirModel_apply_filter:
     call DirModel_sort
 
 .Ldaf_done:
+    cmp dword ptr [rbx + DirModel.is_loading], 0
+    jne .Ldaf_ret
+.Ldaf_remember:
+    lea rdi, [rbx + DirModel.flt_applied]
+    lea rsi, [rbx + DirModel.filter]
+    mov edx, FILTER_MAX
+    call str_copy
+    mov rax, [rbx + DirModel.raw_count]
+    mov [rbx + DirModel.flt_raw], rax
+    mov eax, [rbx + DirModel.show_hidden]
+    mov [rbx + DirModel.flt_hidden], eax
+    mov dword ptr [rbx + DirModel.flt_valid], 1
+.Ldaf_ret:
     add rsp, 8
     pop r15
     pop r14

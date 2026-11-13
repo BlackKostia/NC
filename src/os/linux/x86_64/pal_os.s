@@ -29,6 +29,8 @@ g_raw_active:
 .global os_poll_in2
 .global os_pipe_cloexec
 .global os_signals_worker_mode
+.global os_clone_file
+.global os_copy_file_range
 
 # Helper: void copy_kstat_to_filestat(const struct stat *kstat [rsi], FileStat *out [rdi])
 copy_kstat_to_filestat:
@@ -218,6 +220,26 @@ os_poll_in2:
     or eax, 2
 .Lopi2_done:
     add rsp, 40
+    ret
+
+# int os_clone_file(int src_fd, int dst_fd) -- ioctl(dst, FICLONE, src): whole-file CoW reflink
+os_clone_file:
+    mov edx, edi
+    mov edi, esi
+    mov esi, FICLONE
+    mov eax, OS_SYS_ioctl
+    syscall
+    ret
+
+# ssize_t os_copy_file_range(int src_fd, int dst_fd, size_t len) -- in-kernel copy at file offsets
+os_copy_file_range:
+    mov r8, rdx               # len
+    mov edx, esi              # fd_out
+    xor esi, esi              # off_in  = NULL (advance file position)
+    xor r10d, r10d            # off_out = NULL
+    xor r9d, r9d              # flags   = 0
+    mov eax, OS_SYS_copy_file_range
+    syscall
     ret
 
 # int os_pipe_cloexec(int fds[2])

@@ -29,17 +29,13 @@ size_units:
 .global path_dirname
 .global path_basename
 
-# size_t str_len(const char *s)
+# size_t str_len(const char *s) -- NULL-safe; preserves all registers except rax (SSE2 PAL)
 str_len:
-    xor eax, eax
     test rdi, rdi
-    jz .Lsl_done
-.Lsl_loop:
-    cmp byte ptr [rdi + rax], 0
-    je .Lsl_done
-    inc rax
-    jmp .Lsl_loop
-.Lsl_done:
+    jz .Lsl_null
+    jmp os_str_len_fast
+.Lsl_null:
+    xor eax, eax
     ret
 
 # size_t str_copy(char *dst, const char *src, size_t cap)
@@ -141,10 +137,43 @@ str_casecmp:
     ret
 
 # int str_contains_ci(const char *haystack, const char *needle)
-# Returns 1 if needle occurs in haystack (case-insensitive ASCII), else 0
+# Returns 1 if needle occurs in haystack (case-insensitive ASCII), else 0.
+# Lowercases the needle once, then runs the SSE2 candidate scan (os_str_contains_ci_fast).
 str_contains_ci:
     cmp byte ptr [rsi], 0
     je .Lsci_found
+    push rdx
+    push rsi
+    sub rsp, 264
+    xor ecx, ecx
+.Lsci_lc:
+    movzx eax, byte ptr [rsi + rcx]
+    test eax, eax
+    jz .Lsci_lc_done
+    cmp ecx, 255
+    jae .Lsci_long
+    cmp eax, 'A'
+    jb .Lsci_lc_put
+    cmp eax, 'Z'
+    ja .Lsci_lc_put
+    add eax, 32
+.Lsci_lc_put:
+    mov [rsp + rcx], al
+    inc ecx
+    jmp .Lsci_lc
+.Lsci_lc_done:
+    mov byte ptr [rsp + rcx], 0
+    mov edx, ecx
+    mov rsi, rsp
+    call os_str_contains_ci_fast
+    add rsp, 264
+    pop rsi
+    pop rdx
+    ret
+.Lsci_long:
+    add rsp, 264
+    pop rsi
+    pop rdx
 .Lsci_outer:
     cmp byte ptr [rdi], 0
     je .Lsci_not_found

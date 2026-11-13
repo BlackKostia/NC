@@ -40,7 +40,8 @@ SRCS := \
 
 PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_os.s \
-	src/os/$(OS)/$(ARCH)/pal_uring.s
+	src/os/$(OS)/$(ARCH)/pal_uring.s \
+	src/os/$(OS)/$(ARCH)/pal_simd.s
 
 OBJS := $(patsubst src/%.s,$(BUILD)/%.o,$(SRCS) $(PAL_SRCS))
 INCS := $(wildcard include/*.inc) $(wildcard $(PAL_INC)/*.inc)
@@ -73,6 +74,7 @@ test: $(TARGET)
 	python3 tests/test_fs_reliability.py
 	python3 tests/test_performance_dir.py
 	python3 tests/test_bg_tasks.py
+	python3 tests/test_fastpath.py
 
 verify:
 	./.agents/skills/duop-pty-verify/scripts/verify_build.sh
