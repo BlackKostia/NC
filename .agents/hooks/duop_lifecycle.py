@@ -120,7 +120,7 @@ def handle_session_start(payload: dict, root: Path) -> dict:
         f"[Duop Workspace] VERSION={ver} | branch={branch or 'detached'} ({head or 'unborn'}) "
         f"| latest_tag={tag or 'none'} | dirty_files={dirty_count} | git_hooks={hooks_path or 'default'}.\n"
         "Use workspace rules in AGENTS.md and skills in .agents/skills/: "
-        "duop-tdd-first, duop-modular-asm, duop-ui-i18n-widget, duop-pty-verify, duop-version-release. "
+        "duop-tdd-first, duop-modular-asm, duop-multiplatform-pal, duop-ui-i18n-widget, duop-pty-verify, duop-version-release. "
         "Always design & write tests under tests/ before editing src/ or include/. "
         "Verify with ./.agents/skills/duop-pty-verify/scripts/verify_build.sh, maintain SemVer in VERSION, "
         "and commit after verified changes."

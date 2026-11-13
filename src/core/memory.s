@@ -2,7 +2,7 @@
 # Uses anonymous mmap/mremap/munmap with a 16-byte header storing mapped length.
 
 .intel_syntax noprefix
-.include "linux_sys.inc"
+.include "pal.inc"
 
 .section .text
 .global mem_alloc
@@ -29,11 +29,7 @@ mem_alloc:
     xor rdi, rdi              # addr = NULL
     # rsi = length (already set)
     mov rdx, PROT_RW
-    mov r10, MAP_PRIVATE_ANON
-    mov r8, -1                # fd = -1
-    xor r9, r9                # offset = 0
-    mov rax, SYS_mmap
-    syscall
+    OS_MMAP_ANON
     pop rsi
 
     cmp rax, -4095
@@ -54,8 +50,7 @@ mem_free:
     jz .Lfree_done
     sub rdi, 16
     mov rsi, [rdi]            # mapped size
-    mov rax, SYS_munmap
-    syscall
+    OS_MUNMAP
 .Lfree_done:
     ret
 
@@ -77,17 +72,16 @@ mem_realloc:
     cmp rdx, rbx
     jbe .Lrealloc_same        # already fits within mapped pages
 
-    push rdx
+    sub rsp, 16
+    mov [rsp], rdx
     mov rsi, rbx              # old_size
     # rdx = new_size
-    mov r10, MREMAP_MAYMOVE
-    xor r8, r8
-    mov rax, SYS_mremap
-    syscall
-    pop rdx
+    call os_mem_remap
+    mov rdx, [rsp]
+    add rsp, 16
 
-    cmp rax, -4095
-    jae .Lrealloc_fail
+    test rax, rax
+    jz .Lrealloc_fail
 
     mov [rax], rdx
     add rax, 16

@@ -1,7 +1,8 @@
 # Core String, Formatting, and Path Utilities
 
 .intel_syntax noprefix
-.include "linux_sys.inc"
+.include "pal.inc"
+.include "config.inc"
 
 .section .rodata
 hex_digits:

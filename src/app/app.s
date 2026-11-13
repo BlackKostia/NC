@@ -2,7 +2,7 @@
 # Coordinates layout, polymorphic widget rendering, input routing, dialogs, and FS actions.
 
 .intel_syntax noprefix
-.include "linux_sys.inc"
+.include "pal.inc"
 .include "classes.inc"
 
 .section .rodata
@@ -534,13 +534,12 @@ exec_batch_transfer:
     mov edi, AT_FDCWD
     mov rsi, r12
     lea rdx, [rsp + PATH_MAX*2]
-    xor r10d, r10d
-    mov rax, SYS_newfstatat
-    syscall
+    mov ecx, 1                # follow symlinks
+    call os_statat
     xor ecx, ecx
     test rax, rax
     js .Lebt_dst_flag
-    mov eax, [rsp + PATH_MAX*2 + STAT_MODE]
+    mov eax, [rsp + PATH_MAX*2 + FileStat.mode]
     and eax, S_IFMT
     cmp eax, S_IFDIR
     sete cl
@@ -1139,14 +1138,12 @@ App_cmd_shell:
     mov rbx, rdi
     mov rdi, rsp
     mov esi, PATH_MAX
-    mov rax, SYS_getcwd
-    syscall
+    OS_GETCWD
 
     mov rcx, [rbx + App.active_pane]
     mov rcx, [rcx + FilePane.model]
     lea rdi, [rcx + DirModel.path]
-    mov rax, SYS_chdir
-    syscall
+    OS_CHDIR
 
     lea rdi, [rip + str_sh_shell]
     xor esi, esi
@@ -1154,8 +1151,7 @@ App_cmd_shell:
     call sys_exec_sh_arg
 
     mov rdi, rsp
-    mov rax, SYS_chdir
-    syscall
+    OS_CHDIR
 
     mov rdi, [rbx + App.screen]
     mov dword ptr [rdi + ScreenBuffer.force_full], 1

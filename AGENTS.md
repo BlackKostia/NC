@@ -6,16 +6,17 @@ Duop (`duop`) is a dual-pane TUI file manager in pure x86-64 GNU Assembler (`.in
 
 Code flows downward only — never introduce upward or cyclic dependencies across layers:
 
-1. **`include/`** (`linux_sys.inc`, `config.inc`, `types.inc`, `oop.inc`, `classes.inc`): macros, constants, `.struct` layouts, and vtable contracts only; emit no instructions or writable data.
-2. **`src/core/`** (`memory.s`, `string.s`, `utf8.s`, `oop_rt.s`, `syscall.s`, future `config.s`): runtime, allocator, strings, UTF-8 width, base `Object`/`Widget` vtables, syscall wrappers. **Must never** depend on `src/tui/`, `src/fs/`, concrete `src/ui/` widgets, or `src/app/`.
-3. **`src/tui/`** (`theme.s`, `i18n.s`, `screen.s`, `input.s`): terminal TrueColor rendering, themes, EN/UA tables, SGR mouse/key parser. **Must never** depend on `src/fs/`, concrete `src/ui/` widgets, or `src/app/`.
-4. **`src/fs/`** (`dir_model.s`, `file_ops.s`, future `inflate.s`/`trash.s`): directory traversal, sorting, virtual panels, async file ops (may query `i18n_get` for error text). **Must never** depend on `Screen_*`, `Input_*`, `theme_*`, concrete UI widgets, or `src/app/`.
-5. **`src/ui/`** (`header_bar.s`, `function_bar.s`, `status_bar.s`, `file_pane.s`, `preview_pane.s`, `dialogs.s` and split widget modules): concrete `Widget`/`Dialog` subclasses rendering exclusively via `ScreenBuffer`, `theme_get`, and `i18n_get`.
-6. **`src/app/`** & **`src/main.s`**: application controller, `poll` event loop, command dispatch, CLI arguments.
+1. **`include/`** (`pal.inc`, `config.inc`, `types.inc`, `oop.inc`, `classes.inc`, and target `include/os/<os>/<arch>/pal_target.inc`): macros, constants, `.struct` layouts, and vtable contracts only; emit no instructions or writable data.
+2. **`src/os/<os>/<arch>/`** (`pal_os.s`): compile-time selected OS/ISA Platform Abstraction Layer (PAL) converting kernel `stat`/`dirent`/`termios`/`sigaction`/`ppoll`/`mremap` into portable `FileStat` and `os_*` ABI helpers; zero runtime OS branching. **Must never** depend on `src/tui/`, `src/fs/`, `src/ui/`, or `src/app/`.
+3. **`src/core/`** (`memory.s`, `string.s`, `utf8.s`, `oop_rt.s`, `syscall.s`, future `config.s`): runtime, allocator, strings, UTF-8 width, base `Object`/`Widget` vtables, PAL POSIX helpers (`OS_*` macros + `os_*`). **Must never** contain raw `syscall` instructions or depend on `src/tui/`, `src/fs/`, concrete `src/ui/` widgets, or `src/app/`.
+4. **`src/tui/`** (`theme.s`, `i18n.s`, `screen.s`, `input.s`): terminal TrueColor rendering, themes, EN/UA tables, SGR mouse/key parser. **Must never** depend on `src/fs/`, concrete `src/ui/` widgets, or `src/app/`.
+5. **`src/fs/`** (`dir_model.s`, `file_ops.s`, future `inflate.s`/`trash.s`): directory traversal, sorting, virtual panels, async file ops (may query `i18n_get` for error text). **Must never** depend on `Screen_*`, `Input_*`, `theme_*`, concrete UI widgets, or `src/app/`.
+6. **`src/ui/`** (`header_bar.s`, `function_bar.s`, `status_bar.s`, `file_pane.s`, `preview_pane.s`, `dialogs.s` and split widget modules): concrete `Widget`/`Dialog` subclasses rendering exclusively via `ScreenBuffer`, `theme_get`, and `i18n_get`.
+7. **`src/app/`** & **`src/main.s`**: application controller, event loop, command dispatch, CLI arguments.
 
 ### Anti-Monolith Rule for New Features
-- Place cohesive new subsystems in dedicated files registered in `Makefile` `SRCS` (e.g., `src/core/config.s`, `src/fs/task_queue.s`, `src/fs/inflate.s`, `src/ui/fuzzy_dialog.s`, `src/ui/progress_dialog.s`) rather than growing `src/ui/dialogs.s`, `src/app/app.s`, or `src/ui/file_pane.s`.
-- Put shared syscall numbers in `include/linux_sys.inc` and reusable syscall wrappers in `src/core/syscall.s`.
+- Place cohesive new subsystems in dedicated files registered in `Makefile` `SRCS` (or `PAL_SRCS` for OS/arch backends) rather than growing `src/ui/dialogs.s`, `src/app/app.s`, or `src/ui/file_pane.s`.
+- Put compile-time OS syscall numbers, kernel structs, and `OS_*` inline macros in `include/os/<os>/<arch>/pal_target.inc` and normalized ABI adapters (`os_statat`, `os_dir_read`/`os_dir_next`, `os_mem_remap`, `os_poll_in`, terminal/signal adapters) in `src/os/<os>/<arch>/pal_os.s`; never add runtime OS checks (`cmp [g_os]`) or function-pointer tables.
 
 ## 2. Assembly, ABI & I18n Invariants
 
@@ -28,7 +29,8 @@ Code flows downward only — never introduce upward or cyclic dependencies acros
 
 - Use workspace skills in `.agents/skills/`:
   - `duop-tdd-first` to design and write failing tests in `tests/` (happy-path + edge/fault cases) **before** implementing changes in `src/` or `include/`
-  - `duop-modular-asm` when adding/splitting modules, OOP classes, or syscalls
+  - `duop-modular-asm` when adding/splitting modules, OOP classes, or registering targets
+  - `duop-multiplatform-pal` when touching OS syscalls, `pal.inc`, `FileStat`, `src/os/`, `Makefile` (`OS`/`ARCH`), or SIMD code
   - `duop-ui-i18n-widget` when building UI widgets, themes, mouse zones, or translations
   - `duop-pty-verify` to validate modularity, ELF footprint, release/debug builds, and PTY tests
   - `duop-version-release` to manage `VERSION`, `ROADMAP.md`, Conventional Commits, and Git tags

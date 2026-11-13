@@ -1,8 +1,8 @@
-# DirModel Class: Directory Listing (getdents64 + newfstatat), Filtering, Sorting, Selection
+# DirModel Class: Directory Listing (PAL dir_read/statat), Filtering, Sorting, Selection
 # Inherits from Object.
 
 .intel_syntax noprefix
-.include "linux_sys.inc"
+.include "pal.inc"
 .include "classes.inc"
 
 .section .rodata
@@ -55,8 +55,7 @@ DirModel_new:
     # Use current working directory
     lea rdi, [rbx + DirModel.path]
     mov esi, PATH_MAX
-    mov rax, SYS_getcwd
-    syscall
+    OS_GETCWD
     test rax, rax
     jns .Ldmn_reload
     lea rdi, [rbx + DirModel.path]
@@ -145,7 +144,7 @@ DirModel_reload:
     push r13
     push r14
     push r15
-    sub rsp, 256              # [rsp+0..143]=struct stat, [rsp+144..255]=scratch
+    sub rsp, 64               # [rsp+0..39]=FileStat, [rsp+48]=dir_cursor
     mov rbx, rdi              # this
 
     # Open directory
@@ -153,8 +152,7 @@ DirModel_reload:
     lea rsi, [rbx + DirModel.path]
     mov edx, O_RDONLY | O_DIRECTORY | O_CLOEXEC
     xor r10d, r10d
-    mov rax, SYS_openat
-    syscall
+    OS_OPENAT
     test rax, rax
     js .Ldmr_err
     mov r12d, eax             # dirfd
@@ -196,22 +194,20 @@ DirModel_reload:
     mov edi, r12d
     mov rsi, r13
     mov edx, DIRENTS_BUF_SIZE
-    mov rax, SYS_getdents64
-    syscall
+    call os_dir_read
     test rax, rax
     jle .Ldmr_dents_loop_done
     mov r15, rax              # bytes read
-    xor ecx, ecx              # pos in dents_buf
+    mov qword ptr [rsp + 48], 0
 
 .Ldmr_entry_loop:
-    cmp rcx, r15
-    jae .Ldmr_read_dents
-
-    lea r8, [r13 + rcx]       # struct dirent64 *
-    movzx r9d, word ptr [r8 + DIRENT_RECLEN]
-    push rcx
-    push r9
-    lea r14, [r8 + DIRENT_NAME]  # d_name
+    mov rdi, r13
+    mov rsi, r15
+    lea rdx, [rsp + 48]
+    call os_dir_next
+    test rax, rax
+    jz .Ldmr_read_dents
+    mov r14, rax              # d_name
 
     # Skip "." and ".."
     cmp byte ptr [r14], '.'
@@ -239,13 +235,12 @@ DirModel_reload:
     jz .Ldmr_skip_entry
 
 .Ldmr_stat_entry:
-    # newfstatat(dirfd, name, &st, AT_SYMLINK_NOFOLLOW)
+    # os_statat(dirfd, name, &st, follow=0)
     mov edi, r12d
     mov rsi, r14
-    lea rdx, [rsp + 16]       # account for 2 pushes above (rcx, r9) -> [rsp+16] is stat buf!
-    mov r10d, AT_SYMLINK_NOFOLLOW
-    mov rax, SYS_newfstatat
-    syscall
+    mov rdx, rsp
+    xor ecx, ecx
+    call os_statat
     test rax, rax
     js .Ldmr_skip_entry
 
@@ -255,13 +250,12 @@ DirModel_reload:
     jz .Ldmr_skip_entry
     mov r8, rax               # FileEntry *
 
-    # Populate FileEntry from stat at [rsp + 16]
-    lea r9, [rsp + 16]
-    mov rax, [r9 + STAT_ST_SIZE]
+    # Populate FileEntry from FileStat at [rsp]
+    mov rax, [rsp + FileStat.size]
     mov [r8 + FileEntry.size], rax
-    mov rax, [r9 + STAT_MTIME]
+    mov rax, [rsp + FileStat.mtime]
     mov [r8 + FileEntry.mtime], rax
-    mov eax, [r9 + STAT_MODE]
+    mov eax, [rsp + FileStat.mode]
     mov [r8 + FileEntry.mode], eax
 
     xor r10d, r10d            # flags
@@ -298,16 +292,14 @@ DirModel_reload:
     push r10
     mov edi, r12d
     mov rsi, r14
-    lea rdx, [rsp + 32]       # +2 pushes +2 pushes = +32 -> stat buf
-    xor r10d, r10d
-    mov rax, SYS_newfstatat
-    syscall
+    lea rdx, [rsp + 16]       # account for 2 pushes -> [rsp+16] is FileStat buf
+    mov ecx, 1                # follow = 1
+    call os_statat
     pop r10
     pop r8
     test rax, rax
     js .Ldmr_lnk_file_cnt
-    lea r9, [rsp + 16]
-    mov eax, [r9 + STAT_MODE]
+    mov eax, [rsp + FileStat.mode]
     and eax, S_IFMT
     cmp eax, S_IFDIR
     jne .Ldmr_lnk_file_cnt
@@ -348,17 +340,13 @@ DirModel_reload:
     mov [r8 + FileEntry.ext_offset], cx
 
 .Ldmr_skip_entry:
-    pop r9
-    pop rcx
-    add rcx, r9
     jmp .Ldmr_entry_loop
 
 .Ldmr_dents_loop_done:
     mov rdi, r13
     call mem_free
     mov edi, r12d
-    mov rax, SYS_close
-    syscall
+    OS_CLOSE
 
     mov rdi, rbx
     call DirModel_sort
@@ -368,15 +356,14 @@ DirModel_reload:
 
 .Ldmr_close_err:
     mov edi, r12d
-    mov rax, SYS_close
-    syscall
-    mov rax, -12              # -ENOMEM
+    OS_CLOSE
+    mov rax, -ENOMEM
     jmp .Ldmr_ret
 
 .Ldmr_err:
     # rax already holds -errno
 .Ldmr_ret:
-    add rsp, 256
+    add rsp, 64
     pop r15
     pop r14
     pop r13
@@ -397,31 +384,27 @@ DirModel_chdir:
     # Save current process cwd on stack (rsp)
     mov rdi, rsp
     mov esi, PATH_MAX
-    mov rax, SYS_getcwd
-    syscall
+    OS_GETCWD
     mov r13, rax              # >= 0 if getcwd ok
 
     # If target is relative, chdir to current model->path first
     cmp byte ptr [r12], '/'
     je .Ldmc_go_target
     lea rdi, [rbx + DirModel.path]
-    mov rax, SYS_chdir
-    syscall
+    OS_CHDIR
     test rax, rax
     js .Ldmc_restore_err
 
 .Ldmc_go_target:
     mov rdi, r12
-    mov rax, SYS_chdir
-    syscall
+    OS_CHDIR
     test rax, rax
     js .Ldmc_restore_err
 
     # Read canonical resolved cwd into DirModel.path
     lea rdi, [rbx + DirModel.path]
     mov esi, PATH_MAX
-    mov rax, SYS_getcwd
-    syscall
+    OS_GETCWD
     test rax, rax
     js .Ldmc_restore_err
 
@@ -429,8 +412,7 @@ DirModel_chdir:
     test r13, r13
     js .Ldmc_reload
     mov rdi, rsp
-    mov rax, SYS_chdir
-    syscall
+    OS_CHDIR
 
 .Ldmc_reload:
     # Clear filter when changing directories
@@ -444,8 +426,7 @@ DirModel_chdir:
     test r13, r13
     js .Ldmc_err_pop
     lea rdi, [rsp + 8]
-    mov rax, SYS_chdir
-    syscall
+    OS_CHDIR
 .Ldmc_err_pop:
     pop rax
 .Ldmc_done:

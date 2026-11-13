@@ -43,24 +43,27 @@ Object
 duop/
 ├── AGENTS.md                 # Правила модульної архітектури, SemVer і комітів
 ├── LICENSE                   # Відкрита ліцензія MIT
-├── VERSION                   # Поточна SemVer-версія (1.0.3)
-├── Makefile                  # Збірка (all / release / run / test / verify / hooks / clean)
+├── VERSION                   # Поточна SemVer-версія (1.0.4)
+├── Makefile                  # Збірка (OS/ARCH compile-time PAL, all / release / run / test / verify / hooks / clean)
 ├── .agents/                  # Antigravity скіли (duop-*) та lifecycle-хуки (hooks.json)
 ├── .githooks/                # Git-хуки (pre-commit, commit-msg, post-commit)
 ├── include/
-│   ├── linux_sys.inc         # Системні виклики x86-64, kernel termios/stat/sigaction
+│   ├── pal.inc               # Платформо-незалежний PAL-контракт (FileStat)
+│   ├── os/linux/x86_64/      # pal_target.inc: номери системних викликів і inline-макроси OS_*
 │   ├── config.inc            # Ліміти, коди клавіш/миші, UTF-8 гліфи інтерфейсу
 │   ├── oop.inc               # Макроси ООП-системи (CLASS_*, VTBL_*, VCALL, NEW_OBJ)
 │   ├── types.inc             # Структури даних (Rect, Cell, Event, HitZone, FileEntry, Theme, LangStrings)
 │   └── classes.inc           # Повна специфікація класів і vtable
 ├── src/
 │   ├── main.s                # Точка входу _start (прапорці --lang / -l / -h / --help / -V / --version / -L / --license)
+│   ├── os/linux/x86_64/      # pal_os.s: ABI-обгортки ОС (newfstatat, getdents64, ppoll, termios, sigaction)
 │   ├── core/                 # memory.s, string.s, utf8.s, oop_rt.s, syscall.s
 │   ├── tui/                  # theme.s (3 TrueColor теми), i18n.s (UA/EN таблиці), screen.s, input.s (клавіатура + SGR 1006)
 │   ├── fs/                   # dir_model.s, file_ops.s (рекурсивні copy/move/delete, mkdir/touch/rename)
 │   ├── ui/                   # header_bar.s, function_bar.s, status_bar.s, file_pane.s, preview_pane.s, dialogs.s
 │   └── app/                  # app.s
 └── tests/
+    ├── test_pal_architecture.py # Перевірка compile-time PAL, ізоляції сисколів, макросів OS_* та ELF .data==0
     ├── test_pty.py           # Наскрізні тести в реальному PTY (клавіатура, миша, resize, ФС)
     └── test_fs_reliability.py # Стрес- та відмовостійкі тести copy/move/delete/rename/EXDEV
 ```

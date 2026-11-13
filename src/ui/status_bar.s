@@ -2,7 +2,7 @@
 # Shows temporary status notifications, active filter indicator, or detailed entry info.
 
 .intel_syntax noprefix
-.include "linux_sys.inc"
+.include "pal.inc"
 .include "classes.inc"
 
 .section .rodata
@@ -273,8 +273,7 @@ StatusBar_render:
     lea rdx, [rsi + PATH_MAX]
     mov edi, AT_FDCWD
     mov r10d, 511
-    mov rax, SYS_readlinkat
-    syscall
+    OS_READLINKAT
     test rax, rax
     jle .Lsbr_sym_free
     mov rcx, [rsp]

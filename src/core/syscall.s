@@ -1,7 +1,8 @@
 # Terminal Raw Mode, Signal Handlers, Clock, Environment, and Subprocess Helpers
+# Kernel ABI details live in src/os/$(OS)/$(ARCH)/pal_os.s and include/os/$(OS)/$(ARCH)/pal_target.inc
 
 .intel_syntax noprefix
-.include "linux_sys.inc"
+.include "pal.inc"
 
 .section .rodata
 seq_term_enter:
@@ -19,12 +20,6 @@ str_dash_c:
 
 .section .bss
 .align 8
-orig_termios:
-    .space KTERMIOS_SIZE
-raw_termios:
-    .space KTERMIOS_SIZE
-g_raw_active:
-    .space 4
 .global g_sigwinch
 g_sigwinch:
     .space 4
@@ -59,8 +54,7 @@ sys_write_all:
     mov edi, ebx
     mov rsi, r12
     mov rdx, r13
-    mov rax, SYS_write
-    syscall
+    OS_WRITE
     cmp rax, -EINTR
     je .Lswa_loop
     test rax, rax
@@ -96,8 +90,7 @@ sys_read_retry:
     mov edi, ebx
     mov rsi, r12
     mov rdx, r13
-    mov rax, SYS_read
-    syscall
+    OS_READ
     cmp rax, -EINTR
     je .Lsrr_loop
     pop r13
@@ -106,155 +99,35 @@ sys_read_retry:
     ret
 
 # int64_t sys_clock_ms(void)
-# Returns CLOCK_MONOTONIC in milliseconds
 sys_clock_ms:
-    sub rsp, 16
-    mov edi, CLOCK_MONOTONIC
-    mov rsi, rsp
-    mov rax, SYS_clock_gettime
-    syscall
-    mov rax, [rsp + TIMESPEC_SEC]
-    imul rax, rax, 1000
-    mov rcx, [rsp + TIMESPEC_NSEC]
-    mov r8, 1000000
-    push rax
-    mov rax, rcx
-    xor edx, edx
-    div r8
-    pop rcx
-    add rax, rcx
-    add rsp, 16
-    ret
+    jmp os_clock_ms
 
 # void sys_get_winsize(int *cols, int *rows)
 sys_get_winsize:
-    push rbx
-    push r12
-    mov rbx, rdi
-    mov r12, rsi
-    sub rsp, 16
-
-    mov edi, STDOUT_FD
-    mov esi, TIOCGWINSZ
-    mov rdx, rsp
-    mov rax, SYS_ioctl
-    syscall
-    test rax, rax
-    jns .Lgw_ok
-
-    # Try STDIN_FD as fallback
-    mov edi, STDIN_FD
-    mov esi, TIOCGWINSZ
-    mov rdx, rsp
-    mov rax, SYS_ioctl
-    syscall
-    test rax, rax
-    js .Lgw_default
-
-.Lgw_ok:
-    movzx eax, word ptr [rsp + WINSIZE_COL]
-    movzx ecx, word ptr [rsp + WINSIZE_ROW]
-    test eax, eax
-    jz .Lgw_default
-    test ecx, ecx
-    jz .Lgw_default
-    mov [rbx], eax
-    mov [r12], ecx
-    jmp .Lgw_done
-
-.Lgw_default:
-    mov dword ptr [rbx], 80
-    mov dword ptr [r12], 24
-.Lgw_done:
-    add rsp, 16
-    pop r12
-    pop rbx
-    ret
+    jmp os_get_winsize
 
 # int term_enter_raw(void)
 term_enter_raw:
-    push rbx
-    cmp dword ptr [rip + g_raw_active], 1
-    je .Lter_seq
-
-    # Save original termios
-    mov edi, STDIN_FD
-    mov esi, TCGETS
-    lea rdx, [rip + orig_termios]
-    mov rax, SYS_ioctl
-    syscall
-    test rax, rax
-    js .Lter_seq              # proceed with ANSI even if non-tty
-
-    # Copy orig_termios -> raw_termios
-    lea rdi, [rip + raw_termios]
-    lea rsi, [rip + orig_termios]
-    mov edx, KTERMIOS_SIZE
-    call mem_copy
-
-    # Modify raw_termios flags
-    lea rbx, [rip + raw_termios]
-    mov eax, [rbx + KTERMIOS_IFLAG]
-    and eax, ~(IXON | ICRNL | BRKINT | INPCK | ISTRIP)
-    mov [rbx + KTERMIOS_IFLAG], eax
-
-    mov eax, [rbx + KTERMIOS_OFLAG]
-    and eax, ~OPOST
-    mov [rbx + KTERMIOS_OFLAG], eax
-
-    mov eax, [rbx + KTERMIOS_CFLAG]
-    or eax, CS8
-    mov [rbx + KTERMIOS_CFLAG], eax
-
-    mov eax, [rbx + KTERMIOS_LFLAG]
-    and eax, ~(ICANON | ECHO | ISIG | IEXTEN)
-    mov [rbx + KTERMIOS_LFLAG], eax
-
-    mov byte ptr [rbx + KTERMIOS_VMIN], 1
-    mov byte ptr [rbx + KTERMIOS_VTIME], 0
-
-    mov edi, STDIN_FD
-    mov esi, TCSETSW
-    mov rdx, rbx
-    mov rax, SYS_ioctl
-    syscall
-
-    mov dword ptr [rip + g_raw_active], 1
-
-.Lter_seq:
+    sub rsp, 8
+    call os_term_save_and_raw
     mov edi, STDOUT_FD
     lea rsi, [rip + seq_term_enter]
     mov edx, seq_term_enter_len
     call sys_write_all
-
     xor eax, eax
-    pop rbx
+    add rsp, 8
     ret
 
 # void term_exit_raw(void)
 term_exit_raw:
+    sub rsp, 8
     mov edi, STDOUT_FD
     lea rsi, [rip + seq_term_exit]
     mov edx, seq_term_exit_len
     call sys_write_all
-
-    cmp dword ptr [rip + g_raw_active], 0
-    je .Ltxr_done
-
-    mov edi, STDIN_FD
-    mov esi, TCSETSW
-    lea rdx, [rip + orig_termios]
-    mov rax, SYS_ioctl
-    syscall
-    mov dword ptr [rip + g_raw_active], 0
-.Ltxr_done:
+    call os_term_restore
+    add rsp, 8
     ret
-
-# Signal trampoline for rt_sigaction SA_RESTORER
-.align 16
-sig_restorer:
-    mov rax, SYS_rt_sigreturn
-    syscall
 
 on_sigwinch:
     mov dword ptr [rip + g_sigwinch], 1
@@ -266,43 +139,9 @@ on_sigterm:
 
 # void signals_install(void)
 signals_install:
-    sub rsp, KSIGACTION_SIZE
-
-    # SIGWINCH (no SA_RESTART so poll wakes immediately on resize)
-    lea rax, [rip + on_sigwinch]
-    mov [rsp + KSIG_HANDLER], rax
-    mov qword ptr [rsp + KSIG_FLAGS], SA_RESTORER
-    lea rax, [rip + sig_restorer]
-    mov [rsp + KSIG_RESTORER], rax
-    mov qword ptr [rsp + KSIG_MASK], 0
-
-    mov edi, SIGWINCH
-    mov rsi, rsp
-    xor edx, edx
-    mov r10d, 8
-    mov rax, SYS_rt_sigaction
-    syscall
-
-    # SIGINT
-    lea rax, [rip + on_sigterm]
-    mov [rsp + KSIG_HANDLER], rax
-    mov edi, SIGINT
-    mov rsi, rsp
-    xor edx, edx
-    mov r10d, 8
-    mov rax, SYS_rt_sigaction
-    syscall
-
-    # SIGTERM
-    mov edi, SIGTERM
-    mov rsi, rsp
-    xor edx, edx
-    mov r10d, 8
-    mov rax, SYS_rt_sigaction
-    syscall
-
-    add rsp, KSIGACTION_SIZE
-    ret
+    lea rdi, [rip + on_sigwinch]
+    lea rsi, [rip + on_sigterm]
+    jmp os_signals_install
 
 # const char *env_getenv(char **envp, const char *name)
 # rdi = envp, rsi = name (without '=') -> rax = value ptr or 0
@@ -357,8 +196,7 @@ sys_exec_sh_arg:
 
     call term_exit_raw
 
-    mov rax, SYS_fork
-    syscall
+    OS_FORK
     test rax, rax
     js .Lexec_parent_restore
     jnz .Lexec_parent
@@ -379,12 +217,10 @@ sys_exec_sh_arg:
     mov rdi, rax              # "/bin/sh"
     mov rsi, rsp              # argv
     mov rdx, r14              # envp
-    mov rax, SYS_execve
-    syscall
+    OS_EXECVE
 
     mov edi, 127
-    mov rax, SYS_exit
-    syscall
+    OS_EXIT
 
 .Lexec_parent:
     mov rbx, rax              # child pid
@@ -394,8 +230,7 @@ sys_exec_sh_arg:
     mov rsi, rsp
     xor edx, edx
     xor r10d, r10d
-    mov rax, SYS_wait4
-    syscall
+    OS_WAIT4
     cmp rax, -EINTR
     je .Lexec_wait
     mov eax, [rsp]

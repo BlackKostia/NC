@@ -14,12 +14,13 @@ Keep every Duop subsystem small, decoupled, zero-libc, and single-purpose.
 
 | Layer | Directory | Allowed Dependencies | Forbidden Dependencies |
 | :--- | :--- | :--- | :--- |
-| Contracts | `include/` | Other `include/*.inc` only | Code/data emission |
-| Core | `src/core/` | `include/*`, other `core/*` | `tui/*`, `fs/*`, `ui/*`, `app/*` |
-| TUI | `src/tui/` | `include/*`, `core/*`, other `tui/*` | `fs/*`, `ui/*`, `app/*` |
-| FS | `src/fs/` | `include/*`, `core/*`, `i18n_get` | `Screen_*`, `Input_*`, `theme_*`, `ui/*`, `app/*` |
-| UI | `src/ui/` | `include/*`, `core/*`, `tui/*`, `fs/*` (`DirModel`/`FileEntry`) | `app.s` internals (communicate via `App` callbacks/state) |
-| App | `src/app/`, `src/main.s` | All layers below | Unbounded god-functions; delegate helpers to modules |
+| Contracts | `include/` | Other `include/*.inc` only | Code/data emission; raw OS structs outside `include/os/` |
+| OS PAL | `src/os/<os>/<arch>/` | `include/pal.inc`, `include/os/<os>/<arch>/*` | `tui/*`, `fs/*`, `ui/*`, `app/*` |
+| Core | `src/core/` | `include/*`, `src/os/*` PAL, other `core/*` | Raw `syscall`, kernel structs, `tui/*`, `fs/*`, `ui/*`, `app/*` |
+| TUI | `src/tui/` | `include/*`, `core/*`, `src/os/*` PAL, other `tui/*` | Raw `syscall`, kernel structs, `fs/*`, `ui/*`, `app/*` |
+| FS | `src/fs/` | `include/*`, `core/*`, `src/os/*` PAL, `i18n_get` | Raw `syscall`, `KSTAT_*`/`KDIRENT_*`, `Screen_*`, `Input_*`, `ui/*`, `app/*` |
+| UI | `src/ui/` | `include/*`, `core/*`, `tui/*`, `fs/*` (`DirModel`/`FileEntry`) | Raw `syscall`, `app.s` internals |
+| App | `src/app/`, `src/main.s` | All layers below | Raw `syscall`, kernel structs, unbounded god-functions |
 
 ## Adding a New Module (or Splitting an Existing Large Module)
 

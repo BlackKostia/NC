@@ -1,7 +1,7 @@
 # Filesystem Operations: mkdir, touch, rename, copy, move, delete (recursive), file read
 
 .intel_syntax noprefix
-.include "linux_sys.inc"
+.include "pal.inc"
 .include "classes.inc"
 
 .section .text
@@ -49,8 +49,7 @@ fs_mkdir:
     mov rsi, rdi
     mov edi, AT_FDCWD
     mov edx, 0755
-    mov rax, SYS_mkdirat
-    syscall
+    OS_MKDIRAT
     ret
 
 # int fs_touch(const char *path)
@@ -59,26 +58,22 @@ fs_touch:
     mov edi, AT_FDCWD
     mov edx, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC
     mov r10d, 0644
-    mov rax, SYS_openat
-    syscall
+    OS_OPENAT
     test rax, rax
     js .Lft_done
     mov edi, eax
-    mov rax, SYS_close
-    syscall
+    OS_CLOSE
     xor eax, eax
 .Lft_done:
     ret
 
 # int fs_rename(const char *old_path, const char *new_path)
 fs_rename:
-    mov r10, rsi              # new_path (4th syscall arg = r10)
-    mov rsi, rdi              # old_path (2nd syscall arg = rsi)
-    mov edi, AT_FDCWD         # 1st syscall arg = rdi
-    mov edx, AT_FDCWD         # 3rd syscall arg = rdx
-    xor r8d, r8d              # 5th syscall arg flags = r8
-    mov rax, SYS_renameat2
-    syscall
+    mov r10, rsi              # new_path
+    mov rsi, rdi              # old_path
+    mov edi, AT_FDCWD
+    mov edx, AT_FDCWD
+    OS_RENAMEAT
     ret
 
 # int fs_copy_file(const char *src_path, const char *dst_path)
@@ -88,34 +83,32 @@ fs_copy_file:
     push r13
     push r14
     push r15
-    sub rsp, 304              # [rsp..143]=st_src, [rsp+144..287]=st_dst
+    sub rsp, 96               # [rsp+0..39]=st_src, [rsp+48..87]=st_dst
     mov r12, rdi              # src_path
     mov r13, rsi              # dst_path
 
-    # stat src (nofollow already handled in recursive caller, follow or nofollow ok for reg file)
+    # stat src (nofollow)
     mov edi, AT_FDCWD
     mov rsi, r12
     mov rdx, rsp
-    mov r10d, AT_SYMLINK_NOFOLLOW
-    mov rax, SYS_newfstatat
-    syscall
+    xor ecx, ecx
+    call os_statat
     test rax, rax
     js .Lfcf_done
 
     # Check if dst exists and refers to the exact same inode+dev
     mov edi, AT_FDCWD
     mov rsi, r13
-    lea rdx, [rsp + 144]
-    mov r10d, AT_SYMLINK_NOFOLLOW
-    mov rax, SYS_newfstatat
-    syscall
+    lea rdx, [rsp + 48]
+    xor ecx, ecx
+    call os_statat
     test rax, rax
     js .Lfcf_open_src
-    mov rax, [rsp + 0]        # src st_dev
-    cmp rax, [rsp + 144 + 0]
+    mov rax, [rsp + FileStat.dev]
+    cmp rax, [rsp + 48 + FileStat.dev]
     jne .Lfcf_open_src
-    mov rax, [rsp + 8]        # src st_ino
-    cmp rax, [rsp + 144 + 8]
+    mov rax, [rsp + FileStat.ino]
+    cmp rax, [rsp + 48 + FileStat.ino]
     jne .Lfcf_open_src
     mov rax, -9999            # same file safeguard
     jmp .Lfcf_done
@@ -125,8 +118,7 @@ fs_copy_file:
     mov rsi, r12
     mov edx, O_RDONLY | O_CLOEXEC
     xor r10d, r10d
-    mov rax, SYS_openat
-    syscall
+    OS_OPENAT
     test rax, rax
     js .Lfcf_done
     mov r14d, eax             # src_fd
@@ -134,11 +126,10 @@ fs_copy_file:
     mov edi, AT_FDCWD
     mov rsi, r13
     mov edx, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC
-    mov r10d, [rsp + STAT_MODE]
+    mov r10d, [rsp + FileStat.mode]
     and r10d, 0777
     or r10d, 0600             # ensure user rw while writing
-    mov rax, SYS_openat
-    syscall
+    OS_OPENAT
     test rax, rax
     js .Lfcf_close_src_err
     mov r15d, eax             # dst_fd
@@ -171,11 +162,9 @@ fs_copy_file:
     mov rdi, rbx
     call mem_free
     mov edi, r15d
-    mov rax, SYS_close
-    syscall
+    OS_CLOSE
     mov edi, r14d
-    mov rax, SYS_close
-    syscall
+    OS_CLOSE
     xor eax, eax
     jmp .Lfcf_done
 
@@ -186,21 +175,19 @@ fs_copy_file:
     pop rax
     jmp .Lfcf_close_both
 .Lfcf_mem_err:
-    mov rax, -12
+    mov rax, -ENOMEM
 .Lfcf_close_both:
     push rax
     mov edi, r15d
-    mov rax, SYS_close
-    syscall
+    OS_CLOSE
     pop rax
 .Lfcf_close_src_err:
     push rax
     mov edi, r14d
-    mov rax, SYS_close
-    syscall
+    OS_CLOSE
     pop rax
 .Lfcf_done:
-    add rsp, 304
+    add rsp, 96
     pop r15
     pop r14
     pop r13
@@ -215,7 +202,7 @@ fs_copy_recursive:
     push r13
     push r14
     push r15
-    sub rsp, 160              # stat buf
+    sub rsp, 48               # FileStat buf
     mov r12, rdi              # src
     mov r13, rsi              # dst
 
@@ -232,13 +219,12 @@ fs_copy_recursive:
     mov edi, AT_FDCWD
     mov rsi, r12
     mov rdx, rsp
-    mov r10d, AT_SYMLINK_NOFOLLOW
-    mov rax, SYS_newfstatat
-    syscall
+    xor ecx, ecx
+    call os_statat
     test rax, rax
     js .Lfcr_done
 
-    mov eax, [rsp + STAT_MODE]
+    mov eax, [rsp + FileStat.mode]
     and eax, S_IFMT
     cmp eax, S_IFDIR
     je .Lfcr_dir
@@ -302,7 +288,7 @@ path_is_same_or_descendant:
     ret
 
 .Lfcr_err_same_pop:
-    add rsp, 160
+    add rsp, 48
 .Lfcr_err_same:
     mov rax, -9999
     jmp .Lfcr_done
@@ -318,8 +304,7 @@ path_is_same_or_descendant:
     mov rsi, r12
     mov rdx, rbx
     mov r10d, PATH_MAX - 1
-    mov rax, SYS_readlinkat
-    syscall
+    OS_READLINKAT
     test rax, rax
     js .Lfcr_sym_free_err
     mov byte ptr [rbx + rax], 0
@@ -327,8 +312,7 @@ path_is_same_or_descendant:
     mov rdi, rbx              # target
     mov esi, AT_FDCWD
     mov rdx, r13              # linkpath
-    mov rax, SYS_symlinkat
-    syscall
+    OS_SYMLINKAT
     push rax
     mov rdi, rbx
     call mem_free
@@ -351,32 +335,30 @@ path_is_same_or_descendant:
     jnz .Lfcr_err_same
 
     # Also reject symlinked dst pointing to same directory inode as src
-    sub rsp, 160
+    sub rsp, 48
     mov edi, AT_FDCWD
     mov rsi, r13
     mov rdx, rsp
-    xor r10d, r10d
-    mov rax, SYS_newfstatat
-    syscall
+    mov ecx, 1                # follow = 1
+    call os_statat
     test rax, rax
     js .Lfcr_dst_stat_ok
-    mov rax, [rsp]
-    cmp rax, [rsp + 160]
+    mov rax, [rsp + FileStat.dev]
+    cmp rax, [rsp + 48 + FileStat.dev]
     jne .Lfcr_dst_stat_ok
-    mov rax, [rsp + STAT_INO]
-    cmp rax, [rsp + 160 + STAT_INO]
+    mov rax, [rsp + FileStat.ino]
+    cmp rax, [rsp + 48 + FileStat.ino]
     je .Lfcr_err_same_pop
 .Lfcr_dst_stat_ok:
-    add rsp, 160
+    add rsp, 48
 
     # Create destination directory
     mov edi, AT_FDCWD
     mov rsi, r13
-    mov edx, [rsp + STAT_MODE]
+    mov edx, [rsp + FileStat.mode]
     and edx, 0777
     or edx, 0700
-    mov rax, SYS_mkdirat
-    syscall
+    OS_MKDIRAT
     test rax, rax
     jns .Lfcr_open_dir
     cmp rax, -EEXIST
@@ -387,62 +369,59 @@ path_is_same_or_descendant:
     mov rsi, r12
     mov edx, O_RDONLY | O_DIRECTORY | O_CLOEXEC
     xor r10d, r10d
-    mov rax, SYS_openat
-    syscall
+    OS_OPENAT
     test rax, rax
     js .Lfcr_done
     mov r14d, eax             # dirfd
 
-    # Allocate dents_buf (DIRENTS_BUF_SIZE) + child_src (PATH_MAX) + child_dst (PATH_MAX)
-    mov edi, DIRENTS_BUF_SIZE + PATH_MAX * 2
+    # Allocate dents_buf (DIRENTS_BUF_SIZE) + child_src (PATH_MAX) + child_dst (PATH_MAX) + cursor(8) + tmp(8)
+    mov edi, DIRENTS_BUF_SIZE + PATH_MAX * 2 + 16
     call mem_alloc
     test rax, rax
     jz .Lfcr_dir_close_nomem
-    mov rbx, rax              # [rbx]=dents, [rbx+DIRENTS_BUF_SIZE]=csrc, [rbx+DIRENTS_BUF_SIZE+PATH_MAX]=cdst
+    mov rbx, rax
 
 .Lfcr_dents_loop:
     mov edi, r14d
     mov rsi, rbx
     mov edx, DIRENTS_BUF_SIZE
-    mov rax, SYS_getdents64
-    syscall
+    call os_dir_read
     test rax, rax
     js .Lfcr_dir_err
     jz .Lfcr_dir_ok
     mov r15, rax              # bytes read
-    xor ecx, ecx              # pos
+    mov qword ptr [rbx + DIRENTS_BUF_SIZE + PATH_MAX * 2], 0
 
 .Lfcr_entry_loop:
-    cmp rcx, r15
-    jae .Lfcr_dents_loop
-    lea r8, [rbx + rcx]
-    movzx r9d, word ptr [r8 + DIRENT_RECLEN]
-    push rcx
-    push r9
-    lea r10, [r8 + DIRENT_NAME]
+    mov rdi, rbx
+    mov rsi, r15
+    lea rdx, [rbx + DIRENTS_BUF_SIZE + PATH_MAX * 2]
+    call os_dir_next
+    test rax, rax
+    jz .Lfcr_dents_loop
+    mov r10, rax
 
     # Skip "." and ".."
     cmp byte ptr [r10], '.'
     jne .Lfcr_recurse
     cmp byte ptr [r10 + 1], 0
-    je .Lfcr_entry_next
+    je .Lfcr_entry_loop
     cmp byte ptr [r10 + 1], '.'
     jne .Lfcr_recurse
     cmp byte ptr [r10 + 2], 0
-    je .Lfcr_entry_next
+    je .Lfcr_entry_loop
 
 .Lfcr_recurse:
-    push r10
+    mov [rbx + DIRENTS_BUF_SIZE + PATH_MAX * 2 + 8], r10
     lea rdi, [rbx + DIRENTS_BUF_SIZE]
     mov rsi, r12
     mov rdx, r10
     mov ecx, PATH_MAX
     call path_join
 
-    pop r10
+    mov rdx, [rbx + DIRENTS_BUF_SIZE + PATH_MAX * 2 + 8]
     lea rdi, [rbx + DIRENTS_BUF_SIZE + PATH_MAX]
     mov rsi, r13
-    mov rdx, r10
     mov ecx, PATH_MAX
     call path_join
 
@@ -450,24 +429,14 @@ path_is_same_or_descendant:
     lea rsi, [rbx + DIRENTS_BUF_SIZE + PATH_MAX]
     call fs_copy_recursive
     test rax, rax
-    js .Lfcr_entry_fail
+    jns .Lfcr_entry_loop
 
-.Lfcr_entry_next:
-    pop r9
-    pop rcx
-    add rcx, r9
-    jmp .Lfcr_entry_loop
-
-.Lfcr_entry_fail:
-    pop r9
-    pop rcx
 .Lfcr_dir_err:
     push rax
     mov rdi, rbx
     call mem_free
     mov edi, r14d
-    mov rax, SYS_close
-    syscall
+    OS_CLOSE
     pop rax
     jmp .Lfcr_done
 
@@ -475,19 +444,17 @@ path_is_same_or_descendant:
     mov rdi, rbx
     call mem_free
     mov edi, r14d
-    mov rax, SYS_close
-    syscall
+    OS_CLOSE
     xor eax, eax
     jmp .Lfcr_done
 
 .Lfcr_dir_close_nomem:
     mov edi, r14d
-    mov rax, SYS_close
-    syscall
+    OS_CLOSE
 .Lfcr_enomem:
-    mov rax, -12
+    mov rax, -ENOMEM
 .Lfcr_done:
-    add rsp, 160
+    add rsp, 48
     pop r15
     pop r14
     pop r13
@@ -502,19 +469,18 @@ fs_delete_recursive:
     push r13
     push r14
     push r15
-    sub rsp, 160
+    sub rsp, 48
     mov r12, rdi              # path
 
     mov edi, AT_FDCWD
     mov rsi, r12
     mov rdx, rsp
-    mov r10d, AT_SYMLINK_NOFOLLOW
-    mov rax, SYS_newfstatat
-    syscall
+    xor ecx, ecx
+    call os_statat
     test rax, rax
     js .Lfdr_done
 
-    mov eax, [rsp + STAT_MODE]
+    mov eax, [rsp + FileStat.mode]
     and eax, S_IFMT
     cmp eax, S_IFDIR
     je .Lfdr_dir
@@ -523,8 +489,7 @@ fs_delete_recursive:
     mov edi, AT_FDCWD
     mov rsi, r12
     xor edx, edx
-    mov rax, SYS_unlinkat
-    syscall
+    OS_UNLINKAT
     jmp .Lfdr_done
 
 .Lfdr_dir:
@@ -532,47 +497,45 @@ fs_delete_recursive:
     mov rsi, r12
     mov edx, O_RDONLY | O_DIRECTORY | O_CLOEXEC
     xor r10d, r10d
-    mov rax, SYS_openat
-    syscall
+    OS_OPENAT
     test rax, rax
     js .Lfdr_done
     mov r13d, eax             # dirfd
 
-    mov edi, DIRENTS_BUF_SIZE + PATH_MAX
+    mov edi, DIRENTS_BUF_SIZE + PATH_MAX + 16
     call mem_alloc
     test rax, rax
     jz .Lfdr_close_nomem
-    mov rbx, rax              # [rbx]=dents, [rbx+DIRENTS_BUF_SIZE]=child
+    mov rbx, rax              # [rbx]=dents, [rbx+DIRENTS_BUF_SIZE]=child, [rbx+DIRENTS_BUF_SIZE+PATH_MAX]=cursor
 
 .Lfdr_dents:
     mov edi, r13d
     mov rsi, rbx
     mov edx, DIRENTS_BUF_SIZE
-    mov rax, SYS_getdents64
-    syscall
+    call os_dir_read
     test rax, rax
     js .Lfdr_dir_err
     jz .Lfdr_rmdir
     mov r14, rax
-    xor ecx, ecx
+    mov qword ptr [rbx + DIRENTS_BUF_SIZE + PATH_MAX], 0
 
 .Lfdr_entry:
-    cmp rcx, r14
-    jae .Lfdr_dents
-    lea r8, [rbx + rcx]
-    movzx r9d, word ptr [r8 + DIRENT_RECLEN]
-    push rcx
-    push r9
-    lea r10, [r8 + DIRENT_NAME]
+    mov rdi, rbx
+    mov rsi, r14
+    lea rdx, [rbx + DIRENTS_BUF_SIZE + PATH_MAX]
+    call os_dir_next
+    test rax, rax
+    jz .Lfdr_dents
+    mov r10, rax
 
     cmp byte ptr [r10], '.'
     jne .Lfdr_del_child
     cmp byte ptr [r10 + 1], 0
-    je .Lfdr_next
+    je .Lfdr_entry
     cmp byte ptr [r10 + 1], '.'
     jne .Lfdr_del_child
     cmp byte ptr [r10 + 2], 0
-    je .Lfdr_next
+    je .Lfdr_entry
 
 .Lfdr_del_child:
     lea rdi, [rbx + DIRENTS_BUF_SIZE]
@@ -584,24 +547,14 @@ fs_delete_recursive:
     lea rdi, [rbx + DIRENTS_BUF_SIZE]
     call fs_delete_recursive
     test rax, rax
-    js .Lfdr_entry_fail
+    jns .Lfdr_entry
 
-.Lfdr_next:
-    pop r9
-    pop rcx
-    add rcx, r9
-    jmp .Lfdr_entry
-
-.Lfdr_entry_fail:
-    pop r9
-    pop rcx
 .Lfdr_dir_err:
     push rax
     mov rdi, rbx
     call mem_free
     mov edi, r13d
-    mov rax, SYS_close
-    syscall
+    OS_CLOSE
     pop rax
     jmp .Lfdr_done
 
@@ -609,23 +562,20 @@ fs_delete_recursive:
     mov rdi, rbx
     call mem_free
     mov edi, r13d
-    mov rax, SYS_close
-    syscall
+    OS_CLOSE
 
     mov edi, AT_FDCWD
     mov rsi, r12
     mov edx, AT_REMOVEDIR
-    mov rax, SYS_unlinkat
-    syscall
+    OS_UNLINKAT
     jmp .Lfdr_done
 
 .Lfdr_close_nomem:
     mov edi, r13d
-    mov rax, SYS_close
-    syscall
-    mov rax, -12
+    OS_CLOSE
+    mov rax, -ENOMEM
 .Lfdr_done:
-    add rsp, 160
+    add rsp, 48
     pop r15
     pop r14
     pop r13
@@ -673,8 +623,7 @@ fs_read_file_head:
     mov edi, AT_FDCWD
     mov edx, O_RDONLY | O_CLOEXEC
     xor r10d, r10d
-    mov rax, SYS_openat
-    syscall
+    OS_OPENAT
     test rax, rax
     js .Lrfh_ret
     mov r14d, eax
@@ -700,8 +649,7 @@ fs_read_file_head:
     mov [r13], rcx
 .Lrfh_close:
     mov edi, r14d
-    mov rax, SYS_close
-    syscall
+    OS_CLOSE
     xor eax, eax
 .Lrfh_ret:
     pop r14
@@ -717,7 +665,7 @@ fs_read_file_alloc:
     push r13
     push r14
     push r15
-    sub rsp, 160
+    sub rsp, 48
     mov r12, rdi              # path
     mov r13, rsi              # max_bytes
     mov r14, rdx              # out_buf
@@ -729,20 +677,18 @@ fs_read_file_alloc:
     mov rsi, r12
     mov edx, O_RDONLY | O_CLOEXEC
     xor r10d, r10d
-    mov rax, SYS_openat
-    syscall
+    OS_OPENAT
     test rax, rax
     js .Lrfa_done
     mov ebx, eax              # fd
 
     mov edi, ebx
     mov rsi, rsp
-    mov rax, SYS_fstat
-    syscall
+    call os_fstat
     test rax, rax
     js .Lrfa_close_err
 
-    mov rax, [rsp + STAT_ST_SIZE]
+    mov rax, [rsp + FileStat.size]
     test rax, rax
     jns .Lrfa_nonneg
     xor eax, eax
@@ -780,21 +726,19 @@ fs_read_file_alloc:
     mov byte ptr [rax + rcx], 0
     mov [r15], rcx
     mov edi, ebx
-    mov rax, SYS_close
-    syscall
+    OS_CLOSE
     xor eax, eax
     jmp .Lrfa_done
 
 .Lrfa_close_nomem:
-    mov rax, -12
+    mov rax, -ENOMEM
 .Lrfa_close_err:
     push rax
     mov edi, ebx
-    mov rax, SYS_close
-    syscall
+    OS_CLOSE
     pop rax
 .Lrfa_done:
-    add rsp, 160
+    add rsp, 48
     pop r15
     pop r14
     pop r13

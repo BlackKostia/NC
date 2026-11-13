@@ -18,6 +18,12 @@ UI_WIDGET_RE = re.compile(
 TUI_RE = re.compile(r"\b(?:Screen|Input|theme)_[A-Za-z0-9_]+")
 I18N_RE = re.compile(r"\bi18n_[A-Za-z0-9_]+")
 FS_RE = re.compile(r"\b(?:DirModel|FileOps|file_ops)_[A-Za-z0-9_]+")
+RAW_PAL_VIOLATION_RE = re.compile(
+    r"\b(?:syscall|svc|SYS_[A-Za-z0-9_]+|OS_SYS_[A-Za-z0-9_]+|"
+    r"KSTAT_[A-Za-z0-9_]+|KDIRENT_[A-Za-z0-9_]+|KTERMIOS_[A-Za-z0-9_]+|"
+    r"KSIGACTION_[A-Za-z0-9_]+|KSIG_[A-Za-z0-9_]+|POLLFD_[A-Za-z0-9_]+|"
+    r"TIMESPEC_[A-Za-z0-9_]+|WINSIZE_[A-Za-z0-9_]+)\b"
+)
 
 
 def strip_asm_comment_and_strings(line: str) -> str:
@@ -43,13 +49,20 @@ def strip_asm_comment_and_strings(line: str) -> str:
     return "".join(out)
 
 
-def parse_makefile_srcs(makefile_path: Path) -> list[str]:
+def parse_makefile_var(makefile_path: Path, var_name: str) -> list[str]:
     text = makefile_path.read_text(encoding="utf-8")
-    m = re.search(r"^SRCS\s*:=\s*(.*?)(?:\n\n|\n[A-Z_]+\s*[:+]?=)", text, re.S | re.M)
+    m = re.search(rf"^{re.escape(var_name)}\s*:=\s*(.*?)(?:\n\n|\n[A-Z_]+\s*[:+]?=)", text, re.S | re.M)
     if not m:
-        raise ValueError("Could not locate SRCS := block in Makefile")
+        raise ValueError(f"Could not locate {var_name} := block in Makefile")
     block = m.group(1).replace("\\\n", " ")
     return [tok.strip() for tok in block.split() if tok.strip().endswith(".s")]
+
+
+def parse_makefile_srcs(makefile_path: Path) -> tuple[list[str], list[str]]:
+    srcs = parse_makefile_var(makefile_path, "SRCS")
+    pal_raw = parse_makefile_var(makefile_path, "PAL_SRCS")
+    pal_default = [p.replace("$(OS)", "linux").replace("$(ARCH)", "x86_64") for p in pal_raw]
+    return srcs, pal_default
 
 
 def check_version_file(root: Path, errors: list[str]) -> str | None:
@@ -130,34 +143,61 @@ def main() -> int:
 
     ver = check_version_file(root, errors)
 
-    disk_srcs = sorted(p.relative_to(root).as_posix() for p in (root / "src").rglob("*.s"))
+    all_disk_srcs = sorted(p.relative_to(root).as_posix() for p in (root / "src").rglob("*.s"))
+    shared_disk_srcs = [p for p in all_disk_srcs if not p.startswith("src/os/")]
+    default_pal_disk = [p for p in all_disk_srcs if p.startswith("src/os/linux/x86_64/")]
     try:
-        mk_srcs = parse_makefile_srcs(root / "Makefile")
+        mk_srcs, mk_pal_srcs = parse_makefile_srcs(root / "Makefile")
     except Exception as exc:
         errors.append(str(exc))
-        mk_srcs = []
+        mk_srcs, mk_pal_srcs = [], []
 
     if mk_srcs:
-        missing_in_mk = sorted(set(disk_srcs) - set(mk_srcs))
-        missing_on_disk = sorted(set(mk_srcs) - set(disk_srcs))
+        missing_in_mk = sorted(set(shared_disk_srcs) - set(mk_srcs))
+        missing_on_disk = sorted(set(mk_srcs) - set(shared_disk_srcs))
         if missing_in_mk:
             errors.append(f"Modules missing from Makefile SRCS: {', '.join(missing_in_mk)}")
         if missing_on_disk:
             errors.append(f"Makefile SRCS reference missing files: {', '.join(missing_on_disk)}")
+    if mk_pal_srcs:
+        missing_pal = sorted(set(default_pal_disk) - set(mk_pal_srcs))
+        missing_pal_disk = sorted(set(mk_pal_srcs) - set(default_pal_disk))
+        if missing_pal:
+            errors.append(f"Default PAL modules missing from Makefile PAL_SRCS: {', '.join(missing_pal)}")
+        if missing_pal_disk:
+            errors.append(f"Makefile PAL_SRCS reference missing files: {', '.join(missing_pal_disk)}")
 
-    for rel in disk_srcs:
+    for rel in all_disk_srcs:
         path = root / rel
         lines = path.read_text(encoding="utf-8").splitlines()
-        if not any(strip_asm_comment_and_strings(l).strip() == ".intel_syntax noprefix" for l in lines[:25]):
-            errors.append(f"{rel}: missing '.intel_syntax noprefix' in file header")
+        if "/aarch64/" not in rel:
+            if not any(strip_asm_comment_and_strings(l).strip() == ".intel_syntax noprefix" for l in lines[:25]):
+                errors.append(f"{rel}: missing '.intel_syntax noprefix' in file header")
 
+        in_os_pal = rel.startswith("src/os/")
         for idx, raw in enumerate(lines, start=1):
             code = strip_asm_comment_and_strings(raw).strip()
             if not code:
                 continue
             if re.match(r"^(?:\.data\b|\.section\s+\.data\b)", code):
                 errors.append(f"{rel}:{idx}: writable '.data' section is forbidden; use .rodata or .bss/mem_alloc")
-            if rel.startswith("src/core/"):
+            if not in_os_pal:
+                pm = RAW_PAL_VIOLATION_RE.search(code)
+                if pm:
+                    errors.append(f"{rel}:{idx}: direct kernel/PAL symbol '{pm.group(0)}' outside src/os/")
+                if "linux_sys.inc" in raw:
+                    errors.append(f"{rel}:{idx}: forbidden legacy 'linux_sys.inc' include; use pal.inc")
+            if in_os_pal:
+                for pat, label in (
+                    (UI_WIDGET_RE, "UI/App symbol"),
+                    (TUI_RE, "TUI symbol"),
+                    (I18N_RE, "i18n symbol"),
+                    (FS_RE, "FS symbol"),
+                ):
+                    m = pat.search(code)
+                    if m:
+                        errors.append(f"{rel}:{idx}: layer violation in os PAL ({label}: {m.group(0)})")
+            elif rel.startswith("src/core/"):
                 for pat, label in (
                     (UI_WIDGET_RE, "UI/App symbol"),
                     (TUI_RE, "TUI symbol"),
@@ -195,8 +235,8 @@ def main() -> int:
         return 1
 
     print(
-        f"Modularity check passed: {len(disk_srcs)} assembly modules, VERSION={ver}, "
-        "layers & i18n symmetric, .data-free."
+        f"Modularity check passed: {len(all_disk_srcs)} assembly modules, VERSION={ver}, "
+        "PAL boundaries, layers & i18n symmetric, .data-free."
     )
     return 0
 

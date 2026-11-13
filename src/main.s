@@ -2,7 +2,7 @@
 # Pure Linux x86-64 ELF64 binary with zero libc dependencies.
 
 .intel_syntax noprefix
-.include "linux_sys.inc"
+.include "pal.inc"
 .include "classes.inc"
 .include "version.inc"
 
@@ -258,14 +258,12 @@ _start:
     call term_exit_raw
 
     xor edi, edi
-    mov rax, SYS_exit
-    syscall
+    OS_EXIT
 
 .Lmain_cleanup_err:
     call term_exit_raw
     mov edi, 1
-    mov rax, SYS_exit
-    syscall
+    OS_EXIT
 
 .Lmain_help:
     lea rsi, [rip + str_usage]
@@ -310,5 +308,4 @@ _start:
     call sys_write_all
 
     xor edi, edi
-    mov rax, SYS_exit
-    syscall
+    OS_EXIT

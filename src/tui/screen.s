@@ -2,7 +2,7 @@
 # Inherits from Object.
 
 .intel_syntax noprefix
-.include "linux_sys.inc"
+.include "pal.inc"
 .include "classes.inc"
 
 .section .rodata

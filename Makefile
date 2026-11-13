@@ -1,13 +1,16 @@
-# Duop — Pure x86-64 GNU Assembler Project Makefile
+# Duop — Multi-Platform Pure Assembly Project Makefile (compile-time OS & ARCH selection)
 
+OS      ?= linux
+ARCH    ?= x86_64
 TARGET  := duop
 BUILD   := build
 VERSION := $(strip $(shell cat VERSION))
 VER_INC := $(BUILD)/version.inc
+PAL_INC := include/os/$(OS)/$(ARCH)
 
 AS      := as
 LD      := ld
-ASFLAGS := -I include -I $(BUILD) -g
+ASFLAGS := -I $(PAL_INC) -I include -I $(BUILD) -g
 LDFLAGS :=
 
 SRCS := \
@@ -31,14 +34,17 @@ SRCS := \
 	src/ui/dialogs.s \
 	src/app/app.s
 
-OBJS := $(patsubst src/%.s,$(BUILD)/%.o,$(SRCS))
-INCS := $(wildcard include/*.inc)
+PAL_SRCS := \
+	src/os/$(OS)/$(ARCH)/pal_os.s
+
+OBJS := $(patsubst src/%.s,$(BUILD)/%.o,$(SRCS) $(PAL_SRCS))
+INCS := $(wildcard include/*.inc) $(wildcard $(PAL_INC)/*.inc)
 
 .PHONY: all release run test verify hooks clean
 
 all: $(TARGET)
 
-release: ASFLAGS := -I include -I $(BUILD)
+release: ASFLAGS := -I $(PAL_INC) -I include -I $(BUILD)
 release: LDFLAGS := -s
 release: clean $(TARGET)
 
@@ -57,6 +63,7 @@ run: $(TARGET)
 	./$(TARGET)
 
 test: $(TARGET)
+	python3 tests/test_pal_architecture.py
 	python3 tests/test_pty.py
 	python3 tests/test_fs_reliability.py
 

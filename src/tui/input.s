@@ -1,7 +1,7 @@
 # Input Event Decoder: Keyboard (CSI/SS3/UTF-8/Ctrl/Alt) + SGR 1006 & X10 Mouse
 
 .intel_syntax noprefix
-.include "linux_sys.inc"
+.include "pal.inc"
 .include "classes.inc"
 
 .section .bss
@@ -45,15 +45,9 @@ wait_and_read:
     mov [rip + in_len], ecx
 
 .Lwar_poll:
-    mov dword ptr [rsp + POLLFD_FD], STDIN_FD
-    mov word ptr [rsp + POLLFD_EVENTS], POLLIN
-    mov word ptr [rsp + POLLFD_REVENTS], 0
-
-    mov rdi, rsp
-    mov esi, 1
-    mov edx, ebx
-    mov rax, SYS_poll
-    syscall
+    mov edi, STDIN_FD
+    mov esi, ebx
+    call os_poll_in
 
     cmp rax, -EINTR
     je .Lwar_eintr
