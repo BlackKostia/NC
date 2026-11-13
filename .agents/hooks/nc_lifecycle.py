@@ -175,6 +175,7 @@ def handle_post_tool_use(payload: dict, root: Path) -> dict:
                 files.append(rel)
             state["modified_files"] = files
             state["edited_any"] = True
+            state["stop_nudged_sig"] = ""
             if is_verify_relevant(rel):
                 state["edited_code"] = True
                 state["needs_verify"] = True
@@ -184,6 +185,7 @@ def handle_post_tool_use(payload: dict, root: Path) -> dict:
         cmd = str(args.get("CommandLine") or args.get("command") or "")
         if re.search(r"(?:verify_build\.sh|\bmake\b[^\n]*\bverify\b|\bmake\b[^\n]*\btest\b|test_pty\.py)", cmd):
             state["needs_verify"] = False
+            state["stop_nudged_sig"] = ""
             save_state(spath, state)
         if re.search(r"\bgit\b[^\n]*\bcommit\b", cmd):
             _, dirty = run_git(root, "status", "--porcelain", "--untracked-files=all")
@@ -233,18 +235,25 @@ def handle_stop(payload: dict, root: Path) -> dict:
     # Also detect if a script generated/modified tracked session files outside write_file
     dirty_code = sorted(p for p in dirty_paths if is_verify_relevant(p))
 
-    if state.get("needs_verify"):
-        return {
-            "decision": "continue",
-            "reason": (
-                "У цій сесії змінено код, конфіг збірки, VERSION або тести NeoCommander, але перевірка "
-                "ще не виконана після останньої правки. Запусти ./.agents/skills/nc-pty-verify/scripts/verify_build.sh, "
-                "перевір VERSION згідно з nc-version-release та закоміть перевірені зміни."
-            ),
-        }
+    if uncommitted_session or (state.get("edited_code") and dirty_code) or state.get("needs_verify"):
+        targets = uncommitted_session or dirty_code
+        sig = json.dumps({"targets": targets, "needs_verify": bool(state.get("needs_verify"))}, sort_keys=True)
+        if state.get("stop_nudged_sig") == sig:
+            return {"decision": "allow"}
+        state["stop_nudged_sig"] = sig
+        save_state(spath, state)
 
-    if uncommitted_session or (state.get("edited_code") and dirty_code):
-        sample = ", ".join((uncommitted_session or dirty_code)[:6])
+        if state.get("needs_verify"):
+            return {
+                "decision": "continue",
+                "reason": (
+                    "У цій сесії змінено код, конфіг збірки, VERSION або тести NeoCommander, але перевірка "
+                    "ще не виконана після останньої правки. Запусти ./.agents/skills/nc-pty-verify/scripts/verify_build.sh, "
+                    "перевір VERSION згідно з nc-version-release та закоміть перевірені зміни."
+                ),
+            }
+
+        sample = ", ".join(targets[:6])
         return {
             "decision": "continue",
             "reason": (
