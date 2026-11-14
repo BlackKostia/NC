@@ -1,11 +1,11 @@
-# Internationalization (i18n) Module — English & Ukrainian Localization Tables
-# Follows the same table-driven vtable/descriptor design as Theme (Zero libc).
+# Internationalization (i18n): the built-in English string table -- the base and fallback of every
+# interface language. Other languages are *.lang packs loaded at runtime (i18n_pack.s, lang/uk.lang).
 .intel_syntax noprefix
 .include "classes.inc"
 .include "version.inc"
 .section .rodata
 # ==============================================================================
-# English String Table (LANG_EN = 0)
+# English String Table (index 0, id "en")
 # ==============================================================================
 en_code:            .asciz "EN"
 en_name:            .asciz "English"
@@ -204,206 +204,53 @@ en_vas_hint:          .asciz "i: Image  h: Hex  t: Text  Esc: Cancel"
 en_vw_img_hint:       .asciz "+/-:Zoom 1:100% 0:Fit b:Braille o:Open Arrows:Pan h:Hex t:Text Esc"
 en_img_fit:           .asciz "Fit"
 
-# ==============================================================================
-# Ukrainian String Table (LANG_UA = 1)
-# ==============================================================================
-ua_code:            .asciz "UA"
-ua_name:            .asciz "Українська"
 
-ua_hdr_brand:       .asciz " ◆ Duop "
-ua_hdr_mode_dual:   .asciz " 2 панелі "
-ua_hdr_mode_prev:   .asciz " Перегляд "
-ua_hdr_btn_quit:    .asciz " Вихід "
-ua_hdr_btn_help:    .asciz " Довідка "
-ua_hdr_btn_lang:    .asciz " Мова:UA "
-ua_hdr_btn_hid_on:  .asciz " Прих:ВКЛ "
-ua_hdr_btn_hid_off: .asciz " Прих:ВИМ "
-ua_hdr_btn_prev:    .asciz " Прев'ю "
-ua_hdr_theme_pfx:   .asciz " Тема:"
+# Command Palette (Ctrl+K)
+en_pal_theme:    .asciz "Theme: Cycle Color Theme (Alt+T)"
+en_pal_lang:     .asciz "Language: Next Interface Language (Alt+L)"
+en_pal_preview:  .asciz "Preview: Toggle Pane (F9)"
+en_pal_hidden:   .asciz "Dotfiles: Toggle Hidden (.)"
+en_pal_help:     .asciz "Help: Show Keybindings (F1)"
+en_pal_rename:   .asciz "Rename: Rename Entry (F2)"
+en_pal_view:     .asciz "View: Open File Viewer (F3)"
+en_pal_edit:     .asciz "Edit: Open in $EDITOR (F4)"
+en_pal_copy:     .asciz "Copy: Copy to Opposite Pane (F5)"
+en_pal_move:     .asciz "Move: Move to Opposite Pane (F6)"
+en_pal_mkdir:    .asciz "Mkdir: Create Directory (F7)"
+en_pal_delete:   .asciz "Delete: Permanent Delete (F8)"
+en_pal_newfile:  .asciz "New File: Create Empty File (Ctrl+N)"
+en_pal_filter:   .asciz "Filter: Live Filter (/)"
+en_pal_goto:     .asciz "Go To: Jump to Path (Ctrl+G)"
+en_pal_refresh:  .asciz "Refresh: Reload Panes (Ctrl+R)"
+en_pal_usermenu: .asciz "User Menu: Custom Commands (Alt+U)"
+en_pal_shell:    .asciz "Shell: Suspend to Shell (Ctrl+O)"
+en_pal_quit:     .asciz "Quit: Exit Duop (F10)"
 
-ua_flbl_1:          .asciz "Довід"
-ua_flbl_2:          .asciz "Перейм"
-ua_flbl_3:          .asciz "Перегл"
-ua_flbl_4:          .asciz "Редаг"
-ua_flbl_5:          .asciz "Копія"
-ua_flbl_6:          .asciz "Перем"
-ua_flbl_7:          .asciz "Тека"
-ua_flbl_8:          .asciz "Видал"
-ua_flbl_9:          .asciz "Прев'ю"
-ua_flbl_0:          .asciz "Вихід"
-
-ua_sb_dir_tag:      .asciz "<ТЕКА>"
-ua_sb_filter_pfx:   .asciz " Фільтр: \""
-ua_sb_filter_sfx:   .asciz "\"  [Esc скинути]"
-ua_sb_hint_right:   .asciz "Tab:Панель  Space:Вибір  /:Фільтр  Alt+T/L"
-ua_msg_lang_sw:     .asciz "Мова інтерфейсу: Українська"
-
-ua_fp_col_name:     .asciz "Ім'я"
-ua_fp_col_size:     .asciz "Розмір"
-ua_fp_col_mod:      .asciz "Змінено"
-ua_fp_col_perm:     .asciz "Права"
-ua_fp_dir_badge:    .asciz "<ТЕКА>"
-ua_fp_sel_pfx:      .asciz " ✓ "
-ua_fp_sel_mid:      .asciz " вибрано ("
-ua_fp_sel_end:      .asciz ")"
-ua_fp_sum_dirs:     .asciz " тек, "
-ua_fp_sum_files:    .asciz " файлів • "
-ua_fp_flt_tag:      .asciz " фільтр:"
-
-ua_pv_title:        .asciz " ◈ Швидкий перегляд "
-ua_pv_dir_msg:      .asciz "Тека — Натисніть Enter або двічі клікніть, щоб відкрити"
-ua_pv_bin_hdr:      .asciz "Виявлено бінарний файл — Hex-перегляд:"
-ua_pv_empty:        .asciz "(Порожній файл)"
-ua_pv_sz_lbl:       .asciz "Розмір: "
-ua_pv_perm_lbl:     .asciz "  Права: "
-
-ua_err_perm:        .asciz "Доступ заборонено"
-ua_err_exists:      .asciz "Цільовий об'єкт уже існує"
-ua_err_noent:       .asciz "Файл або теку не знайдено"
-ua_err_notempty:    .asciz "Тека не порожня"
-ua_err_isdir:       .asciz "Ціль є текою"
-ua_err_notdir:      .asciz "Не є текою"
-ua_err_same:        .asciz "Джерело і призначення збігаються"
-ua_err_generic:     .asciz "Помилка файлової операції"
-
-ua_dlg_btn_ok:      .asciz "  OK  "
-ua_dlg_btn_cancel:  .asciz " Скасувати "
-ua_dlg_btn_yes:     .asciz "  Так  "
-ua_dlg_btn_no:      .asciz "  Ні   "
-ua_dlg_btn_close:   .asciz " Закрити "
-ua_dlg_btn_hex:     .asciz " Hex/Текст "
-ua_dlg_title_help:
-    .ascii "Довідка та архітектура Duop (v"
+# Command line (duop --version / --help)
+en_cli_version:
+    .ascii "Duop v"
     DUOP_VER_ASCII
-    .asciz ")"
-ua_dlg_title_view:  .asciz "Переглядач файлів"
-ua_dlg_vw_hint:     .asciz "↑↓/Колесо: Прокрутка   H: Текст/Hex   Esc/Q: Закрити"
-ua_dlg_hlp_hint:    .asciz "↑↓/Колесо: Прокрутка   Esc/Enter: Закрити"
-
-ua_hl_0:  .asciz "◆ НАВІГАЦІЯ З КЛАВІАТУРИ"
-ua_hl_1:  .asciz "  ↑/↓, j/k, PgUp/PgDn, Home/End  Переміщення курсора в активній панелі"
-ua_hl_2:  .asciz "  Tab                            Перемкнути ліву / праву панель"
-ua_hl_3:  .asciz "  Enter / Backspace / ~          Відкрити / Батьківська / Домашня тека"
-ua_hl_4:  .asciz "  Space / Insert / * / Ctrl+A    Позначити файл / Усі файли"
-ua_hl_5:  .asciz "  /                              Фільтр назв наживо (Esc — скинути)"
-ua_hl_6:  .asciz "  . або Ctrl+H                   Показати / приховати файли з крапкою"
-ua_hl_7:  .asciz "  Alt+T / Alt+L / Ctrl+P / G     Тема / Мова / Швидк.перегл. / Шлях"
-ua_hl_8:  .asciz "◆ ФАЙЛОВІ ОПЕРАЦІЇ (F-КЛАВІШІ ТА ГАРЯЧІ КЛАВІШІ)"
-ua_hl_9:  .asciz "  F2 Перейм.   F3 Перегляд (Зобр./HEX/Текст)   F4 Редаг.   Ctrl+N Новий"
-ua_hl_10: .asciz "  F5 Копія     F6 Переміст.   F7 Створити теку       F8/Del Видалити"
-ua_hl_11: .asciz "  F9 Прев'ю (Alt+V Зобр./HEX/Текст)  Ctrl+O Шелл  Ctrl+R  F10 Вихід"
-ua_hl_12: .asciz "◆ ПІДТРИМКА МИШІ (SGR 1006)"
-ua_hl_13: .asciz "  Лівий клік / Подвійний клік    Вибрати рядок / Відкрити або Перегляд"
-ua_hl_14: .asciz "  Правий клік / Колесо           Позначити файл / Прокрутка під курсором"
-ua_hl_15: .asciz "  Заголовок колонки / Повзунок   Сортувати / Перетягувати скролбар"
-ua_hl_16: .asciz "◆ АРХІТЕКТУРА (Чистий x86-64 GAS + Системні виклики Linux)"
-ua_hl_17: .asciz "  F5/F6/F8 у фоновому процесі: Alt+J прогрес, P пауза, Esc сховати, C стоп"
-ua_hl_18: .asciz "◆ РОЗРОБНИК І ВІДКРИТА ЛІЦЕНЗІЯ"
-ua_hl_19: .asciz "  Розробник: Недбайло Костянтин Геннадійович"
-ua_hl_20: .asciz "  Контакт:   ChessPlayerSedoy@gmail.com"
-ua_hl_21: .asciz "  Ліцензія:  MIT License (відкритий код — файл LICENSE)"
-
-ua_app_title_mkdir:   .asciz "Створити теку"
-ua_app_prm_mkdir:     .asciz "Назва теки:"
-ua_app_title_newfile: .asciz "Створити новий файл"
-ua_app_prm_newfile:   .asciz "Назва файлу:"
-ua_app_title_rename:  .asciz "Перейменувати"
-ua_app_prm_rename:    .asciz "Нова назва:"
-ua_app_title_copy:    .asciz "Копіювати"
-ua_app_prm_copy:      .asciz "Шлях призначення (копія):"
-ua_app_title_move:    .asciz "Перемістити"
-ua_app_prm_move:      .asciz "Шлях призначення (переміщення):"
-ua_app_title_filter:  .asciz "Швидкий фільтр"
-ua_app_prm_filter:    .asciz "Підрядок фільтра (порожній — скидає):"
-ua_app_title_goto:    .asciz "Перейти до теки"
-ua_app_prm_goto:      .asciz "Цільовий шлях теки:"
-ua_app_title_delete:  .asciz "Підтвердження видалення"
-ua_app_msg_del_one:   .asciz "Видалити цей об'єкт назавжди?"
-ua_app_msg_del_many:  .asciz "Видалити вибрані об'єкти назавжди?"
-ua_app_sel_items_sfx: .asciz " об'єкт(ів) вибрано"
-ua_app_ok_mkdir:      .asciz "Теку створено"
-ua_app_ok_newfile:    .asciz "Файл створено"
-ua_app_ok_rename:     .asciz "Успішно перейменовано"
-ua_app_ok_copy:       .asciz "Успішно скопійовано"
-ua_app_ok_move:       .asciz "Успішно переміщено"
-ua_app_ok_delete:     .asciz "Успішно видалено"
-ua_app_ok_refresh:    .asciz "Оновлено"
-ua_app_err_parent:    .asciz "Неможливо виконати над '..'"
-ua_app_err_isdir:     .asciz "Неможливо переглянути/редагувати теку"
-ua_fp_loading_pfx:    .asciz " Читання: "
-ua_fp_huge_badge:     .asciz " [Порядок ФС]"
-ua_fp_abort_badge:    .asciz " [Зупинено Esc]"
-ua_app_load_aborted:  .asciz "Дочитування теки зупинено клавішею Esc"
-ua_task_title_copy:   .asciz "Копіювання"
-ua_task_title_move:   .asciz "Переміщення"
-ua_task_title_delete: .asciz "Видалення"
-ua_task_btn_pause:    .asciz " Пауза "
-ua_task_btn_resume:   .asciz " Продовжити "
-ua_task_btn_bg:       .asciz " У фоні "
-ua_task_lbl_files:    .asciz "Файли: "
-ua_task_lbl_eta:      .asciz "Залишилось "
-ua_task_lbl_scan:     .asciz "Підрахунок… "
-ua_task_lbl_paused:   .asciz "Призупинено"
-ua_task_lbl_cancel:   .asciz "Скасування…"
-ua_task_sb_hint:      .asciz "Alt+J: деталі"
-ua_err_canceled:      .asciz "Операцію скасовано"
-ua_err_busy:          .asciz "Уже виконується інша фонова операція"
-ua_app_title_quit_tk: .asciz "Фонова операція"
-ua_app_msg_quit_tk:   .asciz "Операція ще триває. Скасувати її та вийти?"
-ua_dlg_title_usermenu: .asciz "Меню користувача"
-ua_um_hint:           .asciz "Enter: Виконати  •  Esc: Закрити"
-ua_dlg_title_bm:      .asciz "Закладки (Hotlist)"
-ua_bm_hint:           .asciz "Enter: Перейти  •  a: Додати  •  d: Видалити  •  Esc: Закрити"
-ua_dlg_title_fre:     .asciz "Швидкий перехід (z)"
-ua_fre_hint:          .asciz "Підрядок • ↑/↓ • Enter: Перейти • Esc: Закрити"
-ua_msg_bm_added:      .asciz "Закладку додано"
-ua_msg_hist_empty:    .asciz "Історія порожня"
-ua_msg_tab_last:      .asciz "Не можна закрити останню вкладку"
-ua_dlg_title_conflict: .asciz "Конфлікт файлу"
-ua_cfl_btn_overwrite: .asciz "Перезаписати"
-ua_cfl_btn_skip:      .asciz "Пропустити"
-ua_cfl_btn_rename:    .asciz "Перейменувати"
-ua_cfl_lbl_forall:    .asciz "Для всіх"
-ua_cfl_hint:          .asciz "o: Перезапис • s: Пропуск • r: Перейм. • a: Для всіх • Esc"
-ua_dlg_title_search:  .asciz "Рекурсивний пошук"
-ua_srch_lbl_name:     .asciz "Маска імені:"
-ua_srch_lbl_grep:     .asciz "Вміст (grep):"
-ua_srch_hint:         .asciz "Tab: Поле • Enter: Пошук • Esc: Скасувати"
-ua_fp_search_badge:   .asciz " [Пошук]"
-ua_msg_search_none:   .asciz "Збігів не знайдено"
-ua_dlg_title_info:    .asciz "Інформація про файл"
-ua_dlg_title_chmod:   .asciz "Права (chmod/chown)"
-ua_dlg_title_symlink: .asciz "Створити symlink"
-ua_dlg_title_hardlink:.asciz "Створити hardlink"
-ua_prm_link_target:   .asciz "Шлях посилання:"
-ua_chm_hint:          .asciz "1-9/Пробіл: Біт • u/g: uid:gid • Enter: ОК"
-ua_msg_trashed:       .asciz "Переміщено до кошика"
-ua_msg_undone:        .asciz "Скасовано"
-ua_msg_undo_empty:    .asciz "Нічого скасовувати"
-ua_dlg_title_palette: .asciz "Палітра команд"
-ua_dlg_title_fuzzy:   .asciz "Швидкий пошук"
-ua_fuz_hint:          .asciz "Ввід: Фільтр   Вгору/Вниз: Вибір   Enter: Виконати   Esc: Закрити"
-ua_fp_du_badge:       .asciz "Аналіз диска"
-ua_br_title:          .asciz "Групове перейменування"
-ua_br_tmpl:           .asciz "Шаблон:"
-ua_br_find:           .asciz "Знайти:"
-ua_br_repl:           .asciz "Заміна:"
-ua_ctx_view:          .asciz "Перегляд"
-ua_ctx_copy:          .asciz "Копіювати"
-ua_ctx_move:          .asciz "Перемістити"
-ua_ctx_copy_path:     .asciz "Копіювати шлях"
-ua_ctx_delete:        .asciz "Видалити"
-ua_msg_copied_path:   .asciz "Шлях скопійовано"
-ua_diff_pfx:          .asciz "Різн: "
-ua_term_title:        .asciz "Термінал"
-ua_img_unsup:         .asciz "Формат зображення не підтримується (Alt+V: HEX / Текст)"
-ua_dlg_title_viewas:  .asciz "Відкрити як"
-ua_vas_image:         .asciz "Зображення"
-ua_vas_hex:           .asciz "HEX"
-ua_vas_text:          .asciz "Текст"
-ua_vas_hint:          .asciz "i: Зображення  h: HEX  t: Текст  Esc: Скасувати"
-ua_vw_img_hint:       .asciz "+/-:Зум 1:100% 0:Впис b:Брайль o:Відкр Стрілки:Зсув h:HEX t:Текст Esc"
-ua_img_fit:           .asciz "Вписати"
+    .ascii " (x86-64 Linux ELF64, zero-libc)\n"
+    .ascii "Copyright (C) 2026 Kostiantyn Nedbailo (Недбайло Костянтин Геннадійович) <ChessPlayerSedoy@gmail.com>\n"
+    .ascii "License: MIT License (Open Source — run with --license for full text)\n"
+    .byte 0
+en_cli_usage:
+    .ascii "Duop v"
+    DUOP_VER_ASCII
+    .ascii " — Modern Dual-Pane Terminal File Manager (Pure x86-64 Assembly)\n"
+    .ascii "Usage: duop [--lang ID] [--choosedir=FILE] [-V|--version] [-L|--license] [LEFT_DIR [RIGHT_DIR]]\n"
+    .ascii "\n"
+    .ascii "Features:\n"
+    .ascii "  • 24-bit TrueColor UI with 3 switchable themes (Alt+T)\n"
+    .ascii "  • Interface languages: built-in English + lang/*.lang packs (Alt+L, --lang ID, LANG=xx_*)\n"
+    .ascii "  • Full SGR 1006 Mouse support (click, double-click, right-click, wheel, drag, hover)\n"
+    .ascii "  • Dual-pane navigation & Live Preview mode (F9 / Ctrl+P)\n"
+    .ascii "  • Built-in Text & Hex Viewer (F3), Copy/Move/Rename/Mkdir/Delete, Live Filter (/)\n"
+    .ascii "\n"
+    .ascii "Author: Kostiantyn Nedbailo (Недбайло Костянтин Геннадійович) <ChessPlayerSedoy@gmail.com>\n"
+    .ascii "License: MIT License (Open Source)\n"
+    .ascii "Press F1 inside Duop for full keyboard and mouse shortcuts.\n"
+    .byte 0
 
 .align 8
 .global lang_en_table
@@ -442,47 +289,9 @@ lang_en_table:
     .quad en_dlg_title_info, en_dlg_title_chmod, en_dlg_title_symlink, en_dlg_title_hardlink, en_prm_link_target, en_chm_hint, en_msg_trashed, en_msg_undone, en_msg_undo_empty, en_dlg_title_palette, en_dlg_title_fuzzy, en_fuz_hint, en_fp_du_badge, en_br_title, en_br_tmpl, en_br_find, en_br_repl
     .quad en_ctx_view, en_ctx_copy, en_ctx_move, en_ctx_copy_path, en_ctx_delete, en_msg_copied_path, en_diff_pfx, en_term_title
     .quad en_img_unsup, en_dlg_title_viewas, en_vas_image, en_vas_hex, en_vas_text, en_vas_hint, en_vw_img_hint, en_img_fit
+    .quad en_pal_theme, en_pal_lang, en_pal_preview, en_pal_hidden, en_pal_help, en_pal_rename, en_pal_view, en_pal_edit, en_pal_copy, en_pal_move
+    .quad en_pal_mkdir, en_pal_delete, en_pal_newfile, en_pal_filter, en_pal_goto, en_pal_refresh, en_pal_usermenu, en_pal_shell, en_pal_quit
+    .quad en_cli_version, en_cli_usage
 .if (. - lang_en_table) != LangStrings._size
     .error "lang_en_table size does not match LangStrings._size"
-.endif
-
-.align 8
-.global lang_ua_table
-lang_ua_table:
-    .quad ua_code, ua_name
-    .quad ua_hdr_brand, ua_hdr_mode_dual, ua_hdr_mode_prev, ua_hdr_btn_quit, ua_hdr_btn_help, ua_hdr_btn_lang
-    .quad ua_hdr_btn_hid_on, ua_hdr_btn_hid_off, ua_hdr_btn_prev, ua_hdr_theme_pfx
-    .quad ua_flbl_1, ua_flbl_2, ua_flbl_3, ua_flbl_4, ua_flbl_5
-    .quad ua_flbl_6, ua_flbl_7, ua_flbl_8, ua_flbl_9, ua_flbl_0
-    .quad ua_sb_dir_tag, ua_sb_filter_pfx, ua_sb_filter_sfx, ua_sb_hint_right, ua_msg_lang_sw
-    .quad ua_fp_col_name, ua_fp_col_size, ua_fp_col_mod, ua_fp_col_perm, ua_fp_dir_badge
-    .quad ua_fp_sel_pfx, ua_fp_sel_mid, ua_fp_sel_end, ua_fp_sum_dirs, ua_fp_sum_files, ua_fp_flt_tag
-    .quad ua_pv_title, ua_pv_dir_msg, ua_pv_bin_hdr, ua_pv_empty, ua_pv_sz_lbl, ua_pv_perm_lbl
-    .quad ua_err_perm, ua_err_exists, ua_err_noent, ua_err_notempty, ua_err_isdir, ua_err_notdir, ua_err_same, ua_err_generic
-    .quad ua_dlg_btn_ok, ua_dlg_btn_cancel, ua_dlg_btn_yes, ua_dlg_btn_no, ua_dlg_btn_close, ua_dlg_btn_hex
-    .quad ua_dlg_title_help, ua_dlg_title_view, ua_dlg_vw_hint, ua_dlg_hlp_hint
-    .quad ua_hl_0, ua_hl_1, ua_hl_2, ua_hl_3, ua_hl_4, ua_hl_5, ua_hl_6, ua_hl_7, ua_hl_8
-    .quad ua_hl_9, ua_hl_10, ua_hl_11, ua_hl_12, ua_hl_13, ua_hl_14, ua_hl_15, ua_hl_16, ua_hl_17
-    .quad ua_hl_18, ua_hl_19, ua_hl_20, ua_hl_21
-    .quad ua_app_title_mkdir, ua_app_prm_mkdir, ua_app_title_newfile, ua_app_prm_newfile
-    .quad ua_app_title_rename, ua_app_prm_rename, ua_app_title_copy, ua_app_prm_copy
-    .quad ua_app_title_move, ua_app_prm_move, ua_app_title_filter, ua_app_prm_filter
-    .quad ua_app_title_goto, ua_app_prm_goto, ua_app_title_delete, ua_app_msg_del_one, ua_app_msg_del_many
-    .quad ua_app_sel_items_sfx, ua_app_ok_mkdir, ua_app_ok_newfile, ua_app_ok_rename
-    .quad ua_app_ok_copy, ua_app_ok_move, ua_app_ok_delete, ua_app_ok_refresh, ua_app_err_parent, ua_app_err_isdir
-    .quad ua_fp_loading_pfx, ua_fp_huge_badge, ua_fp_abort_badge, ua_app_load_aborted
-    .quad ua_task_title_copy, ua_task_title_move, ua_task_title_delete
-    .quad ua_task_btn_pause, ua_task_btn_resume, ua_task_btn_bg
-    .quad ua_task_lbl_files, ua_task_lbl_eta, ua_task_lbl_scan, ua_task_lbl_paused, ua_task_lbl_cancel
-    .quad ua_task_sb_hint, ua_err_canceled, ua_err_busy, ua_app_title_quit_tk, ua_app_msg_quit_tk
-    .quad ua_dlg_title_usermenu, ua_um_hint
-    .quad ua_dlg_title_bm, ua_bm_hint, ua_dlg_title_fre, ua_fre_hint
-    .quad ua_msg_bm_added, ua_msg_hist_empty, ua_msg_tab_last
-    .quad ua_dlg_title_conflict, ua_cfl_btn_overwrite, ua_cfl_btn_skip, ua_cfl_btn_rename, ua_cfl_lbl_forall, ua_cfl_hint
-    .quad ua_dlg_title_search, ua_srch_lbl_name, ua_srch_lbl_grep, ua_srch_hint, ua_fp_search_badge, ua_msg_search_none
-    .quad ua_dlg_title_info, ua_dlg_title_chmod, ua_dlg_title_symlink, ua_dlg_title_hardlink, ua_prm_link_target, ua_chm_hint, ua_msg_trashed, ua_msg_undone, ua_msg_undo_empty, ua_dlg_title_palette, ua_dlg_title_fuzzy, ua_fuz_hint, ua_fp_du_badge, ua_br_title, ua_br_tmpl, ua_br_find, ua_br_repl
-    .quad ua_ctx_view, ua_ctx_copy, ua_ctx_move, ua_ctx_copy_path, ua_ctx_delete, ua_msg_copied_path, ua_diff_pfx, ua_term_title
-    .quad ua_img_unsup, ua_dlg_title_viewas, ua_vas_image, ua_vas_hex, ua_vas_text, ua_vas_hint, ua_vw_img_hint, ua_img_fit
-.if (. - lang_ua_table) != LangStrings._size
-    .error "lang_ua_table size does not match LangStrings._size"
 .endif

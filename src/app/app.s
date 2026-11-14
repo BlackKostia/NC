@@ -80,12 +80,11 @@ App_new__cfg_theme:
 .Lan_chk_cfg_lang:
     cmp r15d, 0
     jge .Lan_set_lang
-    mov ecx, [rax + 4]        # CFG_LANG
-    test ecx, ecx
-    js .Lan_det_env
-    mov r15d, ecx
-    jmp .Lan_set_lang
-.Lan_det_env:
+    lea rdi, [rax + CFG_LANG_ID]      # duoprc `lang = <id>`
+    call i18n_find
+    mov r15d, eax
+    test eax, eax
+    jns .Lan_set_lang
     mov rdi, r14
     call i18n_detect_env
     mov r15d, eax

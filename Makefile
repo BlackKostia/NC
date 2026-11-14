@@ -41,6 +41,8 @@ SRCS := \
 	src/tui/theme.s \
 	src/tui/i18n.s \
 	src/tui/i18n_env.s \
+	src/tui/i18n_keys.s \
+	src/tui/i18n_pack.s \
 	src/tui/screen.s \
 	src/tui/screen_buffer.s \
 	src/tui/screen_text.s \
@@ -51,6 +53,7 @@ SRCS := \
 	src/tui/input_parse.s \
 	src/tui/kbd_map.s \
 	src/tui/kbd_layout.s \
+	src/tui/data_dirs.s \
 	src/fs/dir_model.s \
 	src/fs/dir_model_load.s \
 	src/fs/dir_model_stream.s \
@@ -248,6 +251,7 @@ test: $(TARGET)
 	python3 tests/test_nav_viewer.py
 	python3 tests/test_event_loop.py
 	python3 tests/test_kbd_layout.py
+	python3 tests/test_lang_packs.py
 
 memcheck:
 	$(MAKE) MEMCHECK=1

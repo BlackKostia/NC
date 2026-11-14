@@ -9,7 +9,7 @@ Code flows downward only — never introduce upward or cyclic dependencies acros
 1. **`include/`** (`pal.inc`, `config.inc`, `types.inc`, `oop.inc`, `classes.inc`, and target `include/os/<os>/<arch>/pal_target.inc`): macros, constants, `.struct` layouts, and vtable contracts only; emit no instructions or writable data.
 2. **`src/os/<os>/<arch>/`** (`pal_os.s`): compile-time selected OS/ISA Platform Abstraction Layer (PAL) converting kernel `stat`/`dirent`/`termios`/`sigaction`/`ppoll`/`mremap` into portable `FileStat` and `os_*` ABI helpers; zero runtime OS branching. **Must never** depend on `src/tui/`, `src/fs/`, `src/ui/`, or `src/app/`.
 3. **`src/core/`** (`memory.s`, `string.s`, `utf8.s`, `oop_rt.s`, `syscall.s`, future `config.s`): runtime, allocator, strings, UTF-8 width, base `Object`/`Widget` vtables, PAL POSIX helpers (`OS_*` macros + `os_*`). **Must never** contain raw `syscall` instructions or depend on `src/tui/`, `src/fs/`, concrete `src/ui/` widgets, or `src/app/`.
-4. **`src/tui/`** (`theme.s`, `i18n.s`, `screen.s`, `input.s`): terminal TrueColor rendering, themes, EN/UA tables, SGR mouse/key parser. **Must never** depend on `src/fs/`, concrete `src/ui/` widgets, or `src/app/`.
+4. **`src/tui/`** (`theme.s`, `i18n.s`, `screen.s`, `input.s`): terminal TrueColor rendering, themes, built-in English table + runtime `lang/*.lang` packs and `layouts/*.layout` keyboard maps, SGR mouse/key parser. **Must never** depend on `src/fs/`, concrete `src/ui/` widgets, or `src/app/`.
 5. **`src/fs/`** (`dir_model.s`, `file_ops.s`, future `inflate.s`/`trash.s`): directory traversal, sorting, virtual panels, async file ops (may query `i18n_get` for error text). **Must never** depend on `Screen_*`, `Input_*`, `theme_*`, concrete UI widgets, or `src/app/`.
 6. **`src/ui/`** (`header_bar.s`, `function_bar.s`, `status_bar.s`, `file_pane.s`, `preview_pane.s`, `dialogs.s` and split widget modules): concrete `Widget`/`Dialog` subclasses rendering exclusively via `ScreenBuffer`, `theme_get`, and `i18n_get`.
 7. **`src/app/`** & **`src/main.s`**: application controller, event loop, command dispatch, CLI arguments.
@@ -29,7 +29,7 @@ Code flows downward only — never introduce upward or cyclic dependencies acros
 - Use `.intel_syntax noprefix` at the top of every `.s`/`.inc` file.
 - Keep `ELF .data == 0`: immutable data in `.section .rodata`, mutable globals in `.section .bss` (or heap `mem_alloc`).
 - Follow System V AMD64 ABI (`rdi` = `this`, preserve `rbx`, `rbp`, `r12`–`r15`, 16-byte stack alignment across `call`).
-- Every user-visible string MUST exist in both English and Ukrainian in `include/types.inc` (`LangStrings`) and `src/tui/i18n.s` (`lang_en_table` / `lang_ua_table`). Compute layout columns via `utf8_display_width`.
+- Every user-visible string MUST be a `LangStrings` slot (`include/types.inc`) with its English text in `src/tui/i18n.s` (`lang_en_table`), its key in `src/tui/i18n_keys.s`, and its Ukrainian translation in `lang/uk.lang`; other interface languages are `lang/*.lang` packs and keyboard layouts are `layouts/*.layout` files — never compile translations or layout codepoints into code. Compute layout columns via `utf8_display_width`.
 
 ## 3. Verification, SemVer & Git Commits
 

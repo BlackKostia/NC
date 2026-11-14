@@ -11,6 +11,7 @@ if command -v git >/dev/null 2>&1 && command -v as >/dev/null 2>&1 && command -v
     make -C "$TMP/duop" release
     install -Dm755 "$TMP/duop/duop" "$PREFIX/bin/duop"
     install -Dm644 -t "$PREFIX/share/duop/layouts" "$TMP"/duop/layouts/*.layout
+    install -Dm644 -t "$PREFIX/share/duop/lang" "$TMP"/duop/lang/*.lang
     echo "Installed $PREFIX/bin/duop ($("$PREFIX/bin/duop" --version | head -n1))"
 else
     echo "Requires git, binutils (as/ld), and make." >&2

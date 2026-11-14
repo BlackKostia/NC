@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static modularity, ABI-hygiene, i18n-parity, and version checker for Duop."""
+"""Static modularity, ABI-hygiene, i18n-parity (built-in English table + lang/*.lang packs), and version checker for Duop."""
 
 from __future__ import annotations
 
@@ -108,27 +108,67 @@ def check_i18n_symmetry(root: Path, errors: list[str]) -> None:
             expected_slots += bytes_sz // 8
 
     i18n_text = i18n_path.read_text(encoding="utf-8")
-    for tbl in ("lang_en_table", "lang_ua_table"):
-        tm = re.search(
-            rf"{tbl}:\s*(.*?)\.if\s*\(\.\s*-\s*{tbl}\)\s*!=\s*LangStrings\._size",
-            i18n_text,
-            re.S,
+    tm = re.search(
+        r"lang_en_table:\s*(.*?)\.if\s*\(\.\s*-\s*lang_en_table\)\s*!=\s*LangStrings\._size",
+        i18n_text,
+        re.S,
+    )
+    if not tm:
+        errors.append(
+            "Missing lang_en_table or compile-time size guard (.if (. - lang_en_table) != LangStrings._size) in src/tui/i18n.s"
         )
-        if not tm:
-            errors.append(
-                f"Missing {tbl} or compile-time size guard (.if (. - {tbl}) != LangStrings._size) in src/tui/i18n.s"
-            )
-            continue
+    else:
         ptrs = 0
         for line in tm.group(1).splitlines():
             clean = strip_asm_comment_and_strings(line).strip()
             if clean.startswith(".quad"):
-                items = [x.strip() for x in clean[5:].split(",") if x.strip()]
-                ptrs += len(items)
+                ptrs += len([x for x in clean[5:].split(",") if x.strip()])
         if ptrs != expected_slots:
-            errors.append(
-                f"{tbl} has {ptrs} pointers, but LangStrings has {expected_slots} pointer slots"
-            )
+            errors.append(f"lang_en_table has {ptrs} pointers, but LangStrings has {expected_slots} pointer slots")
+    check_lang_packs(root, m.group(0), errors)
+
+
+def langstrings_keys(struct_text: str) -> list[str]:
+    """Pack keys of every LangStrings slot: field name, or field.1..field.N for arrays."""
+    keys: list[str] = []
+    for line in struct_text.splitlines():
+        fm = re.match(r"LangStrings\.(\w+):\s*\.space\s+(\d+)(?:\s*\*\s*(\d+))?", line)
+        if not fm or fm.group(1) == "_size":
+            continue
+        n = (int(fm.group(2)) * int(fm.group(3)) if fm.group(3) else int(fm.group(2))) // 8
+        keys += [fm.group(1)] if n == 1 else [f"{fm.group(1)}.{i + 1}" for i in range(n)]
+    return keys
+
+
+def check_lang_packs(root: Path, struct_text: str, errors: list[str]) -> None:
+    """i18n_keys.s names every LangStrings slot; lang/uk.lang (Ukrainian) translates every key and
+    no shipped pack uses an unknown key."""
+    keys = langstrings_keys(struct_text)
+    keys_path = root / "src/tui/i18n_keys.s"
+    if not keys_path.is_file():
+        errors.append("Missing src/tui/i18n_keys.s (language pack key table)")
+        return
+    table = re.findall(r"^\s*LK\s+([\w.]+)\s*,", keys_path.read_text(encoding="utf-8"), re.M)
+    if table != keys:
+        missing = sorted(set(keys) - set(table))
+        extra = sorted(set(table) - set(keys))
+        errors.append(f"src/tui/i18n_keys.s out of sync with LangStrings (missing {missing}, extra {extra}, or order)")
+    packs = sorted((root / "lang").glob("*.lang"))
+    if not any(p.name == "uk.lang" for p in packs):
+        errors.append("Missing lang/uk.lang (Ukrainian interface pack)")
+    for pack in packs:
+        seen = set()
+        for idx, raw in enumerate(pack.read_text(encoding="utf-8").splitlines(), start=1):
+            km = re.match(r"^\s*([A-Za-z0-9_.]+)\s*=", raw)
+            if not km or raw.lstrip().startswith("#"):
+                continue
+            if km.group(1) not in keys:
+                errors.append(f"{pack.relative_to(root)}:{idx}: unknown key '{km.group(1)}'")
+            seen.add(km.group(1))
+        if pack.name == "uk.lang":
+            missing = [k for k in keys if k not in seen]
+            if missing:
+                errors.append(f"lang/uk.lang misses translations for: {', '.join(missing)}")
 
 
 def main() -> int:

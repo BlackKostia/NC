@@ -127,6 +127,10 @@
 - **Файли**: [kbd_layout.s](src/tui/kbd_layout.s) (шлях пошуку: `$DUOP_LAYOUTS`, `~/.config/duop/layouts`, поруч із бінарником через `AT_EXECFN`, `share/duop/layouts`), [kbd_map.s](src/tui/kbd_map.s) (парсер `keys`/`chars`, таблиця `кодова точка → латинська клавіша`), [input.s](src/tui/input.s) (`input_next_event` заповнює `Event.lat`), [layouts/uk.layout](layouts/uk.layout).
 - **Реалізація**: жодної вшитої кирилиці в коді — гарячі клавіші порівнюються з `Event.lat`, поля введення отримують `Event.key` без змін; нова розкладка додається файлом без перекомпіляції. Тести: [test_kbd_layout.py](tests/test_kbd_layout.py) (KL1–KL6). ✅
 
+### 2.11 Мовні пакети інтерфейсу (`*.lang`) ✅
+- **Файли**: [i18n.s](src/tui/i18n.s) (вбудована англійська — основа і запасний варіант), [i18n_keys.s](src/tui/i18n_keys.s) (ключ ↔ слот `LangStrings`), [i18n_pack.s](src/tui/i18n_pack.s) (парсер `ключ = значення`, `"..."`, `\n`, `{version}`, статична арена без heap), [i18n_env.s](src/tui/i18n_env.s) (реєстр мов, пошук за id / code / локаллю), [data_dirs.s](src/tui/data_dirs.s) (спільний шлях пошуку з розкладками), [lang/uk.lang](lang/uk.lang).
+- **Реалізація**: українські рядки, палітра команд і `--help`/`--version` винесені з коду у пакет; нова мова — файл без перекомпіляції; `Alt+L` перебирає всі мови; `--lang`, `duoprc lang =`, `LANG`. Тести: [test_lang_packs.py](tests/test_lang_packs.py) (LP1–LP7). ✅
+
 ---
 
 ## Рівень 3 — Популяризація, дистрибуція та переносимість

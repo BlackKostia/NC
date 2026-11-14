@@ -4,7 +4,6 @@
 .intel_syntax noprefix
 .include "pal.inc"
 .include "classes.inc"
-.include "version.inc"
 
 .section .rodata
 str_flag_h:      .asciz "-h"
@@ -19,58 +18,6 @@ str_flag_cdir:   .asciz "--choosedir"
 str_flag_cdireq: .asciz "--choosedir="
 str_flag_L:      .asciz "-L"
 str_flag_lic:    .asciz "--license"
-
-str_version:
-    .ascii "Duop v"
-    DUOP_VER_ASCII
-    .ascii " (x86-64 Linux ELF64, zero-libc)\n"
-    .ascii "Copyright (C) 2026 Kostiantyn Nedbailo (Недбайло Костянтин Геннадійович) <ChessPlayerSedoy@gmail.com>\n"
-    .ascii "License: MIT License (Open Source — run with --license for full text)\n"
-.equ str_version_len, . - str_version
-
-str_version_ua:
-    .ascii "Duop v"
-    DUOP_VER_ASCII
-    .ascii " (x86-64 Linux ELF64, без libc)\n"
-    .ascii "Розробник: Недбайло Костянтин Геннадійович (Kostiantyn Nedbailo) <ChessPlayerSedoy@gmail.com>\n"
-    .ascii "Ліцензія: MIT License (відкритий вихідний код — див. --license)\n"
-.equ str_version_ua_len, . - str_version_ua
-
-str_usage:
-    .ascii "Duop v"
-    DUOP_VER_ASCII
-    .ascii " — Modern Dual-Pane Terminal File Manager (Pure x86-64 Assembly)\n"
-    .ascii "Usage: duop [--lang en|ua] [--choosedir=FILE] [-V|--version] [-L|--license] [LEFT_DIR [RIGHT_DIR]]\n"
-    .ascii "\n"
-    .ascii "Features:\n"
-    .ascii "  • 24-bit TrueColor UI with 3 switchable themes (Alt+T)\n"
-    .ascii "  • Bilingual English / Ukrainian interface (Alt+L, --lang ua, or LANG=uk_*)\n"
-    .ascii "  • Full SGR 1006 Mouse support (click, double-click, right-click, wheel, drag, hover)\n"
-    .ascii "  • Dual-pane navigation & Live Preview mode (F9 / Ctrl+P)\n"
-    .ascii "  • Built-in Text & Hex Viewer (F3), Copy/Move/Rename/Mkdir/Delete, Live Filter (/)\n"
-    .ascii "\n"
-    .ascii "Author: Kostiantyn Nedbailo (Недбайло Костянтин Геннадійович) <ChessPlayerSedoy@gmail.com>\n"
-    .ascii "License: MIT License (Open Source)\n"
-    .ascii "Press F1 inside Duop for full keyboard and mouse shortcuts.\n"
-.equ str_usage_len, . - str_usage
-
-str_usage_ua:
-    .ascii "Duop v"
-    DUOP_VER_ASCII
-    .ascii " — Сучасний двопанельний термінальний файловий менеджер (чистий x86-64 Assembler)\n"
-    .ascii "Використання: duop [--lang ua|en] [--choosedir=FILE] [-V|--version] [-L|--license] [ЛІВА_ТЕКА [ПРАВА_ТЕКА]]\n"
-    .ascii "\n"
-    .ascii "Можливості:\n"
-    .ascii "  • 24-бітний TrueColor інтерфейс з 3 темами оформлення (Alt+T)\n"
-    .ascii "  • Двомовний інтерфейс Українська / English (Alt+L, --lang ua або LANG=uk_*)\n"
-    .ascii "  • Повна підтримка миші SGR 1006 (клік, подвійний клік, правий клік, колесо, скролбар)\n"
-    .ascii "  • Двопанельна навігація та режим швидкого перегляду (F9 / Ctrl+P)\n"
-    .ascii "  • Вбудований переглядач Текст/Hex (F3), копіювання/переміщення/фільтр (/)\n"
-    .ascii "\n"
-    .ascii "Розробник: Недбайло Костянтин Геннадійович <ChessPlayerSedoy@gmail.com>\n"
-    .ascii "Ліцензія: MIT License (відкритий вихідний код)\n"
-    .ascii "Натисніть F1 усередині Duop для повної довідки гарячих клавіш.\n"
-.equ str_usage_ua_len, . - str_usage_ua
 
 str_license:
     .ascii "MIT License\n\n"
@@ -95,15 +42,13 @@ str_license:
 .section .text
 .global _start
 
-# Helper: parse language string -> LANG_UA or LANG_EN
+# Helper: --lang value (id, code or locale) -> language index; English (0) when no pack matches
 parse_lang_val:
-    call i18n_is_uk_code
+    call i18n_find
     test eax, eax
-    jz .Lplv_en
-    mov eax, LANG_UA
-    ret
-.Lplv_en:
-    xor eax, eax              # LANG_EN
+    jns .Lplv_ret
+    xor eax, eax
+.Lplv_ret:
     ret
 
 _start:
@@ -127,6 +72,8 @@ _start:
     mov rdi, r13
     call mc_init
 .endif
+    mov rdi, r13
+    call i18n_load            # interface languages: lang/*.lang packs
 
 .Lmain_arg_loop:
     mov eax, [rsp + 8]
@@ -303,17 +250,11 @@ _start:
     jmp main_exit
 
 .Lmain_help:
-    lea rsi, [rip + str_usage]
-    mov edx, str_usage_len
-    lea r8, [rip + str_usage_ua]
-    mov r9d, str_usage_ua_len
+    mov ebp, LangStrings.cli_usage
     jmp main_print_i18n
 
 .Lmain_version:
-    lea rsi, [rip + str_version]
-    mov edx, str_version_len
-    lea r8, [rip + str_version_ua]
-    mov r9d, str_version_ua_len
+    mov ebp, LangStrings.cli_version
     jmp main_print_i18n
 
 .Lmain_license:
@@ -321,25 +262,20 @@ _start:
     mov edx, str_license_len
     jmp main_print_exit
 
-main_print_i18n:
-    mov eax, [rsp]
-    cmp eax, 0
-    jge .Lmain_lang_picked
-    push rsi
-    push rdx
-    push r8
-    push r9
+main_print_i18n:                     # ebp = LangStrings slot of the text, [rsp] = --lang index
+    mov edi, [rsp]
+    test edi, edi
+    jns .Lmain_lang_picked
     mov rdi, r13
     call i18n_detect_env
-    pop r9
-    pop r8
-    pop rdx
-    pop rsi
+    mov edi, eax
 .Lmain_lang_picked:
-    cmp eax, LANG_UA
-    jne main_print_exit
-    mov rsi, r8
-    mov edx, r9d
+    call i18n_set_lang
+    mov rbx, [rax + rbp]
+    mov rdi, rbx
+    call str_len
+    mov rsi, rbx
+    mov rdx, rax
 
 main_print_exit:
     mov edi, STDOUT_FD

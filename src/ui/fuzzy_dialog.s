@@ -30,7 +30,6 @@
 .extern ScreenBuffer_fill_rect
 .extern theme_get
 .extern i18n_get
-.extern i18n_get_idx
 .extern fuzzy_score
 .extern dir_fuzzy_collect
 .extern mem_alloc
@@ -44,66 +43,28 @@ FuzzyDialog_vtbl:
     DIALOG_VTBL_SLOTS FuzzyDialog_name, Dialog_vtbl, FuzzyDialog._size, FuzzyDialog_dtor, Dialog_layout, FuzzyDialog_render, FuzzyDialog_handle_key, Dialog_on_mouse, Widget_on_focus, Widget_hit_test, Dialog_on_confirm, Dialog_on_cancel
 FuzzyDialog_name: .asciz "FuzzyDialog"
 
-fuz_palette_cmds:
-    .quad ACT_THEME,    fpc_theme_en,    fpc_theme_ua
-    .quad ACT_LANG,     fpc_lang_en,     fpc_lang_ua
-    .quad ACT_PREVIEW,  fpc_prev_en,     fpc_prev_ua
-    .quad ACT_HIDDEN,   fpc_hid_en,      fpc_hid_ua
-    .quad ACT_HELP,     fpc_help_en,     fpc_help_ua
-    .quad ACT_RENAME,   fpc_ren_en,      fpc_ren_ua
-    .quad ACT_VIEW,     fpc_view_en,     fpc_view_ua
-    .quad ACT_EDIT,     fpc_edit_en,     fpc_edit_ua
-    .quad ACT_COPY,     fpc_copy_en,     fpc_copy_ua
-    .quad ACT_MOVE,     fpc_move_en,     fpc_move_ua
-    .quad ACT_MKDIR,    fpc_mkdir_en,    fpc_mkdir_ua
-    .quad ACT_DELETE,   fpc_del_en,      fpc_del_ua
-    .quad ACT_NEWFILE,  fpc_new_en,      fpc_new_ua
-    .quad ACT_FILTER,   fpc_flt_en,      fpc_flt_ua
-    .quad ACT_GOTO,     fpc_goto_en,     fpc_goto_ua
-    .quad ACT_REFRESH,  fpc_ref_en,      fpc_ref_ua
-    .quad ACT_USERMENU, fpc_um_en,       fpc_um_ua
-    .quad ACT_SHELL,    fpc_sh_en,       fpc_sh_ua
-    .quad ACT_QUIT,     fpc_quit_en,     fpc_quit_ua
+fuz_palette_cmds:                     # {action, LangStrings slot of the label}
+    .quad ACT_THEME,     LangStrings.pal_theme
+    .quad ACT_LANG,      LangStrings.pal_lang
+    .quad ACT_PREVIEW,   LangStrings.pal_preview
+    .quad ACT_HIDDEN,    LangStrings.pal_hidden
+    .quad ACT_HELP,      LangStrings.pal_help
+    .quad ACT_RENAME,    LangStrings.pal_rename
+    .quad ACT_VIEW,      LangStrings.pal_view
+    .quad ACT_EDIT,      LangStrings.pal_edit
+    .quad ACT_COPY,      LangStrings.pal_copy
+    .quad ACT_MOVE,      LangStrings.pal_move
+    .quad ACT_MKDIR,     LangStrings.pal_mkdir
+    .quad ACT_DELETE,    LangStrings.pal_delete
+    .quad ACT_NEWFILE,   LangStrings.pal_newfile
+    .quad ACT_FILTER,    LangStrings.pal_filter
+    .quad ACT_GOTO,      LangStrings.pal_goto
+    .quad ACT_REFRESH,   LangStrings.pal_refresh
+    .quad ACT_USERMENU,  LangStrings.pal_usermenu
+    .quad ACT_SHELL,     LangStrings.pal_shell
+    .quad ACT_QUIT,      LangStrings.pal_quit
 .equ FUZ_CMD_CNT, 19
 
-fpc_theme_en: .asciz "Theme: Cycle Color Theme (Alt+T)"
-fpc_theme_ua: .asciz "Тема: Змінити тему (Alt+T)"
-fpc_lang_en:  .asciz "Language: Switch EN/UA (Alt+L)"
-fpc_lang_ua:  .asciz "Мова: Перемкнути EN/UA (Alt+L)"
-fpc_prev_en:  .asciz "Preview: Toggle Pane (F9)"
-fpc_prev_ua:  .asciz "Перегляд: Панель прев'ю (F9)"
-fpc_hid_en:   .asciz "Dotfiles: Toggle Hidden (.)"
-fpc_hid_ua:   .asciz "Приховані: Показати/сховати (.)"
-fpc_help_en:  .asciz "Help: Show Keybindings (F1)"
-fpc_help_ua:  .asciz "Довідка: Клавіші (F1)"
-fpc_ren_en:   .asciz "Rename: Rename Entry (F2)"
-fpc_ren_ua:   .asciz "Перейменувати (F2)"
-fpc_view_en:  .asciz "View: Open File Viewer (F3)"
-fpc_view_ua:  .asciz "Перегляд файлу (F3)"
-fpc_edit_en:  .asciz "Edit: Open in $EDITOR (F4)"
-fpc_edit_ua:  .asciz "Редагувати у $EDITOR (F4)"
-fpc_copy_en:  .asciz "Copy: Copy to Opposite Pane (F5)"
-fpc_copy_ua:  .asciz "Копіювати в іншу панель (F5)"
-fpc_move_en:  .asciz "Move: Move to Opposite Pane (F6)"
-fpc_move_ua:  .asciz "Перемістити в іншу панель (F6)"
-fpc_mkdir_en: .asciz "Mkdir: Create Directory (F7)"
-fpc_mkdir_ua: .asciz "Створити каталог (F7)"
-fpc_del_en:   .asciz "Delete: Permanent Delete (F8)"
-fpc_del_ua:   .asciz "Видалити назавжди (F8)"
-fpc_new_en:   .asciz "New File: Create Empty File (Ctrl+N)"
-fpc_new_ua:   .asciz "Новий файл (Ctrl+N)"
-fpc_flt_en:   .asciz "Filter: Live Filter (/)"
-fpc_flt_ua:   .asciz "Фільтр: Швидкий фільтр (/)"
-fpc_goto_en:  .asciz "Go To: Jump to Path (Ctrl+G)"
-fpc_goto_ua:  .asciz "Перейти: Ввести шлях (Ctrl+G)"
-fpc_ref_en:   .asciz "Refresh: Reload Panes (Ctrl+R)"
-fpc_ref_ua:   .asciz "Оновити панелі (Ctrl+R)"
-fpc_um_en:    .asciz "User Menu: Custom Commands (Alt+U)"
-fpc_um_ua:    .asciz "Меню користувача (Alt+U)"
-fpc_sh_en:    .asciz "Shell: Suspend to Shell (Ctrl+O)"
-fpc_sh_ua:    .asciz "Оболонка: Вийти в Shell (Ctrl+O)"
-fpc_quit_en:  .asciz "Quit: Exit Duop (F10)"
-fpc_quit_ua:  .asciz "Вихід: Завершити Duop (F10)"
 fuz_prm:      .asciz "> "
 
 .section .text
@@ -132,17 +93,14 @@ FuzzyDialog_new:
     mov edi, FUZ_MAX_ITEMS * 16; call mem_alloc
     mov [rbx + FuzzyDialog.matches_ptr], rax
     test r13d, r13d; jnz .Lfdn_files
-    call i18n_get_idx
-    mov r8d, eax; xor ecx, ecx
+    call i18n_get
+    mov r8, rax; xor ecx, ecx
     lea r9, [rip + fuz_palette_cmds]; mov r10, [rbx + FuzzyDialog.items_ptr]
 .Lfdn_cmd_loop:
     cmp ecx, FUZ_CMD_CNT; jge .Lfdn_cmds_done
-    mov rax, rcx; imul rax, 24
-    mov r11, [r9 + rax]; mov rdx, [r9 + rax + 8]
-    test r8d, r8d; jz .Lfdn_cmd_set
-    mov rdx, [r9 + rax + 16]
-.Lfdn_cmd_set:
     mov rax, rcx; shl rax, 4
+    mov r11, [r9 + rax]; mov rdx, [r9 + rax + 8]
+    mov rdx, [r8 + rdx]
     mov [r10 + rax], rdx; mov dword ptr [r10 + rax + 8], 0; mov [r10 + rax + 12], r11d
     inc ecx; jmp .Lfdn_cmd_loop
 .Lfdn_cmds_done:

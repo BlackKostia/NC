@@ -356,10 +356,6 @@ CLASS_BEGIN App
     FIELD App.task_snap,     TaskSnap._size
 CLASS_END App
 
-# --- Language IDs ---
-.equ LANG_EN, 0
-.equ LANG_UA, 1
-
 # --- Operation Tags for Dialogs ---
 .equ OP_NONE,    0
 .equ OP_MKDIR,   1

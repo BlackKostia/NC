@@ -73,9 +73,13 @@ App_cmd_cycle_theme:
 App_cmd_toggle_lang:
     push rbx
     mov rbx, rdi
+    call i18n_count                   # next installed language, wrapping to English
     mov edi, [rbx + App.lang_idx]
-    xor edi, 1
-    mov [rbx + App.lang_idx], edi
+    inc edi
+    cmp edi, eax
+    jb 1f
+    xor edi, edi
+1:  mov [rbx + App.lang_idx], edi
     call i18n_set_lang
     mov [rbx + App.lang], rax
     mov rdi, rbx

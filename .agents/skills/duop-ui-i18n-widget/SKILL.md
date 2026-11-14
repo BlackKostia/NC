@@ -13,8 +13,8 @@ description: >-
 Every user-visible string MUST live in both English and Ukrainian — never hardcode display text inside `src/ui/` or `src/app/`:
 
 1. Add a `.space 8` pointer slot (or `.space N*8` array) to `LangStrings` in `include/types.inc`.
-2. Add the matching `en_<name>` and `ua_<name>` UTF-8 `.asciz` literals in `src/tui/i18n.s`.
-3. Append BOTH pointers at the exact same slot position in `lang_en_table` and `lang_ua_table` in `src/tui/i18n.s`. Keep the compile-time `.if (. - lang_*_table) != LangStrings._size` guards intact.
+2. Add the English `en_<name>` UTF-8 `.asciz` literal in `src/tui/i18n.s` and its pointer at the same slot position in `lang_en_table` (keep the `.if (. - lang_en_table) != LangStrings._size` guard). English is the built-in base and the fallback for any key a pack omits.
+3. Add the pack key `LK <name>, LangStrings.<name>` (arrays: `<name>.1 .. <name>.N`) at the same position in `src/tui/i18n_keys.s`, and the Ukrainian `<name> = <text>` line to `lang/uk.lang` (quote values with outer spaces; escapes `\n \t \" \\`, `{version}`). `check_modularity.py` fails when a key is missing from `i18n_keys.s` or `lang/uk.lang`. Other languages are extra `lang/<id>.lang` files — no code change.
 4. Access the active language via `call i18n_get` (note: preserves all registers except `rax`) and load `[rax + LangStrings.<field>]`.
 
 ## 2. UTF-8 Column Width & Rendering

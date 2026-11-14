@@ -185,6 +185,14 @@ Theme.scroll_thumb:       .space 4
 Theme.pad:                .space 4
 Theme._size:
 
+# --- DataSpec: one kind of runtime data file (tui/data_dirs.s) ---
+.struct 0
+DataSpec.env:   .space 8   # "DUOP_LAYOUTS=": ':'-separated dirs that replace the default path
+DataSpec.sub:   .space 8   # "layouts": subdirectory under duop/ config + share dirs and the binary
+DataSpec.ext:   .space 8   # ".layout": file name suffix that is loaded
+DataSpec.load:  .space 8   # void load(const char *path, const char *name)
+DataSpec._size:
+
 # --- LangStrings (Table-driven i18n string bundle) ---
 .struct 0
 LangStrings.code:               .space 8
@@ -342,6 +350,27 @@ LangStrings.vas_text:           .space 8
 LangStrings.vas_hint:           .space 8
 LangStrings.vw_img_hint:        .space 8
 LangStrings.img_fit:            .space 8
+LangStrings.pal_theme:          .space 8   # Command Palette (Ctrl+K) entry
+LangStrings.pal_lang:           .space 8
+LangStrings.pal_preview:        .space 8
+LangStrings.pal_hidden:         .space 8
+LangStrings.pal_help:           .space 8
+LangStrings.pal_rename:         .space 8
+LangStrings.pal_view:           .space 8
+LangStrings.pal_edit:           .space 8
+LangStrings.pal_copy:           .space 8
+LangStrings.pal_move:           .space 8
+LangStrings.pal_mkdir:          .space 8
+LangStrings.pal_delete:         .space 8
+LangStrings.pal_newfile:        .space 8
+LangStrings.pal_filter:         .space 8
+LangStrings.pal_goto:           .space 8
+LangStrings.pal_refresh:        .space 8
+LangStrings.pal_usermenu:       .space 8
+LangStrings.pal_shell:          .space 8
+LangStrings.pal_quit:           .space 8
+LangStrings.cli_version:        .space 8   # duop --version text (multi-line)
+LangStrings.cli_usage:          .space 8   # duop --help text (multi-line)
 LangStrings._size:
 
 .section .text

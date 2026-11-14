@@ -12,6 +12,7 @@ class Duop < Formula
     bin.install "duop"
     pkgshare.install "scripts/duop-cd.sh"
     (pkgshare/"layouts").install Dir["layouts/*.layout"]
+    (pkgshare/"lang").install Dir["lang/*.lang"]
   end
 
   test do

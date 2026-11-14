@@ -22,7 +22,7 @@
 .equ CFG_BINDS,       160
 .equ CFG_OPENS,       672
 .equ CFG_MENUS,       8864
-.equ CFG_TOTAL_SZ,    15008
+.equ CFG_TOTAL_SZ,    15024         # + CFG_LANG_ID (config.inc)
 .equ CFG_FILE_MAX,    16384
 .equ COLOR_FIELD_COUNT, 29
 .equ ACTION_NAME_COUNT, 19

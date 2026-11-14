@@ -50,7 +50,22 @@ make verify                         # Run modularity, lean-gate, and PTY test su
 | `Ctrl+T` / `Ctrl+W` | New / Close Tab | `Ctrl+D` / `z` | Bookmarks / Frecency |
 | `Alt+D` | Disk Usage mode | `Alt+B` | Bulk Rename |
 | `Alt+=` | Dir Diff (mark differing/missing) | `Ctrl+\`` | Toggle Embedded PTY Terminal |
-| `Alt+T` / `Alt+L` | Cycle Theme / Toggle EN↔UA | `Ctrl+Z` | Undo last Trash / Hex byte |
+| `Alt+T` / `Alt+L` | Cycle Theme / Next interface language | `Ctrl+Z` | Undo last Trash / Hex byte |
+
+### Interface Languages
+
+English is built in; every other interface language is a `*.lang` pack loaded at startup, so a new language is a new file — no rebuild. Ukrainian ships as [`lang/uk.lang`](lang/uk.lang); copy it as a template:
+
+```text
+# ~/.config/duop/lang/de.lang
+code = DE
+name = Deutsch
+hdr_btn_help = " Hilfe "
+f_labels.1   = Hilfe
+cli_usage    = Aufruf: duop [--lang ID] [LINKS [RECHTS]]\n
+```
+
+Keys are the `LangStrings` fields ([`include/types.inc`](include/types.inc)); a missing key falls back to English. `"..."` keeps outer spaces, `\n` `\t` `\"` `\\` are escapes and `{version}` expands to the Duop version. The language is chosen by `--lang <id|code>`, `lang = <id>` in `duoprc`, or `LC_ALL` / `LC_MESSAGES` / `LANG` (`de_DE.UTF-8` → `de`); `Alt+L` cycles all installed languages. Search path: `$DUOP_LANGS` (`:`-separated, replaces the defaults) or `~/.config/duop/lang`, then `lang/` and `../share/duop/lang` next to the binary, `/usr/local/share/duop/lang`, `/usr/share/duop/lang`.
 
 ### Keyboard Layouts
 

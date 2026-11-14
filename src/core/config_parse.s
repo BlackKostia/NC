@@ -22,7 +22,7 @@
 .equ CFG_BINDS,       160
 .equ CFG_OPENS,       672
 .equ CFG_MENUS,       8864
-.equ CFG_TOTAL_SZ,    15008
+.equ CFG_TOTAL_SZ,    15024         # + CFG_LANG_ID (config.inc)
 .equ CFG_FILE_MAX,    16384
 .equ COLOR_FIELD_COUNT, 29
 .equ ACTION_NAME_COUNT, 19
@@ -52,9 +52,6 @@ kw_menu:           .asciz "menu"
 val_tokyo:         .asciz "tokyo"
 val_catp:          .asciz "catppuccin"
 val_emerald:       .asciz "emerald"
-val_en:            .asciz "en"
-val_ua:            .asciz "ua"
-val_uk:            .asciz "uk"
 val_on:            .asciz "on"
 val_true:          .asciz "true"
 val_off:           .asciz "off"
@@ -204,17 +201,10 @@ parse_config_line:
     call next_token
     test rax, rax
     jz .Lpcl_done
-    mov r14, rax
-    mov rdi, r14; lea rsi, [rip + val_en]; call str_casecmp
-    test eax, eax; jnz .Lpcl_lua
-    mov dword ptr [rbp + CFG_LANG], 0; jmp .Lpcl_done
-.Lpcl_lua:
-    mov rdi, r14; lea rsi, [rip + val_ua]; call str_casecmp
-    test eax, eax; jz .Lpcl_set_ua
-    mov rdi, r14; lea rsi, [rip + val_uk]; call str_casecmp
-    test eax, eax; jnz .Lpcl_done
-.Lpcl_set_ua:
-    mov dword ptr [rbp + CFG_LANG], 1
+    lea rdi, [rbp + CFG_LANG_ID]      # language pack id, resolved by i18n_find
+    mov rsi, rax
+    mov edx, I18N_ID_LEN
+    call str_copy
     jmp .Lpcl_done
 
 .Lpcl_chk_hid:
