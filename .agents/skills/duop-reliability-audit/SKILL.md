@@ -37,3 +37,21 @@ All fast static + C11 ABI + ELF audits run automatically in:
 - `.agents/skills/duop-pty-verify/scripts/verify_build.sh`
 - `.githooks/pre-commit`
 - `.agents/hooks/duop_lifecycle.py` (when editing `src/*.s` or `include/*.inc`)
+
+## Critical-Defect Suite (`scripts/audit_critical.sh`)
+
+Static and runtime checks for defects that crash Duop, lose data or open security holes; none of
+them modify the program. Runtime checks launch Duop the way a shell does (`SIGPIPE` at its default
+action: Python children inherit `SIG_IGN`, which hides real deaths) on a snapshot of `./duop`.
+
+| Utility | Kind | Detects |
+|---|---|---|
+| `audit_tmp_files.py` | static | fixed `/tmp` paths opened with `O_CREAT` without `O_EXCL`/`O_NOFOLLOW`, external downloaders writing them, verify-then-reopen (TOCTOU) |
+| `audit_thread_reach.py` | static | call graph from `os_thread_spawn` entries: heap allocator / UI calls and unlocked global stores reachable from worker threads |
+| `audit_unchecked_io.py` | static | ignored results of write / rename / unlink / chmod in data-safety modules |
+| `audit_depth_caps.py` | static | recursion / capacity caps that truncate results silently instead of reporting |
+| `signal_matrix.py` | runtime | helper death (`SIGPIPE`), helper crash vs. UI tty, `SIGTERM`/`SIGINT`, fatal signals restore the terminal, hangup with `SIGHUP` ignored (spinning orphan), `SIGWINCH` storm, idle CPU |
+| `security_probe.py` | runtime | package names `.`, `pkg verify` vs. tampering, checksum mismatch, planted `/tmp` symlinks, failed deletes reported as success, archive traversal names, writable/stale temp files |
+| `fuzz_parsers.py` | runtime | mutation fuzzing of images (viewer), archives (VFS + inflate), `.lang`, `.layout`, `duoprc`, `manifest.ini`; crashing inputs saved |
+| `proc_health.py` | runtime | wraps any command (`-- cmd`) or `--scan`s: duop processes that outlive it, without a tty, spinning; `--kill` cleans them up |
+| `rt_common.py`, `asm_index.py` | library | PTY launch / status tracking; routine split, call graph, `.asciz` index |

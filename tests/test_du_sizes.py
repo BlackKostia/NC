@@ -106,7 +106,8 @@ def test_mount_points(tmp):
         f.write(b"o" * MIB)                          # visible through the overlay mount
     with open(os.path.join(left, "real", "data.bin"), "wb") as f:
         f.write(b"r" * 65536)
-    s = PtySession(unshare, ["-rmpf", "--mount-proc", "sh", "-c", MOUNT_SCRIPT, "sh",
+    # --kill-child: Duop is PID 1 of the new namespace (immune to SIGHUP); it must die with unshare
+    s = PtySession(unshare, ["-rmpf", "--kill-child", "--mount-proc", "sh", "-c", MOUNT_SCRIPT, "sh",
                              left, aux, BINARY, right], cols=120, rows=35)
     try:
         s.drain(0.6)
