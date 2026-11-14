@@ -290,8 +290,9 @@ CLASS_END ViewAsDialog
 
 CLASS_BEGIN HelpDialog
     EXTENDS Dialog
-    FIELD HelpDialog.scroll, 4
-    FIELD HelpDialog.pad,    4
+    FIELD HelpDialog.scroll,    4
+    FIELD HelpDialog.tab,       4       # 0 = Overview, 1 = Instruction
+    FIELD HelpDialog.tab_zones, 2*HitZone._size
 CLASS_END HelpDialog
 
 CLASS_BEGIN ProgressDialog

@@ -220,6 +220,44 @@ i18n_keys:
     LK pal_quit, LangStrings.pal_quit
     LK cli_version, LangStrings.cli_version
     LK cli_usage, LangStrings.cli_usage
+    LK help_tab_overview, LangStrings.help_tab_overview
+    LK help_tab_instr, LangStrings.help_tab_instr
+    LK help_instr_lines.1,  LangStrings.help_instr_lines+0
+    LK help_instr_lines.2,  LangStrings.help_instr_lines+8
+    LK help_instr_lines.3,  LangStrings.help_instr_lines+16
+    LK help_instr_lines.4,  LangStrings.help_instr_lines+24
+    LK help_instr_lines.5,  LangStrings.help_instr_lines+32
+    LK help_instr_lines.6,  LangStrings.help_instr_lines+40
+    LK help_instr_lines.7,  LangStrings.help_instr_lines+48
+    LK help_instr_lines.8,  LangStrings.help_instr_lines+56
+    LK help_instr_lines.9,  LangStrings.help_instr_lines+64
+    LK help_instr_lines.10, LangStrings.help_instr_lines+72
+    LK help_instr_lines.11, LangStrings.help_instr_lines+80
+    LK help_instr_lines.12, LangStrings.help_instr_lines+88
+    LK help_instr_lines.13, LangStrings.help_instr_lines+96
+    LK help_instr_lines.14, LangStrings.help_instr_lines+104
+    LK help_instr_lines.15, LangStrings.help_instr_lines+112
+    LK help_instr_lines.16, LangStrings.help_instr_lines+120
+    LK help_instr_lines.17, LangStrings.help_instr_lines+128
+    LK help_instr_lines.18, LangStrings.help_instr_lines+136
+    LK help_instr_lines.19, LangStrings.help_instr_lines+144
+    LK help_instr_lines.20, LangStrings.help_instr_lines+152
+    LK help_instr_lines.21, LangStrings.help_instr_lines+160
+    LK help_instr_lines.22, LangStrings.help_instr_lines+168
+    LK help_instr_lines.23, LangStrings.help_instr_lines+176
+    LK help_instr_lines.24, LangStrings.help_instr_lines+184
+    LK help_instr_lines.25, LangStrings.help_instr_lines+192
+    LK help_instr_lines.26, LangStrings.help_instr_lines+200
+    LK help_instr_lines.27, LangStrings.help_instr_lines+208
+    LK help_instr_lines.28, LangStrings.help_instr_lines+216
+    LK help_instr_lines.29, LangStrings.help_instr_lines+224
+    LK help_instr_lines.30, LangStrings.help_instr_lines+232
+    LK help_instr_lines.31, LangStrings.help_instr_lines+240
+    LK help_instr_lines.32, LangStrings.help_instr_lines+248
+    LK help_instr_lines.33, LangStrings.help_instr_lines+256
+    LK help_instr_lines.34, LangStrings.help_instr_lines+264
+    LK help_instr_lines.35, LangStrings.help_instr_lines+272
+    LK help_instr_lines.36, LangStrings.help_instr_lines+280
     .short 0xFFFF
 .if lk_slots * 8 != LangStrings._size
     .error "i18n_keys: every LangStrings slot needs exactly one key"

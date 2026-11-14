@@ -138,6 +138,7 @@ SRCS := \
 	src/ui/dialogs_input.s \
 	src/ui/dialogs_input_keys.s \
 	src/ui/dialogs_help.s \
+	src/ui/dialogs_help_input.s \
 	src/ui/viewer_dialog.s \
 	src/ui/viewer_image.s \
 	src/ui/viewer_pixels.s \
@@ -251,6 +252,7 @@ test: $(TARGET)
 	python3 tests/test_nav_viewer.py
 	python3 tests/test_event_loop.py
 	python3 tests/test_kbd_layout.py
+	python3 tests/test_help_instruction.py
 	python3 tests/test_lang_packs.py
 
 memcheck:

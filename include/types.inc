@@ -371,6 +371,9 @@ LangStrings.pal_shell:          .space 8
 LangStrings.pal_quit:           .space 8
 LangStrings.cli_version:        .space 8   # duop --version text (multi-line)
 LangStrings.cli_usage:          .space 8   # duop --help text (multi-line)
+LangStrings.help_tab_overview:  .space 8   # HelpDialog tab 0 label
+LangStrings.help_tab_instr:     .space 8   # HelpDialog tab 1 label
+LangStrings.help_instr_lines:   .space 36*8
 LangStrings._size:
 
 .section .text

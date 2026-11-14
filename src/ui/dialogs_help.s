@@ -2,7 +2,8 @@
 
 .intel_syntax noprefix
 .include "classes.inc"
-.equ HELP_LINE_COUNT, 22
+.equ HELP_LINE_COUNT,  22
+.equ HELP_INSTR_COUNT, 36
 
 .section .rodata
 str_HelpDialog:    .asciz "HelpDialog"
@@ -42,24 +43,6 @@ HelpDialog_new:
 .Lhdn_fail:
     pop r12
     pop rbx
-    ret
-
-# int help_max_scroll(HelpDialog *this)
-# Returns maximum valid HelpDialog.scroll based on current visible dialog height.
-help_max_scroll:
-    mov eax, [rdi + Widget.h]
-    sub eax, 4
-    cmp eax, 1
-    jge .Lhms_vis_ok
-    mov eax, 1
-.Lhms_vis_ok:
-    mov edx, HELP_LINE_COUNT
-    sub edx, eax
-    xor eax, eax
-    cmp edx, 0
-    jle .Lhms_ret
-    mov eax, edx
-.Lhms_ret:
     ret
 
 HelpDialog_layout:
@@ -103,13 +86,49 @@ HelpDialog_layout:
     mov [rbx + HelpDialog.scroll], eax
 .Lhdl_scroll_ok:
 
-    # Single Close button bottom-right
+    # Single Close button bottom-right + tab HitZones at row y+1
     call i18n_get
     mov rsi, [rax + LangStrings.dlg_btn_close]
     xor edx, edx
     mov rdi, rbx
     call dlg_layout_right_buttons
+    call help_layout_tabs
     pop rbx
+    ret
+
+help_layout_tabs:
+    push r12
+    push r13
+    call i18n_get
+    mov r12, rax
+    mov rdi, [r12 + LangStrings.help_tab_overview]
+    call utf8_display_width
+    mov r13d, eax
+    mov edi, [rbx + Widget.x]
+    add edi, 3
+    mov edx, [rbx + Widget.y]
+    inc edx
+    lea rsi, [rbx + HelpDialog.tab_zones]
+    mov [rsi + HitZone.x1], di
+    add edi, r13d
+    mov [rsi + HitZone.x2], di
+    mov [rsi + HitZone.y], dx
+    mov word ptr [rsi + HitZone.id], 0
+    push rdi
+    mov rdi, [r12 + LangStrings.help_tab_instr]
+    call utf8_display_width
+    pop rdi
+    add edi, 2
+    lea rsi, [rbx + HelpDialog.tab_zones + HitZone._size]
+    mov edx, [rbx + Widget.y]
+    inc edx
+    mov [rsi + HitZone.x1], di
+    add edi, eax
+    mov [rsi + HitZone.x2], di
+    mov [rsi + HitZone.y], dx
+    mov word ptr [rsi + HitZone.id], 1
+    pop r13
+    pop r12
     ret
 
 HelpDialog_render:
@@ -164,9 +183,48 @@ HelpDialog_render__draw_frame:
     sub edx, 2
     call ScreenBuffer_draw_text
 .Lhdr_skip_hint:
+    call help_draw_tabs
 
 .LHelpDialog_render__draw_frame_ret:
     lea rsp, [rsp + 8]
+    ret
+
+help_draw_tabs:
+    push r14
+    push r15
+    call i18n_get
+    mov r14, rax
+    xor r15d, r15d
+.Lhdt_loop:
+    mov esi, [r13 + Theme.muted]
+    mov edx, [r13 + Theme.dialog_bg]
+    xor ecx, ecx
+    cmp r15d, [rbx + HelpDialog.tab]
+    jne .Lhdt_pen
+    mov esi, [r13 + Theme.accent_fg]
+    mov edx, [r13 + Theme.accent]
+    mov ecx, ATTR_BOLD
+.Lhdt_pen:
+    mov rdi, r12
+    call ScreenBuffer_set_pen
+    mov rcx, [r14 + LangStrings.help_tab_overview]
+    test r15d, r15d
+    jz .Lhdt_lbl
+    mov rcx, [r14 + LangStrings.help_tab_instr]
+.Lhdt_lbl:
+    imul eax, r15d, HitZone._size
+    lea r9, [rbx + HelpDialog.tab_zones]
+    movsx esi, word ptr [r9 + rax + HitZone.x1]
+    movsx edx, word ptr [r9 + rax + HitZone.y]
+    movsx r8d, word ptr [r9 + rax + HitZone.x2]
+    sub r8d, esi
+    mov rdi, r12
+    call ScreenBuffer_draw_text
+    inc r15d
+    cmp r15d, 2
+    jl .Lhdt_loop
+    pop r15
+    pop r14
     ret
 
 # HelpDialog_render step: Section headings start with xE2 accent bold (runs on the caller's frame)
@@ -180,13 +238,24 @@ HelpDialog_render__section_headings_start_xe2:
     jge .Lhdr_done
     mov eax, [rbx + HelpDialog.scroll]
     add eax, r15d
-    cmp eax, HELP_LINE_COUNT
+    push rax
+    mov rdi, rbx
+    call help_active_count
+    mov ecx, eax
+    pop rax
+    cmp eax, ecx
     jge .Lhdr_done
 
     push rax
     call i18n_get
     pop rcx
+    cmp dword ptr [rbx + HelpDialog.tab], 0
+    jne .Lhdr_instr
     mov rcx, [rax + LangStrings.help_lines + rcx*8]
+    jmp .Lhdr_got_line
+.Lhdr_instr:
+    mov rcx, [rax + LangStrings.help_instr_lines + rcx*8]
+.Lhdr_got_line:
     push rcx
 
     # Section headings start with 0xE2 ('◆') -> accent + bold
@@ -220,64 +289,4 @@ HelpDialog_render__section_headings_start_xe2:
 .Lhdr_done:
 .LHelpDialog_render__section_headings_start_xe2_ret:
     lea rsp, [rsp + 8]
-    ret
-
-HelpDialog_on_key:
-    mov eax, [rsi + Event.lat]
-    cmp eax, KEY_ESC
-    je .Lhdk_close
-    cmp eax, KEY_ENTER
-    je .Lhdk_close
-    cmp eax, 'q'
-    je .Lhdk_close
-    cmp eax, KEY_F1
-    je .Lhdk_close
-    cmp eax, KEY_UP
-    je .Lhdk_up
-    cmp eax, KEY_DOWN
-    je .Lhdk_dn
-    mov eax, 1
-    ret
-.Lhdk_close:
-    VCALL DialogVtbl.on_cancel
-    mov eax, 1
-    ret
-.Lhdk_up:
-    dec dword ptr [rdi + HelpDialog.scroll]
-    jns .Lhdk_dirty
-    mov dword ptr [rdi + HelpDialog.scroll], 0
-    jmp .Lhdk_dirty
-.Lhdk_dn:
-    call help_max_scroll
-    cmp [rdi + HelpDialog.scroll], eax
-    jge .Lhdk_dirty
-    inc dword ptr [rdi + HelpDialog.scroll]
-.Lhdk_dirty:
-    mov rax, [rdi + Dialog.app]
-    mov dword ptr [rax + App.need_redraw], 1
-    mov eax, 1
-    ret
-
-HelpDialog_on_mouse:
-    cmp dword ptr [rsi + Event.mouse_kind], MACT_WHEEL
-    jne Dialog_on_mouse
-    cmp dword ptr [rsi + Event.mouse_btn], MOUSE_WHEEL_UP
-    jne .Lhdm_dn
-    mov eax, [rdi + HelpDialog.scroll]
-    dec eax
-    jns .Lhdm_apply
-    xor eax, eax
-    jmp .Lhdm_apply
-.Lhdm_dn:
-    call help_max_scroll
-    mov ecx, [rdi + HelpDialog.scroll]
-    cmp ecx, eax
-    jge .Lhdm_done
-    lea eax, [rcx + 1]
-.Lhdm_apply:
-    mov [rdi + HelpDialog.scroll], eax
-    mov rax, [rdi + Dialog.app]
-    mov dword ptr [rax + App.need_redraw], 1
-.Lhdm_done:
-    mov eax, 1
     ret

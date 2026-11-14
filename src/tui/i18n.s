@@ -251,6 +251,44 @@ en_cli_usage:
     .ascii "License: MIT License (Open Source)\n"
     .ascii "Press F1 inside Duop for full keyboard and mouse shortcuts.\n"
     .byte 0
+en_help_tab_overview: .asciz " Overview "
+en_help_tab_instr:    .asciz " Instruction "
+en_hi_1:  .asciz "◆ FUNCTION KEYS (F1-F10)"
+en_hi_2:  .asciz "  F1  Help / Instruction    F2  Rename          F3  View (Img/Hex/Txt)"
+en_hi_3:  .asciz "  F4  Edit ($EDITOR)        F5  Copy            F6  Move"
+en_hi_4:  .asciz "  F7  Mkdir                 F8 / Del  Delete    F9  Toggle Preview"
+en_hi_5:  .asciz "  F10 Quit Duop"
+en_hi_6:  .asciz "◆ NAVIGATION & PANES"
+en_hi_7:  .asciz "  Up/Down, k/j, PgUp/PgDn   Move cursor / scroll page"
+en_hi_8:  .asciz "  Home/g, End/G             Jump to first / last entry"
+en_hi_9:  .asciz "  Enter                     Open dir or archive (.tar, .tar.gz, .zip)"
+en_hi_10: .asciz "  Backspace / ~             Parent directory (..) / Home ($HOME)"
+en_hi_11: .asciz "  Tab / Shift+Tab           Switch active pane (when Preview is off)"
+en_hi_12: .asciz "  Alt+Left / Alt+Right      Directory history: back / forward"
+en_hi_13: .asciz "  Esc                       Cancel loading or clear live filter"
+en_hi_14: .asciz "◆ SELECTION, SEARCH & FILTER"
+en_hi_15: .asciz "  Space / Insert            Toggle mark on current file"
+en_hi_16: .asciz "  * / Ctrl+A                Toggle mark on all files"
+en_hi_17: .asciz "  /                         Live filename filter"
+en_hi_18: .asciz "  . / Ctrl+H                Show / hide dotfiles"
+en_hi_19: .asciz "  z / Ctrl+F                Frecency jump / Search files & grep"
+en_hi_20: .asciz "  Ctrl+K / Alt+P            Command Palette / Fuzzy Finder"
+en_hi_21: .asciz "◆ TABS, UI & TOOLS"
+en_hi_22: .asciz "  Ctrl+T / Ctrl+W           New tab / Close current tab"
+en_hi_23: .asciz "  Ctrl+G / Ctrl+D           Go to path / Bookmarks"
+en_hi_24: .asciz "  Ctrl+N / Ctrl+R / Ctrl+Z  New file / Refresh panes / Undo trash"
+en_hi_25: .asciz "  Ctrl+O / Ctrl+` / Ctrl+P  External $SHELL / Embedded terminal / Preview"
+en_hi_26: .asciz "  Ctrl+Q / Ctrl+C / q       Quit Duop"
+en_hi_27: .asciz "  Alt+T / Alt+L / Alt+V     Cycle Theme / Language / Preview Mode"
+en_hi_28: .asciz "  Alt+D / Alt+= / Alt+B     Disk Usage / Dir Diff / Bulk Rename"
+en_hi_29: .asciz "  Alt+U / Alt+J             User Menu / Background Tasks"
+en_hi_30: .asciz "  Alt+A / Alt+I             chmod / File Info"
+en_hi_31: .asciz "  Alt+S / Alt+H             Create symlink / hardlink"
+en_hi_32: .asciz "◆ VIEWER (F3) & HEX EDITOR"
+en_hi_33: .asciz "  Up/Dn/PgUp/PgDn/Space     Scroll; Home/End: top/bottom; H: Text/Hex"
+en_hi_34: .asciz "  Image: +/-, 1(100%), 0/f(Fit), Arrows(Pan), B(Braille), O(Open)"
+en_hi_35: .asciz "  Hex Edit: E(Toggle edit), 0-9a-f(Nibbles), Ctrl+Z(Undo), Ctrl+S(Save)"
+en_hi_36: .asciz "  Esc / q / F3 / F10        Close viewer (Tab/Arrows switch Help tabs)"
 
 .align 8
 .global lang_en_table
@@ -292,6 +330,11 @@ lang_en_table:
     .quad en_pal_theme, en_pal_lang, en_pal_preview, en_pal_hidden, en_pal_help, en_pal_rename, en_pal_view, en_pal_edit, en_pal_copy, en_pal_move
     .quad en_pal_mkdir, en_pal_delete, en_pal_newfile, en_pal_filter, en_pal_goto, en_pal_refresh, en_pal_usermenu, en_pal_shell, en_pal_quit
     .quad en_cli_version, en_cli_usage
+    .quad en_help_tab_overview, en_help_tab_instr
+    .quad en_hi_1, en_hi_2, en_hi_3, en_hi_4, en_hi_5, en_hi_6, en_hi_7, en_hi_8, en_hi_9
+    .quad en_hi_10, en_hi_11, en_hi_12, en_hi_13, en_hi_14, en_hi_15, en_hi_16, en_hi_17, en_hi_18
+    .quad en_hi_19, en_hi_20, en_hi_21, en_hi_22, en_hi_23, en_hi_24, en_hi_25, en_hi_26, en_hi_27
+    .quad en_hi_28, en_hi_29, en_hi_30, en_hi_31, en_hi_32, en_hi_33, en_hi_34, en_hi_35, en_hi_36
 .if (. - lang_en_table) != LangStrings._size
     .error "lang_en_table size does not match LangStrings._size"
 .endif
