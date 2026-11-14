@@ -9,6 +9,7 @@
 
 .section .rodata
 seq_kitty_del: .ascii "\x1b_Ga=d,d=A,q=2\x1b\\"
+seq_kitty_del_p: .ascii "\x1b_Ga=d,d=a,q=2\x1b\\"
 .equ SEQ_KITTY_DEL_LEN, 16
 seq_ov_sync_on:  .ascii "\x1b[?2026h"
 seq_ov_sync_off: .ascii "\x1b[?2026l"
@@ -22,11 +23,26 @@ ov_last_on:    .space 4
 ov_last_proto: .space 4
 ov_emit:       .space 4
 ov_del_on_emit: .space 4
+ov_kitty_tx_img: .space 8
 
 .section .text
 .global img_overlay_show
 .global img_preview_pre_flush
 .global img_preview_post_flush
+.global img_overlay_kitty_ready
+.global img_overlay_kitty_mark
+
+# int img_overlay_kitty_ready(const void *pixels)
+img_overlay_kitty_ready:
+    xor eax, eax
+    cmp rdi, [rip + ov_kitty_tx_img]
+    sete al
+    ret
+
+# void img_overlay_kitty_mark(const void *pixels)
+img_overlay_kitty_mark:
+    mov [rip + ov_kitty_tx_img], rdi
+    ret
 
 # void img_overlay_show(const ImgPlace *p) -- call from render; valid for the current frame only
 img_overlay_show:
@@ -121,6 +137,7 @@ ov_remove:
     push rbx
     mov rbx, rdi
     mov dword ptr [rip + ov_last_on], 0
+    mov qword ptr [rip + ov_kitty_tx_img], 0
     cmp dword ptr [rip + ov_last_proto], IMG_PROTO_KITTY
     jne .Lrm_sixel
     mov edi, STDOUT_FD
@@ -154,7 +171,10 @@ img_preview_post_flush:
     mov dword ptr [rip + ov_del_on_emit], 0
     mov edi, STDOUT_FD
     lea rsi, [rip + seq_kitty_del]
-    mov edx, SEQ_KITTY_DEL_LEN
+    cmp qword ptr [rip + ov_kitty_tx_img], 0
+    je 2f
+    lea rsi, [rip + seq_kitty_del_p]
+2:  mov edx, SEQ_KITTY_DEL_LEN
     call sys_write_all
 1:  mov word ptr [rsp], 0x5B1B
     lea rbx, [rsp + 2]

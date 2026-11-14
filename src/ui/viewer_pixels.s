@@ -8,6 +8,7 @@
 
 .section .text
 .global vim_draw_picture
+.global vim_place
 
 # void vim_draw_picture(ViewerDialog *v, ScreenBuffer *scr, Theme *theme)
 vim_draw_picture:
@@ -15,8 +16,7 @@ vim_draw_picture:
     push r12
     push r13
     push r14
-    push r15
-    sub rsp, 64                       # ImgView / ImgPlace, [56] = Kitty cols
+    sub rsp, 72                       # ImgView / ImgPlace, [56] = Kitty cols
     mov rbx, rdi
     mov r12, rsi
     mov r13, rdx
@@ -39,7 +39,14 @@ vim_draw_picture:
     mov [rsp + 52], edx
     mov [rsp + 56], ecx
     mov rdi, rbx
-    mov esi, eax
+    mov esi, r14d
+    mov rdx, rsp
+    call vim_kitty_pan
+    test eax, eax
+    jnz .Ldp_ret
+    mov rdi, rbx
+    mov esi, [rsp + 48]
+    mov edx, [rsp + 52]
     xor ecx, ecx
     cmp r14d, IMG_PROTO_SIXEL
     setb cl                           # block output fills the window, pixels never upscale
@@ -76,8 +83,7 @@ vim_draw_picture:
     mov rdi, rsp
     call img_overlay_show
 .Ldp_ret:
-    add rsp, 64
-    pop r15
+    add rsp, 72
     pop r14
     pop r13
     pop r12

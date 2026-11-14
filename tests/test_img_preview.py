@@ -159,7 +159,7 @@ def test_img_zoom_and_quality():
         r = os.path.join(tmp, "right")
         os.makedirs(l)
         os.makedirs(r)
-        make_png_grid(os.path.join(l, "grid.png"), 600, 600)
+        make_png_grid(os.path.join(l, "grid.png"), 200, 200)
 
         sess = PtySession(BINARY, ["--lang", "en", l, r], cols=100, rows=30)
         try:
@@ -270,7 +270,7 @@ def test_braille_mode():
         r = os.path.join(tmp, "right")
         os.makedirs(l)
         os.makedirs(r)
-        make_png_grid(os.path.join(l, "grid.png"), 600, 600)
+        make_png_grid(os.path.join(l, "grid.png"), 200, 200)
 
         sess = PtySession(BINARY, ["--lang", "en", l, r], cols=100, rows=30)
         try:
@@ -311,7 +311,7 @@ def test_scrollbar_mouse():
         r = os.path.join(tmp, "right")
         os.makedirs(l)
         os.makedirs(r)
-        make_png_grid(os.path.join(l, "grid.png"), 600, 600)
+        make_png_grid(os.path.join(l, "grid.png"), 200, 200)
 
         sess = PtySession(BINARY, ["--lang", "en", l, r], cols=100, rows=30)
         try:
@@ -363,7 +363,7 @@ def test_wheel_scroll_and_drag():
         r = os.path.join(tmp, "right")
         os.makedirs(l)
         os.makedirs(r)
-        make_png_grid(os.path.join(l, "grid.png"), 600, 600)
+        make_png_grid(os.path.join(l, "grid.png"), 200, 200)
 
         sess = PtySession(BINARY, ["--lang", "en", l, r], cols=100, rows=30)
         try:
@@ -422,23 +422,24 @@ def test_kitty_scroll_no_flicker():
             os.write(sess.master, b"\x1bOR")    # F3 -> Open as
             drain_raw(sess, 0.15)
             os.write(sess.master, b"i")         # Image mode
-            drain_raw(sess, 0.4)
-            os.write(sess.master, b"1")         # 100% zoom
-            drain_raw(sess, 0.4)
+            drain_raw(sess, 0.6)
+            os.write(sess.master, b"1")         # 100% zoom -> a=t + a=p
+            raw_z = drain_raw(sess, 0.4)
+            assert b"\x1b_Ga=t,f=32,i=7,q=2,s=600,v=600" in raw_z, "Expected one-time Kitty a=t upload on zoom"
 
-            # Burst of 4 wheel-down events in one write must coalesce (<= 2 Kitty redraws, no a=d)
+            # Burst of 4 wheel-down events must emit lightweight a=p (no a=T re-upload, no a=d)
             os.write(sess.master, b"\x1b[<65;50;15M" * 4)
             raw = drain_raw(sess, 0.4)
-            emits = raw.count(b"\x1b_Ga=T,f=32")
-            assert 1 <= emits <= 2, f"Expected coalesced Kitty redraws (1..2), got {emits}"
+            assert b"\x1b_Ga=p,i=7,p=1," in raw, "Expected lightweight Kitty a=p placement on scroll"
+            assert b"\x1b_Ga=T" not in raw, "Unexpected full a=T re-upload during Kitty scroll"
             assert b"\x1b_Ga=d" not in raw, "Unexpected a=d during Kitty same-rect scroll (causes flicker)"
             sync_on = raw.rfind(b"\x1b[?2026h")
-            emit_pos = raw.find(b"\x1b_Ga=T,f=32", sync_on if sync_on != -1 else 0)
+            emit_pos = raw.find(b"\x1b_Ga=p,i=7,p=1,", sync_on if sync_on != -1 else 0)
             sync_off = raw.find(b"\x1b[?2026l", emit_pos if emit_pos != -1 else 0)
             assert sync_on != -1 and sync_on < emit_pos < sync_off, (
-                f"Kitty scroll emit not inside DEC 2026: sync_on={sync_on} emit={emit_pos} sync_off={sync_off}"
+                f"Kitty scroll a=p not inside DEC 2026: sync_on={sync_on} emit={emit_pos} sync_off={sync_off}"
             )
-            print("[PASS] IMG8. Kitty scroll coalesces bursts & replaces i=7 in-place without a=d")
+            print("[PASS] IMG8. Kitty scroll uses 65B a=p GPU crop inside DEC 2026 (no a=T/a=d)")
         finally:
             try:
                 os.kill(sess.pid, 9)

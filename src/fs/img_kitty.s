@@ -8,14 +8,21 @@
 .section .rodata
 b64_alphabet: .ascii "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 str_k_first:  .asciz "\x1b_Ga=T,f=32,i=7,q=2,C=1,s="
+str_k_tx:     .asciz "\x1b_Ga=t,f=32,i=7,q=2,s="
+str_k_place:  .asciz "\x1b_Ga=p,i=7,p=1,q=2,C=1,x="
 str_k_v:      .asciz ",v="
+str_k_y:      .asciz ",y="
+str_k_w:      .asciz ",w="
+str_k_h:      .asciz ",h="
 str_k_c:      .asciz ",c="
+str_k_r:      .asciz ",r="
 str_k_m:      .asciz ",m="
 str_k_next:   .asciz "\x1b_Gm="
 .equ KITTY_RAW_CHUNK, 3072                # -> 4096 base64 bytes
 
 .section .text
 .global img_kitty_encode
+.global img_kitty_place
 .global img_b64_encode
 
 # size_t img_kitty_encode(const uint8_t *rgba, int w, int h, int cols /*0 = native size*/,
@@ -93,7 +100,10 @@ ke_header:
     test edx, edx
     jz .Lkh_next
     lea rsi, [rip + str_k_first]
-    call kh_str
+    cmp dword ptr [r12 + 8], 0
+    jge 0f
+    lea rsi, [rip + str_k_tx]
+0:  call kh_str
     mov edi, [r12]
     call kh_num
     lea rsi, [rip + str_k_v]
@@ -101,7 +111,7 @@ ke_header:
     mov edi, [r12 + 4]
     call kh_num
     cmp dword ptr [r12 + 8], 0
-    je 1f
+    jle 1f
     lea rsi, [rip + str_k_c]
     call kh_str
     mov edi, [r12 + 8]
@@ -140,6 +150,29 @@ kh_num:
     call u64_to_dec
     add rbx, rax
     add rsp, 8
+    ret
+
+# size_t img_kitty_place(uint8_t *out, const int *rect /*x,y,w,h*/, int cols, int rows) -> bytes
+img_kitty_place:
+    push rbx; push r12; push r13; push r14; push r15
+    mov r15, rdi; mov rbx, rdi; mov r12, rsi; mov r13d, edx; mov r14d, ecx
+    lea rsi, [rip + str_k_place]; call kh_str
+    mov edi, [r12]; call kh_num
+    lea rsi, [rip + str_k_y]; call kh_str
+    mov edi, [r12 + 4]; call kh_num
+    lea rsi, [rip + str_k_w]; call kh_str
+    mov edi, [r12 + 8]; call kh_num
+    lea rsi, [rip + str_k_h]; call kh_str
+    mov edi, [r12 + 12]; call kh_num
+    lea rsi, [rip + str_k_c]; call kh_str
+    mov edi, r13d; call kh_num
+    lea rsi, [rip + str_k_r]; call kh_str
+    mov edi, r14d; call kh_num
+    mov word ptr [rbx], 0x5C1B
+    add rbx, 2
+    mov rax, rbx
+    sub rax, r15
+    pop r15; pop r14; pop r13; pop r12; pop rbx
     ret
 
 # size_t img_b64_encode(const uint8_t *src, size_t len, char *dst) -> bytes written (with padding)
