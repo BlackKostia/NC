@@ -14,7 +14,8 @@ pkm_sub_cfg:   .asciz "/.config/duop/packages"
 pkm_sub_duop:  .asciz "/duop/packages"
 pkm_http:      .asciz "http://"
 pkm_https:     .asciz "https://"
-pkm_dl_tmp:    .asciz "/tmp/duop_pkg_dl.tar.gz"
+pkm_dl_pfx:    .asciz "pkg_dl"
+pkm_dl_sfx:    .asciz ".tar.gz"
 pkm_manifest:  .asciz "manifest.ini"
 pkm_sha_file:  .asciz "sha256"
 pkm_files_lst: .asciz "files.list"
@@ -54,6 +55,7 @@ pkm_dotdot:    .asciz ".."
 .extern str_copy
 .extern str_len
 .extern str_starts_with
+.extern tmp_make_path
 
 # void pkg_get_root(char **envp, char *out, int cap)
 pkg_get_root:
@@ -290,7 +292,7 @@ pkm_install_from_ctx:
 # int pkg_install_archive(char **envp, const char *path_or_url, const char *expected_sha256) -> 0 ok, <0 err
 pkg_install_archive:
     push rbx; push r12; push r13; push r14
-    sub rsp, 104
+    sub rsp, 360
     mov rbx, rdi; mov r12, rsi; mov r13, rdx
     mov dword ptr [rsp + 96], 0
     mov rdi, r12; lea rsi, [rip + pkm_http]; call str_starts_with
@@ -298,9 +300,12 @@ pkg_install_archive:
     mov rdi, r12; lea rsi, [rip + pkm_https]; call str_starts_with
     test eax, eax; jz .Lpia_hash
 .Lpia_dl:
-    mov rdi, rbx; mov rsi, r12; lea rdx, [rip + pkm_dl_tmp]; call pkg_fetch_url
+    lea rdi, [rip + pkm_dl_pfx]; lea rsi, [rip + pkm_dl_sfx]
+    lea rdx, [rsp + 104]; mov ecx, 256; call tmp_make_path
+    test eax, eax; js .Lpia_err
+    mov rdi, rbx; mov rsi, r12; lea rdx, [rsp + 104]; call pkg_fetch_url
     test eax, eax; jnz .Lpia_err
-    lea r12, [rip + pkm_dl_tmp]; mov dword ptr [rsp + 96], 1
+    lea r12, [rsp + 104]; mov dword ptr [rsp + 96], 1
 .Lpia_hash:
     mov rdi, r12; lea rsi, [rsp]; lea rdx, [rsp + 8]; call hash_file
     test eax, eax; js .Lpia_err
@@ -319,9 +324,9 @@ pkg_install_archive:
     mov eax, -1
 .Lpia_clean:
     cmp dword ptr [rsp + 96], 0; je .Lpia_ret
-    push rax; mov edi, AT_FDCWD; lea rsi, [rip + pkm_dl_tmp]; xor edx, edx; OS_UNLINKAT; pop rax
+    push rax; mov edi, AT_FDCWD; lea rsi, [rsp + 104 + 8]; xor edx, edx; OS_UNLINKAT; pop rax
 .Lpia_ret:
-    add rsp, 104; pop r14; pop r13; pop r12; pop rbx; ret
+    add rsp, 360; pop r14; pop r13; pop r12; pop rbx; ret
 
 # int pkg_verify(char **envp, const char *name) -> 0 ok, -1 err
 pkg_verify:

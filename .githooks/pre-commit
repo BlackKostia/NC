@@ -59,7 +59,12 @@ if [[ -n "$BIN_CODE_STAGED" ]]; then
     fi
 fi
 
-# 4b. Warn when feature/UI/extension modules are staged without documentation updates
+# 4b. Verify auto-generated docs/SYMBOLS.md is up to date whenever src/ or include/ changes
+if [[ -n "$BIN_CODE_STAGED" ]]; then
+    python3 "$ROOT/.agents/skills/duop-docs-sync/scripts/gen_symbols_catalog.py" --check
+fi
+
+# 4c. Warn when feature/UI/extension modules are staged without documentation updates
 FEATURE_STAGED="$(printf '%s\n' "$STAGED" | grep -E '^(src/app/|src/ui/|src/fs/pkg_|src/main\.s)' || true)"
 DOCS_STAGED="$(printf '%s\n' "$STAGED" | grep -E '^(docs/|README(\.uk)?\.md$|ROADMAP\.md$)' || true)"
 if [ -n "$FEATURE_STAGED" ] && [ -z "$DOCS_STAGED" ]; then

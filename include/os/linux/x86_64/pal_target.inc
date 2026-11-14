@@ -19,6 +19,7 @@
 .equ OS_SYS_ioctl,          16
 .equ OS_SYS_mremap,         25
 .equ OS_SYS_dup2,           33
+.equ OS_SYS_getpid,         39
 .equ OS_SYS_clone,          56
 .equ OS_SYS_fork,           57
 .equ OS_SYS_futex,          202
@@ -29,6 +30,7 @@
 .equ OS_SYS_fcntl,          72
 .equ OS_SYS_getcwd,         79
 .equ OS_SYS_chdir,          80
+.equ OS_SYS_getuid,         102
 .equ OS_SYS_getdents64,     217
 .equ OS_SYS_inotify_add_watch, 254
 .equ OS_SYS_inotify_rm_watch, 255
@@ -172,6 +174,8 @@
 .equ KSIG_IGN,              1
 .equ SA_SIGINFO,            0x00000004
 .equ SIGBUS,                7
+.equ SIGFPE,                8
+.equ SIGSEGV,               11
 .equ KSIGINFO_ADDR,         16
 .equ SIGINT,                2
 .equ SIGTERM,               15
@@ -388,6 +392,8 @@
 .equ OS_TIOCSCTTY,  0x540E
 .equ OS_TIOCSWINSZ, 0x5414
 .macro OS_SETSID; mov eax, OS_SYS_setsid; syscall; .endm
+.macro OS_GETPID; mov eax, OS_SYS_getpid; syscall; .endm
+.macro OS_GETUID; mov eax, OS_SYS_getuid; syscall; .endm
 .macro OS_EXIT; mov eax, OS_SYS_exit; syscall; .endm
 .macro OS_NO_NEW_PRIVS; mov edi, 38; mov esi, 1; xor edx, edx; xor r10d, r10d; xor r8d, r8d; mov eax, 157; syscall; .endm
 .endif

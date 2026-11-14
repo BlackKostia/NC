@@ -13,7 +13,8 @@ pkvp_cmd_list: .asciz "LIST"
 pkvp_cmd_read: .asciz "READ"
 pkvp_sep_uri:  .asciz "://"
 pkvp_dotdot:   .asciz ".."
-pkvp_tmp_view: .asciz "/tmp/duop_vfs_view"
+pkvp_tmp_pfx:  .asciz "vfs_view"
+pkvp_tmp_sfx:  .asciz ""
 
 .section .text
 .global pkg_vfs_find_by_uri
@@ -37,6 +38,7 @@ pkvp_tmp_view: .asciz "/tmp/duop_vfs_view"
 .extern str_copy
 .extern str_len
 .extern str_starts_with
+.extern tmp_make_path
 
 pkvp_trim_cp:
     cmp rdi, rsi; jae .Lpvt3_r
@@ -309,11 +311,13 @@ pkg_vfs_read_uri:
     mov rbx, rdi; mov r12, rsi; mov r13, rdx; mov [rsp + PATH_MAX], ecx
     mov rdi, rbx; mov rsi, r12; mov rdx, rsp; call pkg_vfs_find_by_uri
     test eax, eax; jnz .Lpvr_err
+    lea rdi, [rip + pkvp_tmp_pfx]; lea rsi, [rip + pkvp_tmp_sfx]
+    mov rdx, r13; mov ecx, [rsp + PATH_MAX]; call tmp_make_path
+    test eax, eax; js .Lpvr_err
     mov rdi, rsp; lea rsi, [rip + pkvp_cmd_read]; mov rdx, r12
-    lea rcx, [rip + pkvp_tmp_view]; mov r8, rbx; lea r9, [rsp + PATH_MAX + 8]
+    mov rcx, r13; mov r8, rbx; lea r9, [rsp + PATH_MAX + 8]
     push 200; call pkvp_exec_capture; add rsp, 8
     test eax, eax; js .Lpvr_err
-    mov rdi, r13; lea rsi, [rip + pkvp_tmp_view]; mov edx, [rsp + PATH_MAX]; call str_copy
     xor eax, eax; jmp .Lpvr_ret
 .Lpvr_err:
     mov eax, -1

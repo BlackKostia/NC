@@ -4,6 +4,7 @@
 .intel_syntax noprefix
 .include "pal.inc"
 .include "classes.inc"
+.include "try_using.inc"
 
 .section .rodata
 str_tga_ext: .asciz ".tga"
@@ -97,10 +98,12 @@ img_path_has_ext:
 # int img_decode(const uint8_t *d, size_t n, int fmt, Image *out) -> 0 or IMG_E_*
 img_decode:
     push rbx
+    sub rsp, TRY_FRAME_SIZE + 8
     mov rbx, rcx
     mov qword ptr [rcx + Image.px], 0
     mov [rcx + Image.fmt], edx
     mov rcx, rbx
+    TRY_BEGIN rsp, .Ldec_fault
     cmp edx, IMG_FMT_PNG;  je .Ldec_png
     cmp edx, IMG_FMT_JPEG; je .Ldec_jpeg
     cmp edx, IMG_FMT_GIF;  je .Ldec_gif
@@ -109,7 +112,7 @@ img_decode:
     cmp edx, IMG_FMT_TGA;  je .Ldec_tga
     cmp edx, IMG_FMT_QOI;  je .Ldec_qoi
     mov eax, IMG_E_UNSUP
-    jmp .Ldec_ret
+    jmp .Ldec_chk
 .Ldec_png:  mov rdx, rbx; call img_png_decode;  jmp .Ldec_chk
 .Ldec_jpeg: mov rdx, rbx; call img_jpeg_decode; jmp .Ldec_chk
 .Ldec_gif:  mov rdx, rbx; call img_gif_decode;  jmp .Ldec_chk
@@ -118,13 +121,19 @@ img_decode:
 .Ldec_tga:  mov rdx, rbx; call img_tga_decode;  jmp .Ldec_chk
 .Ldec_qoi:  mov rdx, rbx; call img_qoi_decode
 .Ldec_chk:
+    TRY_END rsp
     test eax, eax
     jz .Ldec_ret
+    jmp .Ldec_free
+.Ldec_fault:
+    mov eax, IMG_E_CORRUPT
+.Ldec_free:
     push rax
     mov rdi, rbx
     call img_free                     # never leak a half-decoded picture
     pop rax
 .Ldec_ret:
+    add rsp, TRY_FRAME_SIZE + 8
     pop rbx
     ret
 

@@ -13,7 +13,7 @@
 pkp_sc_dir:    .asciz "dir"
 pkp_sc_file:   .asciz "file"
 pkp_ph_marked: .asciz "{marked_file}"
-pkp_tmp_pfx:   .asciz "/tmp/duop_marked_"
+pkp_tmp_pfx:   .asciz "marked"
 pkp_tmp_ext:   .asciz ".txt"
 
 .section .bss
@@ -21,7 +21,6 @@ pkp_tmp_ext:   .asciz ".txt"
 pkp_scan_buf:  .space 16 * PKGA_SIZE
 pkp_cache:     .space 8 * PKGA_SIZE
 pkp_cnt:       .space 4
-pkp_seq:       .space 4
 
 .section .text
 .global pkg_popup_refresh
@@ -39,6 +38,7 @@ pkp_seq:       .space 4
 .extern str_cmp
 .extern str_len
 .extern sys_write_all
+.extern tmp_open_unique
 
 # int pkp_ends_with_ci(const char *s, const char *suf, int suf_len) -> 1 match, 0 no
 pkp_ends_with_ci:
@@ -175,35 +175,13 @@ pkg_action_has_marked:
 .Lpahm_no:
     xor eax, eax; ret
 
-# void pkp_build_tmp_name(char *out)
-pkp_build_tmp_name:
-    lea rsi, [rip + pkp_tmp_pfx]
-.Lpbt_p:
-    mov al, [rsi]; test al, al; jz .Lpbt_num
-    mov [rdi], al; inc rdi; inc rsi; jmp .Lpbt_p
-.Lpbt_num:
-    mov eax, [rip + pkp_seq]; inc eax; mov [rip + pkp_seq], eax
-    mov ecx, 8
-.Lpbt_hex:
-    rol eax, 4; mov edx, eax; and edx, 0xF
-    add dl, '0'; cmp dl, '9'; jbe .Lpbt_s; add dl, 7
-.Lpbt_s:
-    mov [rdi], dl; inc rdi; dec ecx; jnz .Lpbt_hex
-    lea rsi, [rip + pkp_tmp_ext]
-.Lpbt_e:
-    mov al, [rsi]; mov [rdi], al; test al, al; jz .Lpbt_done
-    inc rdi; inc rsi; jmp .Lpbt_e
-.Lpbt_done:
-    ret
-
 # int pkg_write_marked_list(DirModel *model, const char *fallback_path, char *out_tmp_path, int cap)
 pkg_write_marked_list:
     push rbx; push r12; push r13; push r14; push r15
     sub rsp, PATH_MAX + 16
     mov rbx, rdi; mov r12, rsi; mov r13, rdx
-    mov rdi, r13; call pkp_build_tmp_name
-    mov edi, AT_FDCWD; mov rsi, r13
-    mov edx, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC; mov r10d, 0600; OS_OPENAT
+    lea rdi, [rip + pkp_tmp_pfx]; lea rsi, [rip + pkp_tmp_ext]
+    mov rdx, r13; call tmp_open_unique
     test rax, rax; js .Lpwml_err
     mov r14d, eax; xor r15d, r15d; xor ecx, ecx
 .Lpwml_loop:

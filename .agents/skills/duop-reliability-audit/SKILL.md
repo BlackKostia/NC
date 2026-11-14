@@ -19,6 +19,7 @@ This skill provides a multi-layer reliability verification suite (Python + C11 +
 8. **`scripts/audit_elf_hardening.py`** — Verifies `duop` ELF64 binary via `size`/`readelf`: `.data == 0`, non-executable `PT_GNU_STACK` (no `RWE`), zero `PT_INTERP` and `TEXTREL`.
 9. **`scripts/audit_runtime_leaks.py`** — Runs `duop` under `strace` in a real PTY (`F3` viewer, `F5` copy, `F10` quit) and verifies balanced `mmap`/`munmap` and FD cleanup.
 10. **`tests/test_reliability_audit.py` & `tests/test_fault_injection.py`** — End-to-end PTY reliability tests (`copy_subdir`, `copy_reg_at` `EEXIST` rename), corrupted/truncated image (`PNG`/`JPEG`/`GIF`/`BMP`/`TGA`/`PNM`) & config/lang fuzzing, `PATH_MAX` (>4096B) tree boundary, and parallel `DU` stress under `MEMCHECK=1`.
+11. **`TRY_BEGIN / TRY_END` & `USING_FD_* / SCOPED_MEM_*` (`include/try_using.inc`, `src/os/linux/x86_64/pal_fault.s`)** — Zero-syscall `ucontext_t` recovery blocks for parsers/image decoders (`SIGSEGV`, `SIGBUS`, `SIGFPE`) and zero-overhead scoped FD/heap cleanup, plus `src/core/tmpfile.s` (`tmp_open_unique`, `tmp_make_path`) for PID/UID-scoped `0700` temp files.
 
 ## Running
 

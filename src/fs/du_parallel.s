@@ -8,10 +8,10 @@
 .include "config.inc"
 .include "classes.inc"
 
-.equ DUP_MAX_DEPTH, 24
+.equ DUP_MAX_DEPTH, 64
 .equ DUP_STRIDE,    32768     # getdents64 buffer per recursion level
 .equ DUP_ARENA_SZ,  (DUP_MAX_DEPTH * DUP_STRIDE)
-.equ DUP_STACK_SZ,  32768
+.equ DUP_STACK_SZ,  65536
 .equ DUP_WORKERS,   4
 .equ DUP_ARG_SZ,    32        # ctx(8), arena(8), ctid(4), pad(4), stack_base(8)
 # ctx (du_parallel_walk frame): dfd(4) count(4) next_idx(4) pad(4) items(8) dev(8)

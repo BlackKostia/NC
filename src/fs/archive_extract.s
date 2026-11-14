@@ -3,6 +3,7 @@
 .intel_syntax noprefix
 .include "pal.inc"
 .include "classes.inc"
+.include "try_using.inc"
 .equ ARC_MAX_FILE,   4194304   # 4 MiB max archive file read
 .equ ARC_MAX_ENTRIES, 1024
 .equ AENT_SIZE,      288
@@ -31,9 +32,11 @@
 .extern str_starts_with
 .extern path_join
 .extern path_basename
+.extern tmp_open_unique
 
 .section .rodata
-arc_tmp_path:  .asciz "/tmp/duop_arc_view.tmp"
+arc_tmp_pfx:   .asciz "arc_view"
+arc_tmp_sfx:   .asciz ".tmp"
 
 .section .text
 .global arc_enter_model
@@ -41,7 +44,7 @@ arc_tmp_path:  .asciz "/tmp/duop_arc_view.tmp"
 
 # int arc_enter_model(DirModel *m, const FileEntry *ent) -> 1 if handled, 2 if '..' nav_up, 0 otherwise
 arc_enter_model:
-    push rbx; push r12; push r13; push r14; sub rsp, PATH_MAX + 16
+    push rbx; push r12; push r13; push r14; sub rsp, PATH_MAX + 16 + TRY_FRAME_SIZE
     mov r13, rdi; mov r14, rsi
     test r14, r14; jz .Lahe_no
     call DirModel_entry_name
@@ -76,14 +79,20 @@ arc_enter_model:
 .Lahe_p:
     mov [r13 + DirModel.arc_ctx], rbx
     mov [r13 + DirModel.arc_ctx], r14
+    lea r8, [rsp + PATH_MAX + 16]
+    TRY_BEGIN r8, .Lahe_fault
     mov rdi, r14
     cmp dword ptr [r14], 3; je .Lahe_pz
     call arc_parse_tar; jmp .Lahe_pop
 .Lahe_pz:
     call arc_parse_zip
 .Lahe_pop:
+    lea r8, [rsp + PATH_MAX + 16]
+    TRY_END r8
     mov rdi, r13; call arc_populate
     mov eax, 1; jmp .Lahe_ret
+.Lahe_fault:
+    xor eax, eax; jmp .Lahe_ret
 .Lahe_in_arc:
     test dword ptr [r14 + FileEntry.flags], FE_IS_PARENT; jz .Lahe_sub
     mov eax, 2; jmp .Lahe_ret
@@ -99,7 +108,7 @@ arc_enter_model:
 .Lahe_no:
     xor eax, eax
 .Lahe_ret:
-    add rsp, PATH_MAX + 16; pop r14; pop r13; pop r12; pop rbx; ret
+    add rsp, PATH_MAX + 16 + TRY_FRAME_SIZE; pop r14; pop r13; pop r12; pop rbx; ret
 
 # int arc_extract_entry(DirModel *m, const FileEntry *ent, char *out_tmp_path) -> 0 on ok, -1 on err
 arc_extract_entry:
@@ -147,9 +156,8 @@ arc_extract_entry:
     xor eax, eax              # flag: r8 not allocated
 .Laes_wtmp:
     push r8; push r9; push rax
-    mov rdi, r12; lea rsi, [rip + arc_tmp_path]; mov edx, PATH_MAX; call str_copy
-    mov edi, AT_FDCWD; mov rsi, r12; mov edx, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC
-    mov r10d, 0600; OS_OPENAT
+    lea rdi, [rip + arc_tmp_pfx]; lea rsi, [rip + arc_tmp_sfx]
+    mov rdx, r12; mov ecx, PATH_MAX; call tmp_open_unique
     test rax, rax; js .Laes_wfail
     mov rbx, rax
     mov rdi, rbx; mov rsi, [rsp + 16]; mov rdx, [rsp + 8]; OS_WRITE

@@ -31,6 +31,8 @@ SRCS := \
 	src/core/string_path.s \
 	src/core/utf8.s \
 	src/core/oop_rt.s \
+	src/core/try_rt.s \
+	src/core/tmpfile.s \
 	src/core/syscall.s \
 	src/core/config.s \
 	src/core/config_parse.s \
@@ -214,6 +216,7 @@ SRCS := \
 
 PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_os.s \
+	src/os/$(OS)/$(ARCH)/pal_fault.s \
 	src/os/$(OS)/$(ARCH)/pal_uring.s \
 	src/os/$(OS)/$(ARCH)/pal_simd.s \
 	src/os/$(OS)/$(ARCH)/pal_pty.s \
@@ -223,7 +226,7 @@ PAL_SRCS := \
 OBJS := $(patsubst src/%.s,$(BUILD)/%.o,$(SRCS) $(PAL_SRCS))
 INCS := $(wildcard include/*.inc) $(wildcard $(PAL_INC)/*.inc)
 
-.PHONY: all release run test memcheck verify hooks clean
+.PHONY: all release run test memcheck verify hooks symbols symbols-check clean
 
 all: $(TARGET)
 
@@ -282,6 +285,7 @@ test: $(TARGET)
 	python3 tests/test_reliability_audit.py
 	python3 tests/test_fault_injection.py
 	python3 tests/test_smart_runner.py
+	python3 tests/test_try_using_and_security.py
 
 test-smart: $(TARGET)
 	python3 tests/run_smart_tests.py
@@ -294,7 +298,14 @@ audit-all: $(TARGET)
 	python3 .agents/skills/duop-reliability-audit/scripts/audit_oop_vtables.py
 	python3 .agents/skills/duop-reliability-audit/scripts/audit_fd_eintr.py
 	python3 .agents/skills/duop-reliability-audit/scripts/audit_elf_hardening.py $(TARGET)
+	python3 .agents/skills/duop-docs-sync/scripts/gen_symbols_catalog.py --check
 	gcc -O2 -Wall -Wextra tools/abi_verify.c -o $(BUILD)/abi_verify && $(BUILD)/abi_verify include/os/linux/x86_64/pal_target.inc
+
+symbols:
+	python3 .agents/skills/duop-docs-sync/scripts/gen_symbols_catalog.py
+
+symbols-check:
+	python3 .agents/skills/duop-docs-sync/scripts/gen_symbols_catalog.py --check
 
 memcheck:
 	$(MAKE) MEMCHECK=1

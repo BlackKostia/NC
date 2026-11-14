@@ -152,7 +152,7 @@ signals_install:
     lea rdi, [rip + on_sigwinch]
     lea rsi, [rip + on_sigterm]
     call os_signals_install
-    call os_sigbus_guard_install      # mmap'ed viewer survives files truncated under it
+    call os_fault_guard_install       # unified TRY/CATCH + mmap SIGBUS guard
     add rsp, 8
     ret
 

@@ -5,7 +5,7 @@
 .include "pal.inc"
 .include "classes.inc"
 
-.equ DU_MAX_DEPTH, 24
+.equ DU_MAX_DEPTH, 64
 .equ DU_BATCH,     64
 .equ DU_OFF_PTRS,  32768
 .equ DU_OFF_ERRS,  33280      # 32768 + 64 * 8
