@@ -37,6 +37,9 @@
 .extern config_expand_cmd
 .extern sys_exec_sh_arg
 .extern sys_exec_argv
+.extern sys_exec_argv_bg
+.extern App_set_status
+.extern i18n_get
 .extern pkg_action_build_argv
 .extern pkg_action_has_marked
 .extern pkg_write_marked_list
@@ -315,8 +318,29 @@ App_run_pkg_action:
     mov rdi, [rsi]; push rdi; push rsi
     mov rsi, rdi; mov edi, AT_FDCWD; mov edx, 0755; xor r10d, r10d; OS_FCHMODAT
     pop rsi; pop rdi
-    mov rdx, [rbx + App.envp]; call sys_exec_argv
+    mov rdx, [rbx + App.envp]
+    cmp word ptr [r12 + 336], 0x6762; jne .Larpa_fg
+    cmp byte ptr [r12 + 338], 0; jne .Larpa_fg
+    call sys_exec_argv_bg
+    push rax
     mov rdi, r13; OS_CHDIR
+    pop rax
+    test eax, eax; jnz .Larpa_bg_err
+    mov rdi, [rbx + App.active_pane]; lea rsi, [r12 + 64]
+    mov rdi, rbx; lea rsi, [r12 + 128]
+    cmp byte ptr [rsi], 0; jne .Larpa_bg_ok
+    mov rsi, r12
+.Larpa_bg_ok:
+    mov edx, MSG_OK; call App_set_status
+    jmp .Larpa_unlink
+.Larpa_bg_err:
+    call i18n_get; mov rsi, [rax + LangStrings.pkg_err]; mov edx, MSG_ERR
+    mov rdi, rbx; call App_set_status
+    jmp .Larpa_unlink
+.Larpa_fg:
+    call sys_exec_argv
+    mov rdi, r13; OS_CHDIR
+.Larpa_unlink:
     lea rsi, [rsp + 40 + PATH_MAX * 2 + 1024 + 256]
     cmp byte ptr [rsi], 0; je .Larpa_redraw
     mov edi, AT_FDCWD; xor edx, edx; OS_UNLINKAT

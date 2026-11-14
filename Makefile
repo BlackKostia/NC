@@ -119,6 +119,7 @@ SRCS := \
 	src/fs/pkg_preview.s \
 	src/fs/pkg_registry.s \
 	src/fs/pkg_vfs.s \
+	src/fs/pkg_vfs_pane.s \
 	src/fs/pkg_cli.s \
 	src/fs/archive_vfs.s \
 	src/fs/archive_extract.s \
@@ -276,6 +277,8 @@ test: $(TARGET)
 	python3 tests/test_lang_packs.py
 	python3 tests/test_ui_visual.py
 	python3 tests/test_pkg_manager.py
+	python3 tests/test_pkg_extensions.py
+	python3 tests/test_pkg_improvements.py
 
 memcheck:
 	$(MAKE) MEMCHECK=1

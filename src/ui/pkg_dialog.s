@@ -47,6 +47,8 @@ PkgDialog_vtbl:
 .extern pkg_list
 .extern pkg_registry_find
 .extern pkg_registry_list
+.extern pkg_registry_update
+.extern pkg_registry_upgrade
 .extern pkg_remove
 .extern pkg_verify
 .extern str_cat
@@ -154,6 +156,24 @@ PkgDialog_render:
     sub rsp, 168
     mov rbx, rdi; mov r12, rsi; mov r13, rdx
     xor ecx, ecx; xor r8d, r8d; call Dialog_draw_frame
+    # Tab header at y + 1: [Installed]  [Available]
+    call i18n_get; push rax
+    mov esi, [r13 + Theme.accent_fg]; mov edx, [r13 + Theme.accent]
+    cmp dword ptr [rbx + PKGD_TAB], 0; je .Lpdr_t1
+    mov esi, [r13 + Theme.muted]; mov edx, [r13 + Theme.surface]
+.Lpdr_t1:
+    mov rdi, r12; mov ecx, ATTR_BOLD; call ScreenBuffer_set_pen
+    mov rax, [rsp]; mov rcx, [rax + LangStrings.pkg_tab_inst]
+    mov rdi, r12; mov esi, [rbx + Widget.x]; add esi, 3
+    mov edx, [rbx + Widget.y]; add edx, 1; mov r8d, 18; call ScreenBuffer_draw_text
+    mov esi, [r13 + Theme.accent_fg]; mov edx, [r13 + Theme.accent]
+    cmp dword ptr [rbx + PKGD_TAB], 1; je .Lpdr_t2
+    mov esi, [r13 + Theme.muted]; mov edx, [r13 + Theme.surface]
+.Lpdr_t2:
+    mov rdi, r12; mov ecx, ATTR_BOLD; call ScreenBuffer_set_pen
+    pop rax; mov rcx, [rax + LangStrings.pkg_tab_avail]
+    mov rdi, r12; mov esi, [rbx + Widget.x]; add esi, 22
+    mov edx, [rbx + Widget.y]; add edx, 1; mov r8d, 18; call ScreenBuffer_draw_text
     mov r14d, [rbx + PKGD_COUNT]
     test r14d, r14d; jnz .Lpdr_rows
     mov rdi, r12; mov esi, [r13 + Theme.text]; mov edx, [r13 + Theme.surface]; xor ecx, ecx
@@ -232,23 +252,46 @@ pkd_run_selected:
 .Lprs_err:
     add rsp, 576; mov eax, -1; ret
 
+pkd_do_upg:
+    mov r12, [rbx + Dialog.app]; mov rdi, [r12 + App.envp]
+    cmp dword ptr [rbx + PKGD_TAB], 0; jne .Lpdu_reg
+    jmp pkg_registry_upgrade
+.Lpdu_reg:
+    jmp pkg_registry_update
+
+pkd_do_enter:
+    cmp dword ptr [rbx + PKGD_TAB], 0; jne .Lpde_av
+    call pkd_run_selected; test eax, eax; jz .Lpde_ok
+    jmp pkd_do_verify
+.Lpde_av:
+    call pkd_install_avail; test eax, eax; jnz .Lpde_err
+    mov dword ptr [rbx + PKGD_TAB], 0; mov rdi, rbx; call pkd_refresh
+    call i18n_get; mov rsi, [rax + LangStrings.pkg_installed]; mov edx, MSG_OK
+    mov rdi, [rbx + Dialog.app]; call App_set_status
+.Lpde_ok:
+    xor eax, eax; ret
+.Lpde_err:
+    mov eax, -1; ret
+
+pkd_do_verify:
+    mov r12, [rbx + Dialog.app]
+    mov eax, [rbx + PKGD_CURSOR]; imul rax, PKG_ENTRY_SZ; add rax, [rbx + PKGD_ENTRIES]
+    mov rdi, [r12 + App.envp]; mov rsi, rax; call pkg_verify
+    test eax, eax; jnz .Lpde_err
+    call i18n_get; mov rsi, [rax + LangStrings.pkg_verified]; mov edx, MSG_OK
+    mov rdi, [rbx + Dialog.app]; call App_set_status; xor eax, eax; ret
+
 PkgDialog_handle_key:
     push rbx; push r12
     mov rbx, rdi; mov r12, rsi
     mov eax, [r12 + Event.key]
-    cmp eax, KEY_ESC; je .Lpdk_close
-    cmp eax, 'q'; je .Lpdk_close
-    cmp eax, KEY_UP; je .Lpdk_up
-    cmp eax, 'k'; je .Lpdk_up
-    cmp eax, KEY_DOWN; je .Lpdk_down
-    cmp eax, 'j'; je .Lpdk_down
-    cmp eax, 'v'; je .Lpdk_verify
-    cmp eax, KEY_ENTER; je .Lpdk_enter
-    cmp eax, KEY_TAB; je .Lpdk_tab
-    cmp eax, 'd'; je .Lpdk_rem
-    cmp eax, KEY_DELETE; je .Lpdk_rem
-    cmp eax, 'i'; je .Lpdk_inst
-    cmp eax, 'r'; je .Lpdk_run
+    cmp eax, KEY_ESC; je .Lpdk_close; cmp eax, 'q'; je .Lpdk_close
+    cmp eax, KEY_UP; je .Lpdk_up; cmp eax, 'k'; je .Lpdk_up
+    cmp eax, KEY_DOWN; je .Lpdk_down; cmp eax, 'j'; je .Lpdk_down
+    cmp eax, 'v'; je .Lpdk_verify; cmp eax, KEY_ENTER; je .Lpdk_enter
+    cmp eax, KEY_TAB; je .Lpdk_tab; cmp eax, 'd'; je .Lpdk_rem
+    cmp eax, KEY_DELETE; je .Lpdk_rem; cmp eax, 'i'; je .Lpdk_inst
+    cmp eax, 'r'; je .Lpdk_run; cmp eax, 'u'; je .Lpdk_upg
     xor eax, eax; pop r12; pop rbx; ret
 .Lpdk_close:
     mov rdi, [rbx + Dialog.app]; xor esi, esi; call App_close_dialog
@@ -264,19 +307,18 @@ PkgDialog_handle_key:
     xor dword ptr [rbx + PKGD_TAB], 1; mov dword ptr [rbx + PKGD_CURSOR], 0
     mov dword ptr [rbx + PKGD_SCROLL], 0; mov rdi, rbx; call pkd_refresh; jmp .Lpdk_redraw
 .Lpdk_enter:
-    cmp dword ptr [rbx + PKGD_TAB], 0; je .Lpdk_verify
     cmp dword ptr [rbx + PKGD_COUNT], 0; jle .Lpdk_ok
-    call pkd_install_avail
+    call pkd_do_enter; test eax, eax; jnz .Lpdk_err
+    jmp .Lpdk_redraw
+.Lpdk_upg:
+    call pkd_do_upg
     test eax, eax; jnz .Lpdk_err
-    mov dword ptr [rbx + PKGD_TAB], 0; mov rdi, rbx; call pkd_refresh
-    call i18n_get; mov rsi, [rax + LangStrings.pkg_installed]; mov edx, MSG_OK; jmp .Lpdk_st
+    mov rdi, rbx; call pkd_refresh
+    call i18n_get; mov rsi, [rax + LangStrings.pkg_verified]; mov edx, MSG_OK; jmp .Lpdk_st
 .Lpdk_verify:
     cmp dword ptr [rbx + PKGD_COUNT], 0; jle .Lpdk_ok
-    mov r12, [rbx + Dialog.app]
-    mov eax, [rbx + PKGD_CURSOR]; imul rax, PKG_ENTRY_SZ; add rax, [rbx + PKGD_ENTRIES]
-    mov rdi, [r12 + App.envp]; mov rsi, rax; call pkg_verify
-    test eax, eax; jnz .Lpdk_err
-    call i18n_get; mov rsi, [rax + LangStrings.pkg_verified]; mov edx, MSG_OK; jmp .Lpdk_st
+    call pkd_do_verify; test eax, eax; jnz .Lpdk_err
+    jmp .Lpdk_redraw
 .Lpdk_rem:
     cmp dword ptr [rbx + PKGD_COUNT], 0; jle .Lpdk_ok
     mov r12, [rbx + Dialog.app]

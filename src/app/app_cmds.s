@@ -128,15 +128,28 @@ App_cmd_view:
     jnz .Lacv_done
     jmp .Lacv_open
 .Lacv_normal:
-    mov rsi, rax
+    mov rdx, rax
+    push qword ptr [rdi + DirModel.virtual_mode]
+    mov rsi, rdx
     call DirModel_entry_name
     mov rdx, rax
     mov rcx, [rbx + App.active_pane]
     mov rcx, [rcx + FilePane.model]
     mov rdi, rsp
+    add rdi, 8
     lea rsi, [rcx + DirModel.path]
     mov ecx, PATH_MAX
     call path_join
+    pop rax
+    cmp eax, 3
+    jne .Lacv_open
+    mov rdi, [rbx + App.envp]
+    mov rsi, rsp
+    mov rdx, rsp
+    mov ecx, PATH_MAX
+    call pkg_vfs_read_uri
+    test eax, eax
+    jnz .Lacv_done
 .Lacv_open:
     mov rdi, rbx
     mov rsi, rsp

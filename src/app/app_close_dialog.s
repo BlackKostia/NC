@@ -290,7 +290,13 @@ App_close_dialog__chdir:
     lea rsp, [rsp - 8]
     mov rax, [rbx + App.status_bar]
     mov qword ptr [rax + StatusBar.msg_expire_ms], 0
-    mov rdi, r8
+    mov rdi, [rbx + App.envp]
+    mov rsi, r8
+    lea rdx, [r13 + InputDialog.buf]
+    call pkg_vfs_load_dir
+    test eax, eax
+    jz .LApp_close_dialog__chdir_ret
+    mov rdi, [r14 + FilePane.model]
     lea rsi, [r13 + InputDialog.buf]
     call DirModel_chdir
     test rax, rax

@@ -23,14 +23,52 @@ App_open_selected_entry:
 
     test dword ptr [r13 + FileEntry.flags], FE_IS_PARENT
     jz .Laos_chk_dir
+.Laos_parent_entry:
+    mov rcx, [r12 + FilePane.model]
+    cmp dword ptr [rcx + DirModel.virtual_mode], 3
+    jne .Laos_norm_parent
+    lea rdi, [rcx + DirModel.path]
+    lea rsi, [rsp]
+    mov edx, PATH_MAX
+    call pkg_vfs_parent_uri
+    test eax, eax
+    jz .Laos_exit_vfs
+    mov rdi, [rbx + App.envp]
+    mov rsi, [r12 + FilePane.model]
+    mov rdx, rsp
+    call pkg_vfs_load_dir
+    mov dword ptr [r12 + FilePane.cursor], 0
+    mov dword ptr [r12 + FilePane.scroll], 0
+    mov rdi, r12
+    call FilePane_ensure_visible
+    jmp .Laos_par_sync
+.Laos_exit_vfs:
+    mov rcx, [r12 + FilePane.model]
+    mov r13, [rcx + DirModel.arc_ctx]
+    mov dword ptr [rcx + DirModel.virtual_mode], 0
+    mov qword ptr [rcx + DirModel.arc_ctx], 0
+    test r13, r13; jz .Laos_par_sync
+    mov rdi, r12; mov rsi, r13; call FilePane_nav_to
+    mov rdi, r13; call mem_free
+    jmp .Laos_par_sync
+.Laos_norm_parent:
     mov rdi, r12
     call FilePane_enter_parent
+.Laos_par_sync:
     mov rdi, rbx
     call App_sync_preview
     mov dword ptr [rbx + App.need_redraw], 1
     jmp .Laos_done
 
 .Laos_chk_dir:
+    mov rdi, [r12 + FilePane.model]
+    cmp dword ptr [rdi + DirModel.virtual_mode], 3
+    jne .Laos_build_go
+    mov rsi, r13
+    call DirModel_entry_name
+    cmp word ptr [rax], 0x2E2E; jne .Laos_build_go
+    cmp byte ptr [rax + 2], 0; je .Laos_parent_entry
+.Laos_build_go:
     # Build full path
     call App_open_selected_entry__build_full_path
     call App_open_selected_entry__check_duoprc_open_ext
@@ -78,12 +116,18 @@ App_open_selected_entry__check_duoprc_open_ext:
     jz .Laos_open_file
 
     mov rcx, [r12 + FilePane.model]
+    cmp dword ptr [rcx + DirModel.virtual_mode], 3
+    jne .Laos_nav_norm
+    mov rdi, [rbx + App.envp]; mov rsi, rcx; lea rdx, [rsp + 16]; call pkg_vfs_load_dir
+    test eax, eax; js .Laos_err
+    mov dword ptr [r12 + FilePane.cursor], 0; mov dword ptr [r12 + FilePane.scroll], 0
+    mov rdi, r12; call FilePane_ensure_visible
+    jmp .Laos_nav_sync
+.Laos_nav_norm:
     mov dword ptr [rcx + DirModel.virtual_mode], 0
-    mov rdi, r12
-    lea rsi, [rsp + 16]
-    call FilePane_nav_to
-    test rax, rax
-    js .Laos_err
+    mov rdi, r12; lea rsi, [rsp + 16]; call FilePane_nav_to
+    test rax, rax; js .Laos_err
+.Laos_nav_sync:
     mov rdi, rbx
     call App_sync_preview
     mov dword ptr [rbx + App.need_redraw], 1

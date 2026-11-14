@@ -1,13 +1,11 @@
 # Core Data Structure Layouts (Value Types & Palette)
 .intel_syntax noprefix
-# --- Rect (16 bytes) ---
 .struct 0
 Rect.x:        .space 4
 Rect.y:        .space 4
 Rect.w:        .space 4
 Rect.h:        .space 4
 Rect._size:
-# --- Cell (16 bytes) ---
 .struct 0
 Cell.ch:       .space 4    # Unicode codepoint (or CELL_WIDE_TAIL)
 Cell.fg:       .space 4    # 0x01RRGGBB (0 = default)
@@ -395,6 +393,8 @@ LangStrings.pkg_installed:      .space 8
 LangStrings.pkg_removed:        .space 8
 LangStrings.pkg_verified:       .space 8
 LangStrings.pkg_err:            .space 8
+LangStrings.pkg_tab_inst:       .space 8
+LangStrings.pkg_tab_avail:      .space 8
 LangStrings._size:
 
 .section .text

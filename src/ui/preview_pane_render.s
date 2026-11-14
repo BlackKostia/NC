@@ -450,31 +450,9 @@ PreviewPane_render__draw_line_number_muted:
 # PreviewPane_render step: Copy single line up to or bytes (runs on the caller's frame)
 PreviewPane_render__copy_single_line_up:
     lea rsp, [rsp - 8]
-    xor edx, edx
-.Lppr_copy_line:
-    cmp r14, r15
-    jae .Lppr_line_ready
-    mov al, byte ptr [r14]
-    inc r14
-    cmp al, '\n'
-    je .Lppr_line_ready
-    cmp al, '\r'
-    je .Lppr_copy_line
-    cmp edx, 250
-    jae .Lppr_copy_line       # consume rest of long line until '\n'
-    cmp al, '\t'
-    jne .Lppr_store_ch
-    mov byte ptr [rsp + 8 + rdx + 16], ' '
-    mov byte ptr [rsp + 9 + rdx + 16], ' '
-    add edx, 2
-    jmp .Lppr_copy_line
-.Lppr_store_ch:
-    mov byte ptr [rsp + 8 + rdx + 16], al
-    inc edx
-    jmp .Lppr_copy_line
-
-.Lppr_line_ready:
-    mov byte ptr [rsp + 8 + rdx + 16], 0
+    mov rdi, r14; mov rsi, r15; lea rdx, [rsp + 8 + 16]
+    call pv_copy_line_strip_ansi
+    mov r14, rax
     mov rdi, r12
     mov esi, [r13 + Theme.text]
     mov edx, [r13 + Theme.surface]

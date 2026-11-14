@@ -22,6 +22,7 @@ pkr_https:    .asciz "https://"
 .global pkg_registry_list
 .global pkg_registry_find
 .global pkg_registry_upgrade
+.global pkg_semver_cmp
 
 .extern cfg_getenv
 .extern fs_read_file_head
@@ -172,8 +173,8 @@ pkg_registry_upgrade:
     imul rsi, r14, PKG_ENTRY_SZ; add rsi, r12
     mov rdi, rbx; mov rdx, rsp; push rsi; call pkg_registry_find; pop rsi
     test eax, eax; jnz .Lpru_g_n
-    lea rdi, [rsi + 64]; lea rsi, [rsp + PKGR_VER]; call str_cmp
-    test eax, eax; jz .Lpru_g_n
+    lea rdi, [rsi + 64]; lea rsi, [rsp + PKGR_VER]; call pkg_semver_cmp
+    cmp eax, 0; jge .Lpru_g_n
     mov rdi, rbx; lea rsi, [rsp + PKGR_URL]; lea rdx, [rsp + PKGR_SHA]
     call pkg_install_archive
     test eax, eax; jz .Lpru_g_n
@@ -185,3 +186,48 @@ pkg_registry_upgrade:
     add rsp, PKGR_SIZE + 8; pop r15; pop r14; pop r13; pop r12; pop rbx; ret
 .Lpru_g_err:
     mov eax, -1; add rsp, PKGR_SIZE + 8; pop r15; pop r14; pop r13; pop r12; pop rbx; ret
+
+# Helper: (eax=num, rdx=next_ptr) pkr_parse_ver_part(const char *p)
+pkr_parse_ver_part:
+    xor eax, eax
+    test rdi, rdi; jz .Lpvp_ret
+    mov cl, [rdi]
+    cmp cl, 'v'; je .Lpvp_skip
+    cmp cl, 'V'; jne .Lpvp_loop
+.Lpvp_skip:
+    inc rdi
+.Lpvp_loop:
+    movzx ecx, byte ptr [rdi]
+    cmp cl, '0'; jb .Lpvp_end
+    cmp cl, '9'; ja .Lpvp_end
+    imul eax, eax, 10
+    sub cl, '0'
+    add eax, ecx
+    inc rdi
+    jmp .Lpvp_loop
+.Lpvp_end:
+    cmp byte ptr [rdi], '.'; jne .Lpvp_ret
+    inc rdi
+.Lpvp_ret:
+    mov rdx, rdi
+    ret
+
+# int pkg_semver_cmp(const char *a, const char *b) -> -1 (a<b), 0 (a==b), 1 (a>b)
+pkg_semver_cmp:
+    push rbx; push r12; push r13
+    mov rbx, rdi; mov r12, rsi
+    mov r13d, 3
+.Lpsc_loop:
+    mov rdi, rbx; call pkr_parse_ver_part
+    mov rbx, rdx; push rax
+    mov rdi, r12; call pkr_parse_ver_part
+    mov r12, rdx; pop rcx
+    cmp ecx, eax; jl .Lpsc_lt; jg .Lpsc_gt
+    dec r13d; jnz .Lpsc_loop
+    xor eax, eax; jmp .Lpsc_done
+.Lpsc_lt:
+    mov eax, -1; jmp .Lpsc_done
+.Lpsc_gt:
+    mov eax, 1
+.Lpsc_done:
+    pop r13; pop r12; pop rbx; ret

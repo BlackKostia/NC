@@ -118,4 +118,7 @@
     OS_SYSCALL OS_SYS_exit_group
 .endm
 
+.macro OS_NO_NEW_PRIVS
+    mov w0, #38; mov w1, #1; mov x2, #0; mov x3, #0; mov x4, #0; mov x8, #167; svc #0
+.endm
 .endif

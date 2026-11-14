@@ -299,13 +299,15 @@ en_du_unit_files:  .asciz "files"
 en_du_scan_hint:   .asciz "Esc: Cancel"
 en_msg_du_canceled: .asciz "Disk usage scan canceled"
 en_pkg_title:          .asciz " Package Manager (Alt+K) "
-en_pkg_hint:           .asciz " i:Install  d:Remove  v:Verify  Esc:Close "
+en_pkg_hint:           .asciz " Enter:Run/Install  i:Install  d:Remove  v:Verify  u:Upgrade  Tab:Switch "
 en_pkg_empty:          .asciz " No packages installed "
 en_pkg_install_prompt: .asciz " Package path or URL (.tar.gz/.zip): "
 en_pkg_installed:      .asciz " Package installed "
 en_pkg_removed:        .asciz " Package removed "
 en_pkg_verified:       .asciz " Package verified (SHA-256 OK) "
 en_pkg_err:            .asciz " Package operation failed "
+en_pkg_tab_inst:       .asciz " Installed "
+en_pkg_tab_avail:      .asciz " Available "
 
 .align 8
 .global lang_en_table
@@ -355,6 +357,7 @@ lang_en_table:
     .quad en_du_scan_title, en_du_lbl_folders, en_du_lbl_scanned, en_du_unit_dirs, en_du_unit_files, en_du_scan_hint, en_msg_du_canceled
     .quad en_pkg_title, en_pkg_hint, en_pkg_empty, en_pkg_install_prompt
     .quad en_pkg_installed, en_pkg_removed, en_pkg_verified, en_pkg_err
+    .quad en_pkg_tab_inst, en_pkg_tab_avail
 .if (. - lang_en_table) != LangStrings._size
     .error "lang_en_table size does not match LangStrings._size"
 .endif

@@ -179,6 +179,38 @@ pkm_activate_file:
 .Lpaf_ret:
     add rsp, PATH_MAX * 2 + 16; pop r15; pop r14; pop r13; pop r12; pop rbx; ret
 
+pkm_safe_relpath:
+    test rdi, rdi; jz .Lpsr_no
+.Lpsr_dot:
+    cmp word ptr [rdi], 0x2F2E; jne .Lpsr_chk; add rdi, 2; jmp .Lpsr_dot
+.Lpsr_chk:
+    cmp byte ptr [rdi], 0; je .Lpsr_no; cmp byte ptr [rdi], '/'; je .Lpsr_no
+    mov r8, rdi
+.Lpsr_seg:
+    cmp word ptr [r8], 0x2E2E; jne .Lpsr_n2
+    mov al, [r8 + 2]; test al, al; jz .Lpsr_no; cmp al, '/'; je .Lpsr_no
+.Lpsr_n2:
+    mov al, [r8]; test al, al; jz .Lpsr_ok; inc r8; jmp .Lpsr_seg
+.Lpsr_ok:
+    mov rax, rdi; ret
+.Lpsr_no:
+    xor eax, eax; ret
+
+pkm_ensure_parent:
+    sub rsp, PATH_MAX + 8
+    mov rsi, rdi; mov rdi, rsp; mov edx, PATH_MAX; call str_copy
+    mov rdi, rsp; xor ecx, ecx; xor edx, edx
+.Lpep_l:
+    mov al, [rdi + rcx]; test al, al; jz .Lpep_cut
+    cmp al, '/'; jne .Lpep_n; mov edx, ecx
+.Lpep_n:
+    inc rcx; jmp .Lpep_l
+.Lpep_cut:
+    test edx, edx; jz .Lpep_ret
+    mov byte ptr [rsp + rdx], 0; mov rdi, rsp; call pkg_mkdir_p
+.Lpep_ret:
+    add rsp, PATH_MAX + 8; ret
+
 # void pkm_extract_all(ArcCtx *ctx, const char *pkg_dir, const char *pkg_root, char *files_buf, uint64_t *files_len)
 pkm_extract_all:
     push rbx; push r12; push r13; push r14; push r15
@@ -190,13 +222,15 @@ pkm_extract_all:
     cmp r14d, [r12 + 4]; jge .Lpea_done
     imul rbx, r14, AENT_SIZE; add rbx, [r12 + 24]
     cmp dword ptr [rbx + 284], 0; jne .Lpea_next
-    mov rdi, rbx; call path_basename
+    mov rdi, rbx; call pkm_safe_relpath
+    test rax, rax; jz .Lpea_next
     mov [rsp + PATH_MAX + 16], rax
-    mov rdi, rax; call pkm_safe_name; test eax, eax; jz .Lpea_next
-    mov rdi, rsp; mov rsi, r13; mov rdx, [rsp + PATH_MAX + 16]; mov ecx, PATH_MAX; call path_join
+    mov rdi, rsp; mov rsi, r13; mov rdx, rax; mov ecx, PATH_MAX; call path_join
+    mov rdi, rsp; call pkm_ensure_parent
     mov rdi, r12; mov rsi, rbx; mov rdx, rsp; call pkg_extract_entry_to
     test eax, eax; jnz .Lpea_next
-    mov rdi, [rsp + PATH_MAX]; mov rsi, rsp; mov rdx, [rsp + PATH_MAX + 16]
+    mov rdi, [rsp + PATH_MAX + 16]; call path_basename
+    mov rdi, [rsp + PATH_MAX]; mov rsi, rsp; mov rdx, rax
     mov rcx, r15; mov r8, [rsp + PATH_MAX + 8]; call pkm_activate_file
 .Lpea_next:
     inc r14d; jmp .Lpea_loop

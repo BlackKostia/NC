@@ -107,6 +107,14 @@ app_close_fuzzy_dlg:
     test rax, rax; jz .Lacfd_done
     cmp dword ptr [r12 + Dialog.op_tag], OP_PALETTE
     jne .Lacfd_fuz
+    cmp eax, 0x1000
+    jl .Lacfd_builtin
+    sub eax, 0x1000
+    mov edi, eax; call pkg_menu_get
+    test rax, rax; jz .Lacfd_done
+    mov rdi, rbx; mov rsi, rax; call App_run_pkg_action
+    jmp .Lacfd_done
+.Lacfd_builtin:
     mov rdi, rbx; mov esi, eax; call App_dispatch_action
     jmp .Lacfd_done
 .Lacfd_fuz:

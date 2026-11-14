@@ -36,6 +36,9 @@
 .extern mem_free
 .extern str_copy
 .extern utf8_decode
+.extern pkg_menu_refresh
+.extern pkg_menu_count
+.extern pkg_menu_get
 
 .section .rodata
 .align 8
@@ -105,7 +108,20 @@ FuzzyDialog_new:
     inc ecx; jmp .Lfdn_cmd_loop
 .Lfdn_cmds_done:
     mov dword ptr [rbx + FuzzyDialog.total_cnt], FUZ_CMD_CNT
-    jmp .Lfdn_filter
+    mov rdi, [r12 + App.envp]; call pkg_menu_refresh
+    call pkg_menu_count
+    mov r14d, eax; xor r13d, r13d
+.Lfdn_pkg_loop:
+    cmp r13d, r14d; jge .Lfdn_filter
+    mov edi, r13d; call pkg_menu_get
+    test rax, rax; jz .Lfdn_filter
+    add rax, 128
+    mov r10, [rbx + FuzzyDialog.items_ptr]
+    movsxd rdx, dword ptr [rbx + FuzzyDialog.total_cnt]; shl rdx, 4
+    mov [r10 + rdx], rax; mov dword ptr [r10 + rdx + 8], 0
+    lea eax, [r13d + 0x1000]; mov [r10 + rdx + 12], eax
+    inc dword ptr [rbx + FuzzyDialog.total_cnt]
+    inc r13d; jmp .Lfdn_pkg_loop
 .Lfdn_files:
     lea rdi, [rbx + FuzzyDialog.base_path]; mov rsi, r14; mov edx, PATH_MAX
     call str_copy
@@ -288,6 +304,8 @@ FuzzyDialog_handle_key:
     mov byte ptr [rbx + FuzzyDialog.query_buf + rcx], 0
     mov rdi, rbx; call fuz_refilter
 .Lfhk_done:
+    mov rax, [rbx + Dialog.app]
+    mov dword ptr [rax + App.need_redraw], 1
     mov eax, 1; pop rbx; ret
 
 FuzzyDialog_get_selected:

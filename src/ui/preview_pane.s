@@ -16,6 +16,7 @@ PreviewPane_vtbl:
 .global PreviewPane_load
 .global PreviewPane_read_sync
 .global PreviewPane_accept
+.global pv_copy_line_strip_ansi
 .global PreviewPane_vtbl
 
 # PreviewPane *PreviewPane_new(App *app)
@@ -214,3 +215,32 @@ PreviewPane_accept:
     pop r12
     pop rbx
     ret
+
+# char *pv_copy_line_strip_ansi(const char *p, const char *end, char *dst) -> next_p
+pv_copy_line_strip_ansi:
+    xor ecx, ecx
+.Lpcls_l:
+    cmp rdi, rsi; jae .Lpcls_done
+    mov al, [rdi]; inc rdi
+    cmp al, '\n'; je .Lpcls_done
+    cmp al, '\r'; je .Lpcls_l
+    cmp al, 27; jne .Lpcls_not_esc
+    cmp rdi, rsi; jae .Lpcls_l
+    cmp byte ptr [rdi], '['; jne .Lpcls_l
+    inc rdi
+.Lpcls_csi:
+    cmp rdi, rsi; jae .Lpcls_done
+    mov al, [rdi]; inc rdi
+    cmp al, '\n'; je .Lpcls_done
+    cmp al, 0x40; jb .Lpcls_csi
+    cmp al, 0x7E; ja .Lpcls_csi
+    jmp .Lpcls_l
+.Lpcls_not_esc:
+    cmp ecx, 250; jae .Lpcls_l
+    cmp al, '\t'; jne .Lpcls_ch
+    mov word ptr [rdx + rcx], 0x2020; add ecx, 2; jmp .Lpcls_l
+.Lpcls_ch:
+    mov [rdx + rcx], al; inc ecx; jmp .Lpcls_l
+.Lpcls_done:
+    mov byte ptr [rdx + rcx], 0
+    mov rax, rdi; ret

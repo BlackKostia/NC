@@ -44,6 +44,7 @@ g_sigterm:
 .global env_getenv
 .global sys_exec_sh_arg
 .global sys_exec_argv
+.global sys_exec_argv_bg
 .global sys_open_external
 
 # ssize_t sys_write_all(int fd, const void *buf, size_t len)
@@ -325,3 +326,36 @@ sys_exec_argv:
     pop rax
     pop r14; pop r13; pop r12; pop rbx
     ret
+
+# int sys_exec_argv_bg(const char *exe, char **argv, char **envp)
+# Runs exe in background with /dev/null stdio without leaving raw mode.
+sys_exec_argv_bg:
+    push rbx; push r12; push r13; push r14
+    mov r12, rdi; mov r13, rsi; mov r14, rdx
+    OS_FORK
+    test rax, rax
+    js .Lseab_ret
+    jnz .Lseab_parent
+    mov edi, AT_FDCWD; lea rsi, [rip + str_dev_null]; mov edx, O_RDWR; xor r10d, r10d
+    OS_OPENAT
+    test rax, rax; js .Lseab_exec
+    mov ebx, eax
+    mov edi, ebx; xor esi, esi; OS_DUP2
+    mov edi, ebx; mov esi, 1; OS_DUP2
+    mov edi, ebx; mov esi, 2; OS_DUP2
+    cmp ebx, 2; jle .Lseab_exec
+    mov edi, ebx; OS_CLOSE
+.Lseab_exec:
+    mov rdi, r12; mov rsi, r13; mov rdx, r14; OS_EXECVE
+    mov edi, 127; OS_EXIT
+.Lseab_parent:
+    mov rbx, rax; sub rsp, 16
+.Lseab_wait:
+    mov rdi, rbx; mov rsi, rsp; xor edx, edx; xor r10d, r10d; OS_WAIT4
+    cmp rax, -EINTR; je .Lseab_wait
+    mov eax, [rsp]; add rsp, 16
+.Lseab_ret:
+    pop r14; pop r13; pop r12; pop rbx; ret
+
+.section .rodata
+str_dev_null: .asciz "/dev/null"

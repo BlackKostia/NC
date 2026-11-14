@@ -118,6 +118,7 @@ pkpv_exec_pipe:
     mov edi, [rsp + 40]; OS_CLOSE
     mov edi, [rsp + 44]; mov esi, 1; OS_DUP2
     mov edi, [rsp + 44]; OS_CLOSE
+    OS_NO_NEW_PRIVS
     mov [rsp], r12; mov [rsp + 8], r13; mov qword ptr [rsp + 16], 0
     mov rdi, r12; mov rsi, rsp; mov rdx, [rsp + 32]; OS_EXECVE
     mov edi, 127; OS_EXIT
