@@ -384,7 +384,7 @@ os_batch_stat:
     mov rcx, [r12 + rax * 8]
     mov [rdi + KSQE_ADDR], rcx
     mov dword ptr [rdi + KSQE_LEN], STATX_BASIC_STATS
-    mov ecx, [rsp + 36]
+    mov ecx, [rsp + 36]; or ecx, 0x4000 # AT_STATX_DONT_SYNC
     mov [rdi + KSQE_STATX_FLAGS], ecx
     shl rax, 8
     or rax, r13                       # udata = item << 8 | slot

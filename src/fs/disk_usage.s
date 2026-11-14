@@ -77,13 +77,16 @@ du_flush_batch:
 # uint64_t du_walk_fd(int dfd, void *lvl_buf, int depth)
 du_walk_fd:
     push rbx; push r12; push r13; push r14; push r15
-    sub rsp, FileStat._size + 40
+    sub rsp, FileStat._size + 56
     mov ebx, edi; mov r12, rsi; mov r13d, edx; xor r14d, r14d
     cmp r13d, DU_MAX_DEPTH; jge .Ldwf_ret
     mov qword ptr [rsp + FileStat._size + 32], 0
+    mov dword ptr [rsp + FileStat._size + 48], 0
     mov edi, ebx; mov rsi, rsp; call os_fstat
     test rax, rax; js .Ldwf_read
+    mov dword ptr [rsp + FileStat._size + 48], 1
     mov rdi, rsp; call du_mtime_sig
+    mov [rsp + FileStat._size + 40], rax
     mov rdi, [rsp + FileStat.ino]; mov rsi, [rsp + FileStat.dev]
     mov rdx, rax; lea rcx, [rsp + FileStat._size + 24]
     call du_cache_get
@@ -130,14 +133,13 @@ du_walk_fd:
     mov edi, eax; lea rsi, [r12 + DU_STRIDE]; lea edx, [r13d + 1]; call du_walk_fd
     add r14, rax; pop rdi; OS_CLOSE; jmp .Ldwf_ent
 .Ldwf_cache_put:
-    mov edi, ebx; mov rsi, rsp; call os_fstat
-    test rax, rax; js .Ldwf_ret
-    mov rdi, rsp; call du_mtime_sig
+    cmp dword ptr [rsp + FileStat._size + 48], 0
+    je .Ldwf_ret
     mov rdi, [rsp + FileStat.ino]; mov rsi, [rsp + FileStat.dev]
-    mov rdx, rax; mov rcx, r14; call du_cache_put
+    mov rdx, [rsp + FileStat._size + 40]; mov rcx, r14; call du_cache_put
 .Ldwf_ret:
     mov rax, r14
-    add rsp, FileStat._size + 40
+    add rsp, FileStat._size + 56
     pop r15; pop r14; pop r13; pop r12; pop rbx; ret
 
 # Helper for PAL_DT_UNKNOWN entries: returns file size or recurses on dir
@@ -187,6 +189,55 @@ du_calc_tree:
 .Ldct_zero:
     xor eax, eax; pop r13; pop r12; pop rbx; ret
 
+# uint64_t du_flush_dir_batch(int dfd, void *arena, int count)
+du_flush_dir_batch:
+    test edx, edx
+    jz .Lfdb_zero
+    push rbx; push r12; push r13; push r14; push r15
+    sub rsp, 16
+    mov ebx, edi; mov r12, rsi; mov r13d, edx; xor r14d, r14d
+    lea rsi, [r12 + DU_OFF_PTRS]
+    lea rdx, [r12 + DU_OFF_STATS]
+    lea rcx, [r12 + DU_OFF_ERRS]
+    mov r8d, r13d; xor r9d, r9d
+    call os_batch_stat
+    xor r15d, r15d
+.Lfdb_loop:
+    cmp r15d, r13d; jge .Lfdb_done
+    lea rax, [r12 + DU_OFF_ERRS]
+    cmp dword ptr [rax + r15 * 4], 0; jne .Lfdb_miss
+    imul rax, r15, FileStat._size
+    lea rdi, [r12 + DU_OFF_STATS]; add rdi, rax
+    mov [rsp + 8], rdi; call du_mtime_sig
+    mov r8, [rsp + 8]
+    mov rdi, [r8 + FileStat.ino]; mov rsi, [r8 + FileStat.dev]
+    mov rdx, rax; mov rcx, rsp; call du_cache_get
+    test eax, eax; jz .Lfdb_miss
+    mov rax, [rsp]
+    mov rcx, [r12 + r15 * 8]
+    mov [rcx + FileEntry.size], rax
+    or dword ptr [rcx + FileEntry.flags], FE_STAT_READY
+    add r14, rax; jmp .Lfdb_next
+.Lfdb_miss:
+    lea rax, [r12 + DU_OFF_PTRS]; mov rsi, [rax + r15 * 8]
+    mov edi, ebx; mov edx, O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW
+    xor r10d, r10d; OS_OPENAT
+    test rax, rax; js .Lfdb_next
+    mov [rsp + 8], rax
+    mov edi, eax; lea rsi, [r12 + DU_STRIDE]; xor edx, edx; call du_walk_fd
+    mov rcx, [r12 + r15 * 8]
+    mov [rcx + FileEntry.size], rax
+    or dword ptr [rcx + FileEntry.flags], FE_STAT_READY
+    add r14, rax
+    mov rdi, [rsp + 8]; OS_CLOSE
+.Lfdb_next:
+    inc r15d; jmp .Lfdb_loop
+.Lfdb_done:
+    mov rax, r14
+    add rsp, 16; pop r15; pop r14; pop r13; pop r12; pop rbx; ret
+.Lfdb_zero:
+    xor eax, eax; ret
+
 # void dir_du_populate(DirModel *model)
 dir_du_populate:
     push rbx; push r12; push r13; push r14; push r15
@@ -201,12 +252,13 @@ dir_du_populate:
     mov edx, O_RDONLY | O_DIRECTORY | O_CLOEXEC; xor r10d, r10d; OS_OPENAT
     test rax, rax; js .Lddp_ret
     mov [rsp + FileStat._size], eax
+    mov dword ptr [rsp + FileStat._size + 4], 0
     mov edi, DU_MAX_DEPTH * DU_STRIDE; call mem_alloc
     mov [rsp + FileStat._size + 8], rax
     xor r12d, r12d            # total_bytes
     xor r13d, r13d            # i = 0
 .Lddp_loop:
-    cmp r13, [rbx + DirModel.raw_count]; jae .Lddp_done
+    cmp r13, [rbx + DirModel.raw_count]; jae .Lddp_flush
     mov rax, r13; imul rax, FileEntry._size; add rax, [rbx + DirModel.entries]
     mov r14, rax
     test dword ptr [r14 + FileEntry.flags], FE_IS_PARENT; jnz .Lddp_next
@@ -221,21 +273,23 @@ dir_du_populate:
     or dword ptr [r14 + FileEntry.flags], FE_STAT_READY
     jmp .Lddp_add
 .Lddp_dir:
-    cmp qword ptr [rsp + FileStat._size + 8], 0; je .Lddp_next
-    mov edi, [rsp + FileStat._size]; mov rsi, r15
-    mov edx, O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW
-    xor r10d, r10d; OS_OPENAT
-    test rax, rax; js .Lddp_next
-    push rax
-    mov edi, eax; mov rsi, [rsp + FileStat._size + 16]; xor edx, edx
-    call du_walk_fd
-    mov [r14 + FileEntry.size], rax
-    or dword ptr [r14 + FileEntry.flags], FE_STAT_READY
-    pop rdi; OS_CLOSE
+    mov rcx, [rsp + FileStat._size + 8]; test rcx, rcx; jz .Lddp_next
+    mov edx, [rsp + FileStat._size + 4]
+    mov [rcx + rdx * 8], r14
+    lea rax, [rcx + DU_OFF_PTRS]; mov [rax + rdx * 8], r15
+    inc edx; mov [rsp + FileStat._size + 4], edx
+    cmp edx, DU_BATCH; jl .Lddp_next
+    mov edi, [rsp + FileStat._size]; mov rsi, rcx; call du_flush_dir_batch
+    add r12, rax; mov dword ptr [rsp + FileStat._size + 4], 0; jmp .Lddp_next
 .Lddp_add:
     add r12, [r14 + FileEntry.size]
 .Lddp_next:
     inc r13; jmp .Lddp_loop
+.Lddp_flush:
+    mov edx, [rsp + FileStat._size + 4]; test edx, edx; jz .Lddp_done
+    mov rsi, [rsp + FileStat._size + 8]; test rsi, rsi; jz .Lddp_done
+    mov edi, [rsp + FileStat._size]; call du_flush_dir_batch
+    add r12, rax
 .Lddp_done:
     mov rdi, [rsp + FileStat._size + 8]; test rdi, rdi; jz .Lddp_close
     call mem_free

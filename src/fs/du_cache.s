@@ -2,13 +2,13 @@
 .intel_syntax noprefix
 
 .include "pal.inc"
-.equ DU_CACHE_CAP,  16384
-.equ DU_CACHE_MASK, 0x3FFF
+.equ DU_CACHE_CAP,  131072
+.equ DU_CACHE_MASK, 0x1FFFF
 .equ DU_SLOT_SZ,    32        # ino(8), dev(8), mtime_sig(8), size(8)
 
 .section .bss
 .align 8
-g_du_tbl:   .space 8          # DuSlot* (heap, DU_CACHE_CAP * 32 = 512 KiB)
+g_du_tbl:   .space 8          # DuSlot* (heap, DU_CACHE_CAP * 32 = 4 MiB)
 
 .section .text
 .global du_cache_get

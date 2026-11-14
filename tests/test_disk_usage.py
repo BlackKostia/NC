@@ -103,7 +103,44 @@ def test_disk_usage_ua():
                 pass
 
 
+def test_disk_usage_batch_and_cache_nav():
+    with tempfile.TemporaryDirectory() as tmp:
+        l = os.path.join(tmp, "left")
+        r = os.path.join(tmp, "right")
+        os.makedirs(l)
+        os.makedirs(r)
+        # 130 subdirectories (> 2 * DU_BATCH=64) to exercise batched dir stat & cache
+        for i in range(130):
+            d = os.path.join(l, f"d{i:03d}")
+            os.makedirs(d)
+            with open(os.path.join(d, "f.bin"), "wb") as f:
+                f.write(b"Z" * (4096 if i == 0 else 1024))
+        sess = PtySession(BINARY, ["--lang", "en", l, r], cols=120, rows=35)
+        try:
+            sess.drain(0.25)
+            sess.send(b"\x1bd")
+            wait_for(sess, "Disk Usage")
+            wait_for(sess, "4.0 K")
+            # Navigate into d000 and back via Backspace (cached)
+            sess.send(b"\x1b[B")
+            t0 = time.monotonic()
+            sess.send(b"\r")
+            wait_for(sess, "f.bin", timeout=1.0)
+            sess.send(b"\x7f")
+            wait_for(sess, "d129" if "d129" in sess.vt.full_text() else "4.0 K", timeout=1.0)
+            elapsed = time.monotonic() - t0
+            assert elapsed < 1.0, f"Cached navigation took too long: {elapsed:.3f}s"
+            print(f"[PASS] DU3. Batched dir stat & fast cached navigation ({elapsed*1000:.1f} ms)")
+        finally:
+            try:
+                os.kill(sess.pid, 9)
+                os.waitpid(sess.pid, 0)
+            except OSError:
+                pass
+
+
 if __name__ == "__main__":
     test_disk_usage_en()
     test_disk_usage_ua()
+    test_disk_usage_batch_and_cache_nav()
     print("ALL DISK USAGE TESTS PASSED.")
