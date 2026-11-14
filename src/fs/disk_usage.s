@@ -29,6 +29,7 @@
 .extern du_cache_get
 .extern du_cache_put
 .extern du_parallel_walk
+.extern du_progress
 .extern mem_alloc
 .extern mem_free
 
@@ -243,22 +244,7 @@ du_resolve_misses:
     test edx, edx; jz .Lrm_zero
     push rbx; push r12; push r13; sub rsp, 8
     mov ebx, edi; mov r12, rsi; mov r13d, edx
-    lea rsi, [r12 + DU_STRIDE]
-    cmp r13d, 1; jne .Lrm_par
-    mov rdi, [rsi + 8]                # name
-    mov r13, [rsi]                    # save FileEntry* before du_walk_fd overwrites arena+DU_STRIDE
-    mov rsi, rdi; mov edi, ebx
-    mov edx, O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW
-    xor r10d, r10d; OS_OPENAT
-    test rax, rax; js .Lrm_zero_pop
-    push rax
-    mov edi, eax; mov rsi, r12; xor edx, edx; call du_walk_fd
-    mov [r13 + FileEntry.size], rax
-    or dword ptr [r13 + FileEntry.flags], FE_STAT_READY
-    mov r12, rax
-    pop rdi; OS_CLOSE
-    mov rax, r12; jmp .Lrm_ret
-.Lrm_par:
+    lea rsi, [r12 + DU_STRIDE]        # even one folder goes to a worker: the UI shows progress
     mov edi, ebx; mov edx, r13d; call du_parallel_walk
     xor eax, eax; xor ecx, ecx
     lea r8, [r12 + DU_STRIDE]
@@ -269,18 +255,19 @@ du_resolve_misses:
     mov [r9 + FileEntry.size], r10
     or dword ptr [r9 + FileEntry.flags], FE_STAT_READY
     add rax, r10; inc ecx; jmp .Lrm_sum
-.Lrm_zero_pop:
-    xor eax, eax
 .Lrm_ret:
     add rsp, 8; pop r13; pop r12; pop rbx; ret
 .Lrm_zero:
     xor eax, eax; ret
 
-# void dir_du_populate(DirModel *model)
+# int dir_du_populate(DirModel *model) -> 1 done, 0 canceled from the progress UI (Esc): the
+# model is then back in the normal listing
 dir_du_populate:
     push rbx; push r12; push r13; push r14; push r15
     sub rsp, FileStat._size + 32
     mov rbx, rdi
+    call du_progress
+    mov dword ptr [rax + DuProgress.cancel], 0
 .Lddp_drain:
     cmp dword ptr [rbx + DirModel.is_loading], 0
     je .Lddp_open
@@ -339,6 +326,25 @@ dir_du_populate:
     call mem_free
 .Lddp_close:
     mov edi, [rsp + FileStat._size]; OS_CLOSE
+    mov rdi, rbx; mov rsi, r12; call du_finish
+    jmp .Lddp_out
+.Lddp_ret:
+    xor eax, eax
+.Lddp_out:
+    add rsp, FileStat._size + 32
+    pop r15; pop r14; pop r13; pop r12; pop rbx; ret
+
+# Internal: int du_finish(DirModel *model, uint64_t total) -> 1: size-sorted Disk Usage view;
+# 0 when the walk was canceled from the progress UI (back to the normal listing)
+du_finish:
+    push rbx
+    push r12
+    sub rsp, 8
+    mov rbx, rdi
+    mov r12, rsi
+    call du_progress
+    cmp dword ptr [rax + DuProgress.cancel], 0
+    jne .Ldf_canceled
     mov [rbx + DirModel.du_total], r12
     mov dword ptr [rbx + DirModel.du_mode], 1
     mov dword ptr [rbx + DirModel.sort_mode], SORT_SIZE
@@ -346,9 +352,23 @@ dir_du_populate:
     mov dword ptr [rbx + DirModel.stats_complete], 1
     mov dword ptr [rbx + DirModel.is_unsorted], 0
     mov rdi, rbx; call DirModel_sort
-.Lddp_ret:
-    add rsp, FileStat._size + 32
-    pop r15; pop r14; pop r13; pop r12; pop rbx; ret
+    mov eax, 1
+    jmp .Ldf_ret
+.Ldf_canceled:
+    mov rdi, rbx; call du_leave
+    xor eax, eax
+.Ldf_ret:
+    add rsp, 8
+    pop r12
+    pop rbx
+    ret
+
+# Internal: void du_leave(DirModel *model) -- back to the normal name-sorted listing
+du_leave:
+    mov dword ptr [rdi + DirModel.du_mode], 0
+    mov dword ptr [rdi + DirModel.sort_mode], SORT_NAME
+    mov dword ptr [rdi + DirModel.sort_desc], 0
+    jmp DirModel_reload
 
 # void du_toggle(App *app)
 du_toggle:
@@ -361,10 +381,7 @@ du_toggle:
     mov rdi, r12; call dir_du_populate
     jmp .Ldut_done
 .Ldut_off:
-    mov dword ptr [r12 + DirModel.du_mode], 0
-    mov dword ptr [r12 + DirModel.sort_mode], SORT_NAME
-    mov dword ptr [r12 + DirModel.sort_desc], 0
-    mov rdi, r12; call DirModel_reload
+    mov rdi, r12; call du_leave
 .Ldut_done:
     mov dword ptr [rbx + App.need_redraw], 1
     pop r12; pop rbx; ret

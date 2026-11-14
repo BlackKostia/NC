@@ -185,6 +185,18 @@ Theme.scroll_thumb:       .space 4
 Theme.pad:                .space 4
 Theme._size:
 
+# --- DuProgress: live counters of a Disk Usage subtree walk (fs/du_parallel.s) ---
+.struct 0
+DuProgress.start_ms: .space 8   # os_clock_ms() when the walk began
+DuProgress.dirs:     .space 8   # directories read so far (all depths)
+DuProgress.files:    .space 8   # regular files counted so far
+DuProgress.bytes:    .space 8   # their bytes
+DuProgress.done:     .space 4   # top-level folders finished
+DuProgress.total:    .space 4   # top-level folders to walk
+DuProgress.cancel:   .space 4   # set by the progress callback (Esc): walkers stop
+DuProgress.phase:    .space 4   # DU_PHASE_RUN, then DU_PHASE_DONE for the final call
+DuProgress._size:
+
 # --- DataSpec: one kind of runtime data file (tui/data_dirs.s) ---
 .struct 0
 DataSpec.env:   .space 8   # "DUOP_LAYOUTS=": ':'-separated dirs that replace the default path
@@ -374,6 +386,13 @@ LangStrings.cli_usage:          .space 8   # duop --help text (multi-line)
 LangStrings.help_tab_overview:  .space 8   # HelpDialog tab 0 label
 LangStrings.help_tab_instr:     .space 8   # HelpDialog tab 1 label
 LangStrings.help_instr_lines:   .space 36*8
+LangStrings.du_scan_title:      .space 8   # Disk Usage progress window
+LangStrings.du_lbl_folders:     .space 8
+LangStrings.du_lbl_scanned:     .space 8
+LangStrings.du_unit_dirs:       .space 8
+LangStrings.du_unit_files:      .space 8
+LangStrings.du_scan_hint:       .space 8
+LangStrings.msg_du_canceled:    .space 8
 LangStrings._size:
 
 .section .text

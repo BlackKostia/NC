@@ -48,7 +48,7 @@ make verify                         # Run modularity, lean-gate, and PTY test su
 | `F1`–`F10` | Help, Rename, View, Edit, Copy, Move, Mkdir, Del, Preview, Quit | `Ctrl+P` | Recursive Fuzzy Finder |
 | `Ctrl+K` | Command Palette | `Ctrl+F` / `Alt+F` | Recursive Search / Grep |
 | `Ctrl+T` / `Ctrl+W` | New / Close Tab | `Ctrl+D` / `z` | Bookmarks / Frecency |
-| `Alt+D` | Disk Usage mode | `Alt+B` | Bulk Rename |
+| `Alt+D` | Disk Usage mode (progress window + `Esc` cancel on long scans) | `Alt+B` | Bulk Rename |
 | `Alt+=` | Dir Diff (mark differing/missing) | `Ctrl+\`` | Toggle Embedded PTY Terminal |
 | `Alt+T` / `Alt+L` | Cycle Theme / Next interface language | `Ctrl+Z` | Undo last Trash / Hex byte |
 

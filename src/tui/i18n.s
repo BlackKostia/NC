@@ -290,6 +290,15 @@ en_hi_34: .asciz "  Image: +/-, 1(100%), 0/f(Fit), Arrows(Pan), B(Braille), O(Op
 en_hi_35: .asciz "  Hex Edit: E(Toggle edit), 0-9a-f(Nibbles), Ctrl+Z(Undo), Ctrl+S(Save)"
 en_hi_36: .asciz "  Esc / q / F3 / F10        Close viewer (Tab/Arrows switch Help tabs)"
 
+# Disk Usage progress window
+en_du_scan_title:  .asciz "Scanning disk usage"
+en_du_lbl_folders: .asciz "Folders"
+en_du_lbl_scanned: .asciz "Scanned"
+en_du_unit_dirs:   .asciz "dirs"
+en_du_unit_files:  .asciz "files"
+en_du_scan_hint:   .asciz "Esc: Cancel"
+en_msg_du_canceled: .asciz "Disk usage scan canceled"
+
 .align 8
 .global lang_en_table
 lang_en_table:
@@ -335,6 +344,7 @@ lang_en_table:
     .quad en_hi_10, en_hi_11, en_hi_12, en_hi_13, en_hi_14, en_hi_15, en_hi_16, en_hi_17, en_hi_18
     .quad en_hi_19, en_hi_20, en_hi_21, en_hi_22, en_hi_23, en_hi_24, en_hi_25, en_hi_26, en_hi_27
     .quad en_hi_28, en_hi_29, en_hi_30, en_hi_31, en_hi_32, en_hi_33, en_hi_34, en_hi_35, en_hi_36
+    .quad en_du_scan_title, en_du_lbl_folders, en_du_lbl_scanned, en_du_unit_dirs, en_du_unit_files, en_du_scan_hint, en_msg_du_canceled
 .if (. - lang_en_table) != LangStrings._size
     .error "lang_en_table size does not match LangStrings._size"
 .endif

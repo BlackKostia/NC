@@ -168,6 +168,7 @@ SRCS := \
 	src/ui/img_preview.s \
 	src/ui/img_preview_api.s \
 	src/ui/du_render.s \
+	src/ui/du_progress_dlg.s \
 	src/ui/git_render.s \
 	src/ui/bulk_rename.s \
 	src/ui/bulk_rename_ui.s \
@@ -194,6 +195,7 @@ SRCS := \
 	src/app/app_attr.s \
 	src/app/app_ext.s \
 	src/app/app_ext_keys.s \
+	src/app/app_du.s \
 	src/app/app_arc.s \
 	src/app/app_menu.s
 
@@ -246,6 +248,7 @@ test: $(TARGET)
 	python3 tests/test_image_formats.py
 	python3 tests/test_image_quality.py
 	python3 tests/test_disk_usage.py
+	python3 tests/test_du_progress.py
 	python3 tests/test_archive_vfs.py
 	python3 tests/test_git_status.py
 	python3 tests/test_bulk_rename.py

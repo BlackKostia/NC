@@ -258,6 +258,13 @@ i18n_keys:
     LK help_instr_lines.34, LangStrings.help_instr_lines+264
     LK help_instr_lines.35, LangStrings.help_instr_lines+272
     LK help_instr_lines.36, LangStrings.help_instr_lines+280
+    LK du_scan_title, LangStrings.du_scan_title
+    LK du_lbl_folders, LangStrings.du_lbl_folders
+    LK du_lbl_scanned, LangStrings.du_lbl_scanned
+    LK du_unit_dirs, LangStrings.du_unit_dirs
+    LK du_unit_files, LangStrings.du_unit_files
+    LK du_scan_hint, LangStrings.du_scan_hint
+    LK msg_du_canceled, LangStrings.msg_du_canceled
     .short 0xFFFF
 .if lk_slots * 8 != LangStrings._size
     .error "i18n_keys: every LangStrings slot needs exactly one key"

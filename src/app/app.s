@@ -63,6 +63,8 @@ App_new__cfg_theme:
     call config_load
     mov rdi, r14
     call kbd_layout_load              # keyboard layouts from *.layout files
+    mov rdi, rbx
+    call App_du_init                  # Disk Usage progress window + Esc cancel
     mov rdi, r14
     call DirModel_init_env
     mov dword ptr [rbx + App.running], 1

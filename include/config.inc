@@ -44,6 +44,9 @@
 .equ IMG_PROTO_KITTY, 3               # Kitty graphics protocol, f=32 RGBA
 .equ IMG_PX_MAX,      2048            # pixel-protocol images never exceed this per side
 .equ KBD_MAP_MAX,     1024            # keyboard layout entries {codepoint -> Latin key}, all files
+.equ DU_PHASE_RUN,    0               # DuProgress.phase: walk running
+.equ DU_PHASE_DONE,   1               # final progress callback after the walk
+.equ DU_PROGRESS_MS,  300             # show the Disk Usage progress window after this long
 .equ I18N_MAX,        16              # interface languages: built-in English + *.lang packs
 .equ I18N_FILE_MAX,   65536           # bytes read from one *.lang file
 .equ I18N_ARENA,      524288          # static storage for loaded packs (tables + text)
