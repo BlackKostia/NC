@@ -248,8 +248,13 @@ App_run__check_temporary_status_message:
     lea rdi, [rbx + App.term_w]
     lea rsi, [rbx + App.term_h]
     call sys_get_winsize
+    mov edi, [rbx + App.term_w]
+    mov esi, [rbx + App.term_h]
+    call term_caps_refresh            # cell pixels may change with the window / font
     mov rdi, rbx
     call App_layout
+    mov rdi, rbx
+    call App_sync_preview             # thumbnails are sized for the preview box
     mov dword ptr [rbx + App.need_redraw], 1
     jmp .Larun_stream_step
 

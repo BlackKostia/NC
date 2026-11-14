@@ -77,14 +77,17 @@ def test_kitty_and_cleanup():
             drain_raw(sess, 0.25)
             os.write(sess.master, b"\x1b[20~")  # F9 Preview
             drain_raw(sess, 0.15)
-            os.write(sess.master, b"\x1b[B")    # Down to a_pic.png
-            raw = drain_raw(sess, 0.45)
-            assert b"\x1b_Ga=T,f=100" in raw, f"Missing Kitty f=100 sequence in raw output"
+            os.write(sess.master, b"\x1b[B")    # Down to a_pic.png (decoded by the async helper)
+            raw = b""
+            end = time.monotonic() + 3.0
+            while b"\x1b_Ga=T,f=32" not in raw and time.monotonic() < end:
+                raw += drain_raw(sess, 0.3)
+            assert b"\x1b_Ga=T,f=32" in raw, f"Missing Kitty f=32 RGBA transmission in raw output"
             # Switch to b_note.txt -> must emit Kitty delete sequence
             os.write(sess.master, b"\x1b[B")
             raw2 = drain_raw(sess, 0.4)
             assert b"\x1b_Ga=d" in raw2, "Missing Kitty cleanup (a=d) when leaving image"
-            print("[PASS] IMG1. Kitty Graphics Protocol (f=100) & cleanup (a=d)")
+            print("[PASS] IMG1. Kitty Graphics Protocol (f=32) & cleanup (a=d)")
         finally:
             try:
                 os.kill(sess.pid, 9)

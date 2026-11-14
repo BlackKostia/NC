@@ -27,6 +27,18 @@ Image.fmt:     .space 4    # IMG_FMT_*
 Image.pad:     .space 4
 Image._size:
 
+# --- ImgPlace (48 bytes): a pixel-protocol image placed over a cell rectangle ---
+.struct 0
+ImgPlace.owner:  .space 8    # widget / dialog that shows it (hidden while another dialog is up)
+ImgPlace.data:   .space 8    # ready Sixel / Kitty escape stream
+ImgPlace.len:    .space 8
+ImgPlace.key:    .space 8    # changes whenever the picture changes
+ImgPlace.x:      .space 4    # cell rectangle covered by the picture
+ImgPlace.y:      .space 4
+ImgPlace.w:      .space 4
+ImgPlace.h:      .space 4
+ImgPlace._size:
+
 # --- Event (32 bytes) ---
 .struct 0
 Event.type:       .space 4   # EVT_*

@@ -19,7 +19,7 @@
   "funcs": {
     "src/app/app_close_dialog.s:App_close_dialog": 126,
     "src/app/app_ext.s:App_close_dialog_ext": 84,
-    "src/app/app_ext_keys.s:app_handle_ext_key": 99,
+    "src/app/app_ext_keys.s:app_handle_ext_key": 95,
     "src/app/app_keys.s:handle_key": 197,
     "src/core/config_expand.s:config_expand_cmd": 83,
     "src/core/config_parse.s:parse_config_line": 243,

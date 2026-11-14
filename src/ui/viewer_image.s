@@ -62,6 +62,9 @@ viewer_img_free:
     mov rdi, [rbx + ViewerDialog.thumb]
     call mem_free
     mov qword ptr [rbx + ViewerDialog.thumb], 0
+    mov rdi, [rbx + ViewerDialog.enc]
+    call mem_free
+    mov qword ptr [rbx + ViewerDialog.enc], 0
     pop rbx
     ret
 
@@ -113,7 +116,7 @@ ViewerDialog_render_image:
     push rbx
     push r12
     push r13
-    sub rsp, 32                       # ImgView
+    sub rsp, 32
     mov rbx, rdi
     mov r12, rsi
     mov rax, [rbx + Dialog.app]
@@ -127,28 +130,9 @@ ViewerDialog_render_image:
     cmp dword ptr [rbx + ViewerDialog.img_state], 1
     jne .Lri_unsup
     mov rdi, rbx
-    call vim_fit_thumb
-    test eax, eax
-    jz .Lri_hint
-    mov rax, [rbx + ViewerDialog.thumb]
-    mov [rsp], rax
-    mov eax, [rbx + ViewerDialog.thumb_w]
-    mov [rsp + 8], eax
-    mov eax, [rbx + ViewerDialog.thumb_h]
-    mov [rsp + 12], eax
-    mov eax, [r13 + Theme.dialog_bg]
-    mov [rsp + 16], eax
-    mov rdi, r12
-    mov esi, [rbx + Widget.x]
-    inc esi
-    mov edx, [rbx + Widget.y]
-    inc edx
-    mov ecx, [rbx + Widget.w]
-    sub ecx, 2
-    mov r8d, [rbx + Widget.h]
-    sub r8d, 3
-    mov r9, rsp
-    call img_draw_rgba
+    mov rsi, r12
+    mov rdx, r13
+    call vim_draw_picture
     jmp .Lri_hint
 .Lri_unsup:
     call i18n_get
@@ -188,53 +172,3 @@ vim_line:
     mov r8d, [rbx + Widget.w]
     sub r8d, 4
     jmp ScreenBuffer_draw_text
-
-# Internal: int vim_fit_thumb(ViewerDialog *v) -- (re)scale the picture for the window, 0 on OOM
-vim_fit_thumb:
-    push rbx
-    push r12
-    push r13
-    mov rbx, rdi
-    mov edi, [rbx + ViewerDialog.img + Image.w]
-    mov esi, [rbx + ViewerDialog.img + Image.h]
-    mov edx, [rbx + Widget.w]
-    sub edx, 2
-    mov ecx, [rbx + Widget.h]
-    sub ecx, 3
-    shl ecx, 1
-    call img_fit
-    mov r12d, eax
-    mov r13d, edx
-    cmp qword ptr [rbx + ViewerDialog.thumb], 0
-    je .Lft_new
-    cmp r12d, [rbx + ViewerDialog.thumb_w]
-    jne .Lft_new
-    cmp r13d, [rbx + ViewerDialog.thumb_h]
-    je .Lft_ok
-.Lft_new:
-    mov rdi, [rbx + ViewerDialog.thumb]
-    call mem_free
-    mov eax, r12d
-    imul eax, r13d
-    lea rdi, [rax * 4]
-    call mem_alloc
-    mov [rbx + ViewerDialog.thumb], rax
-    test rax, rax
-    jz .Lft_fail
-    mov [rbx + ViewerDialog.thumb_w], r12d
-    mov [rbx + ViewerDialog.thumb_h], r13d
-    lea rdi, [rbx + ViewerDialog.img]
-    mov rsi, rax
-    mov edx, r12d
-    mov ecx, r13d
-    call img_scale
-.Lft_ok:
-    mov eax, 1
-    jmp .Lft_ret
-.Lft_fail:
-    xor eax, eax
-.Lft_ret:
-    pop r13
-    pop r12
-    pop rbx
-    ret

@@ -10,30 +10,115 @@ str_altv:  .asciz " Alt+V "
 str_sep:   .asciz " "
 
 .section .text
-.global PreviewPane_thumb_dims
+.global PreviewPane_thumb_req
+.global pv_box_pixels
+.global img_box_pixels
 .global PreviewPane_cycle_mode
 .global pv_mode_dispatch
 
-# uint32_t PreviewPane_thumb_dims(PreviewPane *this) -> tw | th << 16 (half-block pixels), 0 = none
-PreviewPane_thumb_dims:
-    mov eax, [rdi + Widget.w]
-    sub eax, 2
-    jle .Ltd_none
-    cmp eax, IMG_THUMB_MAXW
-    jbe 1f
-    mov eax, IMG_THUMB_MAXW
-1:  mov ecx, [rdi + Widget.h]
-    sub ecx, 4
-    jle .Ltd_none
-    shl ecx, 1
-    cmp ecx, IMG_THUMB_MAXH
-    jbe 2f
-    mov ecx, IMG_THUMB_MAXH
-2:  shl ecx, 16
-    or eax, ecx
-    ret
-.Ltd_none:
+# uint32_t PreviewPane_thumb_req(PreviewPane *this, PvThumbReq *out) -> dims (0 = no image output)
+# out = { w | h << 16 (pixels for the image box), IMG_PROTO_* | cols << 8, background 0xRRGGBB }
+PreviewPane_thumb_req:
+    push rbx
+    push r12
+    push r13
+    mov rbx, rdi
+    mov r12, rsi
+    mov rax, [rbx + PreviewPane.app]
+    mov rax, [rax + App.theme]
+    mov eax, [rax + Theme.surface]
+    and eax, 0xFFFFFF
+    mov [r12 + 8], eax
+    call term_img_proto
+    mov r13d, eax
+    mov rdi, rbx
+    mov esi, r13d
+    call pv_box_pixels                # eax = w px, edx = h px, ecx = cols for Kitty scaling
+    shl ecx, 8
+    or ecx, r13d
+    mov [r12 + 4], ecx
+    mov [rbx + PreviewPane.req_mode], ecx
+    test eax, eax
+    jz .Ltr_none
+    test edx, edx
+    jz .Ltr_none
+    shl edx, 16
+    or eax, edx
+    mov [r12], eax
+    jmp .Ltr_ret
+.Ltr_none:
     xor eax, eax
+    mov [r12], eax
+.Ltr_ret:
+    pop r13
+    pop r12
+    pop rbx
+    ret
+
+# (int w, int h, int cols) pv_box_pixels(PreviewPane *this, int proto) -- the preview image box
+pv_box_pixels:
+    mov edx, esi
+    mov esi, [rdi + Widget.h]
+    sub esi, 5                        # rows (bottom border carries the mode bar)
+    mov edi, [rdi + Widget.w]
+    sub edi, 2                        # cols
+    jmp img_box_pixels
+
+# (int w, int h, int cols) img_box_pixels(int cols, int rows, int proto)
+# Image box in output pixels: quadrants 2x2 per cell, half blocks 1x2, pixel protocols use the
+# real cell size (Sixel guesses 6x12 when unknown; Kitty then asks the terminal to scale to cols).
+img_box_pixels:
+    mov r8d, edi
+    mov r9d, esi
+    mov esi, edx
+    xor eax, eax
+    xor edx, edx
+    xor ecx, ecx
+    test r8d, r8d
+    jle .Lbp_ret
+    test r9d, r9d
+    jle .Lbp_ret
+    cmp esi, IMG_PROTO_HALF
+    je .Lbp_half
+    cmp esi, IMG_PROTO_SIXEL
+    jae .Lbp_px
+    lea eax, [r8d * 2]                # quadrants
+    lea edx, [r9d * 2]
+    ret
+.Lbp_half:
+    mov eax, r8d
+    lea edx, [r9d * 2]
+    ret
+.Lbp_px:
+    push rsi
+    call term_cell_px                 # eax = cw, edx = ch
+    pop rsi
+    xor ecx, ecx
+    test eax, eax
+    jz .Lbp_guess
+    test edx, edx
+    jnz .Lbp_scale
+.Lbp_guess:
+    mov eax, 6                        # Sixel must never overflow the box: assume tiny cells
+    mov edx, 12
+    cmp esi, IMG_PROTO_KITTY
+    jne .Lbp_scale
+    mov eax, 10                       # Kitty scales to the picture's cols itself (c=cols)
+    mov edx, 20
+    mov ecx, r8d
+    cmp ecx, 255
+    jbe .Lbp_scale
+    mov ecx, 255
+.Lbp_scale:
+    imul eax, r8d
+    imul edx, r9d
+    cmp eax, IMG_PX_MAX
+    jbe 1f
+    mov eax, IMG_PX_MAX
+1:  cmp edx, IMG_PX_MAX
+    jbe .Lbp_ret
+    mov edx, IMG_PX_MAX
+.Lbp_ret:
     ret
 
 # Internal: int pv_effective_mode(PreviewPane *this) -> PV_MODE_IMAGE / HEX / TEXT

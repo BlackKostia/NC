@@ -43,6 +43,7 @@ FileStat._size:
 #     int  os_str_contains_ci_fast(const char *hay, const char *needle_lc, size_t nlen) -- ASCII ci, 1/0
 #     size_t os_mem_mismatch16(const void *a, const void *b, size_t n16) -- index of first differing
 #          16-byte block (Cell) among n16 blocks, or n16 when equal
+#   void os_get_winsize_px(int *xpix, int *ypix) -> terminal pixel size (TIOCGWINSZ), 0/0 if unknown
 #   void *os_mmap_file_ro(int fd, size_t len)  -> read-only private file mapping, or 0
 #   void os_munmap(void *addr, size_t len)
 #   void os_sigbus_guard_install(void)          -> a SIGBUS on a mapped file page (file truncated

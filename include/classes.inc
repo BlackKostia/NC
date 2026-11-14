@@ -217,8 +217,12 @@ CLASS_BEGIN PreviewPane
     FIELD PreviewPane.is_dir,      4
     FIELD PreviewPane.file_mode,   4
     FIELD PreviewPane.pending,     4   # 1 while file head is being read asynchronously
-    FIELD PreviewPane.thumb_len,   4   # image thumbnail bytes at buf + PV_THUMB_OFF (0 = not an image)
+    FIELD PreviewPane.thumb_len,   4   # image payload bytes at thumb_ptr (0 = not an image)
     FIELD PreviewPane.view_mode,   4   # PV_MODE_* chosen with Alt+V (reset per file)
+    FIELD PreviewPane.thumb_ptr,   8   # IMG_THUMB_HDR + payload (helper shared buffer or buf)
+    FIELD PreviewPane.thumb_mode,  4   # IMG_PROTO_* the payload was produced for
+    FIELD PreviewPane.thumb_gen,   4   # bumped per accepted payload (overlay change detection)
+    FIELD PreviewPane.req_mode,    4   # IMG_PROTO_* | cols << 8 of the pending request
     FIELD PreviewPane.target_path, PATH_MAX
 CLASS_END PreviewPane
 
@@ -269,6 +273,9 @@ CLASS_BEGIN ViewerDialog
     FIELD ViewerDialog.thumb,       8   # img scaled to the window (RGBA), rebuilt on resize
     FIELD ViewerDialog.thumb_w,     4
     FIELD ViewerDialog.thumb_h,     4
+    FIELD ViewerDialog.enc,         8   # Sixel / Kitty stream of thumb (pixel protocols)
+    FIELD ViewerDialog.enc_len,     8
+    FIELD ViewerDialog.enc_key,     8   # protocol | size the stream was built for
     FIELD ViewerDialog.path,        PATH_MAX
 CLASS_END ViewerDialog
 

@@ -342,8 +342,11 @@ App_preview_fire:
     test eax, eax
     jz .Lasp_exit
     mov rdi, [rbx + App.preview_pane]
-    call PreviewPane_thumb_dims
+    lea rsi, [rsp + PATH_MAX]         # PvThumbReq after the path
+    call PreviewPane_thumb_req
     mov esi, eax
+    mov edx, [rsp + PATH_MAX + 4]
+    mov ecx, [rsp + PATH_MAX + 8]
     mov rdi, rsp
     call fs_preview_request
     test eax, eax

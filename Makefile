@@ -37,6 +37,8 @@ SRCS := \
 	src/tui/screen_text.s \
 	src/tui/screen_out.s \
 	src/tui/input.s \
+	src/tui/term_caps.s \
+	src/tui/screen_rect.s \
 	src/tui/input_parse.s \
 	src/fs/dir_model.s \
 	src/fs/dir_model_load.s \
@@ -63,6 +65,9 @@ SRCS := \
 	src/fs/preview_io.s \
 	src/fs/preview_helper.s \
 	src/fs/img_core.s \
+	src/fs/img_kitty.s \
+	src/fs/img_quant.s \
+	src/fs/img_sixel.s \
 	src/fs/img_png.s \
 	src/fs/img_png_px.s \
 	src/fs/img_bmp.s \
@@ -109,6 +114,8 @@ SRCS := \
 	src/ui/file_pane_tabs.s \
 	src/ui/preview_pane.s \
 	src/ui/preview_mode.s \
+	src/ui/img_overlay.s \
+	src/ui/img_quad.s \
 	src/ui/preview_pane_render.s \
 	src/ui/preview_pane_mouse.s \
 	src/ui/dialogs.s \
@@ -118,6 +125,7 @@ SRCS := \
 	src/ui/dialogs_help.s \
 	src/ui/viewer_dialog.s \
 	src/ui/viewer_image.s \
+	src/ui/viewer_pixels.s \
 	src/ui/view_as_dialog.s \
 	src/ui/viewer_dialog_end.s \
 	src/ui/viewer_dialog_render.s \
@@ -214,6 +222,7 @@ test: $(TARGET)
 	python3 tests/test_fuzzy_palette.py
 	python3 tests/test_img_preview.py
 	python3 tests/test_image_formats.py
+	python3 tests/test_image_quality.py
 	python3 tests/test_disk_usage.py
 	python3 tests/test_archive_vfs.py
 	python3 tests/test_git_status.py

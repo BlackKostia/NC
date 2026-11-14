@@ -13,6 +13,7 @@ sh_path:   .asciz "/bin/sh"
 .global os_pty_read
 .global os_pty_write
 .global os_pty_close
+.global os_get_winsize_px
 
 pty_format_pts_path:
     mov w9, w0
@@ -188,4 +189,25 @@ os_pty_write:
 
 os_pty_close:
     OS_CLOSE
+    ret
+
+// void os_get_winsize_px(int *xpix, int *ypix) -- terminal size in pixels (0, 0 when not reported)
+os_get_winsize_px:
+    sub sp, sp, #16
+    mov x9, x0
+    mov x10, x1
+    str wzr, [x9]
+    str wzr, [x10]
+    mov w0, #1
+    mov x1, #TIOCGWINSZ
+    mov x2, sp
+    OS_IOCTL
+    cmp x0, #0
+    b.lt 1f
+    ldrh w11, [sp, #4]
+    ldrh w12, [sp, #6]
+    str w11, [x9]
+    str w12, [x10]
+1:
+    add sp, sp, #16
     ret

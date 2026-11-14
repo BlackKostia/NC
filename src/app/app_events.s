@@ -18,13 +18,20 @@
 
 # void App_events_init(App *app)
 App_events_init:
-    sub rsp, 8
+    push rbx
+    mov rbx, rdi
+    mov rdi, [rbx + App.envp]         # image protocol: environment, then DA1 / cell-size replies
+    call term_caps_init
+    call term_caps_query
+    mov edi, [rbx + App.term_w]
+    mov esi, [rbx + App.term_h]
+    call term_caps_refresh
     call dirwatch_init
     call dirwatch_fd
     mov esi, eax
     mov edi, 1
     call input_set_aux_fd
-    add rsp, 8
+    pop rbx
     ret
 
 # void App_events_shutdown(App *app)
@@ -180,7 +187,12 @@ App_events_tick:
     call App_events_tick__debounced_preview
     # Keep watches on the directories currently shown, collect change events
     call App_events_tick__keep_watches_directories_current
-    add rsp, 32
+    call term_caps_changed            # protocol / cell size known now: redo the image preview
+    test eax, eax
+    jz 1f
+    mov rdi, rbx
+    call App_sync_preview
+1:  add rsp, 32
     pop r13
     pop r12
     pop rbx
@@ -211,7 +223,7 @@ App_events_tick__debounced_preview:
 .Leti_recv:
     mov r13, [rbx + App.preview_pane]
     mov rdi, [r13 + PreviewPane.buf]
-    mov esi, PREVIEW_BUF_SIZE + IMG_THUMB_CAP
+    mov esi, PREVIEW_BUF_SIZE
     lea rdx, [rsp + 16]
     lea rcx, [rsp + 8 + 16]
     lea r8, [rsp + 16 + 16]
@@ -223,6 +235,8 @@ App_events_tick__debounced_preview:
     jne .Leti_recv
     cmp dword ptr [r13 + PreviewPane.pending], 0
     je .Leti_recv
+    call fs_preview_shm
+    mov rcx, rax
     mov rdi, r13
     mov rsi, [rsp + 8 + 16]
     mov rdx, [rsp + 16 + 16]

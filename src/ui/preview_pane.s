@@ -117,11 +117,11 @@ PreviewPane_load:
     pop rbx
     ret
 
-# void PreviewPane_read_sync(PreviewPane *this) -- fallback: read the head (+ thumbnail) now
+# void PreviewPane_read_sync(PreviewPane *this) -- fallback: head (+ block thumbnail) read now
 PreviewPane_read_sync:
     push rbx
     push r12
-    sub rsp, 8
+    sub rsp, 24                       # PvThumbReq
     mov rbx, rdi
     lea rdi, [rbx + PreviewPane.target_path]
     mov rsi, [rbx + PreviewPane.buf]
@@ -129,42 +129,51 @@ PreviewPane_read_sync:
     lea rcx, [rbx + PreviewPane.buf_len]
     call fs_read_file_head
     mov rdi, rbx
-    call PreviewPane_thumb_dims
-    movzx ecx, ax
-    shr eax, 16
-    mov r8d, eax
+    mov rsi, rsp
+    call PreviewPane_thumb_req
+    mov rdi, rbx                      # no helper: quadrant blocks only
+    mov esi, IMG_PROTO_QUAD
+    call pv_box_pixels
+    shl edx, 16
+    or eax, edx
+    mov [rsp], eax
+    mov dword ptr [rsp + 4], IMG_PROTO_QUAD
+    mov dword ptr [rbx + PreviewPane.req_mode], IMG_PROTO_QUAD
     lea rdi, [rbx + PreviewPane.target_path]
     mov rsi, [rbx + PreviewPane.buf]
     mov rdx, [rbx + PreviewPane.buf_len]
-    lea r9, [rsi + rdx]               # same layout as an async reply: thumbnail after the head
+    mov rcx, rsp
+    lea r8, [rsi + rdx + 1]
+    mov r9d, PV_BUF_TOTAL - 1
+    sub r9, rdx
     call pv_make_thumb
     mov rdi, rbx
     mov rsi, [rbx + PreviewPane.buf_len]
     mov rdx, rax
-    add rsp, 8
+    lea rcx, [rsi + 1]
+    add rcx, [rbx + PreviewPane.buf]
+    add rsp, 24
     pop r12
     pop rbx
     jmp PreviewPane_accept
 
-# void PreviewPane_accept(PreviewPane *this, size_t len, size_t tlen)
-# this->buf holds len head bytes followed by tlen thumbnail bytes (tlen = 0: not an image).
+# void PreviewPane_accept(PreviewPane *this, size_t len, size_t tlen, const uint8_t *thumb)
+# this->buf holds len head bytes; thumb points at tlen image payload bytes (tlen = 0: not an image).
 PreviewPane_accept:
     push rbx
     push r12
     push r13
     mov rbx, rdi
     mov [rbx + PreviewPane.buf_len], rsi
-    xor r12d, r12d
-    cmp rdx, IMG_THUMB_CAP
-    ja 1f
+    xor eax, eax
     cmp rdx, IMG_THUMB_HDR
     jb 1f
-    mov r12, rdx
-    mov rdi, [rbx + PreviewPane.buf]
-    lea rsi, [rdi + rsi]
-    add rdi, PV_THUMB_OFF
-    call mem_move                     # park the thumbnail at its fixed, aligned slot
-1:  mov [rbx + PreviewPane.thumb_len], r12d
+    mov eax, edx
+    mov [rbx + PreviewPane.thumb_ptr], rcx
+    mov ecx, [rbx + PreviewPane.req_mode]
+    mov [rbx + PreviewPane.thumb_mode], ecx
+    inc dword ptr [rbx + PreviewPane.thumb_gen]
+1:  mov [rbx + PreviewPane.thumb_len], eax
     mov dword ptr [rbx + PreviewPane.pending], 0
     mov dword ptr [rbx + PreviewPane.total_lines], 0
     mov dword ptr [rbx + PreviewPane.is_binary], 0

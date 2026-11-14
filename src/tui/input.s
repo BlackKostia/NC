@@ -68,6 +68,15 @@ wait_and_read_fd:
     test rax, rax
     jle .Lwar_none
     add [rip + in_len], eax
+    mov [rsp + 24], eax
+    lea rdi, [rip + in_buf]           # terminal replies (DA1, cell size) never reach the parser
+    mov edx, [rip + in_len]
+    mov esi, edx
+    sub esi, eax
+    call term_caps_filter
+    sub [rip + in_len], eax
+    neg eax
+    add eax, [rsp + 24]               # bytes left for the key parser (0 = only replies)
     add rsp, 40
     pop r12
     pop rbx

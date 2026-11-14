@@ -38,6 +38,12 @@
 .equ IMG_THUMB_MAXH, 100
 .equ IMG_THUMB_HDR,  16              # u32 fmt, u32 src_w, u32 src_h, u16 tw, u16 th
 .equ IMG_THUMB_CAP,  IMG_THUMB_HDR + IMG_THUMB_MAXW * IMG_THUMB_MAXH * 4
+.equ IMG_PROTO_QUAD,  0               # 2x2 quadrant blocks (default text-cell output)
+.equ IMG_PROTO_HALF,  1               # 1x2 half blocks (DUOP_IMG_MODE=halfblock)
+.equ IMG_PROTO_SIXEL, 2               # DEC Sixel (DA1 reports ;4 or DUOP_IMG_MODE=sixel)
+.equ IMG_PROTO_KITTY, 3               # Kitty graphics protocol, f=32 RGBA
+.equ IMG_PX_MAX,      2048            # pixel-protocol images never exceed this per side
+.equ PV_SHM_CAP,      25165824        # helper -> UI shared payload buffer (24 MiB, lazily touched)
 .equ PV_THUMB_OFF,  PREVIEW_BUF_SIZE + 16              # thumbnail inside PreviewPane.buf
 .equ PV_BUF_TOTAL,  PV_THUMB_OFF + IMG_THUMB_CAP
 .equ PV_MODE_AUTO,  0                # preview / viewer presentation of a file

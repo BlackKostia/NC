@@ -13,7 +13,7 @@
 
 .equ PV_STUCK_MS, 1000
 .equ PV_HDR,      16          # u32 seq, i32 err, u32 len, u32 thumb len
-.equ PV_REQ,      12          # u32 seq, u32 path len, u16 thumb w | u16 thumb h << 16
+.equ PV_REQ,      20          # u32 seq, path len, thumb dims (w | h << 16), proto | cols << 8, bg
 
 .section .bss
 .align 8
@@ -24,6 +24,8 @@ g_pv_req1:    .space 4        # request write end + 1 (UI)
 g_pv_resp1:   .space 4        # reply read end + 1 (UI, non-blocking)
 g_pv_seq:     .space 4        # last issued sequence number
 g_pv_busy:    .space 4        # a request for g_pv_seq is outstanding
+.align 8
+g_pv_shm:     .space 8        # MAP_SHARED buffer the helper writes image payloads into
 
 .section .text
 .global fs_preview_request
@@ -31,6 +33,7 @@ g_pv_busy:    .space 4        # a request for g_pv_seq is outstanding
 .global fs_preview_receive
 .global fs_preview_stop
 .global pv_read_exact
+.global fs_preview_shm
 
 # ssize_t pv_read_exact(int fd, void *buf, size_t n) -- blocking; 0 on EOF (also used by the helper)
 pv_read_exact:
@@ -82,6 +85,16 @@ pv_start:
     push rbx
     push r12
     push r13
+    cmp qword ptr [rip + g_pv_shm], 0
+    jne .Lps_pipes
+    xor edi, edi                      # shared with every helper forked from now on
+    mov esi, PV_SHM_CAP
+    mov edx, PROT_RW
+    OS_MMAP_SHARED_ANON
+    cmp rax, -4095
+    jae .Lps_pipes
+    mov [rip + g_pv_shm], rax
+.Lps_pipes:
     lea rdi, [rip + g_pv_pipes]
     call os_pipe_cloexec
     test rax, rax
@@ -173,21 +186,29 @@ fs_preview_stop:
     pop rbx
     ret
 
+# uint8_t *fs_preview_shm(void) -> image payload of the latest reply (valid while the helper idles)
+fs_preview_shm:
+    mov rax, [rip + g_pv_shm]
+    ret
+
 # int fs_preview_fd(void) -> reply fd to poll, or -1
 fs_preview_fd:
     mov eax, [rip + g_pv_resp1]
     dec eax
     ret
 
-# int fs_preview_request(const char *path, uint32_t thumb_dims /*tw | th << 16, 0 = none*/)
+# int fs_preview_request(const char *path, uint32_t dims /*w | h << 16, 0 = no image*/,
+#                        uint32_t mode /*IMG_PROTO_* | cols << 8*/, uint32_t bg /*0xRRGGBB*/)
 # -> sequence number (> 0), or -1 (caller reads sync)
 fs_preview_request:
     push rbx
     push r12
     push r13
-    sub rsp, PATH_MAX + 16
+    sub rsp, PATH_MAX + 32
     mov r12, rdi
-    mov [rsp + PATH_MAX + 8], esi
+    mov [rsp + PATH_MAX + 20], esi
+    mov [rsp + PATH_MAX + 24], edx
+    mov [rsp + PATH_MAX + 28], ecx
     call os_clock_ms
     mov r13, rax
     cmp dword ptr [rip + g_pv_pid], 0
@@ -213,8 +234,12 @@ fs_preview_request:
     mov eax, [rip + g_pv_seq]
     mov [rsp], eax
     mov [rsp + 4], ebx
-    mov eax, [rsp + PATH_MAX + 8]
+    mov eax, [rsp + PATH_MAX + 20]
     mov [rsp + 8], eax
+    mov eax, [rsp + PATH_MAX + 24]
+    mov [rsp + 12], eax
+    mov eax, [rsp + PATH_MAX + 28]
+    mov [rsp + 16], eax
     lea rdi, [rsp + PV_REQ]
     mov rsi, r12
     mov rdx, rbx
@@ -236,14 +261,14 @@ fs_preview_request:
 .Lpr_fail:
     mov eax, -1
 .Lpr_ret:
-    add rsp, PATH_MAX + 16
+    add rsp, PATH_MAX + 32
     pop r13
     pop r12
     pop rbx
     ret
 
 # int fs_preview_receive(void *buf, size_t cap, uint32_t *out_seq, size_t *out_len, size_t *out_tlen)
-# buf receives the head bytes followed by the thumbnail (if any).
+# buf receives the head bytes; the image payload (out_tlen bytes) is in fs_preview_shm().
 # Non-blocking: returns 1 with one complete reply copied into buf, or 0 when none is ready.
 # Replies to older requests are consumed too (caller compares seq).
 fs_preview_receive:
@@ -284,8 +309,7 @@ fs_preview_receive:
     test rcx, rcx
     jz 1f
     mov [rcx], rax
-1:  add rdx, rax
-    cmp rdx, r13
+1:  cmp rdx, r13
     ja .Lprv_broken
     test edx, edx
     jz .Lprv_done
