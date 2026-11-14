@@ -200,8 +200,73 @@ def test_img_zoom_and_quality():
                 pass
 
 
+def test_viewer_scrollbars():
+    with tempfile.TemporaryDirectory() as tmp:
+        l = os.path.join(tmp, "left")
+        r = os.path.join(tmp, "right")
+        os.makedirs(l)
+        os.makedirs(r)
+        make_png_grid(os.path.join(l, "a_grid.png"), 200, 200)
+        with open(os.path.join(l, "b_long.txt"), "w") as f:
+            for i in range(120):
+                f.write(f"line {i:03d}\n")
+
+        sess = PtySession(BINARY, ["--lang", "en", l, r], cols=100, rows=30)
+        try:
+            drain_raw(sess, 0.25)
+            os.write(sess.master, b"\x1b[B")    # a_grid.png
+            drain_raw(sess, 0.1)
+            os.write(sess.master, b"\x1bOR")    # F3 -> Open as
+            drain_raw(sess, 0.15)
+            os.write(sess.master, b"i")         # Image mode (Fit)
+            drain_raw(sess, 0.3)
+            lines = sess.vt.full_text().splitlines()
+            right_col = "".join(ln[-3] for ln in lines[2:27] if len(ln) >= 3)
+            assert "█" not in right_col and "░" not in right_col, (
+                f"Unexpected scrollbar in Fit mode:\n" + "\n".join(lines)
+            )
+
+            os.write(sess.master, b"1")         # 100% zoom -> needs scrollbars
+            drain_raw(sess, 0.25)
+            lines = sess.vt.full_text().splitlines()
+            right_col = "".join(ln[-3] for ln in lines[2:27] if len(ln) >= 3)
+            bot_row = lines[-2] if len(lines) >= 2 else ""
+            assert "█" in right_col and "░" in right_col, (
+                f"Missing vertical scrollbar when zoomed:\n" + "\n".join(lines)
+            )
+            assert "█" in bot_row and "░" in bot_row, (
+                f"Missing horizontal scrollbar when zoomed:\n" + "\n".join(lines)
+            )
+
+            os.write(sess.master, b"0")         # Fit again -> scrollbars hidden
+            drain_raw(sess, 0.25)
+            lines = sess.vt.full_text().splitlines()
+            right_col = "".join(ln[-3] for ln in lines[2:27] if len(ln) >= 3)
+            assert "█" not in right_col, "Scrollbar remained after Fit"
+
+            os.write(sess.master, b"\x1b")      # Close viewer
+            drain_raw(sess, 0.15)
+            os.write(sess.master, b"\x1b[B")    # b_long.txt
+            drain_raw(sess, 0.1)
+            os.write(sess.master, b"\x1bOR")    # F3 text viewer
+            drain_raw(sess, 0.25)
+            lines = sess.vt.full_text().splitlines()
+            right_col = "".join(ln[-3] for ln in lines[2:27] if len(ln) >= 3)
+            assert "█" in right_col and "░" in right_col, (
+                f"Missing vertical scrollbar in long text viewer:\n" + "\n".join(lines)
+            )
+            print("[PASS] IMG4. ViewerDialog scrollbars (image zoom H/V + text overflow)")
+        finally:
+            try:
+                os.kill(sess.pid, 9)
+                os.waitpid(sess.pid, 0)
+            except OSError:
+                pass
+
+
 if __name__ == "__main__":
     test_kitty_and_cleanup()
     test_halfblock_fallback()
     test_img_zoom_and_quality()
+    test_viewer_scrollbars()
     print("ALL IMAGE PREVIEW TESTS PASSED.")

@@ -82,13 +82,10 @@ ViewerDialog_render:
     jmp .Lvr_hloop
 
 .Lvr_done:
+    mov rdi, rbx; mov rsi, r12; mov rdx, r13; mov rcx, [rsp + 320]
+    call vw_draw_text_scrollbar
     add rsp, 344
-    pop rbp
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop rbx
+    pop rbp; pop r15; pop r14; pop r13; pop r12; pop rbx
     ret
 
 # ViewerDialog_render step: draw_text (runs on the caller's frame)

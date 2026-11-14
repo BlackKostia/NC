@@ -128,6 +128,7 @@ SRCS := \
 	src/ui/viewer_pixels.s \
 	src/ui/viewer_zoom.s \
 	src/ui/viewer_zoom_rect.s \
+	src/ui/viewer_scrollbar.s \
 	src/ui/view_as_dialog.s \
 	src/ui/viewer_dialog_end.s \
 	src/ui/viewer_dialog_render.s \

@@ -151,6 +151,10 @@ ViewerDialog_render_image:
     mov rsi, r12
     mov rdx, r13
     call vim_draw_zoom_badge
+    mov rdi, rbx
+    mov rsi, r12
+    mov rdx, r13
+    call vw_draw_img_scrollbars
     add rsp, 32
     pop r13
     pop r12
