@@ -16,7 +16,7 @@ CODE_PATH_PREFIXES = ("src/", "include/")
 VERIFY_RELEVANT_FILES = ("Makefile", "VERSION", "tests/test_pty.py")
 LEAN_SUFFIXES = (".s", ".inc", ".py")
 LEAN_SCRIPT = Path(".agents/skills/duop-lean-modules/scripts/check_lean.py")
-MODULARITY_SCRIPT = Path(".agents/skills/duop-pty-verify/scripts/check_modularity.py")
+MODULARITY_SCRIPT = Path(".agents/skills/duop-modular-asm/scripts/check_modularity.py")
 I18N_PATHS = ("src/ui/", "src/tui/", "src/app/", "include/types.inc", "lang/uk.lang")
 
 

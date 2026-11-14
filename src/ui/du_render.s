@@ -95,7 +95,7 @@ fp_draw_du_pane__set_pen:
     call ScreenBuffer_set_pen
     mov esi, [rbx + Widget.x]; add esi, [rbx + Widget.w]; sub esi, 27
     mov edx, [rbx + Widget.y]; add edx, 3; add edx, [rsp + 4 + 16]
-    mov rdi, r12; mov ecx, 25; mov r8d, 1; mov r9d, ' '
+    mov rdi, r12; mov ecx, 26; mov r8d, 1; mov r9d, ' '
     call ScreenBuffer_fill_rect
 
 .Lfp_draw_du_pane__set_pen_ret:

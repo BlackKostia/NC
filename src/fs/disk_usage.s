@@ -72,7 +72,7 @@ du_walk_fd:
     xor r10d, r10d; OS_OPENAT
     test rax, rax; js .Ldwf_ent
     push rax
-    mov edi, eax; mov rsi, r12; lea edx, [r13d + 1]
+    mov edi, eax; lea rsi, [r12 + 32768]; lea edx, [r13d + 1]
     call du_walk_fd
     add r14, rax
     pop rdi
@@ -88,7 +88,7 @@ du_walk_fd:
 du_calc_tree:
     push rbx; push r12; push r13
     mov ebx, edi; mov r12, rsi
-    mov edi, 32768; call mem_alloc
+    mov edi, DU_MAX_DEPTH * 32768; call mem_alloc
     test rax, rax; jz .Ldct_zero
     mov r13, rax
     mov edi, ebx; mov rsi, r12
@@ -121,7 +121,7 @@ dir_du_populate:
     mov edx, O_RDONLY | O_DIRECTORY | O_CLOEXEC; xor r10d, r10d; OS_OPENAT
     test rax, rax; js .Lddp_ret
     mov [rsp + FileStat._size], eax
-    mov edi, 32768; call mem_alloc
+    mov edi, DU_MAX_DEPTH * 32768; call mem_alloc
     mov [rsp + FileStat._size + 8], rax
     xor r12d, r12d            # total_bytes
     xor r13d, r13d            # i = 0

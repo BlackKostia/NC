@@ -26,9 +26,11 @@ def test_disk_usage_en():
         r = os.path.join(tmp, "right")
         big = os.path.join(l, "big_dir")
         small = os.path.join(l, "small_dir")
-        os.makedirs(big)
+        os.makedirs(os.path.join(big, "nested_sub"))
         os.makedirs(small)
         os.makedirs(r)
+        with open(os.path.join(big, "nested_sub", "sub.bin"), "wb") as f:
+            f.write(b"S" * 32768)
         with open(os.path.join(big, "payload.bin"), "wb") as f:
             f.write(b"A" * 65536)
         with open(os.path.join(l, "medium.bin"), "wb") as f:
@@ -42,7 +44,7 @@ def test_disk_usage_en():
             # Alt+D enters Disk Usage mode
             sess.send(b"\x1bd")
             wait_for(sess, "Disk Usage")
-            wait_for(sess, "64.0 K")
+            wait_for(sess, "96.0 K")
             screen = sess.vt.full_text()
             assert "█" in screen or "▓" in screen or "%" in screen, f"Missing usage bar:\n{screen}"
             pos_big = screen.find("big_dir")

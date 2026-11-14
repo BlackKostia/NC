@@ -20,6 +20,7 @@ python3 ./.agents/skills/duop-modular-asm/scripts/check_modularity.py --root "$R
 python3 ./.agents/skills/duop-lean-modules/scripts/check_lean.py --root "$ROOT" ${DUOP_LEAN_STAGED:+--staged}
 python3 ./tests/test_lean_gate.py
 python3 ./tests/test_lean_split.py
+python3 ./tests/test_i18n_hook.py
 
 VER="$(tr -d '[:space:]' < "$ROOT/VERSION")"
 
