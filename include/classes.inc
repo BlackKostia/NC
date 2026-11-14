@@ -272,6 +272,7 @@ CLASS_BEGIN ViewerDialog
     FIELD ViewerDialog.enc_len,     8
     FIELD ViewerDialog.enc_key,     8   # protocol | size the stream was built for
     FIELD ViewerDialog.img_zoom,    4   # 0 = Fit to window; > 0 = percent (25..800)
+    FIELD ViewerDialog.img_braille, 4   # 1 = 2x4 Braille high-detail mode
     FIELD ViewerDialog.img_pan_x,   4   # top-left source pixel X (clamped)
     FIELD ViewerDialog.img_pan_y,   4   # top-left source pixel Y (clamped)
     FIELD ViewerDialog.img_box_w,   4   # last viewport width in output pixels

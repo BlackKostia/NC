@@ -29,6 +29,10 @@ vim_zoom_key:
     cmp eax, '1';      je .Lzk_100
     cmp eax, '0';      je .Lzk_fit
     cmp eax, 'f';      je .Lzk_fit
+    cmp eax, 'b';      je .Lzk_braille
+    cmp eax, 'B';      je .Lzk_braille
+    cmp eax, 'o';      je .Lzk_open
+    cmp eax, 'O';      je .Lzk_open
     mov esi, -1; xor edx, edx; cmp eax, KEY_LEFT;  je .Lzk_pan
     mov esi, 1;  xor edx, edx; cmp eax, KEY_RIGHT; je .Lzk_pan
     xor esi, esi; mov edx, -1; cmp eax, KEY_UP;    je .Lzk_pan
@@ -50,6 +54,15 @@ vim_zoom_key:
     mov rdi, rbx; mov esi, 100; call vz_set_zoom; jmp .Lzk_yes
 .Lzk_fit:
     mov rdi, rbx; xor esi, esi; call vz_set_zoom; jmp .Lzk_yes
+.Lzk_braille:
+    xor dword ptr [rbx + ViewerDialog.img_braille], 1
+    jmp .Lzk_inv
+.Lzk_open:
+    lea rdi, [rbx + ViewerDialog.path]
+    mov rax, [rbx + Dialog.app]
+    mov rsi, [rax + App.envp]
+    call sys_open_external
+    jmp .Lzk_yes
 .Lzk_home:
     mov dword ptr [rbx + ViewerDialog.img_pan_x], 0
     mov dword ptr [rbx + ViewerDialog.img_pan_y], 0

@@ -113,7 +113,11 @@ vim_draw_zoom_badge:
     mov rdi, r14; mov edx, 24; call str_copy
     add r14, rax
 .Lzb_end:
-    mov word ptr [r14], 0x005D        # "]\0"
+    cmp dword ptr [rbx + ViewerDialog.img_braille], 0
+    je 1f
+    mov word ptr [r14], 0x4220        # " B"
+    add r14, 2
+1:  mov word ptr [r14], 0x005D        # "]\0"
     mov rdi, r12; mov esi, [r13 + Theme.accent]
     mov edx, [r13 + Theme.dialog_bg]; xor ecx, ecx
     call ScreenBuffer_set_pen

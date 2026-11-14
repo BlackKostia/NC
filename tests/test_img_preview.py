@@ -264,9 +264,51 @@ def test_viewer_scrollbars():
                 pass
 
 
+def test_braille_mode():
+    with tempfile.TemporaryDirectory() as tmp:
+        l = os.path.join(tmp, "left")
+        r = os.path.join(tmp, "right")
+        os.makedirs(l)
+        os.makedirs(r)
+        make_png_grid(os.path.join(l, "grid.png"), 200, 200)
+
+        sess = PtySession(BINARY, ["--lang", "en", l, r], cols=100, rows=30)
+        try:
+            drain_raw(sess, 0.25)
+            os.write(sess.master, b"\x1b[B")    # grid.png
+            drain_raw(sess, 0.1)
+            os.write(sess.master, b"\x1bOR")    # F3 -> Open as
+            drain_raw(sess, 0.15)
+            os.write(sess.master, b"i")         # Image mode
+            drain_raw(sess, 0.3)
+
+            os.write(sess.master, b"b")         # Toggle 2x4 Braille mode
+            drain_raw(sess, 0.3)
+            screen = sess.vt.full_text()
+            assert "[Fit B]" in screen, f"Expected [Fit B] badge after 'b':\n{screen}"
+            has_braille = any("\u2800" <= ch <= "\u28ff" for ch in screen)
+            assert has_braille, f"Expected Unicode Braille characters in screen:\n{screen}"
+
+            os.write(sess.master, b"o")         # External open (no-op without DISPLAY, must not crash)
+            drain_raw(sess, 0.15)
+
+            os.write(sess.master, b"b")         # Toggle back to quadrant
+            drain_raw(sess, 0.25)
+            screen = sess.vt.full_text()
+            assert "[Fit]" in screen, f"Expected [Fit] after second 'b':\n{screen}"
+            print("[PASS] IMG5. 2x4 Braille high-detail mode ('b') & external open ('o')")
+        finally:
+            try:
+                os.kill(sess.pid, 9)
+                os.waitpid(sess.pid, 0)
+            except OSError:
+                pass
+
+
 if __name__ == "__main__":
     test_kitty_and_cleanup()
     test_halfblock_fallback()
     test_img_zoom_and_quality()
     test_viewer_scrollbars()
+    test_braille_mode()
     print("ALL IMAGE PREVIEW TESTS PASSED.")

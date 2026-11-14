@@ -28,7 +28,14 @@ vim_draw_picture:
     sub esi, 3
     mov edx, r14d
     call img_box_pixels               # eax = box px w, edx = box px h, ecx = Kitty cols
-    mov [rsp + 48], eax
+    cmp r14d, IMG_PROTO_SIXEL
+    jae 4f
+    cmp dword ptr [rbx + ViewerDialog.img_braille], 0
+    je 4f
+    mov edx, [rbx + Widget.h]
+    sub edx, 3
+    shl edx, 2                        # 2x4 Braille: 4 vertical subpixels per cell
+4:  mov [rsp + 48], eax
     mov [rsp + 52], edx
     mov [rsp + 56], ecx
     mov rdi, rbx
@@ -106,9 +113,14 @@ vim_block_box:
     add esi, r11d
     mov ecx, eax
 2:  mov eax, [rbx + ViewerDialog.thumb_h]
-    inc eax
+    cmp dword ptr [rbx + ViewerDialog.img_braille], 0
+    je 3f
+    add eax, 3
+    shr eax, 2
+    jmp 4f
+3:  inc eax
     shr eax, 1
-    cmp eax, r8d
+4:  cmp eax, r8d
     jge .Lbb_draw
     mov r11d, r8d
     sub r11d, eax
@@ -116,7 +128,11 @@ vim_block_box:
     add edx, r11d
     mov r8d, eax
 .Lbb_draw:
+    cmp dword ptr [rbx + ViewerDialog.img_braille], 0
+    je 5f
     pop rbx
+    jmp img_draw_braille
+5:  pop rbx
     cmp r10d, IMG_PROTO_HALF
     je img_draw_rgba
     jmp img_draw_quad

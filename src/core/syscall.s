@@ -17,6 +17,12 @@ str_bin_sh:
     .asciz "/bin/sh"
 str_dash_c:
     .asciz "-c"
+str_disp:
+    .asciz "DISPLAY"
+str_wdisp:
+    .asciz "WAYLAND_DISPLAY"
+str_xdg_sh:
+    .asciz "xdg-open \"$1\" >/dev/null 2>&1 </dev/null"
 
 .section .bss
 .align 8
@@ -37,6 +43,7 @@ g_sigterm:
 .global signals_install
 .global env_getenv
 .global sys_exec_sh_arg
+.global sys_open_external
 
 # ssize_t sys_write_all(int fd, const void *buf, size_t len)
 sys_write_all:
@@ -248,4 +255,43 @@ sys_exec_sh_arg:
     pop r13
     pop r12
     pop rbx
+    ret
+
+# int sys_open_external(const char *path, char **envp) -> 0 if launched, -1 if no GUI display
+sys_open_external:
+    push rbx; push r12; push r13
+    mov rbx, rdi; mov r12, rsi
+    mov rdi, r12; lea rsi, [rip + str_disp]; call env_getenv
+    test rax, rax; jnz .Loe_has_disp
+    mov rdi, r12; lea rsi, [rip + str_wdisp]; call env_getenv
+    test rax, rax; jnz .Loe_has_disp
+    mov eax, -1; jmp .Loe_ret
+.Loe_has_disp:
+    OS_FORK
+    test rax, rax; js .Loe_err; jnz .Loe_parent
+    OS_FORK
+    test rax, rax; jz .Loe_grandchild
+    xor edi, edi; OS_EXIT
+.Loe_grandchild:
+    sub rsp, 48
+    lea rax, [rip + str_bin_sh]; mov [rsp], rax
+    lea rcx, [rip + str_dash_c]; mov [rsp + 8], rcx
+    lea rcx, [rip + str_xdg_sh]; mov [rsp + 16], rcx
+    lea rcx, [rip + str_bin_sh + 5]; mov [rsp + 24], rcx
+    mov [rsp + 32], rbx
+    mov qword ptr [rsp + 40], 0
+    mov rdi, rax; mov rsi, rsp; mov rdx, r12
+    OS_EXECVE
+    mov edi, 127; OS_EXIT
+.Loe_parent:
+    mov r13, rax; sub rsp, 16
+.Loe_wait:
+    mov rdi, r13; mov rsi, rsp; xor edx, edx; xor r10d, r10d
+    OS_WAIT4
+    cmp rax, -EINTR; je .Loe_wait
+    add rsp, 16; xor eax, eax; jmp .Loe_ret
+.Loe_err:
+    mov eax, -1
+.Loe_ret:
+    pop r13; pop r12; pop rbx
     ret

@@ -201,7 +201,7 @@ en_vas_image:         .asciz "Image"
 en_vas_hex:           .asciz "Hex"
 en_vas_text:          .asciz "Text"
 en_vas_hint:          .asciz "i: Image  h: Hex  t: Text  Esc: Cancel"
-en_vw_img_hint:       .asciz "+/-: Zoom  1: 100%  0: Fit  Arrows: Pan  h: Hex  t: Text  Esc: Close"
+en_vw_img_hint:       .asciz "+/-:Zoom 1:100% 0:Fit b:Braille o:Open Arrows:Pan h:Hex t:Text Esc"
 en_img_fit:           .asciz "Fit"
 
 # ==============================================================================
@@ -402,7 +402,7 @@ ua_vas_image:         .asciz "Зображення"
 ua_vas_hex:           .asciz "HEX"
 ua_vas_text:          .asciz "Текст"
 ua_vas_hint:          .asciz "i: Зображення  h: HEX  t: Текст  Esc: Скасувати"
-ua_vw_img_hint:       .asciz "+/-: Масштаб  1: 100%  0: Вписати  Стрілки: Зсув  h: HEX  t: Текст  Esc: Закрити"
+ua_vw_img_hint:       .asciz "+/-:Зум 1:100% 0:Впис b:Брайль o:Відкр Стрілки:Зсув h:HEX t:Текст Esc"
 ua_img_fit:           .asciz "Вписати"
 
 .align 8

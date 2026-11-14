@@ -116,6 +116,7 @@ SRCS := \
 	src/ui/preview_mode.s \
 	src/ui/img_overlay.s \
 	src/ui/img_quad.s \
+	src/ui/img_braille.s \
 	src/ui/preview_pane_render.s \
 	src/ui/preview_pane_mouse.s \
 	src/ui/dialogs.s \
