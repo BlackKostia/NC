@@ -9,15 +9,15 @@
 # --- Portable FileStat Metadata Layout (40 bytes) ---
 # Filled by os_statat / os_fstat so kernel struct stat never leaks above src/os/
 .struct 0
-FileStat.dev:    .space 8     # Device ID
-FileStat.ino:    .space 8     # Inode number
-FileStat.size:   .space 8     # File byte size
-FileStat.mtime:  .space 8     # Modification time (seconds since epoch)
-FileStat.mode:   .space 4     # POSIX file mode & type bits (S_IF* | perm)
-FileStat.mtime_nsec: .space 4 # Modification time nanoseconds (cache invalidation)
-FileStat.nlink:  .space 8     # Hardlink count
-FileStat.uid:    .space 4     # Owner user ID
-FileStat.gid:    .space 4     # Owner group ID
+FileStat.dev:    .space 8     /* Device ID */
+FileStat.ino:    .space 8     /* Inode number */
+FileStat.size:   .space 8     /* File byte size */
+FileStat.mtime:  .space 8     /* Modification time (seconds since epoch) */
+FileStat.mode:   .space 4     /* POSIX file mode & type bits (S_IF* | perm) */
+FileStat.mtime_nsec: .space 4 /* Modification time nanoseconds (cache invalidation) */
+FileStat.nlink:  .space 8     /* Hardlink count */
+FileStat.uid:    .space 4     /* Owner user ID */
+FileStat.gid:    .space 4     /* Owner group ID */
 FileStat._size:
 
 # --- Portable Directory Entry Types (from OS d_type when available) ---

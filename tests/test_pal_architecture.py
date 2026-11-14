@@ -130,10 +130,35 @@ def test_explicit_platform_build_and_elf_audit() -> None:
     print("[PASS] P3. Explicit OS=linux ARCH=x86_64 build produces clean .data==0 static ELF")
 
 
+def test_aarch64_pal_backend() -> None:
+    inc = ROOT / "include/os/linux/aarch64/pal_target.inc"
+    assert inc.is_file(), "Missing AArch64 pal_target.inc"
+    pal_files = [
+        "src/os/linux/aarch64/pal_os.s",
+        "src/os/linux/aarch64/pal_simd.s",
+        "src/os/linux/aarch64/pal_uring.s",
+        "src/os/linux/aarch64/pal_pty.s",
+    ]
+    for rel in pal_files:
+        assert (ROOT / rel).is_file(), f"Missing AArch64 PAL file: {rel}"
+    import shutil
+    as_bin = shutil.which("aarch64-linux-gnu-as")
+    if as_bin:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            for i, rel in enumerate(pal_files):
+                subprocess.run(
+                    [as_bin, "-I", str(ROOT / "include/os/linux/aarch64"), "-I", str(ROOT / "include"), str(ROOT / rel), "-o", f"{tmp}/o{i}.o"],
+                    check=True,
+                )
+    print("[PASS] P4. AArch64 PAL backend (pal_target.inc + pal_os/simd/uring/pty) assembles cleanly")
+
+
 def main() -> None:
     test_pal_files_and_makefile_matrix()
     test_zero_raw_os_coupling_and_zero_runtime_dispatch()
     test_explicit_platform_build_and_elf_audit()
+    test_aarch64_pal_backend()
     print("ALL PAL ARCHITECTURE TESTS PASSED.")
 
 

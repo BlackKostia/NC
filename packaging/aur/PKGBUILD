@@ -1,0 +1,23 @@
+# Maintainer: Kostiantyn Nedbailo <ChessPlayerSedoy@gmail.com>
+pkgname=duop
+pkgver=2.0.0
+pkgrel=1
+pkgdesc="Dual-pane TUI file manager in pure x86-64 GNU Assembler (zero libc)"
+arch=('x86_64')
+url="https://github.com/ChessPlayerSedoy/duop"
+license=('MIT')
+makedepends=('binutils' 'make')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+  cd "$srcdir/$pkgname-$pkgver"
+  make release
+}
+
+package() {
+  cd "$srcdir/$pkgname-$pkgver"
+  install -Dm755 duop "$pkgdir/usr/bin/duop"
+  install -Dm755 scripts/duop-cd.sh "$pkgdir/usr/share/duop/duop-cd.sh"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

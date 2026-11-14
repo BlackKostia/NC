@@ -1,0 +1,10 @@
+Package: duop
+Version: 2.0.0
+Section: utils
+Priority: optional
+Architecture: amd64
+Maintainer: Kostiantyn Nedbailo <ChessPlayerSedoy@gmail.com>
+Description: Dual-pane TUI file manager in pure x86-64 GNU Assembler
+ Zero-libc static ELF64 dual-pane terminal file manager with TrueColor UI,
+ background copy/move/delete, io_uring batch stat, archive VFS, git status,
+ syntax highlighting, ELF64 inspector, hex editor, and embedded PTY terminal.

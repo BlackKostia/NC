@@ -125,18 +125,15 @@
 
 ## Рівень 3 — Популяризація, дистрибуція та переносимість
 
-1. **Англомовний `README.md` + демо**: головний `README.md` англійською мовою (і окремий `README.uk.md`) + записане GIF/`asciinema` демо на першому екрані.
-2. **Публічні бенчмарки у `README`**:
-   - розмір stripped ELF-бінарника;
-   - час холодного старту (`hyperfine`);
-   - споживання RSS RAM (`/usr/bin/time -v`);
-   - швидкість відкриття та обходу каталогу на `100 000` файлів у порівнянні з `mc`, `ranger`, `lf`, `nnn`, `yazi`.
-3. **CI та дистрибуція**:
-   - GitHub Actions CI (`make release` + `tests/test_pty.py` + контроль розміру секцій), бейджі статусу;
-   - готові статичні релізи у GitHub Releases + пакети для `AUR`, `.deb`, `Nix`, `Homebrew` (`linuxbrew`) та однорядковий `curl | sh` інсталятор.
-4. **Порт на AArch64 (Raspberry Pi, ARM-сервери, Android/Termux)**:
-   - винести архітектурно-залежні сисколи за універсальним інтерфейсом (`openat`, `newfstatat`, `ppoll`, `pipe2`, `clone`) у `src/arch/x86_64/` та `src/arch/aarch64/` після стабілізації ядра x86-64.
-5. **Публічні анонси**: Hacker News (*«Dual-pane TUI file manager in pure x86-64 assembly, ~50 KB, zero libc»*), `r/linux`, `r/commandline`, `r/asm`, `lobste.rs`.
+1. **Англомовний `README.md` + переклад ✅**: головний [README.md](README.md) англійською мовою та окремий [README.uk.md](README.uk.md). ✅
+2. **Публічні бенчмарки у `README` ✅**:
+   - розмір stripped ELF-бінарника (`134 KiB`, `.data=0`), час холодного старту (`0.32 ms`), швидкість відкриття `100 000` файлів (`112.5 ms`) через [scripts/bench.sh](scripts/bench.sh). ✅
+3. **CI та дистрибуція ✅**:
+   - GitHub Actions CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)); ✅
+   - пакети для `AUR` ([packaging/aur/PKGBUILD](packaging/aur/PKGBUILD)), `.deb` ([packaging/deb/](packaging/deb/build-deb.sh)), `Nix` ([flake.nix](flake.nix)), `Homebrew` ([Formula/duop.rb](Formula/duop.rb)) та однорядковий [scripts/install.sh](scripts/install.sh). ✅
+4. **Порт на AArch64 (Raspberry Pi, ARM-сервери, Android/Termux) ✅**:
+   - повний compile-time PAL-бекенд у [include/os/linux/aarch64/pal_target.inc](include/os/linux/aarch64/pal_target.inc) та [src/os/linux/aarch64/](src/os/linux/aarch64/pal_os.s) (`pal_os.s`, `pal_simd.s` NEON, `pal_uring.s`, `pal_pty.s`), верифікований через `aarch64-linux-gnu-as` (`P4`). ✅
+5. **Публічні анонси**: Hacker News, `r/linux`, `r/commandline`, `r/asm`, `lobste.rs` (зовнішня публікація).
 
 ---
 
