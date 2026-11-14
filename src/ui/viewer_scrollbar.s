@@ -139,10 +139,10 @@ vw_draw_text_scrollbar:
 .Ldts_ret:
     ret
 
-# Internal: int vw_scrub_axis(int rel, int track, int img_dim, int box_dim, int zoom) -> clamped pan
+# Internal: int vw_scrub_axis(int rel, int track, int img_dim /*r9d*/, int box_dim /*ecx*/, int zoom /*r8d*/) -> clamped pan
 vw_scrub_axis:
     push rbx
-    mov ebx, edi
+    mov ebx, edi                      # rel
     mov eax, ecx; imul eax, 100
     xor edx, edx; div r8d
     test eax, eax; jnz 1f; mov eax, 1
@@ -150,12 +150,22 @@ vw_scrub_axis:
 2:  mov ecx, r9d; sub ecx, eax        # max_pan = img_dim - vis
     test ecx, ecx; jg 3f
     xor eax, eax; pop rbx; ret
-3:  dec esi
-    cmp esi, 1; jge 4f; mov esi, 1
-4:  mov eax, ebx; imul eax, ecx
-    xor edx, edx; div esi
-    cmp eax, ecx; jle 5f; mov eax, ecx
-5:  pop rbx
+3:  mov r10d, eax                     # vis
+    mov eax, esi; imul eax, r10d
+    xor edx, edx; div r9d             # thumb_len = track * vis / img_dim
+    test eax, eax; jnz 4f; mov eax, 1
+4:  cmp eax, esi; jle 5f; mov eax, esi
+5:  sub esi, eax                      # travel = track - thumb_len
+    test esi, esi; jg 6f
+    xor eax, eax; pop rbx; ret
+6:  shr eax, 1                        # thumb_len / 2
+    sub ebx, eax                      # rel - thumb_len / 2
+    test ebx, ebx; jns 7f; xor ebx, ebx
+7:  cmp ebx, esi; jle 8f; mov ebx, esi
+8:  mov eax, ebx; imul eax, ecx       # adj * max_pan
+    xor edx, edx; div esi             # / travel
+    cmp eax, ecx; jle 9f; mov eax, ecx
+9:  pop rbx
     ret
 
 # int vw_img_scrollbar_mouse(ViewerDialog *v, Event *e) -> 1 if handled
@@ -163,18 +173,48 @@ vw_img_scrollbar_mouse:
     mov r8d, [rdi + ViewerDialog.img_zoom]
     test r8d, r8d; jz .Lsm_no
     mov eax, [rsi + Event.mouse_kind]
-    cmp eax, MACT_PRESS; je 1f
-    cmp eax, MACT_DRAG;  jne .Lsm_no
+    cmp eax, MACT_RELEASE; jne 1f
+    mov dword ptr [rdi + ViewerDialog.img_sb_drag], 0
+    jmp .Lsm_no
 1:  cmp dword ptr [rsi + Event.mouse_btn], MOUSE_LEFT
     jne .Lsm_no
     mov ecx, [rsi + Event.mouse_x]
     mov edx, [rsi + Event.mouse_y]
+    cmp eax, MACT_DRAG; je .Lsm_drag
+    cmp eax, MACT_PRESS; jne .Lsm_no
+    mov dword ptr [rdi + ViewerDialog.img_sb_drag], 0
     mov r9d, [rdi + Widget.x]; add r9d, [rdi + Widget.w]; dec r9d
     cmp ecx, r9d; jne .Lsm_chk_h
     mov r10d, [rdi + Widget.y]; inc r10d
     mov r11d, [rdi + Widget.h]; sub r11d, 3
     sub edx, r10d; js .Lsm_no
     cmp edx, r11d; jge .Lsm_no
+    mov dword ptr [rdi + ViewerDialog.img_sb_drag], 1
+    jmp .Lsm_do_v
+.Lsm_chk_h:
+    mov r9d, [rdi + Widget.y]; add r9d, [rdi + Widget.h]; dec r9d
+    cmp edx, r9d; jne .Lsm_no
+    mov r10d, [rdi + Widget.x]; inc r10d
+    mov r11d, [rdi + Widget.w]; sub r11d, 2
+    sub ecx, r10d; js .Lsm_no
+    cmp ecx, r11d; jge .Lsm_no
+    mov dword ptr [rdi + ViewerDialog.img_sb_drag], 2
+    jmp .Lsm_do_h
+.Lsm_drag:
+    mov eax, [rdi + ViewerDialog.img_sb_drag]
+    cmp eax, 1; je .Lsm_drag_v
+    cmp eax, 2; jne .Lsm_no
+    mov r10d, [rdi + Widget.x]; inc r10d
+    mov r11d, [rdi + Widget.w]; sub r11d, 2
+    sub ecx, r10d; jns 2f; xor ecx, ecx
+2:  cmp ecx, r11d; jl .Lsm_do_h; mov ecx, r11d; dec ecx
+    jmp .Lsm_do_h
+.Lsm_drag_v:
+    mov r10d, [rdi + Widget.y]; inc r10d
+    mov r11d, [rdi + Widget.h]; sub r11d, 3
+    sub edx, r10d; jns 3f; xor edx, edx
+3:  cmp edx, r11d; jl .Lsm_do_v; mov edx, r11d; dec edx
+.Lsm_do_v:
     push rdi
     mov edi, edx; mov esi, r11d
     mov rcx, [rsp]; mov ecx, [rcx + ViewerDialog.img_box_h]
@@ -184,13 +224,7 @@ vw_img_scrollbar_mouse:
     mov [rdi + ViewerDialog.img_pan_y], eax
     call vz_invalidate
     mov eax, 1; ret
-.Lsm_chk_h:
-    mov r9d, [rdi + Widget.y]; add r9d, [rdi + Widget.h]; dec r9d
-    cmp edx, r9d; jne .Lsm_no
-    mov r10d, [rdi + Widget.x]; inc r10d
-    mov r11d, [rdi + Widget.w]; sub r11d, 2
-    sub ecx, r10d; js .Lsm_no
-    cmp ecx, r11d; jge .Lsm_no
+.Lsm_do_h:
     push rdi
     mov edi, ecx; mov esi, r11d
     mov rcx, [rsp]; mov ecx, [rcx + ViewerDialog.img_box_w]

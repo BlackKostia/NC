@@ -357,6 +357,52 @@ def test_scrollbar_mouse():
                 pass
 
 
+def test_wheel_scroll_and_drag():
+    with tempfile.TemporaryDirectory() as tmp:
+        l = os.path.join(tmp, "left")
+        r = os.path.join(tmp, "right")
+        os.makedirs(l)
+        os.makedirs(r)
+        make_png_grid(os.path.join(l, "grid.png"), 200, 200)
+
+        sess = PtySession(BINARY, ["--lang", "en", l, r], cols=100, rows=30)
+        try:
+            drain_raw(sess, 0.25)
+            os.write(sess.master, b"\x1b[B")    # grid.png
+            drain_raw(sess, 0.1)
+            os.write(sess.master, b"\x1bOR")    # F3 -> Open as
+            drain_raw(sess, 0.15)
+            os.write(sess.master, b"i")         # Image mode
+            drain_raw(sess, 0.3)
+            os.write(sess.master, b"1")         # 100% zoom -> scrollbars active
+            drain_raw(sess, 0.25)
+
+            # Plain wheel down must scroll vertically, NOT zoom out!
+            os.write(sess.master, b"\x1b[<65;50;15M" * 4)
+            drain_raw(sess, 0.25)
+            screen = sess.vt.full_text()
+            assert "[100%]" in screen, f"Wheel down zoomed instead of scrolling:\n{screen}"
+
+            # Press on V-scrollbar top (col=98, row=3) then drag off-column (col=90, row=27)
+            os.write(sess.master, b"\x1b[<0;98;3M\x1b[<32;90;27M\x1b[<0;90;27m")
+            drain_raw(sess, 0.25)
+            lines = sess.vt.full_text().splitlines()
+            assert lines[26][-3] == "█", f"Off-column V-scrollbar drag failed:\n" + "\n".join(lines)
+
+            # Ctrl+Wheel down (64 | 16 | 1 = 81) must zoom out
+            os.write(sess.master, b"\x1b[<81;50;15M")
+            drain_raw(sess, 0.25)
+            screen = sess.vt.full_text()
+            assert "[100%]" not in screen, f"Ctrl+Wheel down did not zoom out:\n{screen}"
+            print("[PASS] IMG7. Mouse wheel scroll, off-column scrollbar drag & Ctrl+Wheel zoom")
+        finally:
+            try:
+                os.kill(sess.pid, 9)
+                os.waitpid(sess.pid, 0)
+            except OSError:
+                pass
+
+
 if __name__ == "__main__":
     test_kitty_and_cleanup()
     test_halfblock_fallback()
@@ -364,4 +410,5 @@ if __name__ == "__main__":
     test_viewer_scrollbars()
     test_braille_mode()
     test_scrollbar_mouse()
+    test_wheel_scroll_and_drag()
     print("ALL IMAGE PREVIEW TESTS PASSED.")

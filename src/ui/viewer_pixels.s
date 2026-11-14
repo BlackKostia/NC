@@ -304,6 +304,7 @@ vim_place:
     mov rax, [rbx + ViewerDialog.enc_len]
     mov [r12 + ImgPlace.len], rax
     mov rax, [rbx + ViewerDialog.enc_key]
+    xor rax, [rbx + ViewerDialog.img_cache_key]
     xor rax, [rbx + ViewerDialog.enc]
     mov [r12 + ImgPlace.key], rax
     mov ecx, [rbx + Widget.w]

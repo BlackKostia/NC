@@ -94,12 +94,34 @@ vim_zoom_mouse:
     jne vw_img_scrollbar_mouse
     push rbx
     mov rbx, rdi
+    mov ecx, [rsi + Event.mods]
+    mov eax, [rbx + ViewerDialog.img_zoom]
+    test eax, eax; jz .Lzm_zoom
+    test ecx, MOD_CTRL; jnz .Lzm_zoom
+    mov edx, 1
+    cmp dword ptr [rsi + Event.mouse_btn], MOUSE_WHEEL_UP
+    jne 1f
+    mov edx, -1
+1:  test ecx, MOD_SHIFT; jnz .Lzm_horiz
+    mov eax, [rbx + ViewerDialog.img_box_h]; imul eax, 100
+    push rdx; xor edx, edx; div dword ptr [rbx + ViewerDialog.img_zoom]; pop rdx
+    cmp eax, [rbx + ViewerDialog.img + Image.h]
+    jge .Lzm_horiz
+    xor esi, esi; jmp .Lzm_pan
+.Lzm_horiz:
+    mov esi, edx; xor edx, edx
+.Lzm_pan:
+    mov rdi, rbx; call vz_pan
+    mov rdi, rbx; call vz_invalidate
+    jmp .Lzm_yes
+.Lzm_zoom:
     mov eax, [rsi + Event.mouse_btn]
     mov esi, 1
     cmp eax, MOUSE_WHEEL_UP
-    je 1f
+    je 2f
     mov esi, -1
-1:  mov rdi, rbx; call vz_step_zoom
+2:  mov rdi, rbx; call vz_step_zoom
+.Lzm_yes:
     mov eax, 1
     pop rbx
     ret
@@ -189,14 +211,27 @@ vz_set_zoom:
 vz_pan:
     mov r8d, [rdi + ViewerDialog.img_zoom]
     test r8d, r8d; jz .Lvp_ret
+    mov r9d, edx
     mov eax, [rdi + ViewerDialog.img_box_w]; imul eax, 100
-    push rdx; xor edx, edx; div r8d; pop rdx
-    shr eax, 3; test eax, eax; jnz 1f; mov eax, 1
-1:  imul esi, eax; add [rdi + ViewerDialog.img_pan_x], esi
+    xor edx, edx; div r8d
+    test eax, eax; jnz 1f; mov eax, 1
+1:  mov ecx, eax; shr ecx, 3; test ecx, ecx; jnz 2f; mov ecx, 1
+2:  imul esi, ecx; add esi, [rdi + ViewerDialog.img_pan_x]
+    mov ecx, [rdi + ViewerDialog.img + Image.w]; sub ecx, eax
+    test ecx, ecx; jns 3f; xor ecx, ecx
+3:  test esi, esi; jns 4f; xor esi, esi
+4:  cmp esi, ecx; jle 5f; mov esi, ecx
+5:  mov [rdi + ViewerDialog.img_pan_x], esi
     mov eax, [rdi + ViewerDialog.img_box_h]; imul eax, 100
-    push rdx; xor edx, edx; div r8d; pop rdx
-    shr eax, 3; test eax, eax; jnz 2f; mov eax, 1
-2:  imul edx, eax; add [rdi + ViewerDialog.img_pan_y], edx
+    xor edx, edx; div r8d
+    test eax, eax; jnz 6f; mov eax, 1
+6:  mov ecx, eax; shr ecx, 3; test ecx, ecx; jnz 7f; mov ecx, 1
+7:  imul r9d, ecx; add r9d, [rdi + ViewerDialog.img_pan_y]
+    mov ecx, [rdi + ViewerDialog.img + Image.h]; sub ecx, eax
+    test ecx, ecx; jns 8f; xor ecx, ecx
+8:  test r9d, r9d; jns 9f; xor r9d, r9d
+9:  cmp r9d, ecx; jle 10f; mov r9d, ecx
+10: mov [rdi + ViewerDialog.img_pan_y], r9d
 .Lvp_ret:
     ret
 

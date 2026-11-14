@@ -1,6 +1,5 @@
 # Class Hierarchy & Virtual Table Specifications for Duop
 .include "pal.inc"
-#
 # Inheritance tree:
 #   Object
 #     ├── ScreenBuffer
@@ -277,6 +276,7 @@ CLASS_BEGIN ViewerDialog
     FIELD ViewerDialog.img_pan_y,   4   # top-left source pixel Y (clamped)
     FIELD ViewerDialog.img_box_w,   4   # last viewport width in output pixels
     FIELD ViewerDialog.img_box_h,   4   # last viewport height in output pixels
+    FIELD ViewerDialog.img_sb_drag, 4   # active scrollbar drag: 0=none, 1=V, 2=H
     FIELD ViewerDialog.img_cache_key, 8 # zoom/pan key of current thumb
     FIELD ViewerDialog.path,        PATH_MAX
 CLASS_END ViewerDialog
