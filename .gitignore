@@ -1,6 +1,8 @@
 # Build artifacts
 build/
+build_mc/
 duop
+duop_memcheck
 nc
 *.o
 
