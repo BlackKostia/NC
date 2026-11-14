@@ -62,18 +62,18 @@ img_preview_pre_flush:
     call ov_same
     test eax, eax
     jnz .Lpf_keep
-    cmp dword ptr [rip + ov_last_proto], IMG_PROTO_KITTY
-    jne .Lpf_rep_sixel
-    mov dword ptr [rip + ov_del_on_emit], 1
-    mov dword ptr [rip + ov_last_on], 0
-    jmp .Lpf_show
-.Lpf_rep_sixel:
     mov rax, [rip + ov_cur + ImgPlace.x]
     cmp rax, [rip + ov_last + ImgPlace.x]
-    jne .Lpf_drop
+    jne .Lpf_rep_diff
     mov rax, [rip + ov_cur + ImgPlace.w]
     cmp rax, [rip + ov_last + ImgPlace.w]
+    jne .Lpf_rep_diff
+    mov dword ptr [rip + ov_last_on], 0
+    jmp .Lpf_show
+.Lpf_rep_diff:
+    cmp dword ptr [rip + ov_last_proto], IMG_PROTO_KITTY
     jne .Lpf_drop
+    mov dword ptr [rip + ov_del_on_emit], 1
     mov dword ptr [rip + ov_last_on], 0
     jmp .Lpf_show
 .Lpf_drop:

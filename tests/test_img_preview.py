@@ -426,18 +426,18 @@ def test_kitty_scroll_no_flicker():
             os.write(sess.master, b"1")         # 100% zoom
             drain_raw(sess, 0.4)
 
-            # Wheel down: must delete+redraw atomically inside DEC 2026
+            # Wheel down: must replace i=7 in-place inside DEC 2026 without sending a=d
             os.write(sess.master, b"\x1b[<65;50;15M")
             raw = drain_raw(sess, 0.4)
             assert b"\x1b_Ga=T,f=32" in raw, "Kitty image not re-emitted on wheel scroll"
+            assert b"\x1b_Ga=d" not in raw, "Unexpected a=d during Kitty same-rect scroll (causes flicker)"
             sync_on = raw.rfind(b"\x1b[?2026h")
-            del_pos = raw.rfind(b"\x1b_Ga=d")
-            emit_pos = raw.find(b"\x1b_Ga=T,f=32", del_pos if del_pos != -1 else 0)
+            emit_pos = raw.find(b"\x1b_Ga=T,f=32", sync_on if sync_on != -1 else 0)
             sync_off = raw.find(b"\x1b[?2026l", emit_pos if emit_pos != -1 else 0)
-            assert del_pos != -1 and sync_on != -1 and sync_on < del_pos < emit_pos < sync_off, (
-                f"Kitty scroll delete/emit not atomic inside DEC 2026: sync_on={sync_on} del={del_pos} emit={emit_pos} sync_off={sync_off}"
+            assert sync_on != -1 and sync_on < emit_pos < sync_off, (
+                f"Kitty scroll emit not inside DEC 2026: sync_on={sync_on} emit={emit_pos} sync_off={sync_off}"
             )
-            print("[PASS] IMG8. Kitty scroll swaps image atomically inside DEC 2026 (no flicker)")
+            print("[PASS] IMG8. Kitty scroll replaces i=7 in-place without a=d (no flicker)")
         finally:
             try:
                 os.kill(sess.pid, 9)
