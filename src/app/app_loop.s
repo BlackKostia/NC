@@ -160,6 +160,7 @@ App_run:
     call App_run__non_blocking_poll_while
     # Check if temporary status message expired
     call App_run__check_temporary_status_message
+    call App_run__drain_queued_events
     cmp dword ptr [rbx + App.running], 0
     je .Larun_exit
     call App_run__stream_both_panes_concurrently
@@ -326,4 +327,38 @@ App_run__stream_both_panes_concurrently:
 .Larun_redraw:
 .LApp_run__stream_both_panes_concurrently_ret:
     lea rsp, [rsp + 8]
+    ret
+
+# App_run step: coalesce burst of already-queued key/mouse events before rendering
+App_run__drain_queued_events:
+    push r12
+    mov r12d, 16
+.Ldq_lp:
+    cmp dword ptr [rbx + App.running], 0
+    je .Ldq_ret
+    dec r12d
+    js .Ldq_ret
+    lea rdi, [rsp + 16]               # Event on App_run's frame (+8 ret, +8 push r12)
+    xor esi, esi                      # timeout = 0 (non-blocking)
+    call input_poll_event
+    test eax, eax
+    jz .Ldq_ret
+    mov eax, [rsp + 16 + Event.type]
+    cmp eax, EVT_KEY
+    je .Ldq_key
+    cmp eax, EVT_MOUSE
+    je .Ldq_mouse
+    jmp .Ldq_ret
+.Ldq_key:
+    mov rdi, rbx
+    lea rsi, [rsp + 16]
+    call handle_key
+    jmp .Ldq_lp
+.Ldq_mouse:
+    mov rdi, rbx
+    lea rsi, [rsp + 16]
+    call handle_mouse
+    jmp .Ldq_lp
+.Ldq_ret:
+    pop r12
     ret

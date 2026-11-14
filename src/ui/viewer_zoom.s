@@ -215,7 +215,7 @@ vz_pan:
     mov eax, [rdi + ViewerDialog.img_box_w]; imul eax, 100
     xor edx, edx; div r8d
     test eax, eax; jnz 1f; mov eax, 1
-1:  mov ecx, eax; shr ecx, 3; test ecx, ecx; jnz 2f; mov ecx, 1
+1:  mov ecx, eax; shr ecx, 4; test ecx, ecx; jnz 2f; mov ecx, 1
 2:  imul esi, ecx; add esi, [rdi + ViewerDialog.img_pan_x]
     mov ecx, [rdi + ViewerDialog.img + Image.w]; sub ecx, eax
     test ecx, ecx; jns 3f; xor ecx, ecx
@@ -225,7 +225,7 @@ vz_pan:
     mov eax, [rdi + ViewerDialog.img_box_h]; imul eax, 100
     xor edx, edx; div r8d
     test eax, eax; jnz 6f; mov eax, 1
-6:  mov ecx, eax; shr ecx, 3; test ecx, ecx; jnz 7f; mov ecx, 1
+6:  mov ecx, eax; shr ecx, 4; test ecx, ecx; jnz 7f; mov ecx, 1
 7:  imul r9d, ecx; add r9d, [rdi + ViewerDialog.img_pan_y]
     mov ecx, [rdi + ViewerDialog.img + Image.h]; sub ecx, eax
     test ecx, ecx; jns 8f; xor ecx, ecx

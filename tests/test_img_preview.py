@@ -426,10 +426,11 @@ def test_kitty_scroll_no_flicker():
             os.write(sess.master, b"1")         # 100% zoom
             drain_raw(sess, 0.4)
 
-            # Wheel down: must replace i=7 in-place inside DEC 2026 without sending a=d
-            os.write(sess.master, b"\x1b[<65;50;15M")
+            # Burst of 4 wheel-down events in one write must coalesce (<= 2 Kitty redraws, no a=d)
+            os.write(sess.master, b"\x1b[<65;50;15M" * 4)
             raw = drain_raw(sess, 0.4)
-            assert b"\x1b_Ga=T,f=32" in raw, "Kitty image not re-emitted on wheel scroll"
+            emits = raw.count(b"\x1b_Ga=T,f=32")
+            assert 1 <= emits <= 2, f"Expected coalesced Kitty redraws (1..2), got {emits}"
             assert b"\x1b_Ga=d" not in raw, "Unexpected a=d during Kitty same-rect scroll (causes flicker)"
             sync_on = raw.rfind(b"\x1b[?2026h")
             emit_pos = raw.find(b"\x1b_Ga=T,f=32", sync_on if sync_on != -1 else 0)
@@ -437,7 +438,7 @@ def test_kitty_scroll_no_flicker():
             assert sync_on != -1 and sync_on < emit_pos < sync_off, (
                 f"Kitty scroll emit not inside DEC 2026: sync_on={sync_on} emit={emit_pos} sync_off={sync_off}"
             )
-            print("[PASS] IMG8. Kitty scroll replaces i=7 in-place without a=d (no flicker)")
+            print("[PASS] IMG8. Kitty scroll coalesces bursts & replaces i=7 in-place without a=d")
         finally:
             try:
                 os.kill(sess.pid, 9)
