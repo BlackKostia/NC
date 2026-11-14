@@ -14,6 +14,7 @@
 .equ DUP_STACK_SZ,  32768
 .equ DUP_WORKERS,   4
 .equ DUP_ARG_SZ,    32        # ctx(8), arena(8), ctid(4), pad(4), stack_base(8)
+# ctx (du_parallel_walk frame): dfd(4) count(4) next_idx(4) pad(4) items(8) dev(8)
 .equ DUP_ITEM_SZ,   24        # fe(8), name(8), size(8)
 
 .section .bss
@@ -40,6 +41,10 @@ g_dup_cb_ctx:   .space 8
 .extern mem_alloc
 .extern mem_free
 .extern os_clock_ms
+.extern os_du_usage
+.extern os_fstat_du
+.extern os_fs_is_derived
+.extern du_link_first
 
 # void du_set_progress(int (*cb)(void *ctx, DuProgress *p), void *ctx) -- cb = 0: no progress UI
 du_set_progress:
@@ -52,27 +57,16 @@ du_progress:
     lea rax, [rip + g_dup_prog]
     ret
 
-# uint64_t dup_walk_fd_mt(int dfd, void *lvl_buf, int depth)
+# uint64_t dup_walk_fd_mt(int dfd, void *lvl_buf, int depth, dev_t parent_dev)
+# Allocated bytes of the subtree (directories included, like `du`); 0 for a mount point of a
+# derived filesystem (os_fs_is_derived). Fully walked results are cached by (ino, dev, mtime).
 dup_walk_fd_mt:
     push rbx; push r12; push r13; push r14; push r15
-    sub rsp, FileStat._size + 56
+    sub rsp, FileStat._size + 72
     mov ebx, edi; mov r12, rsi; mov r13d, edx; xor r14d, r14d
     cmp r13d, DUP_MAX_DEPTH; jge .Lmt_ret
-    mov dword ptr [rsp + FileStat._size + 48], 0
-    mov edi, ebx; mov rsi, rsp; call os_fstat
-    test rax, rax; js .Lmt_miss
-    mov dword ptr [rsp + FileStat._size + 48], 1
-    mov rdi, rsp; call du_mtime_sig
-    mov [rsp + FileStat._size + 40], rax
-    mov rdi, [rsp + FileStat.ino]; mov rsi, [rsp + FileStat.dev]
-    mov rdx, rax; lea rcx, [rsp + FileStat._size + 24]
-    call du_cache_get
-    test eax, eax; jz .Lmt_miss
-    mov r14, [rsp + FileStat._size + 24]
-    lock add [rip + g_dup_prog + DuProgress.bytes], r14
-    jmp .Lmt_ret
-.Lmt_miss:
-    lock inc qword ptr [rip + g_dup_prog + DuProgress.dirs]
+    call dup_enter                    # eax = 1: settled (cached / skipped mount), r14 = size
+    test eax, eax; jnz .Lmt_ret
 .Lmt_read:
     mov edi, ebx; mov rsi, r12; mov edx, DUP_STRIDE; call os_dir_read
     test rax, rax; jle .Lmt_put
@@ -94,7 +88,7 @@ dup_walk_fd_mt:
     cmp eax, PAL_DT_LNK; je .Lmt_ent
     cmp eax, PAL_DT_DIR; je .Lmt_dir
     mov edi, ebx; mov rsi, r15
-    mov rdx, r12; mov ecx, r13d; call dup_stat_one_mt
+    mov rdx, r12; mov ecx, r13d; mov r8, [rsp + FileStat.dev]; call dup_stat_one_mt
     add r14, rax; jmp .Lmt_ent
 .Lmt_dir:
     mov edi, ebx; mov rsi, r15
@@ -103,6 +97,7 @@ dup_walk_fd_mt:
     test rax, rax; js .Lmt_ent
     mov [rsp + FileStat._size + 32], rax
     mov edi, eax; lea rsi, [r12 + DUP_STRIDE]; lea edx, [r13d + 1]
+    mov rcx, [rsp + FileStat.dev]
     call dup_walk_fd_mt
     add r14, rax
     mov rdi, [rsp + FileStat._size + 32]; OS_CLOSE
@@ -113,19 +108,66 @@ dup_walk_fd_mt:
     mov rdx, [rsp + FileStat._size + 40]; mov rcx, r14; call du_cache_put
 .Lmt_ret:
     mov rax, r14
-    add rsp, FileStat._size + 56
+    add rsp, FileStat._size + 72
     pop r15; pop r14; pop r13; pop r12; pop rbx; ret
 
-# uint64_t dup_stat_one_mt(int dfd, const char *name, void *lvl_buf, int depth)
+# dup_walk_fd_mt step (caller frame at rsp + 16: FileStat, then [+40] sig, [+48] cacheable,
+# [+56] parent dev, [+64] own blocks): fstat the directory, skip a derived mount, consult the
+# cache, count the directory's own blocks. rcx = parent dev. eax = 1 when settled (r14 = size).
+dup_enter:
+    lea rsp, [rsp - 8]
+    mov [rsp + 16 + FileStat._size + 56], rcx
+    mov [rsp + 16 + FileStat.dev], rcx        # children inherit it when fstat fails
+    mov dword ptr [rsp + 16 + FileStat._size + 48], 0
+    mov qword ptr [rsp + 16 + FileStat._size + 64], 0
+    mov edi, ebx; lea rsi, [rsp + 16]; lea rdx, [rsp + 16 + FileStat._size + 64]
+    call os_fstat_du
+    test rax, rax; js .Len_walk
+    mov rax, [rsp + 16 + FileStat.dev]
+    cmp rax, [rsp + 16 + FileStat._size + 56]
+    je .Len_same_fs
+    mov edi, ebx; call os_fs_is_derived
+    test eax, eax; jnz .Len_settled           # proc / sysfs / FUSE / squashfs / overlay / network
+.Len_same_fs:
+    mov dword ptr [rsp + 16 + FileStat._size + 48], 1
+    lea rdi, [rsp + 16]; call du_mtime_sig
+    mov [rsp + 16 + FileStat._size + 40], rax
+    mov rdi, [rsp + 16 + FileStat.ino]; mov rsi, [rsp + 16 + FileStat.dev]
+    mov rdx, rax; lea rcx, [rsp + 16 + FileStat._size + 24]
+    call du_cache_get
+    test eax, eax; jz .Len_walk
+    mov r14, [rsp + 16 + FileStat._size + 24]
+    lock add [rip + g_dup_prog + DuProgress.bytes], r14
+.Len_settled:
+    mov eax, 1
+    jmp .Len_ret
+.Len_walk:
+    lock inc qword ptr [rip + g_dup_prog + DuProgress.dirs]
+    mov r14, [rsp + 16 + FileStat._size + 64]
+    lock add [rip + g_dup_prog + DuProgress.bytes], r14
+    xor eax, eax
+.Len_ret:
+    lea rsp, [rsp + 8]
+    ret
+
+# uint64_t dup_stat_one_mt(int dfd, const char *name, void *lvl_buf, int depth, dev_t parent_dev)
+# Allocated bytes of one non-directory entry (hard links count once per scan), or the subtree
+# when it turns out to be a directory
 dup_stat_one_mt:
-    push rbx; push r12; push r13; push r14; sub rsp, FileStat._size + 8
-    mov ebx, edi; mov r12, rsi; mov r13, rdx; mov r14d, ecx
-    mov rdx, rsp; xor ecx, ecx; call os_statat
+    push rbx; push r12; push r13; push r14; push r15; sub rsp, FileStat._size + 8
+    mov ebx, edi; mov r12, rsi; mov r13, rdx; mov r14d, ecx; mov r15, r8
+    mov rdx, rsp; call os_du_usage
     test rax, rax; js .Lso_zero
-    mov eax, [rsp + FileStat.mode]; and eax, S_IFMT
-    cmp eax, S_IFDIR; je .Lso_dir
-    cmp eax, S_IFREG; jne .Lso_zero
-    mov rax, [rsp + FileStat.size]
+    mov ecx, [rsp + FileStat.mode]; and ecx, S_IFMT
+    cmp ecx, S_IFDIR; je .Lso_dir
+    cmp qword ptr [rsp + FileStat.nlink], 1
+    jbe .Lso_count
+    mov r12, rax
+    mov rdi, [rsp + FileStat.dev]; mov rsi, [rsp + FileStat.ino]
+    call du_link_first
+    test eax, eax; jz .Lso_zero       # another name of an inode already counted
+    mov rax, r12
+.Lso_count:
     lock inc qword ptr [rip + g_dup_prog + DuProgress.files]
     lock add [rip + g_dup_prog + DuProgress.bytes], rax
     jmp .Lso_ret
@@ -135,13 +177,15 @@ dup_stat_one_mt:
     xor r10d, r10d; OS_OPENAT
     test rax, rax; js .Lso_zero
     mov [rsp], rax
-    mov edi, eax; lea rsi, [r13 + DUP_STRIDE]; lea edx, [r14d + 1]
+    mov edi, eax; lea rsi, [r13 + DUP_STRIDE]; lea edx, [r14d + 1]; mov rcx, r15
     call dup_walk_fd_mt
-    mov rdi, [rsp]; push rax; OS_CLOSE; pop rax; jmp .Lso_ret
+    mov r12, rax
+    mov rdi, [rsp]; OS_CLOSE
+    mov rax, r12; jmp .Lso_ret
 .Lso_zero:
     xor eax, eax
 .Lso_ret:
-    add rsp, FileStat._size + 8; pop r14; pop r13; pop r12; pop rbx; ret
+    add rsp, FileStat._size + 8; pop r15; pop r14; pop r13; pop r12; pop rbx; ret
 
 # void dup_worker_fn(DuWorkerArg *arg)
 dup_worker_fn:
@@ -164,6 +208,7 @@ dup_worker_fn:
     test rax, rax; js .Lwf_loop
     mov r14, rax
     mov edi, eax; mov rsi, r12; xor edx, edx
+    mov rcx, [rbx + 24]               # dev of the scanned folder
     call dup_walk_fd_mt
     mov [r13 + 16], rax
     lock inc dword ptr [rip + g_dup_prog + DuProgress.done]
@@ -186,6 +231,9 @@ du_parallel_walk:
     mov r12d, edx                     # W = min(4, count)
 .Lpw_init:
     call dup_prog_begin               # counters, total = count, start time
+    mov edi, [rsp]
+    call dup_root_dev
+    mov [rsp + 24], rax               # ctx.dev: top-level mounts are checked against it
     call du_cache_init
     mov eax, r12d
     imul rax, DUP_ARENA_SZ + DUP_STACK_SZ + DUP_ARG_SZ
@@ -256,6 +304,19 @@ dup_prog_begin:
     call os_clock_ms
     mov [rip + g_dup_prog + DuProgress.start_ms], rax
     pop rbx
+    ret
+
+# Internal: dev_t dup_root_dev(int dfd) -- st_dev of the scanned folder, -1 if unknown
+dup_root_dev:
+    sub rsp, FileStat._size + 16
+    mov rsi, rsp
+    call os_fstat
+    mov rcx, rax
+    mov rax, [rsp + FileStat.dev]
+    test rcx, rcx
+    jns 1f
+    mov rax, -1
+1:  add rsp, FileStat._size + 16
     ret
 
 # Internal: void dup_prog_end(void) -- final callback (phase DONE) so the UI can close its window

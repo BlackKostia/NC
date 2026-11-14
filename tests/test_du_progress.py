@@ -12,6 +12,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from test_pty import PtySession  # noqa: E402
+from du_util import du_text  # noqa: E402
 
 BINARY = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "duop"))
 TOP, SUB, LEAF = 24, 12, 6                        # 24 * 12 * 6 = 1728 leaf dirs
@@ -30,20 +31,6 @@ def make_tree(tmp):
                 with open(os.path.join(d, "f.bin"), "wb") as f:
                     f.write(b"x" * FILE)
     return left, right
-
-
-def fmt_size(n):
-    """Mirror of format_size(): one truncated decimal below 100 units."""
-    unit, rem = 0, 0
-    while n >= 1024 and unit < 6:
-        n, rem = divmod(n, 1024)
-        unit += 1
-    if unit == 0:
-        return f"{n} B"
-    return f"{n} {'BKMGTPE'[unit]}" if n >= 100 else f"{n}.{rem * 10 // 1024} {'BKMGTPE'[unit]}"
-
-
-TOP_SIZE = fmt_size(SUB * LEAF * FILE)               # every topNN folder
 
 
 def read_raw(s, wait):
@@ -87,7 +74,8 @@ def test_progress_window(left, right):
             assert "Esc" in raw, f"{lang}: no Esc hint"
             txt = s.vt.full_text()
             assert title not in txt, f"{lang}: progress window left on screen:\n{txt}"
-            assert TOP_SIZE in txt, f"{lang}: expected {TOP_SIZE} per folder after the walk:\n{txt}"
+            top = du_text(os.path.join(left, "top00"))
+            assert top in txt, f"{lang}: expected {top} per folder after the walk:\n{txt}"
         finally:
             close(s)
     print("[PASS] DP1. Long walk shows a progress window (EN/UA) and removes it when done")
@@ -117,7 +105,8 @@ def test_cancel(left, right):
         os.write(s.master, b"\x1bd")                      # full walk: cache holds no partial sizes
         read_raw(s, 2.5)
         txt = s.vt.full_text()
-        assert TOP_SIZE in txt, f"after cancel a fresh walk must give exact sizes ({TOP_SIZE}):\n{txt}"
+        top = du_text(os.path.join(left, "top00"))
+        assert top in txt, f"after cancel a fresh walk must give exact sizes ({top}):\n{txt}"
         print("[PASS] DP3. Esc cancels the walk, restores the listing, and leaves no partial cache")
     finally:
         close(s)

@@ -212,5 +212,6 @@ App_dtor:
     call dirwatch_cleanup
     call nav_state_cleanup
     call du_cache_cleanup
+    call du_links_cleanup
     pop rbx
     ret

@@ -44,6 +44,12 @@ FileStat._size:
 #     size_t os_mem_mismatch16(const void *a, const void *b, size_t n16) -- index of first differing
 #          16-byte block (Cell) among n16 blocks, or n16 when equal
 #   void os_get_winsize_px(int *xpix, int *ypix) -> terminal pixel size (TIOCGWINSZ), 0/0 if unknown
+#   Disk usage (src/os/<os>/<arch>/pal_du.s): allocated space (st_blocks * 512) like `du`
+#     int64_t os_du_usage(int dirfd, const char *name, FileStat *out) -> bytes or -errno (lstat)
+#     int  os_fstat_du(int fd, FileStat *out, int64_t *alloc_out) -> 0 or -errno
+#     int  os_fs_is_derived(int fd) -> 1 on pseudo (proc, sysfs, cgroup...), FUSE, squashfs, overlay or
+#          network filesystems, or one that refuses fstatfs: their files repeat data stored elsewhere,
+#          so Disk Usage skips such mount points
 #   void *os_mmap_file_ro(int fd, size_t len)  -> read-only private file mapping, or 0
 #   void os_munmap(void *addr, size_t len)
 #   void os_sigbus_guard_install(void)          -> a SIGBUS on a mapped file page (file truncated

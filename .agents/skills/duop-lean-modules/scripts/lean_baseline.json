@@ -37,7 +37,7 @@
     "src/fs/file_ops.s:copy_data": 102,
     "src/fs/file_ops_delete.s:delete_dir_fd": 100,
     "src/fs/task.s:measure_dir_fd": 94,
-    "src/main.s:_start": 211,
+    "src/main.s:_start": 210,
     "src/os/linux/x86_64/pal_simd.s:os_str_contains_ci_fast": 92,
     "src/os/linux/x86_64/pal_uring.s:os_batch_stat": 223,
     "src/os/linux/x86_64/pal_uring.s:os_uring_init": 170,

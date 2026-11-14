@@ -7,6 +7,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from test_pty import PtySession
+from du_util import du_text  # allocated bytes like `du` (st_blocks * 512, dirs included)
 
 BINARY = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "duop"))
 
@@ -38,7 +39,7 @@ def test_disk_usage_en():
             with open(os.path.join(many_dir, f"f{i:03d}.dat"), "wb") as f:
                 f.write(b"M" * 1024)
         with open(os.path.join(big, "payload.bin"), "wb") as f:
-            f.write(b"A" * 65536)
+            f.write(b"A" * 524288)            # keeps big_dir the largest entry on any filesystem
         with open(os.path.join(l, "medium.bin"), "wb") as f:
             f.write(b"B" * 16384)
         with open(os.path.join(small, "tiny.txt"), "wb") as f:
@@ -50,7 +51,7 @@ def test_disk_usage_en():
             # Alt+D enters Disk Usage mode
             sess.send(b"\x1bd")
             wait_for(sess, "Disk Usage")
-            wait_for(sess, "96.0 K")
+            wait_for(sess, du_text(big))
             screen = sess.vt.full_text()
             assert "█" in screen or "▓" in screen or "%" in screen, f"Missing usage bar:\n{screen}"
             pos_big = screen.find("big_dir")
@@ -58,15 +59,16 @@ def test_disk_usage_en():
             assert 0 <= pos_big < pos_sml, (
                 f"Expected descending size order big_dir < small_dir:\n{screen}"
             )
-            assert "16.0 K" in screen and "1.0 K" in screen, f"Missing file/dir sizes:\n{screen}"
-            assert "70.0 K" in screen, f"Missing 70-file batched dir size (70.0 K):\n{screen}"
+            assert du_text(os.path.join(l, "medium.bin")) in screen and du_text(small) in screen, \
+                f"Missing file/dir sizes:\n{screen}"
+            assert du_text(many_dir) in screen, f"Missing 70-file batched dir size:\n{screen}"
             # Descend into big_dir
             sess.send(b"\x1b[B")  # Down from .. to big_dir
             sess.send(b"\r")
-            wait_for(sess, "32.0 K")
-            # Return to parent with Backspace -> big_dir must still show 96.0 K
+            wait_for(sess, du_text(os.path.join(big, "nested_sub")))
+            # Return to parent with Backspace -> big_dir keeps its total
             sess.send(b"\x7f")
-            wait_for(sess, "96.0 K")
+            wait_for(sess, du_text(big))
             sess.send(b"\r", wait=0.2)
             wait_for(sess, "payload.bin")
             # Exit Disk Usage mode via Alt+D
@@ -120,14 +122,15 @@ def test_disk_usage_batch_and_cache_nav():
             sess.drain(0.25)
             sess.send(b"\x1bd")
             wait_for(sess, "Disk Usage")
-            wait_for(sess, "4.0 K")
+            wait_for(sess, du_text(os.path.join(l, "d000")))
             # Navigate into d000 and back via Backspace (cached)
             sess.send(b"\x1b[B")
             t0 = time.monotonic()
             sess.send(b"\r")
             wait_for(sess, "f.bin", timeout=1.0)
             sess.send(b"\x7f")
-            wait_for(sess, "d129" if "d129" in sess.vt.full_text() else "4.0 K", timeout=1.0)
+            wait_for(sess, "d129" if "d129" in sess.vt.full_text() else du_text(os.path.join(l, "d000")),
+                     timeout=1.0)
             elapsed = time.monotonic() - t0
             assert elapsed < 1.0, f"Cached navigation took too long: {elapsed:.3f}s"
             print(f"[PASS] DU3. Batched dir stat & fast cached navigation ({elapsed*1000:.1f} ms)")
@@ -155,7 +158,7 @@ def test_disk_usage_parallel_subtrees():
             sess.drain(0.25)
             sess.send(b"\x1bd")
             wait_for(sess, "Disk Usage")
-            wait_for(sess, "32.0 K")
+            wait_for(sess, du_text(os.path.join(l, "tree_7")))
             screen = sess.vt.full_text()
             assert "tree_7" in screen and "tree_0" in screen, f"Missing subtrees:\n{screen}"
             assert screen.find("tree_7") < screen.find("tree_0"), f"Wrong sort order:\n{screen}"
@@ -185,7 +188,7 @@ def test_disk_usage_single_nested_miss():
             wait_for(sess, "child_dir")
             sess.send(b"\x1bd", wait=0.25)
             wait_for(sess, "Disk Usage")
-            wait_for(sess, "8.0 K")
+            wait_for(sess, du_text(os.path.join(l, "parent_dir", "child_dir")))
             print("[PASS] DU5. Single nested miss (miss_cnt == 1, depth >= 1) without crash")
         finally:
             try:

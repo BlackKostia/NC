@@ -92,6 +92,7 @@
 ### 2.3 Режим аналізу диска (`Alt+D`, `ncdu`-режим) ✅
 - **Файли**: [disk_usage.s](src/fs/disk_usage.s), [du_render.s](src/ui/du_render.s), [file_pane.s](src/ui/file_pane.s).
 - **Реалізація**: рекурсивний обхід каталогів на `getdents64`, візуальні TrueColor-бари частки розміру в таблиці, сортування за розміром та навігація всередину каталогів у режимі аналізу.
+- **Точність як у `du`** ([pal_du.s](src/os/linux/x86_64/pal_du.s), [du_links.s](src/fs/du_links.s)): зайняті блоки (`st_blocks`) замість видимого розміру, блоки тек, жорсткі посилання один раз; точки монтування псевдо-ФС, FUSE, `squashfs`, `overlay` і мережевих ФС (`fstatfs`) пропускаються. Тести: [test_du_sizes.py](tests/test_du_sizes.py) (DS1–DS2). ✅
 - **Прогрес довгого підрахунку** ([du_parallel.s](src/fs/du_parallel.s), [app_du.s](src/app/app_du.s), [du_progress_dlg.s](src/ui/du_progress_dlg.s)): теки рахують робочі потоки, головний потік кожні ~100 мс оновлює вікно «Аналіз розміру тек» (з'являється після `DUOP_DU_PROGRESS_MS`, типово 300 мс): готові теки / усього, смуга, переглянуті теки · файли · байти; `Esc` скасовує обхід без запису часткових розмірів у кеш. Тести: [test_du_progress.py](tests/test_du_progress.py) (DP1–DP3). ✅
 
 ### 2.4 Віртуальна файлова система архівів (VFS) ✅
