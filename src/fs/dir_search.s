@@ -24,6 +24,7 @@ SearchCtx._size:
 
 .section .text
 .global dir_search_run
+.global ds_append_entry
 
 .extern DirModel_cancel_load
 .extern ds_match_mask

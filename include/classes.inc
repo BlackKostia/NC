@@ -141,6 +141,8 @@ CLASS_BEGIN DirModel
     FIELD DirModel.virtual_mode,   4   # 0=normal, 1=VIRTUAL_SEARCH
     FIELD DirModel.du_mode,        4   # 0=normal, 1=ncdu disk usage mode
     FIELD DirModel.du_total,       8   # total bytes in du_mode
+    FIELD DirModel.arc_ctx,        8   # ArcCtx* when virtual_mode == 2
+    FIELD DirModel.git_ctx,        8   # GitCtx* for git branch & file statuses
     FIELD DirModel.path,           PATH_MAX
     FIELD DirModel.filter,         FILTER_MAX
     FIELD DirModel.flt_lc,         FILTER_MAX  # ASCII-lowercased filter (SIMD needle)

@@ -54,3 +54,18 @@ CLASS_BEGIN FuzzyDialog
     FIELD FuzzyDialog.query_buf,   128
     FIELD FuzzyDialog.base_path,   PATH_MAX
 CLASS_END FuzzyDialog
+
+CLASS_BEGIN BulkRenameDialog
+    EXTENDS Dialog
+    FIELD BulkRenameDialog.pane,   8
+    FIELD BulkRenameDialog.names,  8   # count * 256 old names
+    FIELD BulkRenameDialog.count,  4
+    FIELD BulkRenameDialog.focus,  4   # 0=tmpl, 1=find, 2=repl, 3=OK, 4=Cancel
+    FIELD BulkRenameDialog.tlen,   4
+    FIELD BulkRenameDialog.flen,   4
+    FIELD BulkRenameDialog.rlen,   4
+    FIELD BulkRenameDialog.pad,    4
+    FIELD BulkRenameDialog.tmpl,   128
+    FIELD BulkRenameDialog.find,   128
+    FIELD BulkRenameDialog.repl,   128
+CLASS_END BulkRenameDialog

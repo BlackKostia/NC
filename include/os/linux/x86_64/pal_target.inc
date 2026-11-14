@@ -18,6 +18,7 @@
 .equ OS_SYS_rt_sigreturn,   15
 .equ OS_SYS_ioctl,          16
 .equ OS_SYS_mremap,         25
+.equ OS_SYS_dup2,           33
 .equ OS_SYS_fork,           57
 .equ OS_SYS_execve,         59
 .equ OS_SYS_exit,           60
@@ -350,6 +351,16 @@
 
 .macro OS_WAIT4
     mov eax, OS_SYS_wait4
+    syscall
+.endm
+
+.macro OS_PIPE2
+    mov eax, OS_SYS_pipe2
+    syscall
+.endm
+
+.macro OS_DUP2
+    mov eax, OS_SYS_dup2
     syscall
 .endm
 

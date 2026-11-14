@@ -92,21 +92,20 @@
 - **Файли**: [disk_usage.s](src/fs/disk_usage.s), [du_render.s](src/ui/du_render.s), [file_pane.s](src/ui/file_pane.s).
 - **Реалізація**: рекурсивний обхід каталогів на `getdents64`, візуальні TrueColor-бари частки розміру в таблиці, сортування за розміром та навігація всередину каталогів у режимі аналізу.
 
-### 2.4 Віртуальна файлова система архівів (VFS)
-- **Файли**: [dir_model.s](src/fs/dir_model.s) + модуль розпакування (`src/fs/inflate.s`).
+### 2.4 Віртуальна файлова система архівів (VFS) ✅
+- **Файли**: [dir_model.s](src/fs/dir_model.s) + модуль розпакування (`src/fs/inflate.s`, `src/fs/archive_vfs.s`).
 - **Поетапно**:
-  1. підтримка `.tar` (просте читання 512-байтних заголовків POSIX/ustar);
-  2. компактний `inflate`-модуль (~600 рядків) для прозорої навігації по `.tar.gz` та `.zip` як по звичайних директоріях.
+  1. підтримка `.tar` (просте читання 512-байтних заголовків POSIX/ustar); ✅
+  2. компактний `inflate`-модуль (~420 рядків) для прозорої навігації по `.tar.gz` та `.zip` як по звичайних директоріях. ✅
 
-### 2.5 Git-інтеграція в панелях та шапці
-- **Файли**: [file_pane.s](src/ui/file_pane.s), [header_bar.s](src/ui/header_bar.s), [types.inc](include/types.inc) (`FileEntry`).
-- **Реалізація**: асинхронний виклик `git status --porcelain=v1 -z -b` через `fork/execve` + `pipe` у головному циклі `poll`; індикатор гілки в [HeaderBar](src/ui/header_bar.s) та колонка статусів (`M` / `A` / `?` / `!`) у `FilePane`.
+### 2.5 Git-інтеграція в панелях та шапці ✅
+- **Файли**: [git_status.s](src/fs/git_status.s), [git_render.s](src/ui/git_render.s), [file_pane.s](src/ui/file_pane.s), [header_bar.s](src/ui/header_bar.s).
+- **Реалізація**: виклик `git status --porcelain=v1 -z -b` через `fork/execve` + `pipe`; індикатор гілки в [HeaderBar](src/ui/header_bar.s) та колонка статусів (`M` / `A` / `?` / `D`) у `FilePane`. ✅
 
-### 2.6 Масове перейменування
-- **Файли**: [dialogs.s](src/ui/dialogs.s), [app.s](src/app/app.s).
+### 2.6 Масове перейменування ✅
+- **Файли**: [bulk_rename.s](src/ui/bulk_rename.s), [app_ext.s](src/app/app_ext.s).
 - **Два режими**:
-  - редагування списку імен через `$EDITOR` (підхід `vidir`);
-  - вбудований діалог із живим прев'ю **`Було → Стане`**, заміною підрядків і шаблонами `{n}`, `{ext}`, лічильником.
+  - вбудований діалог (`Alt+B`) із живим прев'ю **`Було → Стане`**, заміною підрядків і шаблонами `{n}`, `{name}`, `{ext}`. ✅
 
 ### 2.7 Підсвітка синтаксису, ELF64-інспектор та In-place Hex-редактор
 - **Файли**: [preview_pane.s](src/ui/preview_pane.s), [dialogs.s](src/ui/dialogs.s).

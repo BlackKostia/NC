@@ -961,7 +961,6 @@ FilePane_render:
     sub ecx, 2
     mov r8d, ' '
     call ScreenBuffer_draw_hline
-
     # Selection marker at x + 1
     mov eax, [r15 + FileEntry.flags]
     test eax, FE_SELECTED
@@ -974,7 +973,6 @@ FilePane_render:
     add edx, [rsp + 188]
     mov ecx, CH_CHECK
     call ScreenBuffer_set_cell_pen
-
 .Lfpr_draw_glyph:
     mov eax, [r15 + FileEntry.flags]
     mov ecx, CH_SQ_SMALL
@@ -1003,8 +1001,10 @@ FilePane_render:
     mov edx, [rbx + Widget.y]
     add edx, 3
     add edx, [rsp + 188]
-    call ScreenBuffer_set_cell_pen
-
+    mov r8, rbx; mov r9, r15
+    mov eax, [rsp + 196]; push rax; push r13
+    call fp_draw_glyph_and_git
+    add rsp, 16
     # Filename at x + 5 (max width = name_w - 4)
     mov r8d, [rsp + 168]
     sub r8d, 5

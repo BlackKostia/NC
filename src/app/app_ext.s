@@ -32,6 +32,8 @@
 .extern FuzzyDialog_new
 .extern FuzzyDialog_get_selected
 .extern du_toggle
+.extern arc_handle_enter
+.extern BulkRenameDialog_new
 .extern path_join
 .extern config_menu_item
 .extern i18n_get
@@ -247,7 +249,7 @@ app_handle_ext_key:
     ret
 .Lahek_alt:
     test edx, MOD_ALT
-    jz .Lahek_no
+    jz .Lahek_plain
     cmp esi, 'p'; je .Lahek_fuz
     cmp esi, 'P'; je .Lahek_fuz
     cmp esi, 'a'; je .Lahek_chm
@@ -260,8 +262,15 @@ app_handle_ext_key:
     cmp esi, 'H'; je .Lahek_hrd
     cmp esi, 'd'; je .Lahek_du
     cmp esi, 'D'; je .Lahek_du
+    cmp esi, 'b'; je .Lahek_br
+    cmp esi, 'B'; je .Lahek_br
     cmp esi, KEY_LEFT;  je .Lahek_hb
     cmp esi, KEY_RIGHT; je .Lahek_hf
+    jmp .Lahek_no
+.Lahek_plain:
+    cmp esi, KEY_ENTER
+    jne .Lahek_no
+    jmp arc_handle_enter
 .Lahek_no:
     xor eax, eax
     ret
@@ -324,12 +333,14 @@ app_handle_ext_key:
     call du_toggle
     mov eax, 1
     ret
+.Lahek_br:
+    jmp app_open_bulkrename
 .Lahek_pal:
     xor esi, esi
-    jmp .Lahek_fuz_open
+    jmp app_open_fuzzy
 .Lahek_fuz:
     mov esi, 1
-.Lahek_fuz_open:
+app_open_fuzzy:
     push rbx
     mov rbx, rdi
     mov rax, [rbx + App.active_pane]
@@ -341,6 +352,20 @@ app_handle_ext_key:
     mov [rbx + App.active_dialog], rax
     mov dword ptr [rbx + App.need_redraw], 1
 .Lahek_fdone:
+    mov eax, 1
+    pop rbx
+    ret
+
+app_open_bulkrename:
+    push rbx
+    mov rbx, rdi
+    mov rsi, [rbx + App.active_pane]
+    call BulkRenameDialog_new
+    test rax, rax
+    jz .Laob_done
+    mov [rbx + App.active_dialog], rax
+    mov dword ptr [rbx + App.need_redraw], 1
+.Laob_done:
     mov eax, 1
     pop rbx
     ret

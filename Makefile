@@ -40,6 +40,8 @@ SRCS := \
 	src/fs/dir_fuzzy.s \
 	src/fs/inflate.s \
 	src/fs/disk_usage.s \
+	src/fs/archive_vfs.s \
+	src/fs/git_status.s \
 	src/fs/trash_undo.s \
 	src/ui/header_bar.s \
 	src/ui/function_bar.s \
@@ -58,11 +60,14 @@ SRCS := \
 	src/ui/fuzzy_dialog.s \
 	src/ui/img_preview.s \
 	src/ui/du_render.s \
+	src/ui/git_render.s \
+	src/ui/bulk_rename.s \
 	src/app/app.s \
 	src/app/app_task.s \
 	src/app/app_events.s \
 	src/app/app_attr.s \
 	src/app/app_ext.s \
+	src/app/app_arc.s \
 	src/app/app_menu.s
 
 PAL_SRCS := \
@@ -110,6 +115,9 @@ test: $(TARGET)
 	python3 tests/test_fuzzy_palette.py
 	python3 tests/test_img_preview.py
 	python3 tests/test_disk_usage.py
+	python3 tests/test_archive_vfs.py
+	python3 tests/test_git_status.py
+	python3 tests/test_bulk_rename.py
 	python3 tests/test_nav_viewer.py
 	python3 tests/test_event_loop.py
 

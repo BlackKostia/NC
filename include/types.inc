@@ -301,6 +301,10 @@ LangStrings.dlg_title_palette:  .space 8
 LangStrings.dlg_title_fuzzy:    .space 8
 LangStrings.fuz_hint:           .space 8
 LangStrings.fp_du_badge:        .space 8
+LangStrings.br_title:           .space 8
+LangStrings.br_tmpl:            .space 8
+LangStrings.br_find:            .space 8
+LangStrings.br_repl:            .space 8
 LangStrings._size:
 
 .section .text

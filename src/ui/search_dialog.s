@@ -22,6 +22,7 @@ SearchDialog_vtbl:
 
 .extern DirModel_reload
 .extern FilePane_ensure_visible
+.extern arc_nav_up
 
 .extern Dialog_vtbl
 .extern Dialog_init
@@ -79,6 +80,8 @@ SearchDialog_new:
 # int fp_exit_virtual(FilePane *pane) -> 1 if exited virtual mode, 0 otherwise
 fp_exit_virtual:
     mov rcx, [rdi + FilePane.model]
+    cmp dword ptr [rcx + DirModel.virtual_mode], 2
+    je arc_nav_up
     cmp dword ptr [rcx + DirModel.virtual_mode], 0
     jne .Lfev_exit
     xor eax, eax

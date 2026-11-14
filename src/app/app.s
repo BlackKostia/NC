@@ -983,6 +983,15 @@ App_cmd_view:
     jnz .Lacv_isdir
     mov rcx, [rbx + App.active_pane]
     mov rdi, [rcx + FilePane.model]
+    cmp dword ptr [rdi + DirModel.virtual_mode], 2
+    jne .Lacv_normal
+    mov rdi, rcx
+    mov rsi, rsp
+    call arc_extract_selected
+    test eax, eax
+    jnz .Lacv_done
+    jmp .Lacv_open
+.Lacv_normal:
     mov rsi, rax
     call DirModel_entry_name
     mov rdx, rax
@@ -992,6 +1001,7 @@ App_cmd_view:
     lea rsi, [rcx + DirModel.path]
     mov ecx, PATH_MAX
     call path_join
+.Lacv_open:
     mov rdi, rbx
     mov rsi, rsp
     call ViewerDialog_new

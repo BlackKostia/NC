@@ -295,9 +295,9 @@ close_stream_resources:
 # void DirModel_dtor(DirModel *this)
 # ==============================================================================
 DirModel_dtor:
-    push rbx
-    mov rbx, rdi
+    push rbx; mov rbx, rdi
     call close_stream_resources
+    mov rdi, rbx; call git_free_ctx
     mov rdi, [rbx + DirModel.name_pool]
     call mem_free
     mov rdi, [rbx + DirModel.order]
@@ -582,7 +582,7 @@ DirModel_reload:
     je .Ldmr_ok
     mov dword ptr [rbx + DirModel.is_unsorted], 1
 .Ldmr_ok:
-    xor eax, eax
+    mov rdi, rbx; call git_refresh
 .Ldmr_err:
     add rsp, 56
     pop r12
@@ -1094,7 +1094,7 @@ DirModel_chdir:
     mov rdi, rbx
     call DirModel_apply_filter
 .Ldmc_ok:
-    xor eax, eax
+    mov rdi, rbx; call git_refresh
     jmp .Ldmc_ret
 
 .Ldmc_miss:
