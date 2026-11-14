@@ -128,8 +128,32 @@ def test_pkg_tui_dialog_en_ua():
                 os.environ["DUOP_PKG_DIR"] = old_env
 
 
+def test_pkg_sysmon_package():
+    pkg_arc = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "dist", "duop-sysmon-1.0.0.tar.gz"))
+    if not os.path.exists(pkg_arc):
+        subprocess.run([sys.executable, os.path.join(os.path.dirname(__file__), "..", "scripts", "build_sysmon_pkg.py")], check=True)
+    with open(pkg_arc, "rb") as f:
+        sha = hashlib.sha256(f.read()).hexdigest()
+    with tempfile.TemporaryDirectory() as tmp:
+        pkg_dir = os.path.join(tmp, "packages")
+        env = dict(os.environ, DUOP_PKG_DIR=pkg_dir)
+        res = subprocess.run([BINARY, "pkg", "install", pkg_arc, "--sha256", sha], env=env, capture_output=True, text=True)
+        assert res.returncode == 0, f"sysmon install failed: {res.stdout} {res.stderr}"
+        res = subprocess.run([BINARY, "pkg", "list"], env=env, capture_output=True, text=True)
+        assert "duop-sysmon" in res.stdout and "tool" in res.stdout, res.stdout
+        entry = os.path.join(pkg_dir, "duop-sysmon", "duop-sysmon")
+        assert os.path.exists(entry), f"Missing extracted entry: {entry}"
+        run = subprocess.run([sys.executable, entry, "--once"], capture_output=True, text=True)
+        assert run.returncode == 0, run.stderr
+        assert "\x1b[38;2;" in run.stdout and "╭" in run.stdout, "Missing TrueColor / rounded borders"
+        for section in ("CPU", "RAM", "DISK"):
+            assert section in run.stdout, f"Missing {section} section in sysmon output"
+        print("[PASS] PK4. duop-sysmon package install, SHA-256 verify & TrueColor monitor render")
+
+
 if __name__ == "__main__":
     test_pkg_cli_lifecycle()
     test_pkg_bad_sha256_rejected()
     test_pkg_tui_dialog_en_ua()
+    test_pkg_sysmon_package()
     print("ALL PACKAGE MANAGER TESTS PASSED.")
