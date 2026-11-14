@@ -255,6 +255,7 @@ test: $(TARGET)
 	python3 tests/test_kbd_layout.py
 	python3 tests/test_help_instruction.py
 	python3 tests/test_lang_packs.py
+	python3 tests/test_ui_visual.py
 
 memcheck:
 	$(MAKE) MEMCHECK=1
