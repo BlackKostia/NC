@@ -270,7 +270,11 @@ FilePane_enter_parent:
     js .Lfep_done
 
     mov rdi, [rbx + FilePane.model]
-    mov rsi, rsp
+    cmp dword ptr [rdi + DirModel.du_mode], 0
+    je 1f
+    call dir_du_populate
+    mov rdi, [rbx + FilePane.model]
+1:  mov rsi, rsp
     call DirModel_find_by_name
     cmp rax, 0
     jge .Lfep_set_cur

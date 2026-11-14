@@ -160,7 +160,13 @@ FilePane_on_key__chdir:
     mov rdi, r13
     mov rsi, rax
     call DirModel_chdir
-    mov dword ptr [rbx + FilePane.cursor], 0
+    test rax, rax
+    js .LFilePane_on_key__chdir_ret
+    cmp dword ptr [r13 + DirModel.du_mode], 0
+    je 1f
+    mov rdi, r13
+    call dir_du_populate
+1:  mov dword ptr [rbx + FilePane.cursor], 0
     mov dword ptr [rbx + FilePane.scroll], 0
     jmp .LFilePane_on_key__chdir_ret
 

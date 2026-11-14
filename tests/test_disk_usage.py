@@ -55,6 +55,11 @@ def test_disk_usage_en():
             assert "16.0 K" in screen and "1.0 K" in screen, f"Missing file/dir sizes:\n{screen}"
             # Descend into big_dir
             sess.send(b"\x1b[B")  # Down from .. to big_dir
+            sess.send(b"\r")
+            wait_for(sess, "32.0 K")
+            # Return to parent with Backspace -> big_dir must still show 96.0 K
+            sess.send(b"\x7f")
+            wait_for(sess, "96.0 K")
             sess.send(b"\r", wait=0.2)
             wait_for(sess, "payload.bin")
             # Exit Disk Usage mode via Alt+D
