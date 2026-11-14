@@ -10,71 +10,143 @@ PAL_INC := include/os/$(OS)/$(ARCH)
 
 AS      := as
 LD      := ld
-ASFLAGS := -I $(PAL_INC) -I include -I $(BUILD) -g
+ASFLAGS := -I $(PAL_INC) -I include -I $(BUILD) -g --strip-local-absolute
 LDFLAGS :=
 
 SRCS := \
 	src/main.s \
 	src/core/memory.s \
 	src/core/string.s \
+	src/core/string_format.s \
+	src/core/string_datetime.s \
+	src/core/string_path.s \
 	src/core/utf8.s \
 	src/core/oop_rt.s \
 	src/core/syscall.s \
 	src/core/config.s \
+	src/core/config_parse.s \
+	src/core/config_load.s \
+	src/core/config_expand.s \
 	src/core/hash.s \
+	src/core/hash_file.s \
 	src/tui/theme.s \
 	src/tui/i18n.s \
 	src/tui/i18n_env.s \
 	src/tui/screen.s \
+	src/tui/screen_buffer.s \
+	src/tui/screen_text.s \
+	src/tui/screen_out.s \
 	src/tui/input.s \
+	src/tui/input_parse.s \
 	src/fs/dir_model.s \
+	src/fs/dir_model_load.s \
+	src/fs/dir_model_stream.s \
+	src/fs/dir_model_filter.s \
+	src/fs/dir_model_stat.s \
+	src/fs/dir_model_select.s \
 	src/fs/dir_sort.s \
+	src/fs/dir_sort_intro.s \
+	src/fs/dir_sort_radix.s \
+	src/fs/dir_sort_prefix.s \
 	src/fs/dir_cache.s \
+	src/fs/dir_cache_fetch.s \
 	src/fs/file_ops.s \
+	src/fs/file_ops_copy_at.s \
+	src/fs/file_ops_copy.s \
+	src/fs/file_ops_delete.s \
+	src/fs/file_ops_read.s \
 	src/fs/task.s \
+	src/fs/task_worker.s \
+	src/fs/task_control.s \
 	src/fs/task_conflict.s \
 	src/fs/dir_watch.s \
 	src/fs/preview_io.s \
 	src/fs/nav_state.s \
+	src/fs/nav_state_history.s \
+	src/fs/nav_state_bookmarks.s \
+	src/fs/nav_state_frecency.s \
 	src/fs/dir_search_match.s \
 	src/fs/dir_search.s \
+	src/fs/dir_search_walk.s \
+	src/fs/dir_search_reset.s \
 	src/fs/dir_fuzzy.s \
+	src/fs/dir_fuzzy_walk.s \
 	src/fs/dir_diff.s \
 	src/fs/inflate.s \
+	src/fs/inflate_api.s \
 	src/fs/disk_usage.s \
 	src/fs/archive_vfs.s \
+	src/fs/archive_extract.s \
 	src/fs/git_status.s \
+	src/fs/git_status_query.s \
 	src/fs/trash_undo.s \
+	src/fs/trash_undo_ops.s \
 	src/ui/header_bar.s \
+	src/ui/header_bar_render.s \
+	src/ui/header_bar_git.s \
 	src/ui/function_bar.s \
 	src/ui/status_bar.s \
+	src/ui/status_bar_render.s \
 	src/ui/file_pane.s \
+	src/ui/file_pane_layout.s \
+	src/ui/file_pane_render.s \
+	src/ui/file_pane_keys.s \
+	src/ui/file_pane_mouse.s \
+	src/ui/file_pane_tabs.s \
 	src/ui/preview_pane.s \
+	src/ui/preview_pane_render.s \
+	src/ui/preview_pane_mouse.s \
 	src/ui/dialogs.s \
+	src/ui/dialogs_confirm.s \
+	src/ui/dialogs_input.s \
+	src/ui/dialogs_input_keys.s \
+	src/ui/dialogs_help.s \
 	src/ui/viewer_dialog.s \
+	src/ui/viewer_dialog_end.s \
+	src/ui/viewer_dialog_render.s \
+	src/ui/viewer_dialog_input.s \
 	src/ui/progress_dialog.s \
+	src/ui/progress_dialog_render.s \
+	src/ui/progress_dialog_input.s \
 	src/ui/conflict_dialog.s \
+	src/ui/conflict_dialog_input.s \
 	src/ui/user_menu_dlg.s \
 	src/ui/bookmark_dlg.s \
+	src/ui/bookmark_dlg_input.s \
 	src/ui/search_dialog.s \
+	src/ui/search_dialog_input.s \
 	src/ui/attr_dialogs.s \
+	src/ui/attr_dialogs_input.s \
 	src/ui/info_dialog.s \
 	src/ui/fuzzy_dialog.s \
 	src/ui/img_preview.s \
+	src/ui/img_preview_api.s \
 	src/ui/du_render.s \
 	src/ui/git_render.s \
 	src/ui/bulk_rename.s \
+	src/ui/bulk_rename_ui.s \
 	src/ui/popup_menu.s \
 	src/ui/term_pane.s \
+	src/ui/term_pane_input.s \
 	src/ui/term_keys.s \
 	src/ui/syntax.s \
 	src/ui/elf_inspect.s \
 	src/ui/hex_edit.s \
 	src/app/app.s \
+	src/app/app_layout.s \
+	src/app/app_open.s \
+	src/app/app_close_dialog.s \
+	src/app/app_cmds.s \
+	src/app/app_toggles.s \
+	src/app/app_keys.s \
+	src/app/app_loop.s \
+	src/app/app_choosedir.s \
 	src/app/app_task.s \
+	src/app/app_task_tick.s \
 	src/app/app_events.s \
 	src/app/app_attr.s \
 	src/app/app_ext.s \
+	src/app/app_ext_keys.s \
 	src/app/app_arc.s \
 	src/app/app_menu.s
 

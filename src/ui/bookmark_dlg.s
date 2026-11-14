@@ -10,13 +10,14 @@ str_bmd_filter_pfx: .asciz "> "
 str_bmd_empty:      .asciz "(empty)"
 
 .align 8
-.global BookmarkDialog_vtbl
 BookmarkDialog_vtbl:
     DIALOG_VTBL_SLOTS str_BookmarkDialog, Dialog_vtbl, BookmarkDialog._size, BookmarkDialog_dtor, BookmarkDialog_layout, BookmarkDialog_render, BookmarkDialog_handle_key, BookmarkDialog_handle_mouse, Widget_on_focus, Widget_hit_test, Dialog_on_confirm, Dialog_on_cancel
 
 .section .text
+.global bmd_refresh_matches
 .global BookmarkDialog_new
 .global BookmarkDialog_get_selected
+.global BookmarkDialog_vtbl
 
 # Internal: refresh match list when mode == 1 (Frecency)
 bmd_refresh_matches:
@@ -154,6 +155,31 @@ BookmarkDialog_render:
     push r14
     push r15
     sub rsp, 16
+    call BookmarkDialog_render__dlg
+    # In Frecency mode, row +2 is filter input, list starts at +3 (12 rows)
+    call BookmarkDialog_render__frecency_mode_row_filter
+    mov eax, [rbx + BookmarkDialog.match_cnt]
+    test eax, eax
+    jnz .Lbmr_adj_scroll
+    call BookmarkDialog_render__draw_text
+    jmp .Lbmr_hint
+
+.Lbmr_adj_scroll:
+    call BookmarkDialog_render__part4
+    call BookmarkDialog_render__row_i
+.Lbmr_hint:
+    call BookmarkDialog_render__draw_text_2
+    add rsp, 16
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbx
+    ret
+
+# BookmarkDialog_render step: dlg (runs on the caller's frame)
+BookmarkDialog_render__dlg:
+    lea rsp, [rsp - 8]
     mov rbx, rdi              # dlg
     mov r12, rsi              # scr
 
@@ -170,7 +196,13 @@ BookmarkDialog_render:
     add r14d, 2               # first content row
     mov r15d, 13              # visible list rows
 
-    # In Frecency mode, row +2 is filter input, list starts at +3 (12 rows)
+.LBookmarkDialog_render__dlg_ret:
+    lea rsp, [rsp + 8]
+    ret
+
+# BookmarkDialog_render step: In Frecency mode row is filter input list starts at (runs on the caller's frame)
+BookmarkDialog_render__frecency_mode_row_filter:
+    lea rsp, [rsp - 8]
     cmp dword ptr [rbx + BookmarkDialog.mode], 1
     jne .Lbmr_list
     mov rdi, r12
@@ -199,9 +231,13 @@ BookmarkDialog_render:
     dec r15d
 
 .Lbmr_list:
-    mov eax, [rbx + BookmarkDialog.match_cnt]
-    test eax, eax
-    jnz .Lbmr_adj_scroll
+.LBookmarkDialog_render__frecency_mode_row_filter_ret:
+    lea rsp, [rsp + 8]
+    ret
+
+# BookmarkDialog_render step: draw_text (runs on the caller's frame)
+BookmarkDialog_render__draw_text:
+    lea rsp, [rsp - 8]
     mov rdi, r12
     mov esi, [r13 + Theme.muted]
     mov edx, [r13 + Theme.surface]
@@ -214,9 +250,13 @@ BookmarkDialog_render:
     lea rcx, [rip + str_bmd_empty]
     mov r8d, 40
     call ScreenBuffer_draw_text
-    jmp .Lbmr_hint
+.LBookmarkDialog_render__draw_text_ret:
+    lea rsp, [rsp + 8]
+    ret
 
-.Lbmr_adj_scroll:
+# BookmarkDialog_render step (runs on the caller's frame)
+BookmarkDialog_render__part4:
+    lea rsp, [rsp - 8]
     mov eax, [rbx + BookmarkDialog.cursor]
     cmp eax, [rbx + BookmarkDialog.scroll]
     jge .Lbmr_sc_hi
@@ -231,16 +271,23 @@ BookmarkDialog_render:
     mov [rbx + BookmarkDialog.scroll], eax
 
 .Lbmr_draw_rows:
-    mov dword ptr [rsp], 0    # row_i = 0
+.LBookmarkDialog_render__part4_ret:
+    lea rsp, [rsp + 8]
+    ret
+
+# BookmarkDialog_render step: row_i (runs on the caller's frame)
+BookmarkDialog_render__row_i:
+    lea rsp, [rsp - 8]
+    mov dword ptr [rsp + 16], 0  # row_i = 0
 .Lbmr_row:
-    mov ecx, [rsp]
+    mov ecx, [rsp + 16]
     cmp ecx, r15d
-    jge .Lbmr_hint
+    jge .LBookmarkDialog_render__row_i_ret
     add ecx, [rbx + BookmarkDialog.scroll]
     cmp ecx, [rbx + BookmarkDialog.match_cnt]
-    jge .Lbmr_hint
+    jge .LBookmarkDialog_render__row_i_ret
 
-    mov [rsp + 4], ecx        # item_idx
+    mov [rsp + 4 + 16], ecx  # item_idx
     cmp ecx, [rbx + BookmarkDialog.cursor]
     jne .Lbmr_norm_pen
     mov esi, [r13 + Theme.accent_fg]
@@ -255,7 +302,7 @@ BookmarkDialog_render:
     mov rdi, r12
     call ScreenBuffer_set_pen
 
-    mov ecx, [rsp + 4]
+    mov ecx, [rsp + 4 + 16]
     cmp dword ptr [rbx + BookmarkDialog.mode], 1
     je .Lbmr_get_fre
     mov edi, ecx
@@ -272,15 +319,21 @@ BookmarkDialog_render:
     mov esi, [rbx + Widget.x]
     add esi, 2
     mov edx, r14d
-    add edx, [rsp]
+    add edx, [rsp + 16]
     mov r8d, 64
     call ScreenBuffer_draw_text
 
 .Lbmr_next_row:
-    inc dword ptr [rsp]
+    inc dword ptr [rsp + 16]
     jmp .Lbmr_row
 
-.Lbmr_hint:
+.LBookmarkDialog_render__row_i_ret:
+    lea rsp, [rsp + 8]
+    ret
+
+# BookmarkDialog_render step: draw_text (runs on the caller's frame)
+BookmarkDialog_render__draw_text_2:
+    lea rsp, [rsp - 8]
     mov rdi, r12
     mov esi, [r13 + Theme.muted]
     mov edx, [r13 + Theme.surface]
@@ -301,160 +354,6 @@ BookmarkDialog_render:
     mov r8d, 64
     call ScreenBuffer_draw_text
 
-    add rsp, 16
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop rbx
-    ret
-
-BookmarkDialog_handle_key:
-    push rbx
-    push r12
-    mov rbx, rdi
-    mov r12, rsi
-    mov eax, [r12 + Event.key]
-
-    cmp eax, KEY_ESC
-    je .Lbmk_cancel
-    cmp eax, KEY_ENTER
-    je .Lbmk_ok
-    cmp eax, KEY_UP
-    je .Lbmk_up
-    cmp eax, KEY_DOWN
-    je .Lbmk_down
-
-    cmp dword ptr [rbx + BookmarkDialog.mode], 1
-    je .Lbmk_fre_key
-
-    # Bookmarks mode keys
-    cmp eax, 'k'
-    je .Lbmk_up
-    cmp eax, 'j'
-    je .Lbmk_down
-    cmp eax, 'a'
-    je .Lbmk_add
-    cmp eax, 'd'
-    je .Lbmk_del
-    xor eax, eax
-    pop r12
-    pop rbx
-    ret
-
-.Lbmk_fre_key:
-    cmp eax, KEY_BACKSPACE
-    je .Lbmk_bs
-    cmp eax, 32
-    jl .Lbmk_ign
-    cmp eax, 126
-    jg .Lbmk_ign
-    mov ecx, [rbx + BookmarkDialog.filter_len]
-    cmp ecx, 62
-    jge .Lbmk_ign
-    mov [rbx + BookmarkDialog.filter + rcx], al
-    inc ecx
-    mov byte ptr [rbx + BookmarkDialog.filter + rcx], 0
-    mov [rbx + BookmarkDialog.filter_len], ecx
-    mov dword ptr [rbx + BookmarkDialog.cursor], 0
-    mov rdi, rbx
-    call bmd_refresh_matches
-    jmp .Lbmk_done
-
-.Lbmk_bs:
-    mov ecx, [rbx + BookmarkDialog.filter_len]
-    test ecx, ecx
-    jz .Lbmk_ign
-    dec ecx
-    mov byte ptr [rbx + BookmarkDialog.filter + rcx], 0
-    mov [rbx + BookmarkDialog.filter_len], ecx
-    mov dword ptr [rbx + BookmarkDialog.cursor], 0
-    mov rdi, rbx
-    call bmd_refresh_matches
-    jmp .Lbmk_done
-
-.Lbmk_up:
-    cmp dword ptr [rbx + BookmarkDialog.cursor], 0
-    jle .Lbmk_done
-    dec dword ptr [rbx + BookmarkDialog.cursor]
-    jmp .Lbmk_done
-
-.Lbmk_down:
-    mov eax, [rbx + BookmarkDialog.cursor]
-    inc eax
-    cmp eax, [rbx + BookmarkDialog.match_cnt]
-    jge .Lbmk_done
-    mov [rbx + BookmarkDialog.cursor], eax
-    jmp .Lbmk_done
-
-.Lbmk_add:
-    mov rax, [rbx + Dialog.app]
-    mov rax, [rax + App.active_pane]
-    mov rax, [rax + FilePane.model]
-    lea rdi, [rax + DirModel.path]
-    call nav_bookmarks_add
-    mov rdi, rbx
-    call bmd_refresh_matches
-    jmp .Lbmk_done
-
-.Lbmk_del:
-    cmp dword ptr [rbx + BookmarkDialog.match_cnt], 0
-    jle .Lbmk_done
-    mov edi, [rbx + BookmarkDialog.cursor]
-    call nav_bookmarks_remove
-    mov rdi, rbx
-    call bmd_refresh_matches
-    jmp .Lbmk_done
-
-.Lbmk_ok:
-    mov rdi, rbx
-    call Dialog_on_confirm
-    jmp .Lbmk_done
-
-.Lbmk_cancel:
-    mov rdi, rbx
-    call Dialog_on_cancel
-.Lbmk_done:
-    mov rax, [rbx + Dialog.app]
-    mov dword ptr [rax + App.need_redraw], 1
-    mov eax, 1
-    pop r12
-    pop rbx
-    ret
-.Lbmk_ign:
-    xor eax, eax
-    pop r12
-    pop rbx
-    ret
-
-BookmarkDialog_handle_mouse:
-    push rbx
-    push r12
-    mov rbx, rdi
-    mov r12, rsi
-    cmp dword ptr [r12 + Event.mouse_kind], MACT_PRESS
-    jne .Lbmm_none
-    mov eax, [r12 + Event.mouse_y]
-    mov ecx, [rbx + Widget.y]
-    add ecx, 2
-    cmp dword ptr [rbx + BookmarkDialog.mode], 1
-    jne .Lbmm_chk_row
-    inc ecx
-.Lbmm_chk_row:
-    sub eax, ecx
-    jl .Lbmm_none
-    add eax, [rbx + BookmarkDialog.scroll]
-    cmp eax, [rbx + BookmarkDialog.match_cnt]
-    jge .Lbmm_none
-    mov [rbx + BookmarkDialog.cursor], eax
-    mov rdi, rbx
-    call Dialog_on_confirm
-    mov eax, 1
-    pop r12
-    pop rbx
-    ret
-.Lbmm_none:
-    xor eax, eax
-    pop r12
-    pop rbx
+.LBookmarkDialog_render__draw_text_2_ret:
+    lea rsp, [rsp + 8]
     ret

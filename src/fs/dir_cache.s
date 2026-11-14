@@ -18,9 +18,10 @@ g_dc_bytes: .space 8          # sum of DCSlot.bytes of used slots
 g_dc_clock: .space 8          # LRU clock
 
 .section .text
+.global dc_free_slot
+.global dc_find
 .global dircache_store
-.global dircache_fetch
-.global dircache_invalidate
+.global g_dc_bytes
 
 # Internal: void dc_free_slot(DCSlot *slot) -- releases arrays, marks free
 dc_free_slot:
@@ -159,19 +160,8 @@ dircache_store:
     mov [rip + g_dc_slots], rax
 .Lds_have_tbl:
     # Replace an older snapshot of the same path
-    lea rdi, [rbx + DirModel.path]
-    call dc_find
-    test rax, rax
-    jz .Lds_make_room
-    mov rdi, rax
-    call dc_free_slot
-.Lds_make_room:
-    call dc_victim
-    mov r13, rax
-    cmp dword ptr [r13 + DCSlot.used], 0
-    je .Lds_budget
-    mov rdi, r13
-    call dc_free_slot
+    call dircache_store__replace_older_snapshot_same
+    call dircache_store__dc_victim
 .Lds_budget:
     mov rax, [rip + g_dc_bytes]
     add rax, r12
@@ -184,6 +174,47 @@ dircache_store:
     call dc_free_slot
     jmp .Lds_budget
 .Lds_fill:
+    call dircache_store__part3
+    call dircache_store__part4
+    jmp .Lds_ret
+.Lds_no:
+    xor eax, eax
+.Lds_ret:
+    pop r13
+    pop r12
+    pop rbx
+    ret
+
+# dircache_store step: Replace an older snapshot of the same path (runs on the caller's frame)
+dircache_store__replace_older_snapshot_same:
+    lea rsp, [rsp - 8]
+    lea rdi, [rbx + DirModel.path]
+    call dc_find
+    test rax, rax
+    jz .Lds_make_room
+    mov rdi, rax
+    call dc_free_slot
+.Lds_make_room:
+.Ldircache_store__replace_older_snapshot_same_ret:
+    lea rsp, [rsp + 8]
+    ret
+
+# dircache_store step: dc_victim (runs on the caller's frame)
+dircache_store__dc_victim:
+    lea rsp, [rsp - 8]
+    call dc_victim
+    mov r13, rax
+    cmp dword ptr [r13 + DCSlot.used], 0
+    je .Ldircache_store__dc_victim_ret
+    mov rdi, r13
+    call dc_free_slot
+.Ldircache_store__dc_victim_ret:
+    lea rsp, [rsp + 8]
+    ret
+
+# dircache_store step (runs on the caller's frame)
+dircache_store__part3:
+    lea rsp, [rsp - 8]
     mov rax, [rbx + DirModel.entries]
     mov [r13 + DCSlot.entries], rax
     mov rax, [rbx + DirModel.order]
@@ -239,6 +270,13 @@ dircache_store:
     mov [r13 + DCSlot.lru], rax
     mov dword ptr [r13 + DCSlot.used], 1
 
+.Ldircache_store__part3_ret:
+    lea rsp, [rsp + 8]
+    ret
+
+# dircache_store step (runs on the caller's frame)
+dircache_store__part4:
+    lea rsp, [rsp - 8]
     xor eax, eax
     mov [rbx + DirModel.entries], rax
     mov [rbx + DirModel.order], rax
@@ -249,125 +287,6 @@ dircache_store:
     mov [rbx + DirModel.count], rax
     mov [rbx + DirModel.name_used], rax
     mov eax, 1
-    jmp .Lds_ret
-.Lds_no:
-    xor eax, eax
-.Lds_ret:
-    pop r13
-    pop r12
-    pop rbx
-    ret
-
-# int dircache_fetch(DirModel *m, const FileStat *dir_st)
-# Looks up m->path. On a valid snapshot (same dev/ino/mtime/mtime_nsec) installs it into m
-# (freeing m's current arrays) and returns 1 when order[] is directly reusable, or 2 when the
-# caller must re-filter/re-sort (hidden/filter/sort mode differ). Returns 0 on miss; a stale
-# snapshot is dropped.
-dircache_fetch:
-    push rbx
-    push r12
-    push r13
-    mov rbx, rdi
-    mov r12, rsi
-    lea rdi, [rbx + DirModel.path]
-    call dc_find
-    test rax, rax
-    jz .Ldcf_miss
-    mov r13, rax
-    mov rax, [r12 + FileStat.dev]
-    cmp rax, [r13 + DCSlot.dev]
-    jne .Ldcf_stale
-    mov rax, [r12 + FileStat.ino]
-    cmp rax, [r13 + DCSlot.ino]
-    jne .Ldcf_stale
-    mov rax, [r12 + FileStat.mtime]
-    cmp rax, [r13 + DCSlot.mtime]
-    jne .Ldcf_stale
-    mov eax, [r12 + FileStat.mtime_nsec]
-    cmp eax, [r13 + DCSlot.mtime_ns]
-    jne .Ldcf_stale
-
-    mov rdi, [rbx + DirModel.entries]
-    call mem_free
-    mov rdi, [rbx + DirModel.order]
-    call mem_free
-    mov rdi, [rbx + DirModel.name_pool]
-    call mem_free
-    mov rax, [r13 + DCSlot.entries]
-    mov [rbx + DirModel.entries], rax
-    mov rax, [r13 + DCSlot.order]
-    mov [rbx + DirModel.order], rax
-    mov rax, [r13 + DCSlot.name_pool]
-    mov [rbx + DirModel.name_pool], rax
-    mov rax, [r13 + DCSlot.raw_count]
-    mov [rbx + DirModel.raw_count], rax
-    mov rax, [r13 + DCSlot.raw_cap]
-    mov [rbx + DirModel.raw_cap], rax
-    mov rax, [r13 + DCSlot.name_used]
-    mov [rbx + DirModel.name_used], rax
-    mov rax, [r13 + DCSlot.name_cap]
-    mov [rbx + DirModel.name_cap], rax
-    mov rax, [r13 + DCSlot.count]
-    mov [rbx + DirModel.count], rax
-    mov rax, [r13 + DCSlot.dev]
-    mov [rbx + DirModel.dir_dev], rax
-    mov rax, [r13 + DCSlot.ino]
-    mov [rbx + DirModel.dir_ino], rax
-    mov rax, [r13 + DCSlot.mtime]
-    mov [rbx + DirModel.dir_mtime], rax
-    mov eax, [r13 + DCSlot.mtime_ns]
-    mov [rbx + DirModel.dir_mtime_ns], eax
-    mov eax, [r13 + DCSlot.dir_count]
-    mov [rbx + DirModel.dir_count], eax
-    mov eax, [r13 + DCSlot.file_count]
-    mov [rbx + DirModel.file_count], eax
-    mov eax, [r13 + DCSlot.has_dotdot]
-    mov [rbx + DirModel.has_dotdot], eax
-    mov eax, [r13 + DCSlot.is_unsorted]
-    mov [rbx + DirModel.is_unsorted], eax
-    mov eax, [r13 + DCSlot.huge_mode]
-    mov [rbx + DirModel.huge_mode], eax
-
-    # Reusable as-is only with an empty snapshot filter and identical view settings
-    mov r12d, 1
-    cmp byte ptr [r13 + DCSlot.filter], 0
-    jne .Ldcf_refilter
-    mov eax, [r13 + DCSlot.show_hidden]
-    cmp eax, [rbx + DirModel.show_hidden]
-    jne .Ldcf_refilter
-    mov eax, [r13 + DCSlot.sort_mode]
-    cmp eax, [rbx + DirModel.sort_mode]
-    jne .Ldcf_refilter
-    mov eax, [r13 + DCSlot.sort_desc]
-    cmp eax, [rbx + DirModel.sort_desc]
-    je .Ldcf_release
-.Ldcf_refilter:
-    mov r12d, 2
-.Ldcf_release:
-    mov rax, [r13 + DCSlot.bytes]
-    sub [rip + g_dc_bytes], rax
-    mov dword ptr [r13 + DCSlot.used], 0   # arrays now owned by m
-    mov eax, r12d
-    jmp .Ldcf_ret
-.Ldcf_stale:
-    mov rdi, r13
-    call dc_free_slot
-.Ldcf_miss:
-    xor eax, eax
-.Ldcf_ret:
-    pop r13
-    pop r12
-    pop rbx
-    ret
-
-# void dircache_invalidate(const char *path) -- drop a snapshot (e.g. on inotify events)
-dircache_invalidate:
-    sub rsp, 8
-    call dc_find
-    test rax, rax
-    jz .Ldci_ret
-    mov rdi, rax
-    call dc_free_slot
-.Ldci_ret:
-    add rsp, 8
+.Ldircache_store__part4_ret:
+    lea rsp, [rsp + 8]
     ret

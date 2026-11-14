@@ -15,6 +15,7 @@ Usage:
   check_lean.py --file PATH [--lines N] check one file (optionally with a prospective size)
   check_lean.py --staged                check the staged (index) versions of staged files (pre-commit)
   check_lean.py --update                tighten baseline to current sizes (never raises)
+  check_lean.py --migrate               carry legacy entries to code moved by a split (never raises)
   check_lean.py --report                show the largest modules / routines
 """
 
@@ -183,6 +184,61 @@ def update_baseline(root: Path) -> None:
     print(f"Baseline tightened: {len(new['files'])} legacy files, {len(new['funcs'])} legacy routines.")
 
 
+SPLIT_FROM_RE = re.compile(r"\(split from ([\w.-]+\.s)\)")
+
+
+def migrate_baseline(root: Path) -> int:
+    """After a mechanical split, re-key legacy debt to where the code now lives.
+
+    A new part (header `(split from X.s)`) may inherit at most X's frozen size/exports; a moved
+    routine may inherit at most the frozen length it had under its old path. Nothing can grow:
+    any item that would need a larger limit than its origin's is reported and nothing is written.
+    Entries for code that is now within budget are dropped (the ratchet tightens as usual)."""
+    base = load_baseline()
+    new = {"files": {}, "funcs": {}, "exports": {}}
+    old_funcs: dict[str, int] = {}
+    for key, n in base["funcs"].items():
+        name = key.rsplit(":", 1)[1]
+        old_funcs[name] = max(old_funcs.get(name, 0), n)
+    errs = []
+    for p in scanned_files(root):
+        rp = rel(root, p)
+        bud = BUDGET.get(p.suffix)
+        if not bud:
+            continue
+        m = measure(p)
+        head = p.read_text(encoding="utf-8", errors="replace").split("\n", 1)[0]
+        sm = SPLIT_FROM_RE.search(head)
+        origin = (rel(root, p.parent / sm.group(1)) if sm else rp)
+        for kind, val, lim in (("files", m["lines"], bud["file"]),
+                               ("exports", m["exports"], bud.get("exports", 10 ** 9))):
+            if val <= lim:
+                continue
+            cap = base[kind].get(rp, base[kind].get(origin))
+            if cap is None or val > cap:
+                errs.append(f"{rp}: {kind} {val} exceeds budget {lim} and inherited limit {cap}")
+            else:
+                new[kind][rp] = val
+        for name, n in m["funcs"]:
+            if "func" not in bud or n <= bud["func"]:
+                continue
+            key = f"{rp}:{name}"
+            cap = base["funcs"].get(key, old_funcs.get(name))
+            if cap is None or n > cap:
+                errs.append(f"{key}: {n} lines exceeds budget {bud['func']} and inherited limit {cap}")
+            else:
+                new["funcs"][key] = n
+    if errs:
+        for e in errs:
+            print(f"LEAN: {e}", file=sys.stderr)
+        return 1
+    BASELINE.write_text(json.dumps(new, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    debt = lambda b: sum(b["files"].values()) + sum(b["funcs"].values())  # noqa: E731
+    print(f"Baseline migrated: {len(new['files'])} legacy files, {len(new['funcs'])} legacy "
+          f"routines (frozen debt {debt(base)} -> {debt(new)} lines).")
+    return 0
+
+
 def report(root: Path) -> None:
     rows, funcs = [], []
     for p in scanned_files(root):
@@ -206,9 +262,12 @@ def main() -> int:
     ap.add_argument("--update", action="store_true")
     ap.add_argument("--staged", action="store_true")
     ap.add_argument("--report", action="store_true")
+    ap.add_argument("--migrate", action="store_true")
     a = ap.parse_args()
     root = Path(a.root).resolve()
 
+    if a.migrate:
+        return migrate_baseline(root)
     if a.update:
         update_baseline(root)
         return 0

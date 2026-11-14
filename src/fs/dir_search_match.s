@@ -102,6 +102,20 @@ ds_grep_file:
     push r14
     push r15
     sub rsp, 8
+    call ds_grep_file__pat
+    call ds_grep_file__total_read
+    add rsp, 8
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbp
+    pop rbx
+    ret
+
+# ds_grep_file step: pat (runs on the caller's frame)
+ds_grep_file__pat:
+    lea rsp, [rsp - 8]
     mov rbp, rdx              # pat
     mov r15, rcx              # pat_len
     mov rbx, r8               # buf
@@ -109,6 +123,13 @@ ds_grep_file:
     xor r10d, r10d
     OS_OPENAT
     test rax, rax
+.Lds_grep_file__pat_ret:
+    lea rsp, [rsp + 8]
+    ret
+
+# ds_grep_file step: total_read (runs on the caller's frame)
+ds_grep_file__total_read:
+    lea rsp, [rsp - 8]
     js .Ldgf_no
     mov r12d, eax             # fd
     xor r13d, r13d            # total_read
@@ -164,11 +185,6 @@ ds_grep_file:
 .Ldgf_no:
     xor eax, eax
 .Ldgf_ret:
-    add rsp, 8
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop rbp
-    pop rbx
+.Lds_grep_file__total_read_ret:
+    lea rsp, [rsp + 8]
     ret

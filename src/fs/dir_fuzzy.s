@@ -1,17 +1,10 @@
 # src/fs/dir_fuzzy.s - Fuzzy matching scorer & recursive tree collector
-.intel_syntax noprefix
 
+.intel_syntax noprefix
 .include "pal.inc"
 .include "config.inc"
 .include "types.inc"
-
 .equ FUZZY_MAX_DEPTH, 8
-
-.section .text
-.global fuzzy_score
-.global dir_fuzzy_collect
-.global fs_write_file
-
 .extern sys_open
 .extern sys_close
 .extern os_dir_read
@@ -20,6 +13,10 @@
 .extern mem_free
 .extern str_len
 .extern str_copy
+
+.section .text
+.global fuzzy_score
+.global dfc_walk
 
 # int fuzzy_score(const char *query, const char *cand, uint64_t *out_mask)
 fuzzy_score:
@@ -240,69 +237,8 @@ dfc_walk:
     cmp eax, [rbx + 28]
     jge .Ldw_ret
 
-    mov edi, AT_FDCWD
-    mov rsi, r12
-    mov edx, O_RDONLY | O_DIRECTORY | O_CLOEXEC
-    xor r10d, r10d
-    OS_OPENAT
-    test rax, rax
-    js .Ldw_ret
-    mov [rsp + PATH_MAX * 2], eax
-
-.Ldw_read:
-    mov edi, [rsp + PATH_MAX * 2]
-    mov rsi, [rbx + 32]
-    mov edx, 32768
-    call os_dir_read
-    test rax, rax
-    jle .Ldw_close
-    mov [rsp + PATH_MAX * 2 + 8], rax
-    mov qword ptr [rsp + PATH_MAX * 2 + 16], 0
-
-.Ldw_ent:
-    mov eax, [rbx + 24]
-    cmp eax, [rbx + 28]
-    jge .Ldw_close
-    mov rdi, [rbx + 32]
-    mov rsi, [rsp + PATH_MAX * 2 + 8]
-    lea rdx, [rsp + PATH_MAX * 2 + 16]
-    lea rcx, [rsp + PATH_MAX * 2 + 24]
-    lea r8, [rsp + PATH_MAX * 2 + 32]
-    call os_dir_next_ex
-    test rax, rax
-    jz .Ldw_read
-    mov r15, rax
-    mov rdi, r15
-    call dfc_skip_name
-    test eax, eax
-    jnz .Ldw_ent
-
-    lea rdi, [rsp + PATH_MAX]
-    mov rsi, r13
-    mov rdx, r15
-    call dfc_join
-
-    mov rdi, rbx
-    lea rsi, [rsp + PATH_MAX]
-    movzx edx, byte ptr [rsp + PATH_MAX * 2 + 24]   # d_type is a byte
-    call dfc_push_item
-
-    cmp byte ptr [rsp + PATH_MAX * 2 + 24], PAL_DT_DIR
-    jne .Ldw_ent
-    mov rdi, rsp
-    mov rsi, r12
-    mov rdx, r15
-    call dfc_join
-    mov rdi, rbx
-    mov rsi, rsp
-    lea rdx, [rsp + PATH_MAX]
-    lea ecx, [r14d + 1]
-    call dfc_walk
-    jmp .Ldw_ent
-
-.Ldw_close:
-    mov edi, [rsp + PATH_MAX * 2]
-    OS_CLOSE
+    call dfc_walk__part1
+    call dfc_walk__d_type_byte
 .Ldw_ret:
     add rsp, PATH_MAX * 2 + 48
     pop r15
@@ -312,59 +248,79 @@ dfc_walk:
     pop rbx
     ret
 
-# int dir_fuzzy_collect(const char *root, char *pool, int pool_cap, void *items, int max_items)
-dir_fuzzy_collect:
-    push rbx
-    sub rsp, 48
-    mov rbx, rdi
-    mov [rsp], rsi
-    mov dword ptr [rsp + 8], 0
-    mov [rsp + 12], edx
-    mov [rsp + 16], rcx
-    mov dword ptr [rsp + 24], 0
-    mov [rsp + 28], r8d
-    mov edi, 32768
-    call mem_alloc
+# dfc_walk step (runs on the caller's frame)
+dfc_walk__part1:
+    lea rsp, [rsp - 8]
+    mov edi, AT_FDCWD
+    mov rsi, r12
+    mov edx, O_RDONLY | O_DIRECTORY | O_CLOEXEC
+    xor r10d, r10d
+    OS_OPENAT
     test rax, rax
-    jz .Ldfc_fail
-    mov [rsp + 32], rax
-    mov rdi, rsp
-    mov rsi, rbx
-    lea rdx, [rip + .Ldfc_empty]
-    xor ecx, ecx
+.Ldfc_walk__part1_ret:
+    lea rsp, [rsp + 8]
+    ret
+
+# dfc_walk step: d_type is byte (runs on the caller's frame)
+dfc_walk__d_type_byte:
+    lea rsp, [rsp - 8]
+    js .Ldfc_walk__d_type_byte_ret
+    mov [rsp + PATH_MAX * 2 + 16], eax
+
+.Ldw_read:
+    mov edi, [rsp + PATH_MAX * 2 + 16]
+    mov rsi, [rbx + 32]
+    mov edx, 32768
+    call os_dir_read
+    test rax, rax
+    jle .Ldw_close
+    mov [rsp + PATH_MAX * 2 + 8 + 16], rax
+    mov qword ptr [rsp + PATH_MAX * 2 + 16 + 16], 0
+
+.Ldw_ent:
+    mov eax, [rbx + 24]
+    cmp eax, [rbx + 28]
+    jge .Ldw_close
+    mov rdi, [rbx + 32]
+    mov rsi, [rsp + PATH_MAX * 2 + 8 + 16]
+    lea rdx, [rsp + PATH_MAX * 2 + 16 + 16]
+    lea rcx, [rsp + PATH_MAX * 2 + 24 + 16]
+    lea r8, [rsp + PATH_MAX * 2 + 32 + 16]
+    call os_dir_next_ex
+    test rax, rax
+    jz .Ldw_read
+    mov r15, rax
+    mov rdi, r15
+    call dfc_skip_name
+    test eax, eax
+    jnz .Ldw_ent
+
+    lea rdi, [rsp + PATH_MAX + 16]
+    mov rsi, r13
+    mov rdx, r15
+    call dfc_join
+
+    mov rdi, rbx
+    lea rsi, [rsp + PATH_MAX + 16]
+    movzx edx, byte ptr [rsp + PATH_MAX * 2 + 24 + 16]  # d_type is a byte
+    call dfc_push_item
+
+    cmp byte ptr [rsp + PATH_MAX * 2 + 24 + 16], PAL_DT_DIR
+    jne .Ldw_ent
+    lea rdi, [rsp + 16]
+    mov rsi, r12
+    mov rdx, r15
+    call dfc_join
+    mov rdi, rbx
+    lea rsi, [rsp + 16]
+    lea rdx, [rsp + PATH_MAX + 16]
+    lea ecx, [r14d + 1]
     call dfc_walk
-    mov rdi, [rsp + 32]
-    call mem_free
-    mov eax, [rsp + 24]
-    jmp .Ldfc_ret
-.Ldfc_fail:
-    xor eax, eax
-.Ldfc_ret:
-    add rsp, 48
-    pop rbx
-    ret
+    jmp .Ldw_ent
 
-# int fs_write_file(const char *path, const void *buf, uint64_t len) -> 0 ok, -1 err
-fs_write_file:
-    push rbx; push r12; push r13
-    mov r12, rsi; mov r13, rdx
-    mov rsi, rdi; mov edi, AT_FDCWD
-    mov edx, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC
-    mov r10d, 0644; OS_OPENAT
-    test rax, rax; js .Lfwf_err
-    mov ebx, eax
-    mov rdi, rbx; mov rsi, r12; mov rdx, r13
-    OS_WRITE
-    push rax
-    mov edi, ebx; OS_CLOSE
-    pop rax
-    test rax, rax; js .Lfwf_err
-    xor eax, eax; jmp .Lfwf_ret
-.Lfwf_err:
-    mov eax, -1
-.Lfwf_ret:
-    pop r13; pop r12; pop rbx
+.Ldw_close:
+    mov edi, [rsp + PATH_MAX * 2 + 16]
+    OS_CLOSE
+.Ldfc_walk__d_type_byte_ret:
+    lea rsp, [rsp + 8]
     ret
-
-.section .rodata
-.Ldfc_empty: .asciz ""

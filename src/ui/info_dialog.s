@@ -181,6 +181,17 @@ InfoDialog_render:
     push r12
     push r13
     sub rsp, 64
+    call InfoDialog_render__id_draw_kv
+    call InfoDialog_render__id_draw_kv_2
+    add rsp, 64
+    pop r13
+    pop r12
+    pop rbx
+    ret
+
+# InfoDialog_render step: id_draw_kv (runs on the caller's frame)
+InfoDialog_render__id_draw_kv:
+    lea rsp, [rsp - 8]
     mov rbx, rdi
     mov r12, rsi
     mov r13, rdx
@@ -209,59 +220,66 @@ InfoDialog_render:
     call id_draw_kv
 
     mov rdi, [rbx + InfoDialog.st + FileStat.size]
-    mov rsi, rsp
+    lea rsi, [rsp + 16]
     call u64_to_dec
     mov rdi, rbx
     mov rsi, r12
     mov edx, 3
     lea rcx, [rip + str_inf_size]
-    mov r8, rsp
+    lea r8, [rsp + 16]
     call id_draw_kv
 
     mov rdi, [rbx + InfoDialog.st + FileStat.ino]
-    mov rsi, rsp
+    lea rsi, [rsp + 16]
     call u64_to_dec
     mov rdi, rbx
     mov rsi, r12
     mov edx, 4
     lea rcx, [rip + str_inf_ino]
-    mov r8, rsp
+    lea r8, [rsp + 16]
     call id_draw_kv
 
     mov rdi, [rbx + InfoDialog.st + FileStat.nlink]
-    mov rsi, rsp
+    lea rsi, [rsp + 16]
     call u64_to_dec
     mov rdi, rbx
     mov rsi, r12
     mov edx, 5
     lea rcx, [rip + str_inf_nlink]
-    mov r8, rsp
+    lea r8, [rsp + 16]
     call id_draw_kv
 
+.LInfoDialog_render__id_draw_kv_ret:
+    lea rsp, [rsp + 8]
+    ret
+
+# InfoDialog_render step: id_draw_kv (runs on the caller's frame)
+InfoDialog_render__id_draw_kv_2:
+    lea rsp, [rsp - 8]
     mov edi, [rbx + InfoDialog.st + FileStat.uid]
-    mov rsi, rsp
+    lea rsi, [rsp + 16]
     call u64_to_dec
-    mov byte ptr [rsp + rax], ':'
+    mov byte ptr [rsp + rax + 16], ':'
     mov edi, [rbx + InfoDialog.st + FileStat.gid]
-    lea rsi, [rsp + rax + 1]
+    lea rsi, [rsp + rax + 1 + 16]
     call u64_to_dec
     mov rdi, rbx
     mov rsi, r12
     mov edx, 6
     lea rcx, [rip + str_inf_uidgid]
-    mov r8, rsp
+    lea r8, [rsp + 16]
     call id_draw_kv
 
     cmp dword ptr [rbx + InfoDialog.hash_ok], 0
     je .Lidr_na
     mov edi, [rbx + InfoDialog.crc32]
-    mov rsi, rsp
+    lea rsi, [rsp + 16]
     call id_hex32
     mov rdi, rbx
     mov rsi, r12
     mov edx, 7
     lea rcx, [rip + str_inf_crc]
-    mov r8, rsp
+    lea r8, [rsp + 16]
     call id_draw_kv
 
     mov rdi, rbx
@@ -281,10 +299,8 @@ InfoDialog_render:
     call id_draw_kv
 
 .Lidr_done:
-    add rsp, 64
-    pop r13
-    pop r12
-    pop rbx
+.LInfoDialog_render__id_draw_kv_2_ret:
+    lea rsp, [rsp + 8]
     ret
 
 # void InfoDialog_on_key(InfoDialog *this, Event *ev)

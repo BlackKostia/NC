@@ -22,6 +22,7 @@ Code flows downward only — never introduce upward or cyclic dependencies acros
 - Budgets: `src/**/*.s` ≤ 400 lines (aim 150–300), top-level routine ≤ 80 lines, ≤ 16 `.global` symbols; `include/**/*.inc` ≤ 400 lines; `tests/*.py` ≤ 500 lines, `def` ≤ 100 lines.
 - Legacy offenders are frozen in `.agents/skills/duop-lean-modules/scripts/lean_baseline.json` and may only shrink; after shrinking run `check_lean.py --update`.
 - Grow by splitting: new concern → new `src/<layer>/<topic>.s`; long routine → named local helpers.
+- Mechanical, semantics-preserving splitters live in the skill (`split_routine.py` → `Routine__step` frame-sharing steps, `split_module.py` → sibling modules, `check_lean.py --migrate`); hot inner loops and big state machines are redesigned by hand.
 
 ## 2. Assembly, ABI & I18n Invariants
 

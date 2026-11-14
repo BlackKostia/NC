@@ -106,6 +106,21 @@ UserMenuDialog_render:
     push r14
     push r15
     sub rsp, 24               # [rsp+0]=vis_rows, [rsp+4]=count, [rsp+8]=label*
+    call UserMenuDialog_render__draw_frame
+    call UserMenuDialog_render__row
+    call UserMenuDialog_render__draw_text
+    add rsp, 24
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbp
+    pop rbx
+    ret
+
+# UserMenuDialog_render step: draw_frame (runs on the caller's frame)
+UserMenuDialog_render__draw_frame:
+    lea rsp, [rsp - 8]
     mov rbx, rdi
     mov r12, rsi
     mov r13, rdx
@@ -119,27 +134,34 @@ UserMenuDialog_render:
     call Dialog_draw_frame
 
     call config_menu_count
-    mov [rsp + 4], eax
+    mov [rsp + 4 + 16], eax
     mov ecx, [rbx + Widget.h]
     sub ecx, 5
     cmp ecx, 1
     jge .Lumr_vr_ok
     mov ecx, 1
 .Lumr_vr_ok:
-    mov [rsp + 0], ecx
+    mov [rsp + 0 + 16], ecx
 
+.LUserMenuDialog_render__draw_frame_ret:
+    lea rsp, [rsp + 8]
+    ret
+
+# UserMenuDialog_render step: row (runs on the caller's frame)
+UserMenuDialog_render__row:
+    lea rsp, [rsp - 8]
     xor r14d, r14d            # row r = 0
 .Lumr_loop:
-    cmp r14d, [rsp + 0]
+    cmp r14d, [rsp + 0 + 16]
     jge .Lumr_hint
     mov r15d, [rbx + UserMenuDialog.scroll]
     add r15d, r14d
-    cmp r15d, [rsp + 4]
+    cmp r15d, [rsp + 4 + 16]
     jae .Lumr_hint
 
     mov edi, r15d
-    lea rsi, [rsp + 8]
-    lea rdx, [rsp + 16]
+    lea rsi, [rsp + 8 + 16]
+    lea rdx, [rsp + 16 + 16]
     call config_menu_item
     test eax, eax
     jz .Lumr_hint
@@ -172,7 +194,7 @@ UserMenuDialog_render:
     mov edx, [rbx + Widget.y]
     add edx, 2
     add edx, r14d
-    mov rcx, [rsp + 8]
+    mov rcx, [rsp + 8 + 16]
     mov r8d, [rbx + Widget.w]
     sub r8d, 6
     call ScreenBuffer_draw_text
@@ -181,6 +203,13 @@ UserMenuDialog_render:
     jmp .Lumr_loop
 
 .Lumr_hint:
+.LUserMenuDialog_render__row_ret:
+    lea rsp, [rsp + 8]
+    ret
+
+# UserMenuDialog_render step: draw_text (runs on the caller's frame)
+UserMenuDialog_render__draw_text:
+    lea rsp, [rsp - 8]
     mov rdi, r12
     mov esi, [r13 + Theme.muted]
     mov edx, [r13 + Theme.dialog_bg]
@@ -202,13 +231,8 @@ UserMenuDialog_render:
 .Lumr_hd:
     call ScreenBuffer_draw_text
 
-    add rsp, 24
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop rbp
-    pop rbx
+.LUserMenuDialog_render__draw_text_ret:
+    lea rsp, [rsp + 8]
     ret
 
 UserMenuDialog_on_key:

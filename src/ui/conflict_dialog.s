@@ -12,12 +12,12 @@ str_btn_lp:         .asciz " "
 str_btn_rp:         .asciz " "
 
 .align 8
-.global ConflictDialog_vtbl
 ConflictDialog_vtbl:
     DIALOG_VTBL_SLOTS str_ConflictDialog, Dialog_vtbl, ConflictDialog._size, Dialog_dtor, ConflictDialog_layout, ConflictDialog_render, ConflictDialog_on_key, ConflictDialog_on_mouse, Widget_on_focus, Widget_hit_test, Dialog_on_confirm, Dialog_on_cancel
 
 .section .text
 .global ConflictDialog_new
+.global ConflictDialog_vtbl
 
 # ConflictDialog *ConflictDialog_new(App *app, const char *name, uint64_t src_sz, uint64_t dst_sz)
 ConflictDialog_new:
@@ -97,24 +97,50 @@ cfl_draw_buttons:
     push r14
     push r15
     sub rsp, 32
+    call cfl_draw_buttons__part1
+.Lcdb_loop:
+    cmp r14d, 3
+    jge .Lcdb_done
+    call cfl_draw_buttons__draw_text
+    add r15d, [rsp + 24]
+    add r15d, 2
+    inc r14d
+    jmp .Lcdb_loop
+
+.Lcdb_done:
+    add rsp, 32
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbx
+    ret
+
+# cfl_draw_buttons step (runs on the caller's frame)
+cfl_draw_buttons__part1:
+    lea rsp, [rsp - 8]
     mov rbx, rdi
     mov r12, rsi
     mov r13, rdx
     mov rax, [rcx + LangStrings.cfl_btn_overwrite]
-    mov [rsp], rax
-    mov rax, [rcx + LangStrings.cfl_btn_skip]
-    mov [rsp + 8], rax
-    mov rax, [rcx + LangStrings.cfl_btn_rename]
     mov [rsp + 16], rax
+    mov rax, [rcx + LangStrings.cfl_btn_skip]
+    mov [rsp + 8 + 16], rax
+    mov rax, [rcx + LangStrings.cfl_btn_rename]
+    mov [rsp + 16 + 16], rax
 
     xor r14d, r14d
     mov r15d, [rbx + Widget.x]
     add r15d, 3
     mov dword ptr [rbx + Dialog.btn_count], 3
 
-.Lcdb_loop:
-    cmp r14d, 3
-    jge .Lcdb_done
+.Lcfl_draw_buttons__part1_ret:
+    lea rsp, [rsp + 8]
+    ret
+
+# cfl_draw_buttons step: draw_text (runs on the caller's frame)
+cfl_draw_buttons__draw_text:
+    lea rsp, [rsp - 8]
     cmp r14d, [rbx + Dialog.focus_btn]
     jne .Lcdb_norm
     mov esi, [r13 + Theme.accent_fg]
@@ -129,10 +155,10 @@ cfl_draw_buttons:
     mov rdi, r12
     call ScreenBuffer_set_pen
 
-    mov rdi, [rsp + r14*8]
+    mov rdi, [rsp + r14*8 + 16]
     call utf8_display_width
     lea ecx, [eax + 2]
-    mov [rsp + 24], ecx
+    mov [rsp + 24 + 16], ecx
 
     imul rdx, r14, HitZone._size
     lea r8, [rbx + Dialog.btns + rdx]
@@ -156,11 +182,11 @@ cfl_draw_buttons:
     lea esi, [r15d + 1]
     mov edx, [rbx + Widget.y]
     add edx, 6
-    mov rcx, [rsp + r14*8]
+    mov rcx, [rsp + r14*8 + 16]
     mov r8d, 24
     call ScreenBuffer_draw_text
 
-    mov eax, [rsp + 24]
+    mov eax, [rsp + 24 + 16]
     mov rdi, r12
     lea esi, [r15d + eax - 1]
     mov edx, [rbx + Widget.y]
@@ -169,18 +195,8 @@ cfl_draw_buttons:
     mov r8d, 2
     call ScreenBuffer_draw_text
 
-    add r15d, [rsp + 24]
-    add r15d, 2
-    inc r14d
-    jmp .Lcdb_loop
-
-.Lcdb_done:
-    add rsp, 32
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop rbx
+.Lcfl_draw_buttons__draw_text_ret:
+    lea rsp, [rsp + 8]
     ret
 
 ConflictDialog_render:
@@ -188,6 +204,17 @@ ConflictDialog_render:
     push r12
     push r13
     push r14
+    call ConflictDialog_render__draw_text
+    call ConflictDialog_render__cfl_draw_buttons
+    pop r14
+    pop r13
+    pop r12
+    pop rbx
+    ret
+
+# ConflictDialog_render step: draw_text (runs on the caller's frame)
+ConflictDialog_render__draw_text:
+    lea rsp, [rsp - 8]
     mov rbx, rdi
     mov r12, rsi
     mov rax, [rbx + Dialog.app]
@@ -245,6 +272,13 @@ ConflictDialog_render:
     mov r8d, 24
     call ScreenBuffer_draw_text
 
+.LConflictDialog_render__draw_text_ret:
+    lea rsp, [rsp + 8]
+    ret
+
+# ConflictDialog_render step: cfl_draw_buttons (runs on the caller's frame)
+ConflictDialog_render__cfl_draw_buttons:
+    lea rsp, [rsp - 8]
     mov rdi, rbx
     mov rsi, r12
     mov rdx, r13
@@ -266,138 +300,6 @@ ConflictDialog_render:
     sub r8d, 6
     call ScreenBuffer_draw_text
 
-    pop r14
-    pop r13
-    pop r12
-    pop rbx
-    ret
-
-ConflictDialog_on_key:
-    push rbx
-    mov rbx, rdi
-    mov eax, [rsi + Event.key]
-
-    cmp eax, KEY_ESC;   je .Lcd_cancel
-    cmp eax, 'a';       je .Lcd_forall
-    cmp eax, 'A';       je .Lcd_forall
-    cmp eax, 'o';       je .Lcd_over
-    cmp eax, 'O';       je .Lcd_over
-    cmp eax, 's';       je .Lcd_skip
-    cmp eax, 'S';       je .Lcd_skip
-    cmp eax, 'r';       je .Lcd_ren
-    cmp eax, 'R';       je .Lcd_ren
-    cmp eax, KEY_LEFT;  je .Lcd_left
-    cmp eax, KEY_RIGHT; je .Lcd_right
-    cmp eax, KEY_TAB;   je .Lcd_right
-    cmp eax, KEY_ENTER; je .Lcd_enter
-    xor eax, eax
-    pop rbx
-    ret
-
-.Lcd_forall:
-    xor dword ptr [rbx + ConflictDialog.for_all], 1
-    mov rax, [rbx + Dialog.app]
-    mov dword ptr [rax + App.need_redraw], 1
-    mov eax, 1
-    pop rbx
-    ret
-
-.Lcd_left:
-    mov eax, [rbx + Dialog.focus_btn]
-    dec eax
-    jns .Lcd_set_f
-    mov eax, 2
-    jmp .Lcd_set_f
-
-.Lcd_right:
-    mov eax, [rbx + Dialog.focus_btn]
-    inc eax
-    cmp eax, 3
-    jl .Lcd_set_f
-    xor eax, eax
-.Lcd_set_f:
-    mov [rbx + Dialog.focus_btn], eax
-    mov rax, [rbx + Dialog.app]
-    mov dword ptr [rax + App.need_redraw], 1
-    mov eax, 1
-    pop rbx
-    ret
-
-.Lcd_enter:
-    mov eax, [rbx + Dialog.focus_btn]
-    inc eax
-    mov [rbx + ConflictDialog.action], eax
-    jmp .Lcd_ok
-
-.Lcd_over:
-    mov dword ptr [rbx + ConflictDialog.action], CONFLICT_ACT_OVERWRITE
-    jmp .Lcd_ok
-.Lcd_skip:
-    mov dword ptr [rbx + ConflictDialog.action], CONFLICT_ACT_SKIP
-    jmp .Lcd_ok
-.Lcd_ren:
-    mov dword ptr [rbx + ConflictDialog.action], CONFLICT_ACT_RENAME
-.Lcd_ok:
-    mov rdi, rbx
-    call Dialog_on_confirm
-    mov eax, 1
-    pop rbx
-    ret
-
-.Lcd_cancel:
-    mov rdi, rbx
-    call Dialog_on_cancel
-    mov eax, 1
-    pop rbx
-    ret
-
-ConflictDialog_on_mouse:
-    push rbx
-    mov rbx, rdi
-    cmp dword ptr [rsi + Event.mouse_kind], MACT_PRESS
-    jne .Lcdm_none
-    mov r8d, [rsi + Event.mouse_x]
-    mov r9d, [rsi + Event.mouse_y]
-
-    mov eax, [rbx + Widget.y]
-    add eax, 4
-    cmp r9d, eax
-    jne .Lcdm_btns
-    xor dword ptr [rbx + ConflictDialog.for_all], 1
-    mov rax, [rbx + Dialog.app]
-    mov dword ptr [rax + App.need_redraw], 1
-    mov eax, 1
-    pop rbx
-    ret
-
-.Lcdm_btns:
-    xor ecx, ecx
-.Lcdm_bloop:
-    cmp ecx, 3
-    jge .Lcdm_none
-    imul rdx, rcx, HitZone._size
-    lea r10, [rbx + Dialog.btns + rdx]
-    movsx eax, word ptr [r10 + HitZone.y]
-    cmp r9d, eax
-    jne .Lcdm_bnext
-    movsx eax, word ptr [r10 + HitZone.x1]
-    cmp r8d, eax
-    jl .Lcdm_bnext
-    movsx eax, word ptr [r10 + HitZone.x2]
-    cmp r8d, eax
-    jge .Lcdm_bnext
-    movsx eax, word ptr [r10 + HitZone.id]
-    inc eax
-    mov [rbx + ConflictDialog.action], eax
-    mov rdi, rbx
-    call Dialog_on_confirm
-    mov eax, 1
-    pop rbx
-    ret
-.Lcdm_bnext:
-    inc ecx
-    jmp .Lcdm_bloop
-.Lcdm_none:
-    xor eax, eax
-    pop rbx
+.LConflictDialog_render__cfl_draw_buttons_ret:
+    lea rsp, [rsp + 8]
     ret

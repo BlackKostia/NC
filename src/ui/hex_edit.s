@@ -90,12 +90,7 @@ hex_edit_on_key:
     cmp dword ptr [rdi + ViewerDialog.hex_mode], 0
     je .Lheok_no
     push rbx; push r12; push r13
-    mov rbx, rdi
-    mov eax, [rsi + Event.key]
-    mov edx, [rsi + Event.mods]
-    mov r12, [rbx + ViewerDialog.hex_edit_ctx]
-
-    # 'e'/'E' toggles hex edit mode
+    call hex_edit_on_key__toggles_hex_edit_mode
     test edx, MOD_CTRL | MOD_ALT
     jnz .Lheok_chk_active
     cmp eax, 'e'; je .Lheok_tog
@@ -117,14 +112,7 @@ hex_edit_on_key:
     test edx, MOD_CTRL; jz .Lheok_chk_nav
     cmp eax, 'z'; jne .Lheok_chk_save
     mov ecx, [r12 + 12]; test ecx, ecx; jz .Lheok_redraw
-    dec ecx; mov [r12 + 12], ecx
-    mov eax, ecx; and eax, 63; imul rax, 16
-    mov r8, [r12 + 24 + rax]      # offset
-    mov cl, [r12 + 24 + rax + 8]  # old byte
-    mov r9, [rbx + ViewerDialog.data]
-    mov [r9 + r8], cl
-    mov [r12 + 16], r8
-    mov dword ptr [r12 + 4], 0
+    call hex_edit_on_key__offset
     jmp .Lheok_redraw
 
 .Lheok_chk_save:
@@ -152,9 +140,50 @@ hex_edit_on_key:
 .Lheok_nib:
     call hex_parse_nibble
     test eax, eax; js .Lheok_ret0
+    call hex_edit_on_key__high_nibble_push_undo
+.Lheok_redraw:
+    mov rax, [rbx + Dialog.app]
+    mov dword ptr [rax + App.need_redraw], 1
+    mov eax, 1; pop r13; pop r12; pop rbx; ret
+.Lheok_ret0:
+    xor eax, eax; pop r13; pop r12; pop rbx; ret
+.Lheok_no:
+    xor eax, eax; ret
+
+# hex_edit_on_key step: toggles hex edit mode (runs on the caller's frame)
+hex_edit_on_key__toggles_hex_edit_mode:
+    lea rsp, [rsp - 8]
+    mov rbx, rdi
+    mov eax, [rsi + Event.key]
+    mov edx, [rsi + Event.mods]
+    mov r12, [rbx + ViewerDialog.hex_edit_ctx]
+
+    # 'e'/'E' toggles hex edit mode
+.Lhex_edit_on_key__toggles_hex_edit_mode_ret:
+    lea rsp, [rsp + 8]
+    ret
+
+# hex_edit_on_key step: offset (runs on the caller's frame)
+hex_edit_on_key__offset:
+    lea rsp, [rsp - 8]
+    dec ecx; mov [r12 + 12], ecx
+    mov eax, ecx; and eax, 63; imul rax, 16
+    mov r8, [r12 + 24 + rax]      # offset
+    mov cl, [r12 + 24 + rax + 8]  # old byte
+    mov r9, [rbx + ViewerDialog.data]
+    mov [r9 + r8], cl
+    mov [r12 + 16], r8
+    mov dword ptr [r12 + 4], 0
+.Lhex_edit_on_key__offset_ret:
+    lea rsp, [rsp + 8]
+    ret
+
+# hex_edit_on_key step: High nibble push undo entry first (runs on the caller's frame)
+hex_edit_on_key__high_nibble_push_undo:
+    lea rsp, [rsp - 8]
     mov r13d, eax             # nibble 0..15
     mov r8, [r12 + 16]        # cursor
-    cmp r8, [rbx + ViewerDialog.data_len]; jae .Lheok_redraw
+    cmp r8, [rbx + ViewerDialog.data_len]; jae .Lhex_edit_on_key__high_nibble_push_undo_ret
     mov r9, [rbx + ViewerDialog.data]
     movzx edx, byte ptr [r9 + r8]
     cmp dword ptr [r12 + 4], 0
@@ -169,20 +198,15 @@ hex_edit_on_key:
     mov [r9 + r8], dl
     mov dword ptr [r12 + 4], 1
     mov dword ptr [r12 + 8], 1
-    jmp .Lheok_redraw
+    jmp .Lhex_edit_on_key__high_nibble_push_undo_ret
 .Lheok_low:
     and edx, 0xf0; or edx, r13d
     mov [r9 + r8], dl
     mov dword ptr [r12 + 4], 0
     mov dword ptr [r12 + 8], 1
     inc r8
-    cmp r8, [rbx + ViewerDialog.data_len]; jae .Lheok_redraw
+    cmp r8, [rbx + ViewerDialog.data_len]; jae .Lhex_edit_on_key__high_nibble_push_undo_ret
     mov [r12 + 16], r8
-.Lheok_redraw:
-    mov rax, [rbx + Dialog.app]
-    mov dword ptr [rax + App.need_redraw], 1
-    mov eax, 1; pop r13; pop r12; pop rbx; ret
-.Lheok_ret0:
-    xor eax, eax; pop r13; pop r12; pop rbx; ret
-.Lheok_no:
-    xor eax, eax; ret
+.Lhex_edit_on_key__high_nibble_push_undo_ret:
+    lea rsp, [rsp + 8]
+    ret

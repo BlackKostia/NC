@@ -68,8 +68,21 @@ fp_draw_du_pane:
     test dword ptr [r15 + FileEntry.flags], FE_IS_PARENT; jnz .Lfddp_next
 
     # Set pen (cursor vs normal)
+    call fp_draw_du_pane__set_pen
+    # Draw size at col = w - 26
+    call fp_draw_du_pane__draw_size_col
+.Lfddp_next:
+    inc dword ptr [rsp + 4]; jmp .Lfddp_row
+.Lfddp_out:
+    add rsp, 64; pop r15; pop r14; pop r13; pop r12; pop rbx
+.Lfddp_ret:
+    ret
+
+# fp_draw_du_pane step: Set pen (runs on the caller's frame)
+fp_draw_du_pane__set_pen:
+    lea rsp, [rsp - 8]
     mov edx, [r13 + Theme.surface]
-    mov eax, [rsp + 8]
+    mov eax, [rsp + 8 + 16]
     cmp eax, [rbx + FilePane.cursor]
     jne .Lfddp_pen
     mov edx, [r13 + Theme.cursor_inactive_bg]
@@ -77,20 +90,26 @@ fp_draw_du_pane:
     jz .Lfddp_pen
     mov edx, [r13 + Theme.cursor_active_bg]
 .Lfddp_pen:
-    mov [rsp + 12], edx       # bg
+    mov [rsp + 12 + 16], edx  # bg
     mov rdi, r12; mov esi, [r13 + Theme.text]; xor ecx, ecx
     call ScreenBuffer_set_pen
     mov esi, [rbx + Widget.x]; add esi, [rbx + Widget.w]; sub esi, 27
-    mov edx, [rbx + Widget.y]; add edx, 3; add edx, [rsp + 4]
+    mov edx, [rbx + Widget.y]; add edx, 3; add edx, [rsp + 4 + 16]
     mov rdi, r12; mov ecx, 25; mov r8d, 1; mov r9d, ' '
     call ScreenBuffer_fill_rect
 
-    # Draw size at col = w - 26
-    mov rdi, [r15 + FileEntry.size]; lea rsi, [rsp + 16]
+.Lfp_draw_du_pane__set_pen_ret:
+    lea rsp, [rsp + 8]
+    ret
+
+# fp_draw_du_pane step: Draw size at col (runs on the caller's frame)
+fp_draw_du_pane__draw_size_col:
+    lea rsp, [rsp - 8]
+    mov rdi, [r15 + FileEntry.size]; lea rsi, [rsp + 16 + 16]
     call format_size
     mov esi, [rbx + Widget.x]; add esi, [rbx + Widget.w]; sub esi, 26
-    mov edx, [rbx + Widget.y]; add edx, 3; add edx, [rsp + 4]
-    mov rdi, r12; lea rcx, [rsp + 16]; mov r8d, 9
+    mov edx, [rbx + Widget.y]; add edx, 3; add edx, [rsp + 4 + 16]
+    mov rdi, r12; lea rcx, [rsp + 16 + 16]; mov r8d, 9
     call ScreenBuffer_draw_text
 
     # Compute permille / bar (8 cells) + pct
@@ -103,38 +122,35 @@ fp_draw_du_pane:
 .Lfddp_pct0:
     xor eax, eax
 .Lfddp_pct_ok:
-    mov [rsp + 56], eax       # pct (0..100)
+    mov [rsp + 56 + 16], eax  # pct (0..100)
     imul eax, 8; xor edx, edx; mov ecx, 100; div ecx
-    mov [rsp + 60], eax       # filled cells (0..8)
+    mov [rsp + 60 + 16], eax  # filled cells (0..8)
 
-    mov rdi, r12; mov esi, [r13 + Theme.accent]; mov edx, [rsp + 12]; xor ecx, ecx
+    mov rdi, r12; mov esi, [r13 + Theme.accent]; mov edx, [rsp + 12 + 16]; xor ecx, ecx
     call ScreenBuffer_set_pen
     xor r8d, r8d              # cell i
 .Lfddp_bar:
     cmp r8d, 8; jge .Lfddp_pct_txt
     mov ecx, 0x2588           # '█'
-    cmp r8d, [rsp + 60]; jl .Lfddp_put_b
+    cmp r8d, [rsp + 60 + 16]; jl .Lfddp_put_b
     mov ecx, 0x2591           # '░'
 .Lfddp_put_b:
     push r8
     mov esi, [rbx + Widget.x]; add esi, [rbx + Widget.w]; sub esi, 16; add esi, r8d
-    mov edx, [rbx + Widget.y]; add edx, 3; add edx, [rsp + 12]
+    mov edx, [rbx + Widget.y]; add edx, 3; add edx, [rsp + 12 + 16]
     mov rdi, r12; call ScreenBuffer_set_cell
     pop r8; inc r8d; jmp .Lfddp_bar
 
 .Lfddp_pct_txt:
-    mov rdi, r12; mov esi, [r13 + Theme.muted]; mov edx, [rsp + 12]; xor ecx, ecx
+    mov rdi, r12; mov esi, [r13 + Theme.muted]; mov edx, [rsp + 12 + 16]; xor ecx, ecx
     call ScreenBuffer_set_pen
-    mov edi, [rsp + 56]; lea rsi, [rsp + 16]; call u64_to_dec
-    mov byte ptr [rsp + 16 + rax], '%'; mov byte ptr [rsp + 17 + rax], ' '; mov byte ptr [rsp + 18 + rax], 0
+    mov edi, [rsp + 56 + 16]; lea rsi, [rsp + 16 + 16]; call u64_to_dec
+    mov byte ptr [rsp + 16 + rax + 16], '%'; mov byte ptr [rsp + 17 + rax + 16], ' '; mov byte ptr [rsp + 18 + rax + 16], 0
     mov esi, [rbx + Widget.x]; add esi, [rbx + Widget.w]; sub esi, 7
-    mov edx, [rbx + Widget.y]; add edx, 3; add edx, [rsp + 4]
-    mov rdi, r12; lea rcx, [rsp + 16]; mov r8d, 5
+    mov edx, [rbx + Widget.y]; add edx, 3; add edx, [rsp + 4 + 16]
+    mov rdi, r12; lea rcx, [rsp + 16 + 16]; mov r8d, 5
     call ScreenBuffer_draw_text
 
-.Lfddp_next:
-    inc dword ptr [rsp + 4]; jmp .Lfddp_row
-.Lfddp_out:
-    add rsp, 64; pop r15; pop r14; pop r13; pop r12; pop rbx
-.Lfddp_ret:
+.Lfp_draw_du_pane__draw_size_col_ret:
+    lea rsp, [rsp + 8]
     ret

@@ -1,14 +1,8 @@
 # src/app/app_ext.s - Extended App dialog close & keybind routing
-.intel_syntax noprefix
 
+.intel_syntax noprefix
 .include "pal.inc"
 .include "classes.inc"
-
-.section .text
-.global app_jump_virtual_entry
-.global App_close_dialog_ext
-.global app_handle_ext_key
-
 .extern FilePane_nav_to
 .extern FilePane_ensure_visible
 .extern FilePane_hist_back
@@ -39,6 +33,10 @@
 .extern i18n_get
 .extern path_basename
 .extern str_copy
+
+.section .text
+.global app_jump_virtual_entry
+.global App_close_dialog_ext
 
 # void app_jump_virtual_entry(App *app, FilePane *pane, char *full_path)
 app_jump_virtual_entry:
@@ -125,12 +123,7 @@ App_close_dialog_ext:
     push r13
     push r14
     sub rsp, 24
-    mov rbx, rdi
-    mov r13, rsi
-    mov r14, rdx
-    mov r12d, r8d
-    mov eax, [r13 + Dialog.op_tag]
-
+    call App_close_dialog_ext__part1
     cmp eax, OP_USERMENU;  je .Lacde_um
     cmp eax, OP_BOOKMARKS; je .Lacde_bm
     cmp eax, OP_FRECENCY;  je .Lacde_bm
@@ -196,6 +189,33 @@ App_close_dialog_ext:
     call App_apply_link
     jmp .Lacde_ok
 .Lacde_srch:
+    call App_close_dialog_ext__dir_search_run
+.Lacde_ok:
+    xor eax, eax
+.Lacde_ret:
+    add rsp, 24
+    pop r14
+    pop r13
+    pop r12
+    pop rbx
+    ret
+
+# App_close_dialog_ext step (runs on the caller's frame)
+App_close_dialog_ext__part1:
+    lea rsp, [rsp - 8]
+    mov rbx, rdi
+    mov r13, rsi
+    mov r14, rdx
+    mov r12d, r8d
+    mov eax, [r13 + Dialog.op_tag]
+
+.LApp_close_dialog_ext__part1_ret:
+    lea rsp, [rsp + 8]
+    ret
+
+# App_close_dialog_ext step: dir_search_run (runs on the caller's frame)
+App_close_dialog_ext__dir_search_run:
+    lea rsp, [rsp - 8]
     mov rdi, rcx
     lea rsi, [rcx + DirModel.path]
     lea rdx, [r13 + SearchDialog.name_buf]
@@ -222,193 +242,12 @@ App_close_dialog_ext:
     call App_sync_preview
     pop rax
     test eax, eax
-    jnz .Lacde_ok
+    jnz .LApp_close_dialog_ext__dir_search_run_ret
     call i18n_get
     mov rsi, [rax + LangStrings.msg_search_none]
     mov rdi, rbx
     mov edx, MSG_INFO
     call App_set_status
-.Lacde_ok:
-    xor eax, eax
-.Lacde_ret:
-    add rsp, 24
-    pop r14
-    pop r13
-    pop r12
-    pop rbx
+.LApp_close_dialog_ext__dir_search_run_ret:
+    lea rsp, [rsp + 8]
     ret
-
-# int app_handle_ext_key(App *app, int key, int mods) -> 1 if handled, 0 otherwise
-app_handle_ext_key:
-    test edx, MOD_CTRL
-    jz .Lahek_alt
-    cmp esi, 'f'; je .Lahek_srch
-    cmp esi, 'z'; je .Lahek_undo
-    cmp esi, 'k'; je .Lahek_pal
-    cmp esi, '`'; je .Lahek_term
-    xor eax, eax
-    ret
-.Lahek_alt:
-    test edx, MOD_ALT
-    jz .Lahek_plain
-    cmp esi, 'p'; je .Lahek_fuz
-    cmp esi, 'P'; je .Lahek_fuz
-    cmp esi, 'a'; je .Lahek_chm
-    cmp esi, 'A'; je .Lahek_chm
-    cmp esi, 'i'; je .Lahek_inf
-    cmp esi, 'I'; je .Lahek_inf
-    cmp esi, 's'; je .Lahek_sym
-    cmp esi, 'S'; je .Lahek_sym
-    cmp esi, 'h'; je .Lahek_hrd
-    cmp esi, 'H'; je .Lahek_hrd
-    cmp esi, 'd'; je .Lahek_du
-    cmp esi, 'D'; je .Lahek_du
-    cmp esi, 'b'; je .Lahek_br
-    cmp esi, 'B'; je .Lahek_br
-    cmp esi, '='; je .Lahek_diff
-    cmp esi, KEY_LEFT;  je .Lahek_hb
-    cmp esi, KEY_RIGHT; je .Lahek_hf
-    jmp .Lahek_no
-.Lahek_plain:
-    cmp esi, KEY_ENTER
-    jne .Lahek_no
-    jmp arc_handle_enter
-.Lahek_no:
-    xor eax, eax
-    ret
-.Lahek_hb:
-    push rbx; mov rbx, rdi
-    mov rdi, [rbx + App.active_pane]
-    call FilePane_hist_back
-    jmp .Lahek_hchk
-.Lahek_hf:
-    push rbx; mov rbx, rdi
-    mov rdi, [rbx + App.active_pane]
-    call FilePane_hist_fwd
-.Lahek_hchk:
-    test eax, eax
-    jnz .Lahek_hok
-    call i18n_get
-    mov rsi, [rax + LangStrings.msg_hist_empty]
-    mov rdi, rbx; mov edx, MSG_INFO
-    call App_set_status
-    mov eax, 1; pop rbx; ret
-.Lahek_hok:
-    mov rdi, rbx; call App_sync_preview
-    mov dword ptr [rbx + App.need_redraw], 1
-    mov eax, 1; pop rbx; ret
-.Lahek_srch:
-    push rbx
-    mov rbx, rdi
-    call SearchDialog_new
-    test rax, rax
-    jz .Lahek_sdone
-    mov [rbx + App.active_dialog], rax
-    mov dword ptr [rbx + App.need_redraw], 1
-.Lahek_sdone:
-    mov eax, 1
-    pop rbx
-    ret
-.Lahek_undo:
-    call App_cmd_undo
-    mov eax, 1
-    ret
-.Lahek_chm:
-    call App_cmd_chmod
-    mov eax, 1
-    ret
-.Lahek_inf:
-    call App_cmd_info
-    mov eax, 1
-    ret
-.Lahek_sym:
-    xor esi, esi
-    call App_cmd_link
-    mov eax, 1
-    ret
-.Lahek_hrd:
-    mov esi, 1
-    call App_cmd_link
-    mov eax, 1
-    ret
-.Lahek_du:
-    call du_toggle
-    mov eax, 1
-    ret
-.Lahek_diff:
-    jmp app_cmd_diff
-.Lahek_term:
-    push rbx
-    mov rbx, rdi
-    call term_toggle
-    mov rdi, rbx
-    call App_layout
-    mov eax, 1
-    pop rbx
-    ret
-.Lahek_br:
-    jmp app_open_bulkrename
-.Lahek_pal:
-    xor esi, esi
-    jmp app_open_fuzzy
-.Lahek_fuz:
-    mov esi, 1
-app_open_fuzzy:
-    push rbx
-    mov rbx, rdi
-    mov rax, [rbx + App.active_pane]
-    mov rax, [rax + FilePane.model]
-    lea rdx, [rax + DirModel.path]
-    call FuzzyDialog_new
-    test rax, rax
-    jz .Lahek_fdone
-    mov [rbx + App.active_dialog], rax
-    mov dword ptr [rbx + App.need_redraw], 1
-.Lahek_fdone:
-    mov eax, 1
-    pop rbx
-    ret
-
-app_open_bulkrename:
-    push rbx
-    mov rbx, rdi
-    mov rsi, [rbx + App.active_pane]
-    call BulkRenameDialog_new
-    test rax, rax
-    jz .Laob_done
-    mov [rbx + App.active_dialog], rax
-    mov dword ptr [rbx + App.need_redraw], 1
-.Laob_done:
-    mov eax, 1
-    pop rbx
-    ret
-
-app_cmd_diff:
-    push rbx; push r12
-    sub rsp, 64
-    mov rbx, rdi
-    mov rax, [rbx + App.active_pane]
-    mov rdx, [rbx + App.right_pane]
-    cmp rax, rdx
-    jne .Lacd_have_other
-    mov rdx, [rbx + App.left_pane]
-.Lacd_have_other:
-    mov rdi, [rax + FilePane.model]
-    mov rsi, [rdx + FilePane.model]
-    call dir_diff_mark
-    mov r12d, eax
-    call i18n_get
-    mov rsi, [rax + LangStrings.diff_pfx]
-    mov rdi, rsp
-    call str_copy
-    mov edi, r12d
-    lea rsi, [rsp + 32]
-    call u64_to_dec
-    mov rdi, rsp
-    lea rsi, [rsp + 32]
-    call str_cat
-    mov rdi, rbx; mov rsi, rsp; mov edx, MSG_INFO
-    call App_set_status
-    mov dword ptr [rbx + App.need_redraw], 1
-    mov eax, 1
-    add rsp, 64; pop r12; pop rbx; ret

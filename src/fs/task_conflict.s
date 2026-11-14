@@ -33,6 +33,19 @@ task_make_unique_name:
     push r14
     push r15
     sub rsp, 48               # FileStat
+    call task_make_unique_name__dfd
+    call task_make_unique_name__os_statat
+    add rsp, 48
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbx
+    ret
+
+# task_make_unique_name step: dfd (runs on the caller's frame)
+task_make_unique_name__dfd:
+    lea rsp, [rsp - 8]
     mov r12d, edi             # dfd
     mov r13, rsi              # orig
     mov r14, rdx              # out_buf
@@ -66,6 +79,13 @@ task_make_unique_name:
 .Ltmun_no_dot:
     mov r15, rbx
 .Ltmun_try:
+.Ltask_make_unique_name__dfd_ret:
+    lea rsp, [rsp + 8]
+    ret
+
+# task_make_unique_name step: os_statat (runs on the caller's frame)
+task_make_unique_name__os_statat:
+    lea rsp, [rsp - 8]
     mov ebx, 1
 .Ltmun_loop:
     cmp ebx, 100
@@ -110,7 +130,7 @@ task_make_unique_name:
 
     mov edi, r12d
     mov rsi, r14
-    mov rdx, rsp
+    lea rdx, [rsp + 16]
     mov ecx, 1
     call os_statat
     cmp rax, -ENOENT
@@ -124,12 +144,8 @@ task_make_unique_name:
     mov edx, PATH_MAX
     call str_copy
 .Ltmun_done:
-    add rsp, 48
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop rbx
+.Ltask_make_unique_name__os_statat_ret:
+    lea rsp, [rsp + 8]
     ret
 
 # int fs_task_resolve_conflict(int dst_dfd, const char *dst_rel, uint64_t src_sz, uint64_t dst_sz, char *out_name)

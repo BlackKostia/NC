@@ -105,6 +105,28 @@ FunctionBar_render:
     push r13
     push r14
     push r15
+    call FunctionBar_render__fill_background
+    xor r14d, r14d            # idx = 0..9
+.Lfbr_loop:
+    cmp r14d, 10
+    jge .Lfbr_done
+    call FunctionBar_render__btn_w
+    call FunctionBar_render__draw_key_badge_digit
+.Lfbr_next:
+    inc r14d
+    jmp .Lfbr_loop
+
+.Lfbr_done:
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbx
+    ret
+
+# FunctionBar_render step: Fill background (runs on the caller's frame)
+FunctionBar_render__fill_background:
+    lea rsp, [rsp - 8]
     mov rbx, rdi              # this
     mov r12, rsi              # scr
     mov r13, rdx              # theme
@@ -124,17 +146,27 @@ FunctionBar_render:
     mov r9d, ' '
     call ScreenBuffer_fill_rect
 
-    xor r14d, r14d            # idx = 0..9
-.Lfbr_loop:
-    cmp r14d, 10
-    jge .Lfbr_done
+.LFunctionBar_render__fill_background_ret:
+    lea rsp, [rsp + 8]
+    ret
+
+# FunctionBar_render step: btn_w (runs on the caller's frame)
+FunctionBar_render__btn_w:
+    lea rsp, [rsp - 8]
     imul rax, r14, HitZone._size
     lea r15, [rbx + FunctionBar.zones + rax]
     movsx esi, word ptr [r15 + HitZone.x1]
     movsx ecx, word ptr [r15 + HitZone.x2]
     sub ecx, esi              # btn_w
     cmp ecx, 3
-    jl .Lfbr_next
+.LFunctionBar_render__btn_w_ret:
+    lea rsp, [rsp + 8]
+    ret
+
+# FunctionBar_render step: Draw key badge digit (runs on the caller's frame)
+FunctionBar_render__draw_key_badge_digit:
+    lea rsp, [rsp - 8]
+    jl .LFunctionBar_render__draw_key_badge_digit_ret
 
     push rsi
     push rcx
@@ -194,16 +226,8 @@ FunctionBar_render:
 .Lfbr_pop_next:
     pop rcx
     pop rsi
-.Lfbr_next:
-    inc r14d
-    jmp .Lfbr_loop
-
-.Lfbr_done:
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop rbx
+.LFunctionBar_render__draw_key_badge_digit_ret:
+    lea rsp, [rsp + 8]
     ret
 
 # int FunctionBar_on_mouse(FunctionBar *this, Event *evt)

@@ -177,6 +177,18 @@ App_events_tick:
     push r12
     push r13
     sub rsp, 16                       # [0]=seq, [8]=len
+    call App_events_tick__debounced_preview
+    # Keep watches on the directories currently shown, collect change events
+    call App_events_tick__keep_watches_directories_current
+    add rsp, 16
+    pop r13
+    pop r12
+    pop rbx
+    ret
+
+# App_events_tick step: Debounced preview (runs on the caller's frame)
+App_events_tick__debounced_preview:
+    lea rsp, [rsp - 8]
     mov rbx, rdi
     call sys_clock_ms
     mov r12, rax                      # now
@@ -200,24 +212,30 @@ App_events_tick:
     mov r13, [rbx + App.preview_pane]
     mov rdi, [r13 + PreviewPane.buf]
     mov esi, PREVIEW_BUF_SIZE
-    lea rdx, [rsp]
-    lea rcx, [rsp + 8]
+    lea rdx, [rsp + 16]
+    lea rcx, [rsp + 8 + 16]
     call fs_preview_receive
     test eax, eax
     jz .Leti_watch
-    mov eax, [rsp]
+    mov eax, [rsp + 16]
     cmp eax, [rbx + App.preview_seq]
     jne .Leti_recv
     cmp dword ptr [r13 + PreviewPane.pending], 0
     je .Leti_recv
     mov rdi, r13
-    mov rsi, [rsp + 8]
+    mov rsi, [rsp + 8 + 16]
     call PreviewPane_accept
     mov dword ptr [rbx + App.need_redraw], 1
     jmp .Leti_recv
 
 .Leti_watch:
-    # Keep watches on the directories currently shown, collect change events
+.LApp_events_tick__debounced_preview_ret:
+    lea rsp, [rsp + 8]
+    ret
+
+# App_events_tick step: Keep watches on the directories currently shown collect change events (runs on the caller's frame)
+App_events_tick__keep_watches_directories_current:
+    lea rsp, [rsp - 8]
     mov rax, [rbx + App.left_pane]
     mov rsi, [rax + FilePane.model]
     lea rsi, [rsi + DirModel.path]
@@ -266,8 +284,6 @@ App_events_tick:
     inc r13d
     jmp .Leti_due_loop
 .Leti_ret:
-    add rsp, 16
-    pop r13
-    pop r12
-    pop rbx
+.LApp_events_tick__keep_watches_directories_current_ret:
+    lea rsp, [rsp + 8]
     ret

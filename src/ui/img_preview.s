@@ -1,40 +1,9 @@
 # src/ui/img_preview.s - Terminal Image Preview (Kitty Graphics Protocol + Half-Block Fallback)
-.intel_syntax noprefix
 
+.intel_syntax noprefix
 .include "pal.inc"
 .include "classes.inc"
-
 .equ IMG_MAX_RAW, 262144      # 256 KiB max PNG payload
-
-.section .bss
-.align 4
-g_kitty_active:  .space 4
-g_kitty_pending: .space 4
-g_kitty_x:       .space 4
-g_kitty_y:       .space 4
-g_kitty_w:       .space 4
-g_kitty_h:       .space 4
-g_kitty_path:    .space PATH_MAX
-
-.section .rodata
-b64_table:      .ascii "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-env_img_mode:   .asciz "DUOP_IMG_MODE"
-val_halfblock:  .asciz "halfblock"
-env_kitty_id:   .asciz "KITTY_WINDOW_ID"
-env_term:       .asciz "TERM"
-val_kitty:      .asciz "kitty"
-seq_kitty_del:  .asciz "\x1b_Ga=d,d=A,q=2\x1b\\"
-seq_kitty_hdr1: .asciz "\x1b["
-seq_kitty_hdr2: .asciz "H\x1b_Ga=T,f=100,i=1,c="
-seq_kitty_hdr3: .asciz ",r="
-seq_kitty_hdr4: .asciz ",q=2;"
-seq_kitty_end:  .asciz "\x1b\\"
-
-.section .text
-.global img_preview_try_render
-.global img_preview_pre_flush
-.global img_preview_post_flush
-
 .extern env_getenv
 .extern str_casecmp
 .extern str_contains_ci
@@ -47,6 +16,21 @@ seq_kitty_end:  .asciz "\x1b\\"
 .extern mem_free
 .extern ScreenBuffer_set_pen
 .extern ScreenBuffer_set_cell
+
+.section .rodata
+
+b64_table:      .ascii "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+env_img_mode:   .asciz "DUOP_IMG_MODE"
+val_halfblock:  .asciz "halfblock"
+env_kitty_id:   .asciz "KITTY_WINDOW_ID"
+env_term:       .asciz "TERM"
+val_kitty:      .asciz "kitty"
+seq_kitty_end:  .asciz "\x1b\\"
+
+.section .text
+.global img_is_kitty_mode
+.global b64_encode
+.global png_draw_halfblock
 
 # int img_is_kitty_mode(PreviewPane *pv)
 img_is_kitty_mode:
@@ -285,24 +269,7 @@ png_draw_halfblock:
     # Gather IDAT chunks
     mov rdi, r14; call mem_alloc; mov [rsp + 24], rax
     test rax, rax; jz .Lpdh_fail
-    xor r15d, r15d            # idat_len
-    mov r8d, 8                # offset
-.Lpdh_chk:
-    lea r9, [r8 + 12]; cmp r9, r14; ja .Lpdh_inf
-    lea rdi, [r13 + r8]; call read_be32; mov ecx, eax
-    lea r9, [r8 + 12]; add r9, rcx; cmp r9, r14; ja .Lpdh_inf
-    cmp dword ptr [r13 + r8 + 4], 0x54414449  # "IDAT"
-    jne .Lpdh_next_chk
-    lea r11, [r13 + r8 + 8]
-    xor edx, edx
-.Lpdh_cp_idat:
-    cmp edx, ecx; jge .Lpdh_next_chk
-    mov al, [r11 + rdx]
-    mov r10, [rsp + 24]; mov [r10 + r15], al
-    inc r15d; inc edx; jmp .Lpdh_cp_idat
-.Lpdh_next_chk:
-    lea r8d, [r8d + ecx + 12]; jmp .Lpdh_chk
-.Lpdh_inf:
+    call png_draw_halfblock__idat_len
     test r15d, r15d; jz .Lpdh_free_idat
     mov eax, [rsp]; imul eax, [rsp + 8]; inc eax; imul eax, [rsp + 4]
     cmp eax, 4194304; ja .Lpdh_free_idat
@@ -311,12 +278,7 @@ png_draw_halfblock:
     mov rdi, [rsp + 24]; mov rsi, r15; mov rdx, rax
     call inflate_zlib
     test rax, rax; js .Lpdh_free_raw
-    mov rdi, [rsp + 16]; mov esi, [rsp]; mov edx, [rsp + 4]; mov ecx, [rsp + 8]
-    call png_unfilter
-    # Render half-blocks in preview pane interior
-    mov eax, [rbx + Widget.w]; sub eax, 2; mov [rsp + 32], eax
-    mov eax, [rbx + Widget.h]; sub eax, 4; mov [rsp + 36], eax
-    xor r14d, r14d            # cy
+    call png_draw_halfblock__render_half_blocks_preview
 .Lpdh_cy:
     cmp r14d, [rsp + 36]; jge .Lpdh_ok
     xor r15d, r15d            # cx
@@ -358,91 +320,40 @@ png_draw_halfblock:
 .Lpdh_ret:
     add rsp, 48; pop r15; pop r14; pop r13; pop r12; pop rbx; ret
 
-# int img_preview_try_render(PreviewPane *pv, ScreenBuffer *sb, Theme *th)
-img_preview_try_render:
-    cmp qword ptr [rdi + PreviewPane.buf_len], 8
-    jb .Liptr_no
-    mov rax, [rdi + PreviewPane.buf]
-    mov rcx, 0x0A1A0A0D474E5089
-    cmp [rax], rcx
-    jne .Liptr_no
-    push rbx; push r12
-    mov rbx, rdi; mov r12, rsi
-    mov rdi, rbx
-    call img_is_kitty_mode
-    test eax, eax
-    jz .Liptr_hb
-    mov eax, [rbx + Widget.x]; inc eax; mov [rip + g_kitty_x], eax
-    mov eax, [rbx + Widget.y]; add eax, 3; mov [rip + g_kitty_y], eax
-    mov eax, [rbx + Widget.w]; sub eax, 2; mov [rip + g_kitty_w], eax
-    mov eax, [rbx + Widget.h]; sub eax, 4; mov [rip + g_kitty_h], eax
-    lea rdi, [rip + g_kitty_path]
-    lea rsi, [rbx + PreviewPane.target_path]
-    mov edx, PATH_MAX
-    call str_copy
-    mov dword ptr [rip + g_kitty_pending], 1
-    mov eax, 1
-    pop r12; pop rbx; ret
-.Liptr_hb:
-    mov rdi, rbx; mov rsi, r12
-    call png_draw_halfblock
-    pop r12; pop rbx; ret
-.Liptr_no:
-    xor eax, eax; ret
-
-# void img_preview_pre_flush(App *app)
-img_preview_pre_flush:
-    cmp dword ptr [rip + g_kitty_active], 0
-    je .Lippf_ret
-    cmp qword ptr [rdi + App.active_dialog], 0
-    jne .Lippf_del
-    cmp dword ptr [rip + g_kitty_pending], 0
-    jne .Lippf_ret
-.Lippf_del:
-    mov edi, 1
-    lea rsi, [rip + seq_kitty_del]
-    mov edx, 16
-    call sys_write_all
-    mov dword ptr [rip + g_kitty_active], 0
-.Lippf_ret:
+# png_draw_halfblock step: idat_len (runs on the caller's frame)
+png_draw_halfblock__idat_len:
+    lea rsp, [rsp - 8]
+    xor r15d, r15d            # idat_len
+    mov r8d, 8                # offset
+.Lpdh_chk:
+    lea r9, [r8 + 12]; cmp r9, r14; ja .Lpdh_inf
+    lea rdi, [r13 + r8]; call read_be32; mov ecx, eax
+    lea r9, [r8 + 12]; add r9, rcx; cmp r9, r14; ja .Lpdh_inf
+    cmp dword ptr [r13 + r8 + 4], 0x54414449  # "IDAT"
+    jne .Lpdh_next_chk
+    lea r11, [r13 + r8 + 8]
+    xor edx, edx
+.Lpdh_cp_idat:
+    cmp edx, ecx; jge .Lpdh_next_chk
+    mov al, [r11 + rdx]
+    mov r10, [rsp + 24 + 16]; mov [r10 + r15], al
+    inc r15d; inc edx; jmp .Lpdh_cp_idat
+.Lpdh_next_chk:
+    lea r8d, [r8d + ecx + 12]; jmp .Lpdh_chk
+.Lpdh_inf:
+.Lpng_draw_halfblock__idat_len_ret:
+    lea rsp, [rsp + 8]
     ret
 
-# void img_preview_post_flush(App *app)
-img_preview_post_flush:
-    cmp dword ptr [rip + g_kitty_pending], 0
-    je .Lipof_done
-    cmp qword ptr [rdi + App.active_dialog], 0
-    jne .Lipof_clr
-    push rbx; push r12; push r13; sub rsp, 128
-    mov edi, IMG_MAX_RAW; call mem_alloc; test rax, rax; jz .Lipof_out
-    mov rbx, rax
-    lea rdi, [rip + g_kitty_path]; mov rsi, rbx; mov edx, IMG_MAX_RAW; lea rcx, [rsp]
-    call fs_read_file_head
-    test rax, rax; js .Lipof_f1
-    mov r12, [rsp]            # raw len
-    lea rdi, [r12 * 2 + 64]; call mem_alloc; test rax, rax; jz .Lipof_f1
-    mov r13, rax
-    # Build "\x1b[<row>;<col>H\x1b_Ga=T,f=100,i=1,c=<w>,r=<h>,q=2;"
-    mov rdi, r13; lea rsi, [rip + seq_kitty_hdr1]; mov edx, 16; call str_copy
-    mov edi, [rip + g_kitty_y]; inc edi; lea rsi, [r13 + rax]; push rax; call u64_to_dec; pop rcx; add rax, rcx
-    mov byte ptr [r13 + rax], ';'; inc rax
-    mov edi, [rip + g_kitty_x]; inc edi; lea rsi, [r13 + rax]; push rax; call u64_to_dec; pop rcx; add rax, rcx
-    lea rdi, [r13 + rax]; lea rsi, [rip + seq_kitty_hdr2]; mov edx, 32; push rax; call str_copy; pop rcx; add rax, rcx
-    mov edi, [rip + g_kitty_w]; lea rsi, [r13 + rax]; push rax; call u64_to_dec; pop rcx; add rax, rcx
-    lea rdi, [r13 + rax]; lea rsi, [rip + seq_kitty_hdr3]; mov edx, 8; push rax; call str_copy; pop rcx; add rax, rcx
-    mov edi, [rip + g_kitty_h]; lea rsi, [r13 + rax]; push rax; call u64_to_dec; pop rcx; add rax, rcx
-    lea rdi, [r13 + rax]; lea rsi, [rip + seq_kitty_hdr4]; mov edx, 8; push rax; call str_copy; pop rcx; add rax, rcx
-    mov rdi, rbx; mov rsi, r12; lea rdx, [r13 + rax]; lea rcx, [rsp + 8]; push rax
-    call b64_encode; pop rax; add rax, [rsp + 8]
-    mov byte ptr [r13 + rax], 0x1b; mov byte ptr [r13 + rax + 1], '\\'; add rax, 2
-    mov edi, 1; mov rsi, r13; mov rdx, rax; call sys_write_all
-    mov dword ptr [rip + g_kitty_active], 1
-    mov rdi, r13; call mem_free
-.Lipof_f1:
-    mov rdi, rbx; call mem_free
-.Lipof_out:
-    add rsp, 128; pop r13; pop r12; pop rbx
-.Lipof_clr:
-    mov dword ptr [rip + g_kitty_pending], 0
-.Lipof_done:
+# png_draw_halfblock step: Render half blocks in preview pane interior (runs on the caller's frame)
+png_draw_halfblock__render_half_blocks_preview:
+    lea rsp, [rsp - 8]
+    mov rdi, [rsp + 16 + 16]; mov esi, [rsp + 16]; mov edx, [rsp + 4 + 16]; mov ecx, [rsp + 8 + 16]
+    call png_unfilter
+    # Render half-blocks in preview pane interior
+    mov eax, [rbx + Widget.w]; sub eax, 2; mov [rsp + 32 + 16], eax
+    mov eax, [rbx + Widget.h]; sub eax, 4; mov [rsp + 36 + 16], eax
+    xor r14d, r14d            # cy
+.Lpng_draw_halfblock__render_half_blocks_preview_ret:
+    lea rsp, [rsp + 8]
     ret
