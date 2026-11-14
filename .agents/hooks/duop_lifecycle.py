@@ -17,6 +17,7 @@ VERIFY_RELEVANT_FILES = ("Makefile", "VERSION", "tests/test_pty.py")
 LEAN_SUFFIXES = (".s", ".inc", ".py")
 LEAN_SCRIPT = Path(".agents/skills/duop-lean-modules/scripts/check_lean.py")
 MODULARITY_SCRIPT = Path(".agents/skills/duop-modular-asm/scripts/check_modularity.py")
+RELIABILITY_SCRIPT = Path(".agents/skills/duop-reliability-audit/scripts/audit_stack_abi.py")
 I18N_PATHS = ("src/ui/", "src/tui/", "src/app/", "include/types.inc", "lang/uk.lang")
 
 
@@ -319,6 +320,23 @@ def handle_post_tool_use(payload: dict, root: Path) -> dict:
                         stderr=subprocess.DEVNULL,
                         check=False,
                     )
+            if rel.startswith(("src/", "include/")) and rel.endswith((".s", ".inc")):
+                rel_script = root / RELIABILITY_SCRIPT
+                if rel_script.is_file():
+                    rproc = subprocess.run(
+                        [sys.executable, str(rel_script)],
+                        capture_output=True,
+                        text=True,
+                        timeout=4,
+                        check=False,
+                    )
+                    if rproc.returncode != 0:
+                        return {
+                            "feedback": (
+                                "Reliability audit (duop-reliability-audit) failed after editing " + rel + ":\n"
+                                + (rproc.stdout + rproc.stderr).strip()
+                            )
+                        }
             if (
                 rel.startswith(("src/app/", "src/ui/", "src/fs/pkg_", "src/main.s"))
                 and not state.get("docs_edited")

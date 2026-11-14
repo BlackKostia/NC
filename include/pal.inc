@@ -6,7 +6,7 @@
 
 .include "pal_target.inc"
 
-# --- Portable FileStat Metadata Layout (40 bytes) ---
+# --- Portable FileStat Metadata Layout (56 bytes) ---
 # Filled by os_statat / os_fstat so kernel struct stat never leaks above src/os/
 .struct 0
 FileStat.dev:    .space 8     /* Device ID */

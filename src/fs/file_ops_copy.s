@@ -23,7 +23,7 @@ copy_subdir:
     push r12
     push r13
     push r14
-    sub rsp, 48                       # FileStat
+    sub rsp, 64                       # [0..55]=FileStat, [56..63]=rc
     mov r12d, edi
     mov r13, rsi
     mov r14d, edx
@@ -75,17 +75,17 @@ copy_subdir:
     mov edi, ebx
     mov esi, ebp
     call copy_dir_fd
-    mov [rsp], rax
+    mov [rsp + 56], rax
     mov edi, ebp
     OS_CLOSE
-    mov rax, [rsp]
+    mov rax, [rsp + 56]
 .Lcsd_close_s:
-    mov [rsp], rax
+    mov [rsp + 56], rax
     mov edi, ebx
     OS_CLOSE
-    mov rax, [rsp]
+    mov rax, [rsp + 56]
 .Lcsd_ret:
-    add rsp, 48
+    add rsp, 64
     pop r14
     pop r13
     pop r12
@@ -108,7 +108,7 @@ fs_copy_recursive:
     push r13
     push r14
     push r15
-    sub rsp, 96                       # [0]=src FileStat, [48]=dst FileStat
+    sub rsp, 112                      # [0..55]=src FileStat, [56..111]=dst FileStat
     call fs_copy_recursive__part1
     jz .Lfcr_same
 
@@ -140,10 +140,10 @@ fs_copy_recursive:
     call fs_copy_recursive__os_statat_2
     js .Lfcr_mk
     mov rax, [rsp + FileStat.dev]
-    cmp rax, [rsp + 48 + FileStat.dev]
+    cmp rax, [rsp + 56 + FileStat.dev]
     jne .Lfcr_mk
     mov rax, [rsp + FileStat.ino]
-    cmp rax, [rsp + 48 + FileStat.ino]
+    cmp rax, [rsp + 56 + FileStat.ino]
     je .Lfcr_same
 .Lfcr_mk:
     call fs_copy_recursive__part4
@@ -162,7 +162,7 @@ fs_copy_recursive:
 .Lfcr_same:
     mov rax, -9999
 .Lfcr_ret:
-    add rsp, 96
+    add rsp, 112
     pop r15
     pop r14
     pop r13
@@ -200,7 +200,7 @@ fs_copy_recursive__os_statat_2:
     lea rsp, [rsp - 8]
     mov edi, AT_FDCWD
     mov rsi, r13
-    lea rdx, [rsp + 48 + 16]
+    lea rdx, [rsp + 56 + 16]
     mov ecx, 1
     call os_statat
     test rax, rax
@@ -251,14 +251,14 @@ fs_copy_recursive__sfd:
     js .Lfcr_close_s
     mov r15d, eax                     # dfd
     mov edi, r15d
-    lea rsi, [rsp + 48 + 16]
+    lea rsi, [rsp + 56 + 16]
     call os_fstat
     mov rcx, -1
     mov rdx, -1
     test rax, rax
     js .Lfcr_root
-    mov rcx, [rsp + 48 + FileStat.dev + 16]
-    mov rdx, [rsp + 48 + FileStat.ino + 16]
+    mov rcx, [rsp + 56 + FileStat.dev + 16]
+    mov rdx, [rsp + 56 + FileStat.ino + 16]
 .Lfcr_root:
     mov [rip + g_copy_root_dev], rcx
     mov [rip + g_copy_root_ino], rdx

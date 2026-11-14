@@ -17,11 +17,11 @@ fs_read_file_alloc:
     push r13
     push r14
     push r15
-    sub rsp, 48
+    sub rsp, 64
     call fs_read_file_alloc__path
     call fs_read_file_alloc__part2
     call fs_read_file_alloc__cap_read
-    add rsp, 48
+    add rsp, 64
     pop r15
     pop r14
     pop r13

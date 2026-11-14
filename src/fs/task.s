@@ -165,7 +165,7 @@ measure_dir_fd:
     push r13
     push r14
     push r15
-    sub rsp, 72                       # [0]=cursor, [8]=d_type, [16..63]=FileStat
+    sub rsp, 80                       # [0]=cursor, [8]=d_type, [16..71]=FileStat, [72]=rc
     mov r12d, edi
     mov r13, [rip + g_fs_progress]
     mov edi, 32752
@@ -242,7 +242,7 @@ measure_dir_fd:
 .Lmd_ok_nofree:
     xor eax, eax
 .Lmd_ret:
-    add rsp, 72
+    add rsp, 80
     pop r15
     pop r14
     pop r13
@@ -296,10 +296,10 @@ measure_dir_fd__measure_dir_fd:
     mov ebp, eax
     mov edi, ebp
     call measure_dir_fd
-    mov [rsp + 64 + 16], rax
+    mov [rsp + 72 + 16], rax
     mov edi, ebp
     OS_CLOSE
-    mov rax, [rsp + 64 + 16]
+    mov rax, [rsp + 72 + 16]
     test rax, rax
 .Lmeasure_dir_fd__measure_dir_fd_ret:
     lea rsp, [rsp + 8]

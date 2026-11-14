@@ -14,8 +14,9 @@ else
     exit 2
 fi
 
-echo "==> [1/4] Checking Duop modularity & i18n contracts..."
+echo "==> [1/4] Checking Duop modularity, stack/ABI reliability & i18n contracts..."
 python3 ./.agents/skills/duop-modular-asm/scripts/check_modularity.py --root "$ROOT"
+python3 ./.agents/skills/duop-reliability-audit/scripts/audit_stack_abi.py
 # Lean gate: whole working tree, or only the staged commit content when run from pre-commit
 python3 ./.agents/skills/duop-lean-modules/scripts/check_lean.py --root "$ROOT" ${DUOP_LEAN_STAGED:+--staged}
 python3 ./tests/test_lean_gate.py

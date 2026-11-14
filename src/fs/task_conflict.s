@@ -32,10 +32,10 @@ task_make_unique_name:
     push r13
     push r14
     push r15
-    sub rsp, 48               # FileStat
+    sub rsp, 64               # FileStat
     call task_make_unique_name__dfd
     call task_make_unique_name__os_statat
-    add rsp, 48
+    add rsp, 64
     pop r15
     pop r14
     pop r13

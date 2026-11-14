@@ -176,11 +176,11 @@ dup_stat_one_mt:
     mov edx, O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW
     xor r10d, r10d; OS_OPENAT
     test rax, rax; js .Lso_zero
-    mov [rsp], rax
+    mov [rsp + FileStat._size], rax
     mov edi, eax; lea rsi, [r13 + DUP_STRIDE]; lea edx, [r14d + 1]; mov rcx, r15
     call dup_walk_fd_mt
     mov r12, rax
-    mov rdi, [rsp]; OS_CLOSE
+    mov rdi, [rsp + FileStat._size]; OS_CLOSE
     mov rax, r12; jmp .Lso_ret
 .Lso_zero:
     xor eax, eax

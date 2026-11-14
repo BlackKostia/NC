@@ -11,13 +11,12 @@
     "src/tui/input_parse.s": 608,
     "src/ui/file_pane_mouse.s": 406,
     "src/ui/file_pane_render.s": 1224,
-    "src/ui/preview_pane_render.s": 497,
+    "src/ui/preview_pane_render.s": 475,
     "tests/test_fs_reliability.py": 710,
     "tests/test_pty.py": 628
   },
   "funcs": {
     "src/app/app_close_dialog.s:App_close_dialog": 126,
-    "src/app/app_ext.s:App_close_dialog_ext": 84,
     "src/app/app_ext_keys.s:app_handle_ext_key": 95,
     "src/app/app_keys.s:handle_key": 186,
     "src/core/config_expand.s:config_expand_cmd": 83,

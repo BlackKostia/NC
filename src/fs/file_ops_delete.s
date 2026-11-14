@@ -20,7 +20,7 @@ delete_dir_fd:
     push r13
     push r14
     push r15
-    sub rsp, 72                       # [0]=cursor, [8]=d_type, [16..63]=FileStat
+    sub rsp, 80                       # [0]=cursor, [8]=d_type, [16..71]=FileStat, [72]=rc
     mov r12d, edi
     mov edi, DENTS_CAP
     call mem_alloc
@@ -103,7 +103,7 @@ delete_dir_fd:
 .Lddf_nomem:
     mov rax, -ENOMEM
 .Lddf_ret:
-    add rsp, 72
+    add rsp, 80
     pop r15
     pop r14
     pop r13
@@ -157,10 +157,10 @@ delete_dir_fd__delete_dir_fd:
     mov ebp, eax
     mov edi, ebp
     call delete_dir_fd
-    mov [rsp + 64 + 16], rax
+    mov [rsp + 72 + 16], rax
     mov edi, ebp
     OS_CLOSE
-    mov rax, [rsp + 64 + 16]
+    mov rax, [rsp + 72 + 16]
     test rax, rax
 .Ldelete_dir_fd__delete_dir_fd_ret:
     lea rsp, [rsp + 8]

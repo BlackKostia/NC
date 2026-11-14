@@ -279,6 +279,7 @@ test: $(TARGET)
 	python3 tests/test_pkg_manager.py
 	python3 tests/test_pkg_extensions.py
 	python3 tests/test_pkg_improvements.py
+	python3 tests/test_reliability_audit.py
 
 memcheck:
 	$(MAKE) MEMCHECK=1

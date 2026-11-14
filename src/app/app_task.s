@@ -42,7 +42,7 @@ App_task_start:
     push r13
     push r14
     push r15
-    sub rsp, 80               # [0]=sel_count [8]=names_len [16]=job [24]=idx [32..79]=FileStat
+    sub rsp, 96               # [0]=sel_count [8]=names_len [16]=job [24]=idx [32..87]=FileStat
     call App_task_start__fs_task_active
     jz .Lats_collect
     mov rdi, rbx
@@ -104,7 +104,7 @@ App_task_start:
     mov rsi, -ENOMEM
     call task_status_errno
 .Lats_ret:
-    add rsp, 80
+    add rsp, 96
     pop r15
     pop r14
     pop r13

@@ -22,7 +22,7 @@ copy_reg_at:
     push r13
     push r14
     push r15
-    sub rsp, 96 + PATH_MAX            # [0]=src FileStat, [48]=dst FileStat, [96]=rename buf
+    sub rsp, 128 + PATH_MAX           # [0..55]=src FileStat, [56..111]=dst FileStat, [112]=dfd, [120]=rc, [128]=rename buf
     call copy_reg_at__part1
     js .Lcra_ret
     mov ebx, eax                      # sfd
@@ -59,7 +59,7 @@ copy_reg_at:
 .Lcra_close_src:
     call copy_reg_at__part5
 .Lcra_ret:
-    add rsp, 96 + PATH_MAX
+    add rsp, 128 + PATH_MAX
     pop r15
     pop r14
     pop r13
@@ -104,7 +104,7 @@ copy_reg_at__fo_resolve_eexist_open:
     mov edi, r14d
     mov rsi, r15
     lea rdx, [rsp + 16]
-    lea rcx, [rsp + 96 + 16]
+    lea rcx, [rsp + 128 + 16]
     call fo_resolve_eexist_open
     cmp rax, -2
 .Lcopy_reg_at__fo_resolve_eexist_open_ret:
@@ -114,23 +114,23 @@ copy_reg_at__fo_resolve_eexist_open:
 # copy_reg_at step: dfd (runs on the caller's frame)
 copy_reg_at__dfd:
     lea rsp, [rsp - 8]
-    mov [rsp + 48 + 16], eax  # dfd
+    mov [rsp + 112 + 16], eax # dfd
     mov rdi, r13
     call fs_progress_begin
     mov edi, ebx
-    mov esi, [rsp + 48 + 16]
+    mov esi, [rsp + 112 + 16]
     mov eax, [rsp + FileStat.mode + 16]
     and eax, S_IFMT
     xor edx, edx
     cmp eax, S_IFREG
     sete dl
     call copy_data
-    mov [rsp + 56 + 16], rax
-    mov edi, [rsp + 48 + 16]
+    mov [rsp + 120 + 16], rax
+    mov edi, [rsp + 112 + 16]
     OS_CLOSE
     mov edi, ebx
     OS_CLOSE
-    mov rax, [rsp + 56 + 16]
+    mov rax, [rsp + 120 + 16]
     cmp rax, -ECANCELED
 .Lcopy_reg_at__dfd_ret:
     lea rsp, [rsp + 8]

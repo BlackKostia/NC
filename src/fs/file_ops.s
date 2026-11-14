@@ -171,7 +171,7 @@ copy_data:
     push r13
     push r14
     push r15
-    sub rsp, 48                       # FileStat
+    sub rsp, 64                       # FileStat
     mov ebx, edi
     mov r12d, esi
     mov r13d, edx
@@ -260,7 +260,7 @@ copy_data:
 .Lcd_cancel:
     mov rax, -ECANCELED
 .Lcd_ret:
-    add rsp, 48
+    add rsp, 64
     pop r15
     pop r14
     pop r13
