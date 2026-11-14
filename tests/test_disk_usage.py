@@ -168,9 +168,37 @@ def test_disk_usage_parallel_subtrees():
                 pass
 
 
+def test_disk_usage_single_nested_miss():
+    with tempfile.TemporaryDirectory() as tmp:
+        l = os.path.join(tmp, "left")
+        r = os.path.join(tmp, "right")
+        deep = os.path.join(l, "parent_dir", "child_dir", "grandchild_dir")
+        os.makedirs(deep); os.makedirs(r)
+        with open(os.path.join(deep, "data.bin"), "wb") as f:
+            f.write(b"D" * 8192)
+        sess = PtySession(BINARY, ["--lang", "en", l, r], cols=120, rows=35)
+        try:
+            sess.drain(0.25)
+            # Enter parent_dir first, THEN toggle Alt+D (exercises miss_cnt == 1 with depth >= 1)
+            sess.send(b"\x1b[B", wait=0.1)
+            sess.send(b"\r", wait=0.2)
+            wait_for(sess, "child_dir")
+            sess.send(b"\x1bd", wait=0.25)
+            wait_for(sess, "Disk Usage")
+            wait_for(sess, "8.0 K")
+            print("[PASS] DU5. Single nested miss (miss_cnt == 1, depth >= 1) without crash")
+        finally:
+            try:
+                os.kill(sess.pid, 9)
+                os.waitpid(sess.pid, 0)
+            except OSError:
+                pass
+
+
 if __name__ == "__main__":
     test_disk_usage_en()
     test_disk_usage_ua()
     test_disk_usage_batch_and_cache_nav()
     test_disk_usage_parallel_subtrees()
+    test_disk_usage_single_nested_miss()
     print("ALL DISK USAGE TESTS PASSED.")

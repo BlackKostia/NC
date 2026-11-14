@@ -246,15 +246,15 @@ du_resolve_misses:
     lea rsi, [r12 + DU_STRIDE]
     cmp r13d, 1; jne .Lrm_par
     mov rdi, [rsi + 8]                # name
+    mov r13, [rsi]                    # save FileEntry* before du_walk_fd overwrites arena+DU_STRIDE
     mov rsi, rdi; mov edi, ebx
     mov edx, O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW
     xor r10d, r10d; OS_OPENAT
     test rax, rax; js .Lrm_zero_pop
     push rax
     mov edi, eax; mov rsi, r12; xor edx, edx; call du_walk_fd
-    mov rcx, [r12 + DU_STRIDE]
-    mov [rcx + FileEntry.size], rax
-    or dword ptr [rcx + FileEntry.flags], FE_STAT_READY
+    mov [r13 + FileEntry.size], rax
+    or dword ptr [r13 + FileEntry.flags], FE_STAT_READY
     mov r12, rax
     pop rdi; OS_CLOSE
     mov rax, r12; jmp .Lrm_ret
