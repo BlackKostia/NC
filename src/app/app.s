@@ -209,5 +209,6 @@ App_dtor:
     DELETE_OBJ rdi
     call dirwatch_cleanup
     call nav_state_cleanup
+    call du_cache_cleanup
     pop rbx
     ret

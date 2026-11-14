@@ -31,6 +31,12 @@ def test_disk_usage_en():
         os.makedirs(r)
         with open(os.path.join(big, "nested_sub", "sub.bin"), "wb") as f:
             f.write(b"S" * 32768)
+        # 70 small files (70 * 1024 = 70 KiB) to exercise DU_BATCH=64 io_uring batching
+        many_dir = os.path.join(l, "many_dir")
+        os.makedirs(many_dir)
+        for i in range(70):
+            with open(os.path.join(many_dir, f"f{i:03d}.dat"), "wb") as f:
+                f.write(b"M" * 1024)
         with open(os.path.join(big, "payload.bin"), "wb") as f:
             f.write(b"A" * 65536)
         with open(os.path.join(l, "medium.bin"), "wb") as f:
@@ -53,6 +59,7 @@ def test_disk_usage_en():
                 f"Expected descending size order big_dir < small_dir:\n{screen}"
             )
             assert "16.0 K" in screen and "1.0 K" in screen, f"Missing file/dir sizes:\n{screen}"
+            assert "70.0 K" in screen, f"Missing 70-file batched dir size (70.0 K):\n{screen}"
             # Descend into big_dir
             sess.send(b"\x1b[B")  # Down from .. to big_dir
             sess.send(b"\r")

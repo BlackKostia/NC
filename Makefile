@@ -108,6 +108,7 @@ SRCS := \
 	src/fs/inflate.s \
 	src/fs/inflate_api.s \
 	src/fs/disk_usage.s \
+	src/fs/du_cache.s \
 	src/fs/archive_vfs.s \
 	src/fs/archive_extract.s \
 	src/fs/git_status.s \
