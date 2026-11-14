@@ -147,6 +147,10 @@ ViewerDialog_render_image:
     sub edx, 2
     mov esi, [r13 + Theme.muted]
     call vim_line
+    mov rdi, rbx
+    mov rsi, r12
+    mov rdx, r13
+    call vim_draw_zoom_badge
     add rsp, 32
     pop r13
     pop r12

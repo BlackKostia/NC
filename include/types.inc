@@ -341,6 +341,7 @@ LangStrings.vas_hex:            .space 8
 LangStrings.vas_text:           .space 8
 LangStrings.vas_hint:           .space 8
 LangStrings.vw_img_hint:        .space 8
+LangStrings.img_fit:            .space 8
 LangStrings._size:
 
 .section .text

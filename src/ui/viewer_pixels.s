@@ -50,20 +50,10 @@ vim_draw_picture:
     mov eax, [r13 + Theme.dialog_bg]
     mov [rsp + 16], eax
     mov rdi, r12
-    mov esi, [rbx + Widget.x]
-    inc esi
-    mov edx, [rbx + Widget.y]
-    inc edx
-    mov ecx, [rbx + Widget.w]
-    sub ecx, 2
-    mov r8d, [rbx + Widget.h]
-    sub r8d, 3
-    mov r9, rsp
-    cmp r14d, IMG_PROTO_HALF
-    je 1f
-    call img_draw_quad
-    jmp .Ldp_ret
-1:  call img_draw_rgba
+    mov rsi, rbx
+    mov edx, r14d
+    lea rcx, [rsp]
+    call vim_block_box
     jmp .Ldp_ret
 .Ldp_pixels:
     mov rdi, rbx
@@ -87,6 +77,50 @@ vim_draw_picture:
     pop rbx
     ret
 
+# Internal: void vim_block_box(ScreenBuffer *scr, ViewerDialog *v, int proto, const ImgView *view)
+vim_block_box:
+    push rbx
+    mov rbx, rsi
+    mov r10d, edx
+    mov r9, rcx
+    mov esi, [rbx + Widget.x]
+    inc esi
+    mov edx, [rbx + Widget.y]
+    inc edx
+    mov ecx, [rbx + Widget.w]
+    sub ecx, 2
+    mov r8d, [rbx + Widget.h]
+    sub r8d, 3
+    cmp dword ptr [rbx + ViewerDialog.img_zoom], 0
+    je .Lbb_draw
+    mov eax, [rbx + ViewerDialog.thumb_w]
+    cmp r10d, IMG_PROTO_HALF
+    je 1f
+    inc eax
+    shr eax, 1
+1:  cmp eax, ecx
+    jge 2f
+    mov r11d, ecx
+    sub r11d, eax
+    sar r11d, 1
+    add esi, r11d
+    mov ecx, eax
+2:  mov eax, [rbx + ViewerDialog.thumb_h]
+    inc eax
+    shr eax, 1
+    cmp eax, r8d
+    jge .Lbb_draw
+    mov r11d, r8d
+    sub r11d, eax
+    sar r11d, 1
+    add edx, r11d
+    mov r8d, eax
+.Lbb_draw:
+    pop rbx
+    cmp r10d, IMG_PROTO_HALF
+    je img_draw_rgba
+    jmp img_draw_quad
+
 # Internal: int vim_fit_thumb(ViewerDialog *v, int pw, int ph /*edx*/, int upscale /*ecx*/)
 # -> 0 on OOM; v->thumb = image scaled into pw x ph (aspect kept; small images stay native
 #    unless upscale)
@@ -94,32 +128,34 @@ vim_fit_thumb:
     push rbx
     push r12
     push r13
+    push r14
+    sub rsp, 40                       # [0]=tw [4]=th [8..23]=rect[4]
     mov rbx, rdi
-    mov eax, [rbx + ViewerDialog.img + Image.w]
-    mov r8d, [rbx + ViewerDialog.img + Image.h]
-    test ecx, ecx
-    jnz .Lft_fit
-    cmp eax, esi
-    ja .Lft_fit
-    cmp r8d, edx
-    ja .Lft_fit
-    mov r12d, eax                     # fits: native size
-    mov r13d, r8d
-    jmp .Lft_have
-.Lft_fit:
-    mov ecx, edx
-    mov edx, esi
-    mov edi, eax
-    mov esi, r8d
-    call img_fit
-    mov r12d, eax
-    mov r13d, edx
-.Lft_have:
+    lea r8, [rsp]
+    lea r9, [rsp + 4]
+    lea rax, [rsp + 8]
+    push rax
+    call vim_zoom_rect
+    add rsp, 8
+    mov r12d, [rsp]
+    mov r13d, [rsp + 4]
+    mov eax, [rbx + ViewerDialog.img_zoom]
+    shl rax, 32
+    mov ecx, [rbx + ViewerDialog.img_pan_y]
+    and ecx, 0xFFFF
+    shl rcx, 16
+    or rax, rcx
+    mov ecx, [rbx + ViewerDialog.img_pan_x]
+    and ecx, 0xFFFF
+    or rax, rcx
+    mov r14, rax                      # desired img_cache_key
     cmp qword ptr [rbx + ViewerDialog.thumb], 0
     je .Lft_new
     cmp r12d, [rbx + ViewerDialog.thumb_w]
     jne .Lft_new
     cmp r13d, [rbx + ViewerDialog.thumb_h]
+    jne .Lft_new
+    cmp r14, [rbx + ViewerDialog.img_cache_key]
     je .Lft_ok
 .Lft_new:
     mov rdi, [rbx + ViewerDialog.thumb]
@@ -133,17 +169,21 @@ vim_fit_thumb:
     jz .Lft_fail
     mov [rbx + ViewerDialog.thumb_w], r12d
     mov [rbx + ViewerDialog.thumb_h], r13d
+    mov [rbx + ViewerDialog.img_cache_key], r14
     lea rdi, [rbx + ViewerDialog.img]
     mov rsi, rax
     mov edx, r12d
     mov ecx, r13d
-    call img_scale
+    lea r8, [rsp + 8]
+    call img_scale_rect
 .Lft_ok:
     mov eax, 1
     jmp .Lft_ret
 .Lft_fail:
     xor eax, eax
 .Lft_ret:
+    add rsp, 40
+    pop r14
     pop r13
     pop r12
     pop rbx

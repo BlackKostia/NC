@@ -126,7 +126,82 @@ def test_halfblock_fallback():
                 pass
 
 
+def make_png_grid(path, w=200, h=200):
+    raw = bytearray()
+    for y in range(h):
+        raw.append(0)
+        for x in range(w):
+            if y == h // 2:
+                raw.extend((0, 0, 0, 255))
+            elif y < h // 2 and x < w // 2:
+                raw.extend((240, 20, 20, 255))
+            elif y < h // 2:
+                raw.extend((20, 240, 20, 255))
+            elif x < w // 2:
+                raw.extend((20, 20, 240, 255))
+            else:
+                raw.extend((240, 240, 20, 255))
+    idat = zlib.compress(bytes(raw))
+
+    def chunk(tag, data):
+        crc = zlib.crc32(tag + data) & 0xFFFFFFFF
+        return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", crc)
+
+    ihdr = struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0)
+    png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", idat) + chunk(b"IEND", b"")
+    with open(path, "wb") as f:
+        f.write(png)
+
+
+def test_img_zoom_and_quality():
+    with tempfile.TemporaryDirectory() as tmp:
+        l = os.path.join(tmp, "left")
+        r = os.path.join(tmp, "right")
+        os.makedirs(l)
+        os.makedirs(r)
+        make_png_grid(os.path.join(l, "grid.png"), 200, 200)
+
+        sess = PtySession(BINARY, ["--lang", "en", l, r], cols=100, rows=30)
+        try:
+            drain_raw(sess, 0.25)
+            os.write(sess.master, b"\x1b[B")    # select grid.png
+            drain_raw(sess, 0.1)
+            os.write(sess.master, b"\x1bOR")    # F3 -> Open as dialog
+            drain_raw(sess, 0.15)
+            os.write(sess.master, b"i")         # i -> Image mode
+            drain_raw(sess, 0.3)
+            screen = sess.vt.full_text()
+            assert "[Fit]" in screen, f"Expected [Fit] zoom indicator:\n{screen}"
+
+            os.write(sess.master, b"1")         # 100% native 1:1
+            drain_raw(sess, 0.25)
+            screen = sess.vt.full_text()
+            assert "[100%]" in screen, f"Expected [100%] after pressing '1':\n{screen}"
+
+            os.write(sess.master, b"+")         # Zoom in
+            drain_raw(sess, 0.25)
+            screen = sess.vt.full_text()
+            assert "[125%]" in screen or "[150%]" in screen or "[200%]" in screen, (
+                f"Expected zoomed >100% after '+':\n{screen}"
+            )
+
+            os.write(sess.master, b"\x1b[C\x1b[B")  # Pan right + down
+            drain_raw(sess, 0.2)
+            os.write(sess.master, b"0")         # Reset to Fit
+            drain_raw(sess, 0.25)
+            screen = sess.vt.full_text()
+            assert "[Fit]" in screen, f"Expected [Fit] after pressing '0':\n{screen}"
+            print("[PASS] IMG3. Image viewer zoom (+/-, 1, 0) and pan")
+        finally:
+            try:
+                os.kill(sess.pid, 9)
+                os.waitpid(sess.pid, 0)
+            except OSError:
+                pass
+
+
 if __name__ == "__main__":
     test_kitty_and_cleanup()
     test_halfblock_fallback()
+    test_img_zoom_and_quality()
     print("ALL IMAGE PREVIEW TESTS PASSED.")

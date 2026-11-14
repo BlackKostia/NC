@@ -18,24 +18,19 @@
 #                 ├── ViewerDialog
 #                 ├── HelpDialog
 #                 └── ProgressDialog
-
 .intel_syntax noprefix
-
 .include "config.inc"
 .include "oop.inc"
 .include "types.inc"
-
 # ==============================================================================
 # VTable Layouts
 # ==============================================================================
-
 VTBL_BEGIN ObjectVtbl
     VTBL_SLOT ObjectVtbl.super
     VTBL_SLOT ObjectVtbl.class_name
     VTBL_SLOT ObjectVtbl.inst_size
     VTBL_SLOT ObjectVtbl.dtor
 VTBL_END ObjectVtbl
-
 VTBL_BEGIN WidgetVtbl
     VTBL_EXTENDS ObjectVtbl
     VTBL_SLOT WidgetVtbl.layout
@@ -276,6 +271,12 @@ CLASS_BEGIN ViewerDialog
     FIELD ViewerDialog.enc,         8   # Sixel / Kitty stream of thumb (pixel protocols)
     FIELD ViewerDialog.enc_len,     8
     FIELD ViewerDialog.enc_key,     8   # protocol | size the stream was built for
+    FIELD ViewerDialog.img_zoom,    4   # 0 = Fit to window; > 0 = percent (25..800)
+    FIELD ViewerDialog.img_pan_x,   4   # top-left source pixel X (clamped)
+    FIELD ViewerDialog.img_pan_y,   4   # top-left source pixel Y (clamped)
+    FIELD ViewerDialog.img_box_w,   4   # last viewport width in output pixels
+    FIELD ViewerDialog.img_box_h,   4   # last viewport height in output pixels
+    FIELD ViewerDialog.img_cache_key, 8 # zoom/pan key of current thumb
     FIELD ViewerDialog.path,        PATH_MAX
 CLASS_END ViewerDialog
 

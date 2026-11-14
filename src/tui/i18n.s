@@ -1,18 +1,14 @@
 # Internationalization (i18n) Module — English & Ukrainian Localization Tables
 # Follows the same table-driven vtable/descriptor design as Theme (Zero libc).
-
 .intel_syntax noprefix
 .include "classes.inc"
 .include "version.inc"
-
 .section .rodata
-
 # ==============================================================================
 # English String Table (LANG_EN = 0)
 # ==============================================================================
 en_code:            .asciz "EN"
 en_name:            .asciz "English"
-
 en_hdr_brand:       .asciz " ◆ Duop "
 en_hdr_mode_dual:   .asciz " Dual "
 en_hdr_mode_prev:   .asciz " Preview "
@@ -205,7 +201,8 @@ en_vas_image:         .asciz "Image"
 en_vas_hex:           .asciz "Hex"
 en_vas_text:          .asciz "Text"
 en_vas_hint:          .asciz "i: Image  h: Hex  t: Text  Esc: Cancel"
-en_vw_img_hint:       .asciz "i: Image  h: Hex  t: Text  Esc: Close"
+en_vw_img_hint:       .asciz "+/-: Zoom  1: 100%  0: Fit  Arrows: Pan  h: Hex  t: Text  Esc: Close"
+en_img_fit:           .asciz "Fit"
 
 # ==============================================================================
 # Ukrainian String Table (LANG_UA = 1)
@@ -405,7 +402,8 @@ ua_vas_image:         .asciz "Зображення"
 ua_vas_hex:           .asciz "HEX"
 ua_vas_text:          .asciz "Текст"
 ua_vas_hint:          .asciz "i: Зображення  h: HEX  t: Текст  Esc: Скасувати"
-ua_vw_img_hint:       .asciz "i: Зображення  h: HEX  t: Текст  Esc: Закрити"
+ua_vw_img_hint:       .asciz "+/-: Масштаб  1: 100%  0: Вписати  Стрілки: Зсув  h: HEX  t: Текст  Esc: Закрити"
+ua_img_fit:           .asciz "Вписати"
 
 .align 8
 .global lang_en_table
@@ -443,7 +441,7 @@ lang_en_table:
     .quad en_dlg_title_search, en_srch_lbl_name, en_srch_lbl_grep, en_srch_hint, en_fp_search_badge, en_msg_search_none
     .quad en_dlg_title_info, en_dlg_title_chmod, en_dlg_title_symlink, en_dlg_title_hardlink, en_prm_link_target, en_chm_hint, en_msg_trashed, en_msg_undone, en_msg_undo_empty, en_dlg_title_palette, en_dlg_title_fuzzy, en_fuz_hint, en_fp_du_badge, en_br_title, en_br_tmpl, en_br_find, en_br_repl
     .quad en_ctx_view, en_ctx_copy, en_ctx_move, en_ctx_copy_path, en_ctx_delete, en_msg_copied_path, en_diff_pfx, en_term_title
-    .quad en_img_unsup, en_dlg_title_viewas, en_vas_image, en_vas_hex, en_vas_text, en_vas_hint, en_vw_img_hint
+    .quad en_img_unsup, en_dlg_title_viewas, en_vas_image, en_vas_hex, en_vas_text, en_vas_hint, en_vw_img_hint, en_img_fit
 .if (. - lang_en_table) != LangStrings._size
     .error "lang_en_table size does not match LangStrings._size"
 .endif
@@ -484,7 +482,7 @@ lang_ua_table:
     .quad ua_dlg_title_search, ua_srch_lbl_name, ua_srch_lbl_grep, ua_srch_hint, ua_fp_search_badge, ua_msg_search_none
     .quad ua_dlg_title_info, ua_dlg_title_chmod, ua_dlg_title_symlink, ua_dlg_title_hardlink, ua_prm_link_target, ua_chm_hint, ua_msg_trashed, ua_msg_undone, ua_msg_undo_empty, ua_dlg_title_palette, ua_dlg_title_fuzzy, ua_fuz_hint, ua_fp_du_badge, ua_br_title, ua_br_tmpl, ua_br_find, ua_br_repl
     .quad ua_ctx_view, ua_ctx_copy, ua_ctx_move, ua_ctx_copy_path, ua_ctx_delete, ua_msg_copied_path, ua_diff_pfx, ua_term_title
-    .quad ua_img_unsup, ua_dlg_title_viewas, ua_vas_image, ua_vas_hex, ua_vas_text, ua_vas_hint, ua_vw_img_hint
+    .quad ua_img_unsup, ua_dlg_title_viewas, ua_vas_image, ua_vas_hex, ua_vas_text, ua_vas_hint, ua_vw_img_hint, ua_img_fit
 .if (. - lang_ua_table) != LangStrings._size
     .error "lang_ua_table size does not match LangStrings._size"
 .endif

@@ -24,6 +24,12 @@ ViewerDialog_on_key:
     pop rsi
     test eax, eax
     jnz .Lvk_ret
+    push rsi
+    mov rdi, rbx
+    call vim_zoom_key                 # +/-/1/0/arrows in image mode
+    pop rsi
+    test eax, eax
+    jnz .Lvk_ret
     mov eax, [rsi + Event.key]
     cmp eax, KEY_ESC;   je .Lvk_close
     cmp eax, 'q';       je .Lvk_close; cmp eax, 'Q'; je .Lvk_close
@@ -75,7 +81,16 @@ ViewerDialog_on_key:
 
 # int ViewerDialog_on_mouse(ViewerDialog *this, Event *evt)
 ViewerDialog_on_mouse:
-    cmp dword ptr [rsi + Event.mouse_kind], MACT_WHEEL
+    push rdi
+    push rsi
+    call vim_zoom_mouse
+    pop rsi
+    pop rdi
+    test eax, eax
+    jz 1f
+    mov eax, 1
+    ret
+1:  cmp dword ptr [rsi + Event.mouse_kind], MACT_WHEEL
     jne Dialog_on_mouse
     push rbx
     mov rbx, rdi

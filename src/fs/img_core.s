@@ -15,6 +15,7 @@ str_tga_ext: .asciz ".tga"
 .global img_free
 .global img_fit
 .global img_scale
+.global img_scale_rect
 
 # int img_detect(const uint8_t *d, size_t n, const char *path) -> IMG_FMT_* (0 = not an image)
 img_detect:
@@ -206,26 +207,45 @@ img_fit:
     ret
 
 # void img_scale(const Image *src, uint8_t *dst_rgba, int ow, int oh)
-# Area-averaged downscale / nearest upscale into an ow x oh RGBA buffer (<= 8x8 taps per pixel).
 img_scale:
+    sub rsp, 24
+    mov dword ptr [rsp], 0
+    mov dword ptr [rsp + 4], 0
+    mov eax, [rdi + Image.w]
+    mov [rsp + 8], eax
+    mov eax, [rdi + Image.h]
+    mov [rsp + 12], eax
+    mov r8, rsp
+    call img_scale_rect
+    add rsp, 24
+    ret
+
+# void img_scale_rect(const Image *src, uint8_t *dst_rgba, int ow, int oh, const int *rect)
+# Area-averaged downscale / nearest upscale of rect {x,y,w,h} into ow x oh RGBA buffer.
+img_scale_rect:
     push rbx
     push r12
     push r13
     push r14
     push r15
-    sub rsp, 16
+    sub rsp, 32                       # [0]=sy0 [4]=sy1 [8]=dx [16]=rect
     mov rbx, rdi
     mov r12, rsi
     mov r13d, edx                     # ow
     mov r14d, ecx                     # oh
+    mov [rsp + 16], r8
     xor r15d, r15d                    # dy
 .Lisc_row:
     cmp r15d, r14d
     jge .Lisc_done
-    mov eax, r15d                     # sy0 = dy * ih / oh, sy1 = (dy + 1) * ih / oh
-    mov edi, [rbx + Image.h]
+    mov rcx, [rsp + 16]
+    mov eax, r15d                     # sy0 = ry + dy * rh / oh
+    mov edi, [rcx + 12]
     mov esi, r14d
     call isc_span
+    mov rcx, [rsp + 16]
+    add eax, [rcx + 4]
+    add edx, [rcx + 4]
     mov [rsp], eax
     mov [rsp + 4], edx
     mov dword ptr [rsp + 8], 0        # dx
@@ -233,9 +253,13 @@ img_scale:
     mov eax, [rsp + 8]
     cmp eax, r13d
     jge .Lisc_next_row
-    mov edi, [rbx + Image.w]
+    mov rcx, [rsp + 16]
+    mov edi, [rcx + 8]
     mov esi, r13d
     call isc_span                     # eax = sx0, edx = sx1
+    mov rcx, [rsp + 16]
+    add eax, [rcx]
+    add edx, [rcx]
     mov rdi, [rbx + Image.px]
     mov esi, [rbx + Image.w]
     mov ecx, edx
@@ -251,7 +275,7 @@ img_scale:
     inc r15d
     jmp .Lisc_row
 .Lisc_done:
-    add rsp, 16
+    add rsp, 32
     pop r15
     pop r14
     pop r13
@@ -290,17 +314,6 @@ isc_average:
     mov qword ptr [rsp + 16], 0
     mov qword ptr [rsp + 24], 0
     xor ebx, ebx                      # taps
-    mov r10d, ecx                     # step_x = max(1, (sx1 - sx0) / 8)
-    sub r10d, edx
-    shr r10d, 3
-    jnz 1f
-    mov r10d, 1
-1:  mov r11d, r9d                     # step_y
-    sub r11d, r8d
-    shr r11d, 3
-    jnz 2f
-    mov r11d, 1
-2:
 .Lisa_y:
     cmp r8d, r9d
     jge .Lisa_div
@@ -317,10 +330,10 @@ isc_average:
     movzx eax, byte ptr [r13 + 2]; add [rsp + 16], rax
     movzx eax, byte ptr [r13 + 3]; add [rsp + 24], rax
     inc ebx
-    add r12d, r10d
+    inc r12d
     jmp .Lisa_x
 .Lisa_ny:
-    add r8d, r11d
+    inc r8d
     jmp .Lisa_y
 .Lisa_div:
     xor r12d, r12d                    # packed result
