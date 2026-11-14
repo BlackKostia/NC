@@ -2,9 +2,9 @@
 """Lean-module gate for Duop: keeps every module short, single-purpose and well structured.
 
 Budgets (lines incl. comments/blank lines):
-  src/**/*.s        module <= 600, top-level routine <= 120, exported symbols <= 24
+  src/**/*.s        module <= 400, top-level routine <= 80, exported symbols <= 16
   include/**/*.inc  header <= 400
-  tests/*.py        suite  <= 700, def <= 150
+  tests/*.py        suite  <= 500, def <= 100
 
 Legacy offenders are frozen in lean_baseline.json as a *ratchet*: a listed file / routine may
 shrink but never grow; anything new must meet the budgets. When a legacy item shrinks the
@@ -31,9 +31,9 @@ SKILL_DIR = Path(__file__).resolve().parents[1]
 BASELINE = SKILL_DIR / "scripts" / "lean_baseline.json"
 
 BUDGET = {
-    ".s": {"file": 600, "func": 120, "exports": 24},
+    ".s": {"file": 400, "func": 80, "exports": 16},
     ".inc": {"file": 400},
-    ".py": {"file": 700, "func": 150},
+    ".py": {"file": 500, "func": 100},
 }
 
 ASM_LABEL_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*):")

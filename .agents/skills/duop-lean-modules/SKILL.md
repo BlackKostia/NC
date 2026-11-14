@@ -15,13 +15,14 @@ responsibility, one routine = one job, a narrow public API.
 
 | Kind | Module | Routine | Public API |
 | :--- | :--- | :--- | :--- |
-| `src/**/*.s` | ≤ 600 lines (aim 200–400) | top-level label ≤ 120 lines | ≤ 24 `.global` symbols |
+| `src/**/*.s` | ≤ 400 lines (aim 150–300) | top-level label ≤ 80 lines | ≤ 16 `.global` symbols |
 | `include/**/*.inc` | ≤ 400 lines | — | — |
-| `tests/*.py` | ≤ 700 lines | `def` ≤ 150 lines | — |
+| `tests/*.py` | ≤ 500 lines | `def` ≤ 100 lines | — |
 
 Legacy offenders are frozen in `scripts/lean_baseline.json` as a **ratchet**: they may only
-shrink. New files and new routines must meet the budgets. After shrinking legacy code run
-`--update` to tighten the ratchet (it never loosens).
+shrink. New files and new routines must meet the budgets. `PostToolUse` in
+`.agents/hooks/duop_lifecycle.py` automatically runs `--update` whenever a file shrinks so
+the ratchet tightens immediately (it never loosens).
 
 ## 2. Where it is enforced
 

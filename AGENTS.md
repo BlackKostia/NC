@@ -19,7 +19,7 @@ Code flows downward only — never introduce upward or cyclic dependencies acros
 - Put compile-time OS syscall numbers, kernel structs, and `OS_*` inline macros in `include/os/<os>/<arch>/pal_target.inc` and normalized ABI adapters (`os_statat`, `os_dir_read`/`os_dir_next`, `os_mem_remap`, `os_poll_in`, terminal/signal adapters) in `src/os/<os>/<arch>/pal_os.s`; never add runtime OS checks (`cmp [g_os]`) or function-pointer tables.
 
 ### Lean Modules (`duop-lean-modules`, enforced by hooks, `verify_build.sh` and pre-commit)
-- Budgets: `src/**/*.s` ≤ 600 lines (aim 200–400), top-level routine ≤ 120 lines, ≤ 24 `.global` symbols; `include/**/*.inc` ≤ 400 lines; `tests/*.py` ≤ 700 lines, `def` ≤ 150 lines.
+- Budgets: `src/**/*.s` ≤ 400 lines (aim 150–300), top-level routine ≤ 80 lines, ≤ 16 `.global` symbols; `include/**/*.inc` ≤ 400 lines; `tests/*.py` ≤ 500 lines, `def` ≤ 100 lines.
 - Legacy offenders are frozen in `.agents/skills/duop-lean-modules/scripts/lean_baseline.json` and may only shrink; after shrinking run `check_lean.py --update`.
 - Grow by splitting: new concern → new `src/<layer>/<topic>.s`; long routine → named local helpers.
 

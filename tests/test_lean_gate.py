@@ -34,16 +34,16 @@ def main() -> None:
     assert res.returncode == 0, f"Real tree violates lean budgets:\n{res.stderr}"
     print("[PASS] L1. Current tree respects module/routine/API budgets (ratchet baseline)")
 
-    res = run("--root", str(ROOT), "--file", "src/core/new_mod.s", "--text-from", "-", stdin=asm(601))
-    assert res.returncode == 1 and "601 lines > 600" in res.stderr, res.stderr
-    res = run("--root", str(ROOT), "--file", "src/core/new_mod.s", "--text-from", "-", stdin=asm(600))
+    res = run("--root", str(ROOT), "--file", "src/core/new_mod.s", "--text-from", "-", stdin=asm(401))
+    assert res.returncode == 1 and "401 lines > 400" in res.stderr, res.stderr
+    res = run("--root", str(ROOT), "--file", "src/core/new_mod.s", "--text-from", "-", stdin=asm(400))
     assert res.returncode == 0, res.stderr
-    res = run("--root", str(ROOT), "--file", "src/core/new_mod.s", "--text-from", "-", stdin=asm(200, 121))
-    assert res.returncode == 1 and "new_mod.s:f: 121 lines > 120" in res.stderr, res.stderr
-    exports = ".intel_syntax noprefix\n" + "".join(f".global g{i}\n" for i in range(25))
+    res = run("--root", str(ROOT), "--file", "src/core/new_mod.s", "--text-from", "-", stdin=asm(200, 81))
+    assert res.returncode == 1 and "new_mod.s:f: 81 lines > 80" in res.stderr, res.stderr
+    exports = ".intel_syntax noprefix\n" + "".join(f".global g{i}\n" for i in range(17))
     res = run("--root", str(ROOT), "--file", "src/core/api.s", "--text-from", "-", stdin=exports)
-    assert res.returncode == 1 and "25 exported symbols > 24" in res.stderr, res.stderr
-    print("[PASS] L2. Budgets: 600-line module, 120-line routine, 24 exports (boundaries exact)")
+    assert res.returncode == 1 and "17 exported symbols > 16" in res.stderr, res.stderr
+    print("[PASS] L2. Budgets: 400-line module, 80-line routine, 16 exports (boundaries exact)")
 
     base = json.loads((ROOT / ".agents/skills/duop-lean-modules/scripts/lean_baseline.json").read_text())
     if base["files"]:
