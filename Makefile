@@ -109,6 +109,7 @@ SRCS := \
 	src/fs/inflate_api.s \
 	src/fs/disk_usage.s \
 	src/fs/du_cache.s \
+	src/fs/du_parallel.s \
 	src/fs/archive_vfs.s \
 	src/fs/archive_extract.s \
 	src/fs/git_status.s \
@@ -200,7 +201,8 @@ PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_os.s \
 	src/os/$(OS)/$(ARCH)/pal_uring.s \
 	src/os/$(OS)/$(ARCH)/pal_simd.s \
-	src/os/$(OS)/$(ARCH)/pal_pty.s
+	src/os/$(OS)/$(ARCH)/pal_pty.s \
+	src/os/$(OS)/$(ARCH)/pal_thread.s
 
 OBJS := $(patsubst src/%.s,$(BUILD)/%.o,$(SRCS) $(PAL_SRCS))
 INCS := $(wildcard include/*.inc) $(wildcard $(PAL_INC)/*.inc)

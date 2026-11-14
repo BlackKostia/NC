@@ -139,8 +139,38 @@ def test_disk_usage_batch_and_cache_nav():
                 pass
 
 
+def test_disk_usage_parallel_subtrees():
+    with tempfile.TemporaryDirectory() as tmp:
+        l = os.path.join(tmp, "left")
+        r = os.path.join(tmp, "right")
+        os.makedirs(l); os.makedirs(r)
+        # 8 independent subtrees with nested dirs to exercise multi-threaded walk
+        for i in range(8):
+            sub = os.path.join(l, f"tree_{i}", "nested")
+            os.makedirs(sub)
+            with open(os.path.join(sub, "payload.bin"), "wb") as f:
+                f.write(b"P" * ((i + 1) * 4096))
+        sess = PtySession(BINARY, ["--lang", "en", l, r], cols=120, rows=35)
+        try:
+            sess.drain(0.25)
+            sess.send(b"\x1bd")
+            wait_for(sess, "Disk Usage")
+            wait_for(sess, "32.0 K")
+            screen = sess.vt.full_text()
+            assert "tree_7" in screen and "tree_0" in screen, f"Missing subtrees:\n{screen}"
+            assert screen.find("tree_7") < screen.find("tree_0"), f"Wrong sort order:\n{screen}"
+            print("[PASS] DU4. Parallel multi-subtree Disk Usage scan & descending sort")
+        finally:
+            try:
+                os.kill(sess.pid, 9)
+                os.waitpid(sess.pid, 0)
+            except OSError:
+                pass
+
+
 if __name__ == "__main__":
     test_disk_usage_en()
     test_disk_usage_ua()
     test_disk_usage_batch_and_cache_nav()
+    test_disk_usage_parallel_subtrees()
     print("ALL DISK USAGE TESTS PASSED.")

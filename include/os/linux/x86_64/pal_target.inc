@@ -19,7 +19,9 @@
 .equ OS_SYS_ioctl,          16
 .equ OS_SYS_mremap,         25
 .equ OS_SYS_dup2,           33
+.equ OS_SYS_clone,          56
 .equ OS_SYS_fork,           57
+.equ OS_SYS_futex,          202
 .equ OS_SYS_execve,         59
 .equ OS_SYS_exit,           60
 .equ OS_SYS_wait4,          61
