@@ -265,6 +265,14 @@ i18n_keys:
     LK du_unit_files, LangStrings.du_unit_files
     LK du_scan_hint, LangStrings.du_scan_hint
     LK msg_du_canceled, LangStrings.msg_du_canceled
+    LK pkg_title, LangStrings.pkg_title
+    LK pkg_hint, LangStrings.pkg_hint
+    LK pkg_empty, LangStrings.pkg_empty
+    LK pkg_install_prompt, LangStrings.pkg_install_prompt
+    LK pkg_installed, LangStrings.pkg_installed
+    LK pkg_removed, LangStrings.pkg_removed
+    LK pkg_verified, LangStrings.pkg_verified
+    LK pkg_err, LangStrings.pkg_err
     .short 0xFFFF
 .if lk_slots * 8 != LangStrings._size
     .error "i18n_keys: every LangStrings slot needs exactly one key"

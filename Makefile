@@ -110,6 +110,10 @@ SRCS := \
 	src/fs/disk_usage.s \
 	src/fs/du_cache.s \
 	src/fs/du_parallel.s \
+	src/fs/pkg_fetch.s \
+	src/fs/pkg_archive.s \
+	src/fs/pkg_manager.s \
+	src/fs/pkg_cli.s \
 	src/fs/archive_vfs.s \
 	src/fs/archive_extract.s \
 	src/fs/git_status.s \
@@ -173,6 +177,7 @@ SRCS := \
 	src/ui/bulk_rename.s \
 	src/ui/bulk_rename_ui.s \
 	src/ui/popup_menu.s \
+	src/ui/pkg_dialog.s \
 	src/ui/term_pane.s \
 	src/ui/term_pane_input.s \
 	src/ui/term_keys.s \
@@ -261,6 +266,7 @@ test: $(TARGET)
 	python3 tests/test_help_instruction.py
 	python3 tests/test_lang_packs.py
 	python3 tests/test_ui_visual.py
+	python3 tests/test_pkg_manager.py
 
 memcheck:
 	$(MAKE) MEMCHECK=1

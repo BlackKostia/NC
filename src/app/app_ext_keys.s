@@ -59,7 +59,7 @@ app_handle_ext_key:
     cmp eax, 's'; je .Lahek_sym
     cmp eax, 'h'; je .Lahek_hrd
     cmp eax, 'd'; je .Lahek_du
-    cmp eax, 'b'; je .Lahek_br
+    cmp eax, 'b'; je .Lahek_br; cmp eax, 'k'; je App_cmd_packages
     cmp esi, '='; je .Lahek_diff
     cmp esi, KEY_LEFT;  je .Lahek_hb
     cmp esi, KEY_RIGHT; je .Lahek_hf

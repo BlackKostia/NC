@@ -1,7 +1,5 @@
 # Core Data Structure Layouts (Value Types & Palette)
-
 .intel_syntax noprefix
-
 # --- Rect (16 bytes) ---
 .struct 0
 Rect.x:        .space 4
@@ -9,7 +7,6 @@ Rect.y:        .space 4
 Rect.w:        .space 4
 Rect.h:        .space 4
 Rect._size:
-
 # --- Cell (16 bytes) ---
 .struct 0
 Cell.ch:       .space 4    # Unicode codepoint (or CELL_WIDE_TAIL)
@@ -17,7 +14,6 @@ Cell.fg:       .space 4    # 0x01RRGGBB (0 = default)
 Cell.bg:       .space 4    # 0x01RRGGBB (0 = default)
 Cell.attrs:    .space 4    # ATTR_* bitmask
 Cell._size:
-
 # --- Image (24 bytes): decoded picture, RGBA8 rows (src/fs/img_*.s) ---
 .struct 0
 Image.px:      .space 8    # w * h * 4 bytes (mem_alloc), R,G,B,A per pixel
@@ -26,7 +22,6 @@ Image.h:       .space 4
 Image.fmt:     .space 4    # IMG_FMT_*
 Image.pad:     .space 4
 Image._size:
-
 # --- ImgPlace (48 bytes): a pixel-protocol image placed over a cell rectangle ---
 .struct 0
 ImgPlace.owner:  .space 8    # widget / dialog that shows it (hidden while another dialog is up)
@@ -38,7 +33,6 @@ ImgPlace.y:      .space 4
 ImgPlace.w:      .space 4
 ImgPlace.h:      .space 4
 ImgPlace._size:
-
 # --- Event (32 bytes) ---
 .struct 0
 Event.type:       .space 4   # EVT_*
@@ -393,6 +387,14 @@ LangStrings.du_unit_dirs:       .space 8
 LangStrings.du_unit_files:      .space 8
 LangStrings.du_scan_hint:       .space 8
 LangStrings.msg_du_canceled:    .space 8
+LangStrings.pkg_title:          .space 8
+LangStrings.pkg_hint:           .space 8
+LangStrings.pkg_empty:          .space 8
+LangStrings.pkg_install_prompt: .space 8
+LangStrings.pkg_installed:      .space 8
+LangStrings.pkg_removed:        .space 8
+LangStrings.pkg_verified:       .space 8
+LangStrings.pkg_err:            .space 8
 LangStrings._size:
 
 .section .text

@@ -48,12 +48,12 @@ App_close_dialog:
     je .Lacd_filter
     cmp eax, OP_GOTO
     je .Lacd_goto
-    cmp eax, OP_QUIT
-    je .Lacd_quit
+    cmp eax, OP_QUIT; je .Lacd_quit; cmp eax, 25; je .Lacd_pkg_inst
     call App_close_dialog__close_dialog_ext
     js .Lacd_fs_err
     jmp .Lacd_free
 
+.Lacd_pkg_inst: mov rdi, rbx; mov rsi, r13; call App_pkg_install_confirm; jmp .Lacd_free
 .Lacd_mkdir:
     cmp byte ptr [r13 + InputDialog.buf], 0
     je .Lacd_free

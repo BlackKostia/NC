@@ -18,6 +18,7 @@ str_flag_cdir:   .asciz "--choosedir"
 str_flag_cdireq: .asciz "--choosedir="
 str_flag_L:      .asciz "-L"
 str_flag_lic:    .asciz "--license"
+str_cmd_pkg:     .asciz "pkg"
 
 str_license:
     .ascii "MIT License\n\n"
@@ -51,6 +52,16 @@ parse_lang_val:
 .Lplv_ret:
     ret
 
+main_init_pkg:
+    mov rdi, r13; call i18n_load
+    cmp ebx, 2; jl .Lmip_tui
+    mov rdi, [r12 + 8]; lea rsi, [rip + str_cmd_pkg]; call str_cmp
+    test eax, eax; jnz .Lmip_tui
+    mov edi, ebx; mov rsi, r12; mov rdx, r13; call pkg_cli_dispatch
+    mov edi, eax; jmp main_exit
+.Lmip_tui:
+    ret
+
 _start:
     # Read argc, argv, envp from initial Linux stack
     mov rbx, [rsp]            # argc
@@ -72,8 +83,7 @@ _start:
     mov rdi, r13
     call mc_init
 .endif
-    mov rdi, r13
-    call i18n_load            # interface languages: lang/*.lang packs
+    call main_init_pkg
 
 .Lmain_arg_loop:
     mov eax, [rsp + 8]
