@@ -288,6 +288,8 @@ test-smart: $(TARGET)
 
 audit-all: $(TARGET)
 	python3 .agents/skills/duop-reliability-audit/scripts/audit_stack_abi.py
+	python3 .agents/skills/duop-reliability-audit/scripts/audit_cfg_stack.py
+	python3 .agents/skills/duop-reliability-audit/scripts/audit_syscall_clobber.py
 	python3 .agents/skills/duop-reliability-audit/scripts/audit_abi_regs.py
 	python3 .agents/skills/duop-reliability-audit/scripts/audit_oop_vtables.py
 	python3 .agents/skills/duop-reliability-audit/scripts/audit_fd_eintr.py

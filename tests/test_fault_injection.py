@@ -148,12 +148,71 @@ def test_memcheck_malformed_image_no_leaks() -> None:
             assert "LEAK " not in txt and "BAD_FREE" not in txt, f"Memcheck error:\n{txt}"
 
 
+def test_path_max_boundary_no_crash() -> None:
+    with tempfile.TemporaryDirectory() as td:
+        base = Path(td)
+        src = base / "src"
+        dst = base / "dst"
+        src.mkdir()
+        dst.mkdir()
+        # Build deep tree exceeding PATH_MAX (4096 bytes) using dir_fd
+        dfd = os.open(src, os.O_RDONLY)
+        seg = "d" * 200
+        try:
+            for i in range(21):
+                name = f"{seg}_{i:02d}"
+                os.mkdir(name, dir_fd=dfd)
+                ndfd = os.open(name, os.O_RDONLY | os.O_DIRECTORY, dir_fd=dfd)
+                os.close(dfd)
+                dfd = ndfd
+            lfd = os.open("leaf.txt", os.O_WRONLY | os.O_CREAT, 0o644, dir_fd=dfd)
+            os.write(lfd, b"deep-path-ok\n")
+            os.close(lfd)
+        finally:
+            os.close(dfd)
+
+        # Select deep dir and attempt F5 copy; must not crash on ENAMETOOLONG / truncation
+        rc, _ = run_pty(BIN, [str(src), str(dst)], base, [b"\x1b[B", b"\x1b[15~", b"\r", b"\x1b"])
+        assert rc == 0, f"duop crashed on PATH_MAX boundary tree (rc={rc})"
+
+
+def test_parallel_du_stress() -> None:
+    with tempfile.TemporaryDirectory() as td:
+        base = Path(td)
+        src = base / "du_tree"
+        dst = base / "dst"
+        src.mkdir()
+        dst.mkdir()
+        for d in range(8):
+            sub = src / f"dir_{d}"
+            sub.mkdir()
+            for f in range(30):
+                (sub / f"f_{f}.dat").write_bytes(b"X" * 128)
+
+        # Trigger Ctrl+U / Alt+D or navigate while DU is active, then quit cleanly
+        mc_log = base / "mc_du.log"
+        target_bin = MC_BIN if MC_BIN.is_file() else BIN
+        rc, _ = run_pty(
+            target_bin,
+            [str(src), str(dst)],
+            base,
+            [b"\x1bd", b"\x1b[B", b"\x1b[B", b"\x1b"],
+            env_extra={"DUOP_MEMCHECK_LOG": str(mc_log)},
+        )
+        assert rc == 0, f"duop crashed during parallel DU stress (rc={rc})"
+        if MC_BIN.is_file() and mc_log.is_file():
+            txt = mc_log.read_text(encoding="utf-8", errors="replace")
+            assert "LEAK " not in txt and "BAD_FREE" not in txt, f"DU memcheck error:\n{txt}"
+
+
 def main() -> int:
     assert BIN.exists(), "duop binary missing; run make first"
     for fn in (
         test_corrupt_images_preview_and_viewer,
         test_corrupt_configs_and_lang_packs,
         test_memcheck_malformed_image_no_leaks,
+        test_path_max_boundary_no_crash,
+        test_parallel_du_stress,
     ):
         fn()
         print(f"PASS: {fn.__name__}")

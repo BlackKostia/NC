@@ -32,8 +32,10 @@ fi
 
 # 3. Validate VERSION format, Makefile SRCS sync, layer rules, and i18n symmetry
 python3 ./.agents/skills/duop-modular-asm/scripts/check_modularity.py --root "$ROOT"
-# 3a. Stack/struct bounds, ABI, OOP vtable & FD/-EINTR reliability audits
+# 3a. Stack/struct bounds, CFG, syscall-clobber, ABI, OOP vtable & FD/-EINTR reliability audits
 python3 ./.agents/skills/duop-reliability-audit/scripts/audit_stack_abi.py
+python3 ./.agents/skills/duop-reliability-audit/scripts/audit_cfg_stack.py
+python3 ./.agents/skills/duop-reliability-audit/scripts/audit_syscall_clobber.py
 python3 ./.agents/skills/duop-reliability-audit/scripts/audit_abi_regs.py
 python3 ./.agents/skills/duop-reliability-audit/scripts/audit_oop_vtables.py
 python3 ./.agents/skills/duop-reliability-audit/scripts/audit_fd_eintr.py

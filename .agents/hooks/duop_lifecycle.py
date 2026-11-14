@@ -321,7 +321,7 @@ def handle_post_tool_use(payload: dict, root: Path) -> dict:
                         check=False,
                     )
             if rel.startswith(("src/", "include/")) and rel.endswith((".s", ".inc")):
-                for rscript_name in ("audit_stack_abi.py", "audit_oop_vtables.py", "audit_fd_eintr.py"):
+                for rscript_name in ("audit_stack_abi.py", "audit_cfg_stack.py", "audit_syscall_clobber.py", "audit_oop_vtables.py", "audit_fd_eintr.py"):
                     rel_script = root / ".agents/skills/duop-reliability-audit/scripts" / rscript_name
                     if rel_script.is_file():
                         rproc = subprocess.run(

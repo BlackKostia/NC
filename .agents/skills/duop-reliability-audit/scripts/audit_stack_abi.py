@@ -25,6 +25,10 @@ RE_STRUCT_START = re.compile(r"^\s*\.struct\s+(-?\d+|0x[0-9a-fA-F]+)?")
 RE_STRUCT_FIELD = re.compile(
     r"^\s*([A-Za-z_][A-Za-z0-9_.]*)\s*:\s*\.(byte|word|long|quad|space|skip|fill)\b(.*)$"
 )
+RE_CLASS_BEGIN = re.compile(r"^\s*CLASS_BEGIN\s+([A-Za-z_][A-Za-z0-9_]*)")
+RE_EXTENDS = re.compile(r"^\s*EXTENDS\s+([A-Za-z_][A-Za-z0-9_]*)")
+RE_FIELD = re.compile(r"^\s*FIELD\s+([A-Za-z_][A-Za-z0-9_.]*)\s*,\s*(.+)$")
+RE_CLASS_END = re.compile(r"^\s*CLASS_END\s+([A-Za-z_][A-Za-z0-9_]*)")
 RE_STRUCT_LABEL = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_.]*)\s*:")
 RE_LABEL = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*):")
 RE_SUB_RSP = re.compile(r"^\s*sub\s+rsp\s*,\s*(.+)$")
@@ -99,7 +103,31 @@ def parse_includes() -> tuple[dict[str, int], dict[str, int]]:
                     in_struct = True
                     struct_offset = int(ms.group(1), 0) if ms.group(1) else 0
                     continue
+                mcb = RE_CLASS_BEGIN.match(code_s)
+                if mcb:
+                    in_struct = True
+                    struct_offset = 0
+                    continue
                 if in_struct:
+                    me = RE_EXTENDS.match(code_s)
+                    if me:
+                        struct_offset = structs.get(me.group(1), 0)
+                        continue
+                    mfi = RE_FIELD.match(code_s)
+                    if mfi:
+                        fname = mfi.group(1)
+                        consts[fname] = struct_offset
+                        sz = eval_expr(mfi.group(2), consts)
+                        if sz is not None:
+                            struct_offset += sz
+                        continue
+                    mce = RE_CLASS_END.match(code_s)
+                    if mce:
+                        cname = mce.group(1)
+                        consts[f"{cname}._size"] = struct_offset
+                        structs[cname] = struct_offset
+                        in_struct = False
+                        continue
                     if code_s.startswith(".text") or code_s.startswith(".section") or code_s.startswith(".macro"):
                         in_struct = False
                         continue
@@ -179,6 +207,7 @@ def audit_file(
         sub_lines: list[tuple[int, int]] = []
         add_lines: list[tuple[int, int]] = []
         filestat_bases: set[int] = set()
+        other_struct_refs: list[tuple[int, str, int, int]] = []  # (lineno, sname, base, size)
         scratch_offsets: list[tuple[int, int, str, bool]] = []
         alignment_checked = False
         temp_push_depth = 0
@@ -270,6 +299,17 @@ def audit_file(
                             if base_val >= 0:
                                 filestat_bases.add(base_val)
                     else:
+                        msf = re.search(r"([A-Za-z_][A-Za-z0-9_]*)\.(?!_size\b)([A-Za-z_][A-Za-z0-9_]*)", expr)
+                        if msf and msf.group(1) in structs and msf.group(1) != "FileStat":
+                            sname = msf.group(1)
+                            base_expr = re.sub(rf"{re.escape(sname)}\.(?!_size\b)\w+", "0", expr)
+                            base_val = eval_expr(base_expr, consts)
+                            if base_val is not None:
+                                base_val -= temp_push_depth
+                                if is_step and base_val >= 16:
+                                    base_val -= 16
+                                if base_val >= 0:
+                                    other_struct_refs.append((lineno, sname, base_val, structs[sname]))
                         off_val = eval_expr(expr, consts)
                         if off_val is not None:
                             off_val -= temp_push_depth
@@ -284,6 +324,7 @@ def audit_file(
                 "rt": rt,
                 "frame_bytes": frame_bytes,
                 "filestat_bases": filestat_bases,
+                "other_struct_refs": other_struct_refs,
                 "scratch_offsets": scratch_offsets,
             }
             # Skip sub/add mismatch check for fork()/exec() child-exit routines (OS_EXIT) or stack-arg cleanup
@@ -307,6 +348,7 @@ def audit_file(
             if parent_name in parent_info:
                 pinfo = parent_info[parent_name]
                 pinfo["filestat_bases"].update(filestat_bases)
+                pinfo["other_struct_refs"].extend(other_struct_refs)
                 pinfo["scratch_offsets"].extend(scratch_offsets)
 
     for pname, info in parent_info.items():
@@ -320,6 +362,17 @@ def audit_file(
                     findings.append(
                         f"{rel}:{rt['start_line']} ({pname}): FileStat at [rsp + {base}] needs "
                         f"{base + fs_size}B (FileStat._size={fs_size}), but frame is only {frame_bytes}B"
+                    )
+        if frame_bytes is not None and info["other_struct_refs"]:
+            seen_other: set[tuple[str, int]] = set()
+            for slino, sname, sbase, ssize in info["other_struct_refs"]:
+                if (sname, sbase) in seen_other:
+                    continue
+                seen_other.add((sname, sbase))
+                if sbase + ssize > frame_bytes:
+                    findings.append(
+                        f"{rel}:{slino} ({pname}): {sname} at [rsp + {sbase}] needs "
+                        f"{sbase + ssize}B ({sname}._size={ssize}), but frame is only {frame_bytes}B"
                     )
 
         for i in range(len(sorted_bases) - 1):
