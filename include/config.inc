@@ -30,6 +30,10 @@
 .equ TASK_TICK_MS,        100       # UI refresh cadence while a task runs
 .equ TASK_KILL_GRACE_MS,  3000      # shutdown: SIGKILL a worker that ignores cancel this long
 
+.equ CONFLICT_ACT_OVERWRITE, 1
+.equ CONFLICT_ACT_SKIP,      2
+.equ CONFLICT_ACT_RENAME,    3
+
 # --- Event loop timings ---
 .equ PREVIEW_DEBOUNCE_MS, 25        # coalesce rapid cursor moves into one preview read
 .equ WATCH_DEBOUNCE_MS,   150       # coalesce bursts of directory change events
@@ -139,6 +143,27 @@
 # --- App Modes / Right Pane Mode ---
 .equ RIGHT_MODE_PANE,     0
 .equ RIGHT_MODE_PREVIEW,  1
+
+# --- Configurable Action IDs (duoprc bind) ---
+.equ ACT_QUIT,            1
+.equ ACT_HELP,            2
+.equ ACT_RENAME,          3
+.equ ACT_VIEW,            4
+.equ ACT_EDIT,            5
+.equ ACT_COPY,            6
+.equ ACT_MOVE,            7
+.equ ACT_MKDIR,           8
+.equ ACT_DELETE,          9
+.equ ACT_PREVIEW,         10
+.equ ACT_HIDDEN,          11
+.equ ACT_THEME,           12
+.equ ACT_LANG,            13
+.equ ACT_FILTER,          14
+.equ ACT_GOTO,            15
+.equ ACT_NEWFILE,         16
+.equ ACT_SHELL,           17
+.equ ACT_REFRESH,         18
+.equ ACT_USERMENU,        19
 
 # --- Unicode Codepoints for Modern UI ---
 .equ CH_BOX_TL,           0x256D   # ╭

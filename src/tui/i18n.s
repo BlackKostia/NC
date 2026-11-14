@@ -156,6 +156,36 @@ en_err_canceled:      .asciz "Operation canceled"
 en_err_busy:          .asciz "Another background operation is running"
 en_app_title_quit_tk: .asciz "Background Operation"
 en_app_msg_quit_tk:   .asciz "An operation is still running. Cancel it and quit?"
+en_dlg_title_usermenu: .asciz "User Menu"
+en_um_hint:           .asciz "Enter: Run  •  Esc: Close"
+en_dlg_title_bm:      .asciz "Bookmarks (Hotlist)"
+en_bm_hint:           .asciz "Enter: Jump  •  a: Add  •  d: Remove  •  Esc: Close"
+en_dlg_title_fre:     .asciz "Frecency Jump (z)"
+en_fre_hint:          .asciz "Type substring • Up/Down • Enter: Jump • Esc: Close"
+en_msg_bm_added:      .asciz "Bookmark added"
+en_msg_hist_empty:    .asciz "No history"
+en_msg_tab_last:      .asciz "Cannot close last tab"
+en_dlg_title_conflict: .asciz "File Conflict"
+en_cfl_btn_overwrite: .asciz "Overwrite"
+en_cfl_btn_skip:      .asciz "Skip"
+en_cfl_btn_rename:    .asciz "Rename"
+en_cfl_lbl_forall:    .asciz "For all"
+en_cfl_hint:          .asciz "o: Overwrite • s: Skip • r: Rename • a: For all • Esc: Cancel"
+en_dlg_title_search:  .asciz "Recursive Search"
+en_srch_lbl_name:     .asciz "Name mask:"
+en_srch_lbl_grep:     .asciz "Content (grep):"
+en_srch_hint:         .asciz "Tab: Switch field • Enter: Search • Esc: Cancel"
+en_fp_search_badge:   .asciz " [Search]"
+en_msg_search_none:   .asciz "No matches found"
+en_dlg_title_info:    .asciz "File Info"
+en_dlg_title_chmod:   .asciz "Permissions (chmod/chown)"
+en_dlg_title_symlink: .asciz "Create Symlink"
+en_dlg_title_hardlink:.asciz "Create Hardlink"
+en_prm_link_target:   .asciz "Link path:"
+en_chm_hint:          .asciz "1-9/Space: Bit • u/g: uid:gid • Enter: Apply"
+en_msg_trashed:       .asciz "Moved to Trash"
+en_msg_undone:        .asciz "Undone"
+en_msg_undo_empty:    .asciz "Nothing to undo"
 
 # ==============================================================================
 # Ukrainian String Table (LANG_UA = 1)
@@ -303,6 +333,36 @@ ua_err_canceled:      .asciz "Операцію скасовано"
 ua_err_busy:          .asciz "Уже виконується інша фонова операція"
 ua_app_title_quit_tk: .asciz "Фонова операція"
 ua_app_msg_quit_tk:   .asciz "Операція ще триває. Скасувати її та вийти?"
+ua_dlg_title_usermenu: .asciz "Меню користувача"
+ua_um_hint:           .asciz "Enter: Виконати  •  Esc: Закрити"
+ua_dlg_title_bm:      .asciz "Закладки (Hotlist)"
+ua_bm_hint:           .asciz "Enter: Перейти  •  a: Додати  •  d: Видалити  •  Esc: Закрити"
+ua_dlg_title_fre:     .asciz "Швидкий перехід (z)"
+ua_fre_hint:          .asciz "Підрядок • ↑/↓ • Enter: Перейти • Esc: Закрити"
+ua_msg_bm_added:      .asciz "Закладку додано"
+ua_msg_hist_empty:    .asciz "Історія порожня"
+ua_msg_tab_last:      .asciz "Не можна закрити останню вкладку"
+ua_dlg_title_conflict: .asciz "Конфлікт файлу"
+ua_cfl_btn_overwrite: .asciz "Перезаписати"
+ua_cfl_btn_skip:      .asciz "Пропустити"
+ua_cfl_btn_rename:    .asciz "Перейменувати"
+ua_cfl_lbl_forall:    .asciz "Для всіх"
+ua_cfl_hint:          .asciz "o: Перезапис • s: Пропуск • r: Перейм. • a: Для всіх • Esc"
+ua_dlg_title_search:  .asciz "Рекурсивний пошук"
+ua_srch_lbl_name:     .asciz "Маска імені:"
+ua_srch_lbl_grep:     .asciz "Вміст (grep):"
+ua_srch_hint:         .asciz "Tab: Поле • Enter: Пошук • Esc: Скасувати"
+ua_fp_search_badge:   .asciz " [Пошук]"
+ua_msg_search_none:   .asciz "Збігів не знайдено"
+ua_dlg_title_info:    .asciz "Інформація про файл"
+ua_dlg_title_chmod:   .asciz "Права (chmod/chown)"
+ua_dlg_title_symlink: .asciz "Створити symlink"
+ua_dlg_title_hardlink:.asciz "Створити hardlink"
+ua_prm_link_target:   .asciz "Шлях посилання:"
+ua_chm_hint:          .asciz "1-9/Пробіл: Біт • u/g: uid:gid • Enter: ОК"
+ua_msg_trashed:       .asciz "Переміщено до кошика"
+ua_msg_undone:        .asciz "Скасовано"
+ua_msg_undo_empty:    .asciz "Нічого скасовувати"
 
 .align 8
 .global lang_en_table
@@ -333,6 +393,12 @@ lang_en_table:
     .quad en_task_btn_pause, en_task_btn_resume, en_task_btn_bg
     .quad en_task_lbl_files, en_task_lbl_eta, en_task_lbl_scan, en_task_lbl_paused, en_task_lbl_cancel
     .quad en_task_sb_hint, en_err_canceled, en_err_busy, en_app_title_quit_tk, en_app_msg_quit_tk
+    .quad en_dlg_title_usermenu, en_um_hint
+    .quad en_dlg_title_bm, en_bm_hint, en_dlg_title_fre, en_fre_hint
+    .quad en_msg_bm_added, en_msg_hist_empty, en_msg_tab_last
+    .quad en_dlg_title_conflict, en_cfl_btn_overwrite, en_cfl_btn_skip, en_cfl_btn_rename, en_cfl_lbl_forall, en_cfl_hint
+    .quad en_dlg_title_search, en_srch_lbl_name, en_srch_lbl_grep, en_srch_hint, en_fp_search_badge, en_msg_search_none
+    .quad en_dlg_title_info, en_dlg_title_chmod, en_dlg_title_symlink, en_dlg_title_hardlink, en_prm_link_target, en_chm_hint, en_msg_trashed, en_msg_undone, en_msg_undo_empty
 .if (. - lang_en_table) != LangStrings._size
     .error "lang_en_table size does not match LangStrings._size"
 .endif
@@ -366,6 +432,12 @@ lang_ua_table:
     .quad ua_task_btn_pause, ua_task_btn_resume, ua_task_btn_bg
     .quad ua_task_lbl_files, ua_task_lbl_eta, ua_task_lbl_scan, ua_task_lbl_paused, ua_task_lbl_cancel
     .quad ua_task_sb_hint, ua_err_canceled, ua_err_busy, ua_app_title_quit_tk, ua_app_msg_quit_tk
+    .quad ua_dlg_title_usermenu, ua_um_hint
+    .quad ua_dlg_title_bm, ua_bm_hint, ua_dlg_title_fre, ua_fre_hint
+    .quad ua_msg_bm_added, ua_msg_hist_empty, ua_msg_tab_last
+    .quad ua_dlg_title_conflict, ua_cfl_btn_overwrite, ua_cfl_btn_skip, ua_cfl_btn_rename, ua_cfl_lbl_forall, ua_cfl_hint
+    .quad ua_dlg_title_search, ua_srch_lbl_name, ua_srch_lbl_grep, ua_srch_hint, ua_fp_search_badge, ua_msg_search_none
+    .quad ua_dlg_title_info, ua_dlg_title_chmod, ua_dlg_title_symlink, ua_dlg_title_hardlink, ua_prm_link_target, ua_chm_hint, ua_msg_trashed, ua_msg_undone, ua_msg_undo_empty
 .if (. - lang_ua_table) != LangStrings._size
     .error "lang_ua_table size does not match LangStrings._size"
 .endif

@@ -1,4 +1,5 @@
 # Class Hierarchy & Virtual Table Specifications for Duop
+.include "pal.inc"
 #
 # Inheritance tree:
 #   Object
@@ -137,7 +138,7 @@ CLASS_BEGIN DirModel
     FIELD DirModel.flt_lc_len,     4   # byte length of flt_lc
     FIELD DirModel.flt_valid,      4   # 1: order[] == filter(flt_applied) over all raw entries
     FIELD DirModel.flt_hidden,     4   # show_hidden used for flt_applied
-    FIELD DirModel.flt_pad,        4
+    FIELD DirModel.virtual_mode,   4   # 0=normal, 1=VIRTUAL_SEARCH
     FIELD DirModel.path,           PATH_MAX
     FIELD DirModel.filter,         FILTER_MAX
     FIELD DirModel.flt_lc,         FILTER_MAX  # ASCII-lowercased filter (SIMD needle)
@@ -192,8 +193,12 @@ CLASS_BEGIN FilePane
     FIELD FilePane.hovered_col_hdr, 4
     FIELD FilePane.dragging_scroll, 4
     FIELD FilePane.hdr_zone_count,  4
-    FIELD FilePane.pad,             4
+    FIELD FilePane.tab_count,       4
+    FIELD FilePane.active_tab,      4
+    FIELD FilePane.tab_zone_count,  4
+    FIELD FilePane.tabs,            8
     FIELD FilePane.hdr_zones,       4*HitZone._size
+    FIELD FilePane.tab_zones,       8*HitZone._size
 CLASS_END FilePane
 
 CLASS_BEGIN PreviewPane
@@ -265,6 +270,26 @@ CLASS_BEGIN ProgressDialog
     FIELD ProgressDialog.btn_lbl, 3*8   # current labels of [Pause|Resume, Background, Cancel]
 CLASS_END ProgressDialog
 
+CLASS_BEGIN UserMenuDialog
+    EXTENDS Dialog
+    FIELD UserMenuDialog.cursor, 4
+    FIELD UserMenuDialog.scroll, 4
+CLASS_END UserMenuDialog
+
+CLASS_BEGIN BookmarkDialog
+    EXTENDS Dialog
+    FIELD BookmarkDialog.mode,       4   # 0=Bookmarks, 1=Frecency
+    FIELD BookmarkDialog.cursor,     4
+    FIELD BookmarkDialog.scroll,     4
+    FIELD BookmarkDialog.filter_len, 4
+    FIELD BookmarkDialog.match_cnt,  4
+    FIELD BookmarkDialog.pad,        4
+    FIELD BookmarkDialog.filter,     64
+    FIELD BookmarkDialog.matches,    128*4
+CLASS_END BookmarkDialog
+
+.include "dialogs_ext.inc"
+
 CLASS_BEGIN App
     EXTENDS Object
     FIELD App.screen,        8
@@ -319,6 +344,14 @@ CLASS_END App
 .equ OP_CHMOD,   9
 .equ OP_PROGRESS, 10
 .equ OP_QUIT,     11
+.equ OP_USERMENU,  12
+.equ OP_BOOKMARKS, 13
+.equ OP_FRECENCY,  14
+.equ OP_CONFLICT,  15
+.equ OP_SEARCH,    16
+.equ OP_INFO,      17
+.equ OP_SYMLINK,   18
+.equ OP_HARDLINK,  19
 
 # --- HeaderBar Action IDs ---
 .equ HDR_BTN_THEME,   1

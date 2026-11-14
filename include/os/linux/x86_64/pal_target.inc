@@ -35,8 +35,11 @@
 .equ OS_SYS_newfstatat,     262
 .equ OS_SYS_unlinkat,       263
 .equ OS_SYS_renameat,       264
+.equ OS_SYS_linkat,         265
 .equ OS_SYS_symlinkat,      266
 .equ OS_SYS_readlinkat,     267
+.equ OS_SYS_fchmodat,       268
+.equ OS_SYS_fchownat,       260
 .equ OS_SYS_ppoll,          271
 .equ OS_SYS_pipe2,          293
 .equ OS_SYS_inotify_init1,  294
@@ -182,7 +185,10 @@
 .equ KSTAT_SIZE,            144
 .equ KSTAT_DEV,             0
 .equ KSTAT_INO,             8
+.equ KSTAT_NLINK,           16
 .equ KSTAT_MODE,            24
+.equ KSTAT_UID,             28
+.equ KSTAT_GID,             32
 .equ KSTAT_ST_SIZE,         48
 .equ KSTAT_MTIME,           88
 .equ KSTAT_MTIME_NSEC,      96
@@ -290,6 +296,21 @@
 
 .macro OS_READLINKAT
     mov eax, OS_SYS_readlinkat
+    syscall
+.endm
+
+.macro OS_LINKAT
+    mov eax, OS_SYS_linkat
+    syscall
+.endm
+
+.macro OS_FCHMODAT
+    mov eax, OS_SYS_fchmodat
+    syscall
+.endm
+
+.macro OS_FCHOWNAT
+    mov eax, OS_SYS_fchownat
     syscall
 .endm
 

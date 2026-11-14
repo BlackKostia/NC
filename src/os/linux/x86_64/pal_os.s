@@ -56,6 +56,12 @@ copy_kstat_to_filestat:
     mov [rdi + FileStat.mode], eax
     mov eax, [rsi + KSTAT_MTIME_NSEC]
     mov [rdi + FileStat.mtime_nsec], eax
+    mov rax, [rsi + KSTAT_NLINK]
+    mov [rdi + FileStat.nlink], rax
+    mov eax, [rsi + KSTAT_UID]
+    mov [rdi + FileStat.uid], eax
+    mov eax, [rsi + KSTAT_GID]
+    mov [rdi + FileStat.gid], eax
     ret
 
 # int os_statat(int dirfd, const char *path, FileStat *out, int follow_symlinks)
@@ -611,39 +617,29 @@ os_signals_worker_mode:
     add rsp, KSIGACTION_SIZE + 8
     ret
 
+# Helper: void os_sig_set(int sig, void *sa_buf)
+os_sig_set:
+    mov rsi, rdx; xor edx, edx; mov r10d, 8; mov eax, OS_SYS_rt_sigaction; syscall; ret
+
 # void os_signals_install(void (*on_winch)(void), void (*on_term)(void))
 os_signals_install:
     sub rsp, KSIGACTION_SIZE + 8   # keep 16-byte alignment + spill slot for on_term
     mov [rsp + KSIGACTION_SIZE], rsi
-
     mov [rsp + KSIG_HANDLER], rdi
     mov qword ptr [rsp + KSIG_FLAGS], SA_RESTORER
     lea rax, [rip + sig_restorer]
     mov [rsp + KSIG_RESTORER], rax
     mov qword ptr [rsp + KSIG_MASK], 0
-
     mov edi, SIGWINCH
-    mov rsi, rsp
-    xor edx, edx
-    mov r10d, 8
-    mov eax, OS_SYS_rt_sigaction
-    syscall
-
+    mov rdx, rsp
+    call os_sig_set
     mov rax, [rsp + KSIGACTION_SIZE]
     mov [rsp + KSIG_HANDLER], rax
     mov edi, SIGINT
-    mov rsi, rsp
-    xor edx, edx
-    mov r10d, 8
-    mov eax, OS_SYS_rt_sigaction
-    syscall
-
+    mov rdx, rsp
+    call os_sig_set
     mov edi, SIGTERM
-    mov rsi, rsp
-    xor edx, edx
-    mov r10d, 8
-    mov eax, OS_SYS_rt_sigaction
-    syscall
-
+    mov rdx, rsp
+    call os_sig_set
     add rsp, KSIGACTION_SIZE + 8
     ret

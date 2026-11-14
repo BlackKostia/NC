@@ -61,8 +61,13 @@ TaskShared.result:      .space 8   # final 0 / -errno (valid once phase == TASK_
 TaskShared.seq:         .space 4   # seqlock counter for cur_name (odd = writer active)
 TaskShared.phase:       .space 4   # TASK_PHASE_*
 TaskShared.cancel:      .space 4   # set to 1 by the UI process to request cooperative cancel
-TaskShared.pad:         .space 4
+TaskShared.conflict_state:  .space 4   # 0=none, 1=worker waiting, 2=UI decision ready
+TaskShared.conflict_action: .space 4   # CONFLICT_ACT_*
+TaskShared.conflict_all:    .space 4   # 1=apply to all remaining conflicts
+TaskShared.conflict_src_sz: .space 8
+TaskShared.conflict_dst_sz: .space 8
 TaskShared.cur_name:    .space 256      # == NAME_MAX (asserted in src/fs/task.s)
+TaskShared.conflict_name: .space 256    # == NAME_MAX
 TaskShared._size:
 
 # --- TaskSnap (UI-side consistent snapshot of the running task) ---
@@ -262,6 +267,36 @@ LangStrings.err_canceled:       .space 8
 LangStrings.err_busy:           .space 8
 LangStrings.app_title_quit_task: .space 8
 LangStrings.app_msg_quit_task:  .space 8
+LangStrings.dlg_title_usermenu: .space 8
+LangStrings.um_hint:            .space 8
+LangStrings.dlg_title_bookmarks: .space 8
+LangStrings.bm_hint:            .space 8
+LangStrings.dlg_title_frecency: .space 8
+LangStrings.fre_hint:           .space 8
+LangStrings.msg_bm_added:       .space 8
+LangStrings.msg_hist_empty:     .space 8
+LangStrings.msg_tab_last:       .space 8
+LangStrings.dlg_title_conflict: .space 8
+LangStrings.cfl_btn_overwrite:  .space 8
+LangStrings.cfl_btn_skip:       .space 8
+LangStrings.cfl_btn_rename:     .space 8
+LangStrings.cfl_lbl_forall:     .space 8
+LangStrings.cfl_hint:           .space 8
+LangStrings.dlg_title_search:   .space 8
+LangStrings.srch_lbl_name:      .space 8
+LangStrings.srch_lbl_grep:      .space 8
+LangStrings.srch_hint:          .space 8
+LangStrings.fp_search_badge:    .space 8
+LangStrings.msg_search_none:    .space 8
+LangStrings.dlg_title_info:     .space 8
+LangStrings.dlg_title_chmod:    .space 8
+LangStrings.dlg_title_symlink:  .space 8
+LangStrings.dlg_title_hardlink: .space 8
+LangStrings.prm_link_target:    .space 8
+LangStrings.chm_hint:           .space 8
+LangStrings.msg_trashed:        .space 8
+LangStrings.msg_undone:         .space 8
+LangStrings.msg_undo_empty:     .space 8
 LangStrings._size:
 
 .section .text

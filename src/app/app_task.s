@@ -16,6 +16,7 @@
 .global App_task_cancel
 .global App_task_confirm_quit
 .global App_task_shutdown
+.global App_task_conflict_done
 
 # Internal: void task_status_errno(App *app, int64_t neg_errno)
 task_status_errno:
@@ -48,7 +49,7 @@ App_task_start:
     push r13
     push r14
     push r15
-    sub rsp, 64               # [0]=sel_count [8]=names_len [16]=job [24]=idx [32..79]=FileStat
+    sub rsp, 80               # [0]=sel_count [8]=names_len [16]=job [24]=idx [32..79]=FileStat
     mov rbx, rdi
     mov r12d, esi
     mov r13, rdx
@@ -259,7 +260,7 @@ App_task_start:
     mov rsi, -ENOMEM
     call task_status_errno
 .Lats_ret:
-    add rsp, 64
+    add rsp, 80
     pop r15
     pop r14
     pop r13
@@ -351,6 +352,34 @@ App_task_tick:
     mov dword ptr [rbx + App.need_redraw], 1
 
 .Ltt_dialog:
+    # Check if background worker hit a file conflict
+    sub rsp, NAME_MAX + 17
+    mov rdi, rsp
+    lea rsi, [rsp + NAME_MAX + 1]
+    lea rdx, [rsp + NAME_MAX + 9]
+    call fs_task_check_conflict
+    test eax, eax
+    jz .Ltt_no_cfl
+    mov rdi, [rbx + App.active_dialog]
+    test rdi, rdi
+    jz .Ltt_open_cfl
+    cmp dword ptr [rdi + Dialog.op_tag], OP_PROGRESS
+    jne .Ltt_no_cfl
+    mov qword ptr [rbx + App.active_dialog], 0
+    DELETE_OBJ rdi
+.Ltt_open_cfl:
+    mov rdi, rbx
+    mov rsi, rsp
+    mov rdx, [rsp + NAME_MAX + 1]
+    mov rcx, [rsp + NAME_MAX + 9]
+    call ConflictDialog_new
+    mov [rbx + App.active_dialog], rax
+    mov dword ptr [rbx + App.need_redraw], 1
+    add rsp, NAME_MAX + 17
+    jmp .Ltt_ret
+.Ltt_no_cfl:
+    add rsp, NAME_MAX + 17
+
     cmp qword ptr [rbx + App.active_dialog], 0
     jne .Ltt_ret
     cmp dword ptr [rbx + App.task_hidden], 0
@@ -447,3 +476,18 @@ App_task_shutdown:
     call input_set_wake_fd
     pop rbx
     ret
+
+# void App_task_conflict_done(App *app, int result, ConflictDialog *dlg)
+App_task_conflict_done:
+    cmp esi, DLG_OK
+    jne .Latcd_cancel
+    mov edi, [rdx + ConflictDialog.action]
+    mov esi, [rdx + ConflictDialog.for_all]
+    jmp fs_task_reply_conflict
+.Latcd_cancel:
+    push rdi
+    mov edi, CONFLICT_ACT_SKIP
+    mov esi, 1
+    call fs_task_reply_conflict
+    pop rdi
+    jmp App_task_cancel

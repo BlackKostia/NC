@@ -20,10 +20,12 @@
 ## Рівень 1 (`v1.1`) — Закрити базові прогалини (щоденний інструмент замість `mc` / `ranger` / `lf`)
 
 ### 1.0 `cd-on-exit` (`--choosedir=FILE`)
+- **Статус**: ✅ реалізовано (`--choosedir=FILE` / `--choosedir FILE`, [main.s](src/main.s), [app.s](src/app/app.s), [scripts/duop-cd.sh](scripts/duop-cd.sh), [test_choosedir.py](tests/test_choosedir.py)).
 - **Файли**: [main.s](src/main.s), [app.s](src/app/app.s), shell-обгортка у `README.md` / `scripts/`.
 - **Реалізація**: при виході з прапорцем `--choosedir=FILE` записувати шлях активної панелі у `FILE`, щоб shell (`bash`/`zsh`/`fish`) після закриття `duop` переходив у вибраний каталог.
 
 ### 1.1 Конфігурація `~/.config/duop/duoprc` та User Menu
+- **Статус**: ✅ реалізовано ([config.s](src/core/config.s), [user_menu_dlg.s](src/ui/user_menu_dlg.s), [theme.s](src/tui/theme.s), [app.s](src/app/app.s), [test_config_usermenu.py](tests/test_config_usermenu.py)).
 - **Новий файл**: `src/core/config.s`; інтеграція в [app.s](src/app/app.s) і [theme.s](src/tui/theme.s).
 - **Можливості**:
   - перевизначення гарячих клавіш (`bind`);
@@ -38,6 +40,7 @@
 - **Архітектурна зміна**: винести мультиплексування `SYS_poll`/`SYS_ppoll` із `wait_and_read` ([input.s](src/tui/input.s)) у головний цикл `App_run`, щоб водночас слухати `STDIN_FD`, `inotify_fd` (`SYS_inotify_init1`, `SYS_inotify_add_watch` для лівої й правої панелей), канали фонових задач (`pipe2`) і вбудований PTY без затримок у 200 мс.
 
 ### 1.3 Історія навігації, закладки, `frecency` та вкладки панелей
+- **Статус**: ✅ реалізовано ([nav_state.s](src/fs/nav_state.s), [bookmark_dlg.s](src/ui/bookmark_dlg.s), [file_pane.s](src/ui/file_pane.s), [app.s](src/app/app.s), [test_nav_tabs.py](tests/test_nav_tabs.py)).
 - **Файли**: [classes.inc](include/classes.inc), [file_pane.s](src/ui/file_pane.s), [app.s](src/app/app.s).
 - **Функціонал**:
   - історія переходів **Назад / Вперед** (`Alt+←` / `Alt+→`);
@@ -46,7 +49,7 @@
   - **вкладки у кожній панелі** (`Ctrl+T` — нова, `Ctrl+W` — закрити, клік мишею по смужці вкладок, середній клік для закриття).
 
 ### 1.4 Асинхронні файлові операції, `copy_file_range` і діалоги прогресу/конфліктів
-- **Статус (`v1.2.0`)**: ✅ фоновий `fork`-воркер ([task.s](src/fs/task.s)) зі спільною `MAP_SHARED`-сторінкою прогресу (seqlock для імені файлу) та `pipe2(O_CLOEXEC)`-пробудженням циклу подій через `ppoll` ([input.s](src/tui/input.s)); ✅ `ProgressDialog` ([progress_dialog.s](src/ui/progress_dialog.s)): файл, прогрес-бар, байти/файли, швидкість, ETA, пауза (`SIGSTOP`/`SIGCONT`), режим «у фоні» з прогресом у `StatusBar`, кооперативне скасування + `SIGTERM` для переривання блокуючих `open`/`read` із видаленням недописаного файлу; ✅ підтвердження виходу та гарантоване завершення воркера. ⏳ Залишилось: `copy_file_range`, черга з кількох задач, діалог конфліктів.
+- **Статус (`v1.2.0`–`v1.6.0`)**: ✅ фоновий `fork`-воркер ([task.s](src/fs/task.s)) зі спільною `MAP_SHARED`-сторінкою прогресу (seqlock для імені файлу) та `pipe2(O_CLOEXEC)`-пробудженням циклу подій через `ppoll` ([input.s](src/tui/input.s)); ✅ `FICLONE` + `copy_file_range` + 256 КіБ буфер у [file_ops.s](src/fs/file_ops.s); ✅ `ProgressDialog` ([progress_dialog.s](src/ui/progress_dialog.s)); ✅ інтерактивний діалог конфліктів `ConflictDialog` ([conflict_dialog.s](src/ui/conflict_dialog.s): `Перезаписати`/`Пропустити`/`Перейменувати`/`Для всіх`).
 - **Файли**: [file_ops.s](src/fs/file_ops.s), [dialogs.s](src/ui/dialogs.s), [classes.inc](include/classes.inc) (`TaskQueue`), [linux_sys.inc](include/linux_sys.inc).
 - **Архітектура**:
   - фонова черга задач у окремому процесі (`fork`/`clone(SIGCHLD)` + двосторонні `pipe2`) замість спільного `CLONE_VM`, що гарантує відсутність data race у алокаторі [memory.s](src/core/memory.s) та глобальних буферах;
@@ -55,10 +58,12 @@
   - інтерактивний діалог конфліктів **`[ Перезаписати ]` / `[ Пропустити ]` / `[ Перейменувати ]` / `[ Для всіх ]`**.
 
 ### 1.5 Рекурсивний пошук у віртуальну панель
+- **Статус (`v1.6.0`)**: ✅ реалізовано (`Ctrl+F` -> `SearchDialog` ([search_dialog.s](src/ui/search_dialog.s)) з полями маски імені та вмісту `grep`; рекурсивний пошук у [dir_search.s](src/fs/dir_search.s) / [dir_search_match.s](src/fs/dir_search_match.s) у віртуальну панель `DirModel.virtual_mode = 1` із бейджем `[Search]`/`[Пошук]` та переходом `Enter` до оригіналу).
 - **Файли**: [dir_model.s](src/fs/dir_model.s), [dialogs.s](src/ui/dialogs.s).
 - **Можливості**: пошук за маскою імені та за вмістом файлу (`grep`), завантаження результатів безпосередньо у **віртуальну панель** (`DirModel` у режимі `VIRTUAL_SEARCH`) із переходом до оригіналу по `Enter`.
 
 ### 1.6 Кошик (`freedesktop Trash`), `Undo` (`Ctrl+Z`) та розширені атрибути
+- **Статус (`v1.6.0`)**: ✅ реалізовано: `Del` -> `$XDG_DATA_HOME/Trash` (`files/` + `info/*.trashinfo`) + 16-рівневий стек `Undo` (`Ctrl+Z`: скасування перейменування та видалення в кошик) у [trash_undo.s](src/fs/trash_undo.s); `ChmodDialog`/`chown` (`Alt+A`, клікабельні біти `rwx` + `uid:gid`) у [attr_dialogs.s](src/ui/attr_dialogs.s); `symlink` (`Alt+S`) / `hardlink` (`Alt+H`); панель детальної інформації (`Alt+I` — `inode`, `nlink`, `uid:gid`, `CRC32`, `SHA-256`) у [info_dialog.s](src/ui/info_dialog.s) та [hash.s](src/core/hash.s).
 - **Файли**: [file_ops.s](src/fs/file_ops.s), [dialogs.s](src/ui/dialogs.s), [app.s](src/app/app.s).
 - **Кошик + Undo**: переміщення видалених файлів у `$XDG_DATA_HOME/Trash` (`files/` + `info/*.trashinfo`) із можливістю відкату останньої операції (`Ctrl+Z`: перейменування, переміщення, видалення в кошик).
 - **Атрибути та посилання**:
@@ -145,10 +150,10 @@
 ## Рекомендований порядок реалізації
 
 1. **`--choosedir=FILE` (`cd-on-exit`)** + shell-обгортка → миттєва щоденна придатність.
-2. **Уніфікований `poll`/`ppoll`-цикл + `inotify`**.
+2. ✅ **Уніфікований `poll`/`ppoll`-цикл + `inotify`** (`v1.5.0`).
 3. **Конфіг `duoprc`** (`src/core/config.s` + User Menu `%f %F %d %D %s` + розширення відкриття).
 4. **Історія (`Alt+←/→`), закладки (`Ctrl+D`), `frecency` (`z`), вкладки (`Ctrl+T`/`Ctrl+W`)**.
-5. **Асинхронні операції (`fork`+`pipe2`+`copy_file_range`) + `ProgressDialog` + конфлікти + Trash/Undo**.
+5. 🚧 **Асинхронні операції (`fork`+`pipe2`+`copy_file_range`+`ProgressDialog` ✅ `v1.2.0`–`v1.3.0`) + діалог конфліктів + Trash/Undo**.
 6. **Fuzzy finder + Command Palette (`Ctrl+K`) + рекурсивний пошук у віртуальну панель**.
 7. **`ncdu`-режим (паралельний `getdents64`)** + бенчмарки на 100k файлів.
 8. **Kitty-прев'ю зображень (`f=100`) + Git-колонка + `tar`/`zip` VFS**.

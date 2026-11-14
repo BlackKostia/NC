@@ -33,6 +33,7 @@
 .align 8
 .global g_fs_progress
 g_fs_progress:    .space 8     # worker: TaskShared* receiving fs_progress_* hooks (UI: NULL)
+.global g_task_shm
 g_task_shm:       .space 8     # UI: TaskShared* of the running worker
 g_task_start_ms:  .space 8
 g_task_pause_ms:  .space 8     # accumulated paused time
@@ -44,6 +45,7 @@ g_task_wake_fd:   .space 4
 g_task_op:        .space 4
 g_task_paused:    .space 4
 g_measure_bytes:  .space 4     # worker: 1 = scan needs regular-file sizes (copy/move)
+# g_conflict_all_act moved to src/fs/task_conflict.s
 
 .section .text
 .global fs_task_start
@@ -58,8 +60,6 @@ g_measure_bytes:  .space 4     # worker: 1 = scan needs regular-file sizes (copy
 .global fs_progress_bytes
 .global fs_progress_item
 .global fs_progress_cancelled
-
-# ==============================================================================
 # Worker-side progress hooks (no-ops in the UI process where g_fs_progress == NULL)
 # ==============================================================================
 
@@ -171,9 +171,7 @@ task_measure:
     mov rax, -ECANCELED
 .Ltm_done:
     add rsp, 56
-    pop r12
-    pop rbx
-    ret
+    pop r12; pop rbx; ret
 
 # Internal: int measure_dir_fd(int dfd) -- fd-relative, d_type-driven tree measurement
 measure_dir_fd:
@@ -537,9 +535,7 @@ fs_task_start:
     mov rax, -EBUSY
 .Lts_ret:
     pop r13
-    pop r12
-    pop rbx
-    ret
+    pop r12; pop rbx; ret
 
 # int fs_task_is_active(void)
 fs_task_is_active:
@@ -617,9 +613,7 @@ fs_task_poll:
 .Ltp_ret:
     mov eax, ebx
     add rsp, 24
-    pop r12
-    pop rbx
-    ret
+    pop r12; pop rbx; ret
 
 # void fs_task_snapshot(TaskSnap *out)
 # Copies counters, computes percent / speed / ETA (pauses excluded) and a torn-free name.
@@ -747,9 +741,7 @@ fs_task_snapshot:
     mov [rbx + TaskSnap.eta_sec], rax
 .Lsn_ret:
     pop r13
-    pop r12
-    pop rbx
-    ret
+    pop r12; pop rbx; ret
 
 # Internal: void task_resume(int64_t now_ms) -- SIGCONT a paused worker, account pause time
 task_resume:
@@ -843,6 +835,6 @@ fs_task_shutdown:
     jmp .Lsd_loop
 .Lsd_ret:
     add rsp, 24
-    pop r12
-    pop rbx
-    ret
+    pop r12; pop rbx; ret
+
+# --- Conflict helpers moved to src/fs/task_conflict.s ---

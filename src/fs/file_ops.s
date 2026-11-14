@@ -283,9 +283,7 @@ copy_data:
     pop r15
     pop r14
     pop r13
-    pop r12
-    pop rbx
-    ret
+    pop r12; pop rbx; ret
 
 # Internal: int copy_reg_at(int sdir, const char *sname, int ddir, const char *dname)
 # Copies one non-directory, non-symlink entry. An existing destination that is the very
@@ -297,7 +295,7 @@ copy_reg_at:
     push r13
     push r14
     push r15
-    sub rsp, 96                       # [0]=src FileStat, [48]=dst FileStat / dfd + result
+    sub rsp, 96 + PATH_MAX            # [0]=src FileStat, [48]=dst FileStat, [96]=rename buf
     mov r12d, edi
     mov r13, rsi
     mov r14d, edx
@@ -328,27 +326,14 @@ copy_reg_at:
     jne .Lcra_have_dst
     mov edi, r14d
     mov rsi, r15
-    lea rdx, [rsp + 48]
-    mov ecx, 1                        # follow: a symlink to the source is the source
-    call os_statat
-    test rax, rax
-    js .Lcra_trunc
-    mov rax, [rsp + FileStat.dev]
-    cmp rax, [rsp + 48 + FileStat.dev]
-    jne .Lcra_trunc
-    mov rax, [rsp + FileStat.ino]
-    cmp rax, [rsp + 48 + FileStat.ino]
-    jne .Lcra_trunc
-    mov rax, -9999
+    mov rdx, rsp
+    lea rcx, [rsp + 96]
+    call fo_resolve_eexist_open
+    cmp rax, -2
+    jne .Lcra_have_dst
+    call fs_progress_item
+    xor eax, eax
     jmp .Lcra_close_src
-.Lcra_trunc:
-    mov edi, r14d
-    mov rsi, r15
-    mov edx, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC
-    mov r10d, [rsp + FileStat.mode]
-    and r10d, 0777
-    or r10d, 0600
-    OS_OPENAT
 .Lcra_have_dst:
     test rax, rax
     js .Lcra_close_src
@@ -391,13 +376,11 @@ copy_reg_at:
     add rsp, 8
     pop rax
 .Lcra_ret:
-    add rsp, 96
+    add rsp, 96 + PATH_MAX
     pop r15
     pop r14
     pop r13
-    pop r12
-    pop rbx
-    ret
+    pop r12; pop rbx; ret
 
 # Internal: int copy_link_at(int sdir, const char *sname, int ddir, const char *dname)
 copy_link_at:
@@ -443,9 +426,7 @@ copy_link_at:
     pop r15
     pop r14
     pop r13
-    pop r12
-    pop rbx
-    ret
+    pop r12; pop rbx; ret
 
 # Internal: int copy_dir_fd(int sfd, int dfd) -- copies every entry of sfd into dfd
 copy_dir_fd:
@@ -772,9 +753,7 @@ fs_copy_recursive:
     pop r15
     pop r14
     pop r13
-    pop r12
-    pop rbx
-    ret
+    pop r12; pop rbx; ret
 
 # Internal: int delete_dir_fd(int dfd) -- removes every entry below dfd (not dfd itself)
 delete_dir_fd:
@@ -955,16 +934,35 @@ fs_delete_recursive:
     add rsp, 56
     pop r14
     pop r13
-    pop r12
-    pop rbx
-    ret
+    pop r12; pop rbx; ret
 
 # int fs_move_recursive(const char *src_path, const char *dst_path)
 fs_move_recursive:
     push rbx
     push r12
+    sub rsp, 96 + PATH_MAX            # [0]=src st, [48]=dst st, [96]=rename buf
     mov rbx, rdi
     mov r12, rsi
+    cmp qword ptr [rip + g_fs_progress], 0
+    je .Lfmr_do
+    mov rdi, rbx
+    mov rsi, r12
+    lea rdx, [rsp + 96]
+    call fo_move_check_conflict
+    test rax, rax
+    js .Lfmr_done
+    cmp eax, CONFLICT_ACT_SKIP
+    jne .Lfmr_chk_ren
+    call fs_progress_item
+    xor eax, eax
+    jmp .Lfmr_done
+.Lfmr_chk_ren:
+    cmp eax, CONFLICT_ACT_RENAME
+    jne .Lfmr_do
+    lea r12, [rsp + 96]
+.Lfmr_do:
+    mov rdi, rbx
+    mov rsi, r12
     call fs_rename
     test rax, rax
     jns .Lfmr_done
@@ -983,9 +981,8 @@ fs_move_recursive:
     call fs_delete_recursive
     pop qword ptr [rip + g_fs_progress]
 .Lfmr_done:
-    pop r12
-    pop rbx
-    ret
+    add rsp, 96 + PATH_MAX
+    pop r12; pop rbx; ret
 
 # int fs_read_file_head(const char *path, void *buf, size_t max_bytes, size_t *out_read)
 fs_read_file_head:
@@ -1035,9 +1032,7 @@ fs_read_file_head:
 .Lrfh_ret:
     pop r14
     pop r13
-    pop r12
-    pop rbx
-    ret
+    pop r12; pop rbx; ret
 
 # int fs_read_file_alloc(const char *path, size_t max_bytes, void **out_buf, size_t *out_len)
 fs_read_file_alloc:
@@ -1123,6 +1118,4 @@ fs_read_file_alloc:
     pop r15
     pop r14
     pop r13
-    pop r12
-    pop rbx
-    ret
+    pop r12; pop rbx; ret

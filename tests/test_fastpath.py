@@ -83,7 +83,8 @@ def test_copy_delete_syscall_budget() -> None:
     if not STRACE:
         print("[SKIP] FP1/FP2: strace unavailable")
         return
-    with tempfile.TemporaryDirectory(prefix="duop_fp_", dir="/var/tmp") as tmp:
+    base_dir = "/var/tmp" if os.access("/var/tmp", os.W_OK) else None
+    with tempfile.TemporaryDirectory(prefix="duop_fp_", dir=base_dir) as tmp:
         left, right = os.path.join(tmp, "left"), os.path.join(tmp, "right")
         os.makedirs(right)
         src = os.path.join(left, "tree")

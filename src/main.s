@@ -15,6 +15,8 @@ str_flag_ver:    .asciz "--version"
 str_flag_l:      .asciz "-l"
 str_flag_lang:   .asciz "--lang"
 str_flag_langeq: .asciz "--lang="
+str_flag_cdir:   .asciz "--choosedir"
+str_flag_cdireq: .asciz "--choosedir="
 str_flag_L:      .asciz "-L"
 str_flag_lic:    .asciz "--license"
 
@@ -38,7 +40,7 @@ str_usage:
     .ascii "Duop v"
     DUOP_VER_ASCII
     .ascii " — Modern Dual-Pane Terminal File Manager (Pure x86-64 Assembly)\n"
-    .ascii "Usage: duop [--lang en|ua] [-V|--version] [-L|--license] [LEFT_DIR [RIGHT_DIR]]\n"
+    .ascii "Usage: duop [--lang en|ua] [--choosedir=FILE] [-V|--version] [-L|--license] [LEFT_DIR [RIGHT_DIR]]\n"
     .ascii "\n"
     .ascii "Features:\n"
     .ascii "  • 24-bit TrueColor UI with 3 switchable themes (Alt+T)\n"
@@ -56,7 +58,7 @@ str_usage_ua:
     .ascii "Duop v"
     DUOP_VER_ASCII
     .ascii " — Сучасний двопанельний термінальний файловий менеджер (чистий x86-64 Assembler)\n"
-    .ascii "Використання: duop [--lang ua|en] [-V|--version] [-L|--license] [ЛІВА_ТЕКА [ПРАВА_ТЕКА]]\n"
+    .ascii "Використання: duop [--lang ua|en] [--choosedir=FILE] [-V|--version] [-L|--license] [ЛІВА_ТЕКА [ПРАВА_ТЕКА]]\n"
     .ascii "\n"
     .ascii "Можливості:\n"
     .ascii "  • 24-бітний TrueColor інтерфейс з 3 темами оформлення (Alt+T)\n"
@@ -110,7 +112,7 @@ _start:
     lea r12, [rsp + 8]        # argv
     lea r13, [r12 + rbx*8 + 8] # envp
     and rsp, -16              # ensure 16-byte ABI stack alignment
-    # [rsp+0]=lang (-1), [rsp+4]=help (0), [rsp+8]=arg_idx (1), [rsp+12]=ver (0), [rsp+16]=lic (0)
+    # [rsp+0]=lang (-1), [rsp+4]=help (0), [rsp+8]=arg_idx (1), [rsp+12]=ver (0), [rsp+16]=lic (0), [rsp+24]=choosedir_path (0)
     sub rsp, 32
 
     mov dword ptr [rsp], -1
@@ -118,6 +120,7 @@ _start:
     mov dword ptr [rsp + 8], 1
     mov dword ptr [rsp + 12], 0
     mov dword ptr [rsp + 16], 0
+    mov qword ptr [rsp + 24], 0
     xor r14d, r14d            # left_path = NULL
     xor r15d, r15d            # right_path = NULL
 
@@ -187,6 +190,18 @@ _start:
     test eax, eax
     jnz .Lmain_flag_langeq
 
+    mov rdi, rbp
+    lea rsi, [rip + str_flag_cdir]
+    call str_cmp
+    test eax, eax
+    jz .Lmain_flag_cdir_next
+
+    mov rdi, rbp
+    lea rsi, [rip + str_flag_cdireq]
+    call str_starts_with
+    test eax, eax
+    jnz .Lmain_flag_cdireq
+
     # Positional directory arguments
     test r14, r14
     jnz .Lmain_pos_right
@@ -225,6 +240,21 @@ _start:
     lea rdi, [rbp + 7]        # skip "--lang="
     call parse_lang_val
     mov [rsp], eax
+    jmp .Lmain_arg_next
+
+.Lmain_flag_cdir_next:
+    mov eax, [rsp + 8]
+    inc eax
+    cmp eax, ebx
+    jge .Lmain_arg_next
+    mov [rsp + 8], eax
+    mov rax, [r12 + rax*8]
+    mov [rsp + 24], rax
+    jmp .Lmain_arg_next
+
+.Lmain_flag_cdireq:
+    lea rax, [rbp + 12]       # skip "--choosedir="
+    mov [rsp + 24], rax
 
 .Lmain_arg_next:
     inc dword ptr [rsp + 8]
@@ -253,6 +283,10 @@ _start:
 
     mov rdi, rbx
     call App_run
+
+    mov rdi, rbx
+    mov rsi, [rsp + 24]
+    call App_write_choosedir
 
     DELETE_OBJ rbx
     call term_exit_raw

@@ -20,6 +20,8 @@ SRCS := \
 	src/core/utf8.s \
 	src/core/oop_rt.s \
 	src/core/syscall.s \
+	src/core/config.s \
+	src/core/hash.s \
 	src/tui/theme.s \
 	src/tui/i18n.s \
 	src/tui/screen.s \
@@ -29,8 +31,13 @@ SRCS := \
 	src/fs/dir_cache.s \
 	src/fs/file_ops.s \
 	src/fs/task.s \
+	src/fs/task_conflict.s \
 	src/fs/dir_watch.s \
 	src/fs/preview_io.s \
+	src/fs/nav_state.s \
+	src/fs/dir_search_match.s \
+	src/fs/dir_search.s \
+	src/fs/trash_undo.s \
 	src/ui/header_bar.s \
 	src/ui/function_bar.s \
 	src/ui/status_bar.s \
@@ -39,9 +46,18 @@ SRCS := \
 	src/ui/dialogs.s \
 	src/ui/viewer_dialog.s \
 	src/ui/progress_dialog.s \
+	src/ui/conflict_dialog.s \
+	src/ui/user_menu_dlg.s \
+	src/ui/bookmark_dlg.s \
+	src/ui/search_dialog.s \
+	src/ui/attr_dialogs.s \
+	src/ui/info_dialog.s \
 	src/app/app.s \
 	src/app/app_task.s \
-	src/app/app_events.s
+	src/app/app_events.s \
+	src/app/app_attr.s \
+	src/app/app_ext.s \
+	src/app/app_menu.s
 
 PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_os.s \
@@ -80,6 +96,11 @@ test: $(TARGET)
 	python3 tests/test_performance_dir.py
 	python3 tests/test_bg_tasks.py
 	python3 tests/test_fastpath.py
+	python3 tests/test_choosedir.py
+	python3 tests/test_config_usermenu.py
+	python3 tests/test_nav_tabs.py
+	python3 tests/test_search_virtual.py
+	python3 tests/test_trash_undo_attr.py
 	python3 tests/test_nav_viewer.py
 	python3 tests/test_event_loop.py
 

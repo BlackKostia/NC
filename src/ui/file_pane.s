@@ -5,6 +5,15 @@
 .intel_syntax noprefix
 .include "classes.inc"
 
+.equ FP_TAB_MAX,       8
+.equ FP_TAB_PATH,      0
+.equ FP_TAB_CURSOR,    4096
+.equ FP_TAB_SCROLL,    4100
+.equ FP_TAB_SORT_MODE, 4104
+.equ FP_TAB_SORT_DESC, 4108
+.equ FP_TAB_SHOW_HID,  4112
+.equ FP_TAB_SIZE,      4384
+
 .section .rodata
 str_FilePane:    .asciz "FilePane"
 str_home_env:    .asciz "HOME"
@@ -28,6 +37,12 @@ FilePane_vtbl:
 .global FilePane_get_selected_entry
 .global FilePane_reload_keep_cursor
 .global FilePane_enter_parent
+.global FilePane_nav_to
+.global FilePane_hist_back
+.global FilePane_hist_fwd
+.global FilePane_tab_new
+.global FilePane_tab_close
+.global FilePane_tab_switch
 
 # FilePane *FilePane_new(App *app, const char *initial_path, int id)
 FilePane_new:
@@ -60,6 +75,12 @@ FilePane_new:
     jz .Lfpn_fail_free
     mov [rbx + FilePane.model], rax
 
+    lea rdi, [rax + DirModel.path]
+    call nav_tabs_alloc
+    mov [rbx + FilePane.tabs], rax
+    mov dword ptr [rbx + FilePane.tab_count], 1
+    mov dword ptr [rbx + FilePane.active_tab], 0
+
     mov rax, rbx
     pop r14
     pop r13
@@ -82,6 +103,10 @@ FilePane_new:
 FilePane_dtor:
     push rbx
     mov rbx, rdi
+    mov rdi, [rbx + FilePane.tabs]
+    mov esi, [rbx + FilePane.tab_count]
+    call nav_tabs_free
+    mov qword ptr [rbx + FilePane.tabs], 0
     mov rdi, [rbx + FilePane.model]
     DELETE_OBJ rdi
     mov qword ptr [rbx + FilePane.model], 0
@@ -234,6 +259,9 @@ FilePane_enter_parent:
     push rbx
     sub rsp, NAME_MAX + 16
     mov rbx, rdi
+    call fp_exit_virtual
+    test eax, eax
+    jnz .Lfep_done
     mov rcx, [rbx + FilePane.model]
     lea rdi, [rcx + DirModel.path]
     cmp byte ptr [rdi], '/'
@@ -265,6 +293,18 @@ FilePane_enter_parent:
     mov dword ptr [rbx + FilePane.scroll], 0
     mov rdi, rbx
     call FilePane_ensure_visible
+
+    mov rdi, rbx
+    call fp_get_active_tab
+    test rax, rax
+    jz .Lfep_done
+    mov rdi, rax
+    mov rcx, [rbx + FilePane.model]
+    lea rsi, [rcx + DirModel.path]
+    push rsi
+    call nav_hist_push
+    pop rdi
+    call nav_frecency_record
 .Lfep_done:
     add rsp, NAME_MAX + 16
     pop rbx
@@ -385,9 +425,7 @@ FilePane_render:
     # [rsp+184]     = list_h (4)
     # [rsp+188]     = row idx r (4)
 
-    mov rbx, rdi              # this
-    mov r12, rsi              # scr
-    mov r13, rdx              # theme
+    mov rbx, rdi; mov r12, rsi; mov r13, rdx
 
     cmp dword ptr [rbx + Widget.w], 6
     jl .Lfpr_done
@@ -433,7 +471,11 @@ FilePane_render:
     mov r9d, 1                # fill_interior = 1
     call ScreenBuffer_draw_box
 
-    # 2. Draw top path title pill
+    # 2. Draw top path title pill (or tab strip when tab_count > 1)
+    mov dword ptr [rbx + FilePane.tab_zone_count], 0
+    cmp dword ptr [rbx + FilePane.tab_count], 1
+    jg .Lfpr_draw_tabs
+
     mov r14, [rbx + FilePane.model]
     lea r15, [r14 + DirModel.path]
     mov rdi, r15
@@ -499,7 +541,126 @@ FilePane_render:
     mov r8d, [rbx + Widget.w]
     sub r8d, 8
     call ScreenBuffer_draw_text
+    mov rdi, rbx
+    mov rsi, r12
+    call fp_draw_search_badge
+    jmp .Lfpr_divider
 
+.Lfpr_draw_tabs:
+    # Sync active tab path first
+    mov rdi, rbx
+    call fp_get_active_tab
+    test rax, rax
+    jz .Lfpr_divider
+    mov rdi, rax
+    mov rcx, [rbx + FilePane.model]
+    lea rsi, [rcx + DirModel.path]
+    mov edx, PATH_MAX
+    call str_copy
+
+    xor r14d, r14d            # t = 0
+    mov r15d, [rbx + Widget.x]
+    add r15d, 2               # cur_x
+.Lfpr_tab_loop:
+    cmp r14d, [rbx + FilePane.tab_count]
+    jge .Lfpr_divider
+    mov eax, [rbx + Widget.x]
+    add eax, [rbx + Widget.w]
+    sub eax, 4
+    cmp r15d, eax
+    jge .Lfpr_divider
+
+    # Format "[<t+1>:<basename>]" into [rsp+0..127]
+    mov byte ptr [rsp], '['
+    lea eax, [r14d + '1']
+    mov [rsp + 1], al
+    mov byte ptr [rsp + 2], ':'
+    mov byte ptr [rsp + 3], 0
+
+    mov rcx, [rbx + FilePane.tabs]
+    imul rax, r14, FP_TAB_SIZE
+    lea rdi, [rcx + rax + FP_TAB_PATH]
+    call path_basename
+    test rax, rax
+    jz .Lfpr_tab_noname
+    cmp byte ptr [rax], 0
+    jne .Lfpr_tab_cat
+.Lfpr_tab_noname:
+    mov byte ptr [rsp + 3], '/'
+    mov byte ptr [rsp + 4], 0
+    jmp .Lfpr_tab_close_br
+.Lfpr_tab_cat:
+    lea rdi, [rsp]
+    mov rsi, rax
+    mov edx, 22
+    call str_cat
+.Lfpr_tab_close_br:
+    mov rdi, rsp
+    call str_len
+    cmp eax, 125
+    jae .Lfpr_tab_pen
+    mov byte ptr [rsp + rax], ']'
+    mov byte ptr [rsp + rax + 1], 0
+    inc eax
+.Lfpr_tab_pen:
+    push rax                  # tab display width (approx byte len)
+    cmp r14d, [rbx + FilePane.active_tab]
+    jne .Lfpr_tab_inact
+    cmp dword ptr [rsp + 164 + 8], 0
+    je .Lfpr_tab_inact_act
+    mov esi, [r13 + Theme.accent_fg]
+    mov edx, [r13 + Theme.accent]
+    mov ecx, ATTR_BOLD
+    jmp .Lfpr_tab_setpen
+.Lfpr_tab_inact_act:
+    mov esi, [r13 + Theme.text]
+    mov edx, [r13 + Theme.surface_alt]
+    mov ecx, ATTR_BOLD
+    jmp .Lfpr_tab_setpen
+.Lfpr_tab_inact:
+    mov esi, [r13 + Theme.muted]
+    mov edx, [r13 + Theme.surface]
+    xor ecx, ecx
+.Lfpr_tab_setpen:
+    mov rdi, r12
+    call ScreenBuffer_set_pen
+
+    mov rdi, r12
+    mov esi, r15d
+    mov edx, [rbx + Widget.y]
+    mov rcx, rsp
+    add rcx, 8
+    mov r8d, 24
+    call ScreenBuffer_draw_text
+
+    # Measure actual utf8 display width for HitZone
+    lea rdi, [rsp + 8]
+    call utf8_display_width
+    pop rcx
+    test eax, eax
+    jnz .Lfpr_tz
+    mov eax, ecx
+.Lfpr_tz:
+    mov ecx, [rbx + FilePane.tab_zone_count]
+    cmp ecx, FP_TAB_MAX
+    jge .Lfpr_tab_adv
+    imul rdx, rcx, HitZone._size
+    lea r8, [rbx + FilePane.tab_zones + rdx]
+    mov word ptr [r8 + HitZone.x1], r15w
+    mov edx, [rbx + Widget.y]
+    mov word ptr [r8 + HitZone.y], dx
+    lea edx, [r15d + eax]
+    mov word ptr [r8 + HitZone.x2], dx
+    mov word ptr [r8 + HitZone.id], r14w
+    inc dword ptr [rbx + FilePane.tab_zone_count]
+.Lfpr_tab_adv:
+    add r15d, eax
+    inc r15d                  # 1 space gap
+    inc r14d
+    jmp .Lfpr_tab_loop
+
+.Lfpr_divider:
+    mov r14, [rbx + FilePane.model]
     # 3. Draw divider line at y + 2: ├───────┤
     mov rdi, r12
     mov esi, [rsp + 160]
@@ -1222,12 +1383,7 @@ FilePane_render:
 
 .Lfpr_done:
     add rsp, 512
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop rbx
-    ret
+    pop r15; pop r14; pop r13; pop r12; pop rbx; ret
 
 # int FilePane_on_key(FilePane *this, Event *evt)
 FilePane_on_key:
@@ -1539,6 +1695,46 @@ FilePane_on_mouse:
     pop r9
     pop r8
 
+    # Check tab strip hit zones on top border row
+    cmp r9d, [rbx + Widget.y]
+    jne .Lfpm_chk_colhdr
+    cmp dword ptr [rbx + FilePane.tab_count], 1
+    jle .Lfpm_chk_colhdr
+    xor ecx, ecx
+.Lfpm_tz_loop:
+    cmp ecx, [rbx + FilePane.tab_zone_count]
+    jge .Lfpm_chk_colhdr
+    imul rdx, rcx, HitZone._size
+    lea r10, [rbx + FilePane.tab_zones + rdx]
+    movsx eax, word ptr [r10 + HitZone.x1]
+    cmp r8d, eax
+    jl .Lfpm_tz_next
+    movsx eax, word ptr [r10 + HitZone.x2]
+    cmp r8d, eax
+    jge .Lfpm_tz_next
+    movsx esi, word ptr [r10 + HitZone.id]
+    mov eax, [r12 + Event.mouse_btn]
+    cmp eax, MOUSE_MID
+    je .Lfpm_tz_close
+    cmp eax, MOUSE_LEFT
+    jne .Lfpm_tz_next
+    mov rdi, rbx
+    call FilePane_tab_switch
+    mov rdi, [rbx + FilePane.app]
+    call App_sync_preview
+    jmp .Lfpm_handled
+.Lfpm_tz_close:
+    mov rdi, rbx
+    call FilePane_tab_close
+    mov rdi, [rbx + FilePane.app]
+    call App_sync_preview
+    jmp .Lfpm_handled
+.Lfpm_tz_next:
+    inc ecx
+    jmp .Lfpm_tz_loop
+
+.Lfpm_chk_colhdr:
+
     # Check click on column header row (y + 1)
     mov eax, [rbx + Widget.y]
     inc eax
@@ -1681,3 +1877,323 @@ FilePane_on_mouse:
 .Lfpm_ret0:
     xor eax, eax
     jmp .Lfpm_ret
+
+# ==============================================================================
+# Tab & Navigation History Helpers (ROADMAP 1.3)
+# ==============================================================================
+
+# Internal: void *fp_get_active_tab(FilePane *this)
+fp_get_active_tab:
+    mov rax, [rdi + FilePane.tabs]
+    test rax, rax
+    jz .Lfgat_none
+    mov ecx, [rdi + FilePane.active_tab]
+    cmp ecx, 0
+    jl .Lfgat_none
+    cmp ecx, [rdi + FilePane.tab_count]
+    jge .Lfgat_none
+    imul rcx, rcx, FP_TAB_SIZE
+    add rax, rcx
+    ret
+.Lfgat_none:
+    xor eax, eax
+    ret
+
+# Internal: void fp_save_tab(FilePane *this)
+fp_save_tab:
+    push rbx
+    mov rbx, rdi
+    call fp_get_active_tab
+    test rax, rax
+    jz .Lfst_ret
+    mov rcx, [rbx + FilePane.model]
+    mov edx, [rbx + FilePane.cursor]
+    mov [rax + FP_TAB_CURSOR], edx
+    mov edx, [rbx + FilePane.scroll]
+    mov [rax + FP_TAB_SCROLL], edx
+    mov edx, [rcx + DirModel.sort_mode]
+    mov [rax + FP_TAB_SORT_MODE], edx
+    mov edx, [rcx + DirModel.sort_desc]
+    mov [rax + FP_TAB_SORT_DESC], edx
+    mov edx, [rcx + DirModel.show_hidden]
+    mov [rax + FP_TAB_SHOW_HID], edx
+    mov rdi, rax
+    lea rsi, [rcx + DirModel.path]
+    mov edx, PATH_MAX
+    call str_copy
+.Lfst_ret:
+    pop rbx
+    ret
+
+# int FilePane_nav_to(FilePane *this, const char *path) -- returns DirModel_chdir result
+FilePane_nav_to:
+    push rbx
+    push r12
+    mov rbx, rdi
+    mov r12, rsi
+    mov rdi, [rbx + FilePane.model]
+    mov rsi, r12
+    call DirModel_chdir
+    test rax, rax
+    js .Lfnt_ret
+    mov dword ptr [rbx + FilePane.cursor], 0
+    mov dword ptr [rbx + FilePane.scroll], 0
+    mov rdi, rbx
+    call FilePane_ensure_visible
+    mov rdi, rbx
+    call fp_get_active_tab
+    test rax, rax
+    jz .Lfnt_rec
+    mov rdi, rax
+    mov rcx, [rbx + FilePane.model]
+    lea rsi, [rcx + DirModel.path]
+    call nav_hist_push
+.Lfnt_rec:
+    mov rcx, [rbx + FilePane.model]
+    lea rdi, [rcx + DirModel.path]
+    call nav_frecency_record
+    xor eax, eax
+.Lfnt_ret:
+    pop r12
+    pop rbx
+    ret
+
+# int FilePane_hist_back(FilePane *this) -- returns 1 if navigated, 0 if empty
+FilePane_hist_back:
+    push rbx
+    mov rbx, rdi
+    call fp_get_active_tab
+    test rax, rax
+    jz .Lfhb_no
+    mov rdi, rax
+    call nav_hist_back
+    test rax, rax
+    jz .Lfhb_no
+    mov rdi, [rbx + FilePane.model]
+    mov rsi, rax
+    call DirModel_chdir
+    test rax, rax
+    js .Lfhb_no
+    mov dword ptr [rbx + FilePane.cursor], 0
+    mov dword ptr [rbx + FilePane.scroll], 0
+    mov rdi, rbx
+    call FilePane_ensure_visible
+    mov eax, 1
+    pop rbx
+    ret
+.Lfhb_no:
+    xor eax, eax
+    pop rbx
+    ret
+
+# int FilePane_hist_fwd(FilePane *this) -- returns 1 if navigated, 0 if empty
+FilePane_hist_fwd:
+    push rbx
+    mov rbx, rdi
+    call fp_get_active_tab
+    test rax, rax
+    jz .Lfhf_no
+    mov rdi, rax
+    call nav_hist_fwd
+    test rax, rax
+    jz .Lfhf_no
+    mov rdi, [rbx + FilePane.model]
+    mov rsi, rax
+    call DirModel_chdir
+    test rax, rax
+    js .Lfhf_no
+    mov dword ptr [rbx + FilePane.cursor], 0
+    mov dword ptr [rbx + FilePane.scroll], 0
+    mov rdi, rbx
+    call FilePane_ensure_visible
+    mov eax, 1
+    pop rbx
+    ret
+.Lfhf_no:
+    xor eax, eax
+    pop rbx
+    ret
+
+# int FilePane_tab_new(FilePane *this) -- returns 1 if opened, 0 if at limit
+FilePane_tab_new:
+    push rbx
+    push r12
+    mov rbx, rdi
+    mov eax, [rbx + FilePane.tab_count]
+    cmp eax, FP_TAB_MAX
+    jge .Lftn_full
+    call fp_save_tab
+    mov r12d, [rbx + FilePane.tab_count]
+    imul rcx, r12, FP_TAB_SIZE
+    add rcx, [rbx + FilePane.tabs]
+    push rcx
+    mov rdi, rcx
+    mov rsi, FP_TAB_SIZE
+    call mem_zero
+    pop rcx
+    mov rax, [rbx + FilePane.model]
+    lea rsi, [rax + DirModel.path]
+    mov rdi, rcx
+    mov edx, PATH_MAX
+    push rcx
+    call str_copy
+    pop rcx
+    mov rax, [rbx + FilePane.model]
+    lea rsi, [rax + DirModel.path]
+    mov rdi, rcx
+    call nav_hist_push
+    mov [rbx + FilePane.active_tab], r12d
+    inc dword ptr [rbx + FilePane.tab_count]
+    mov eax, 1
+    pop r12
+    pop rbx
+    ret
+.Lftn_full:
+    xor eax, eax
+    pop r12
+    pop rbx
+    ret
+
+# int FilePane_tab_switch(FilePane *this, int idx)
+FilePane_tab_switch:
+    cmp esi, 0
+    jl .Lfts_no
+    cmp esi, [rdi + FilePane.tab_count]
+    jge .Lfts_no
+    cmp esi, [rdi + FilePane.active_tab]
+    je .Lfts_ok
+    push rbx
+    push r12
+    mov rbx, rdi
+    mov r12d, esi
+    call fp_save_tab
+    mov [rbx + FilePane.active_tab], r12d
+    mov rdi, rbx
+    call fp_get_active_tab
+    test rax, rax
+    jz .Lfts_done
+    mov rcx, [rbx + FilePane.model]
+    mov edx, [rax + FP_TAB_SORT_MODE]
+    mov [rcx + DirModel.sort_mode], edx
+    mov edx, [rax + FP_TAB_SORT_DESC]
+    mov [rcx + DirModel.sort_desc], edx
+    mov edx, [rax + FP_TAB_SHOW_HID]
+    mov [rcx + DirModel.show_hidden], edx
+    push rax
+    mov rdi, rcx
+    lea rsi, [rax + FP_TAB_PATH]
+    call DirModel_chdir
+    pop rax
+    mov edx, [rax + FP_TAB_CURSOR]
+    mov [rbx + FilePane.cursor], edx
+    mov edx, [rax + FP_TAB_SCROLL]
+    mov [rbx + FilePane.scroll], edx
+    mov rdi, rbx
+    call FilePane_ensure_visible
+.Lfts_done:
+    pop r12
+    pop rbx
+.Lfts_ok:
+    mov eax, 1
+    ret
+.Lfts_no:
+    xor eax, eax
+    ret
+
+# int FilePane_tab_close(FilePane *this, int idx_or_neg1)
+FilePane_tab_close:
+    cmp dword ptr [rdi + FilePane.tab_count], 1
+    jle .Lftc_last
+    push rbx
+    push r12
+    push r13
+    mov rbx, rdi
+    mov r12d, esi
+    cmp r12d, 0
+    jge .Lftc_chk
+    mov r12d, [rbx + FilePane.active_tab]
+.Lftc_chk:
+    cmp r12d, [rbx + FilePane.tab_count]
+    jge .Lftc_fail
+
+    # Free history strings in tab r12d
+    imul rax, r12, FP_TAB_SIZE
+    add rax, [rbx + FilePane.tabs]
+    xor ecx, ecx
+.Lftc_fh:
+    cmp ecx, [rax + 4120]     # TAB_HIST_LEN
+    jge .Lftc_shift
+    push rax
+    push rcx
+    mov rdi, [rax + 4128 + rcx*8]
+    test rdi, rdi
+    jz .Lftc_fh_n
+    call mem_free
+.Lftc_fh_n:
+    pop rcx
+    pop rax
+    inc ecx
+    jmp .Lftc_fh
+
+.Lftc_shift:
+    mov r13d, r12d
+    mov edx, [rbx + FilePane.tab_count]
+    dec edx
+.Lftc_sh_loop:
+    cmp r13d, edx
+    jge .Lftc_dec
+    imul rdi, r13, FP_TAB_SIZE
+    add rdi, [rbx + FilePane.tabs]
+    lea rsi, [rdi + FP_TAB_SIZE]
+    push rdx
+    mov rdx, FP_TAB_SIZE
+    call mem_copy
+    pop rdx
+    inc r13d
+    jmp .Lftc_sh_loop
+
+.Lftc_dec:
+    dec dword ptr [rbx + FilePane.tab_count]
+    mov eax, [rbx + FilePane.active_tab]
+    cmp eax, r12d
+    jl .Lftc_ret1
+    je .Lftc_reload
+    dec dword ptr [rbx + FilePane.active_tab]
+    jmp .Lftc_ret1
+
+.Lftc_reload:
+    mov eax, [rbx + FilePane.active_tab]
+    cmp eax, [rbx + FilePane.tab_count]
+    jl .Lftc_rel_go
+    dec eax
+    mov [rbx + FilePane.active_tab], eax
+.Lftc_rel_go:
+    mov rdi, rbx
+    call fp_get_active_tab
+    test rax, rax
+    jz .Lftc_ret1
+    mov rdi, [rbx + FilePane.model]
+    lea rsi, [rax + FP_TAB_PATH]
+    push rax
+    call DirModel_chdir
+    pop rax
+    mov edx, [rax + FP_TAB_CURSOR]
+    mov [rbx + FilePane.cursor], edx
+    mov edx, [rax + FP_TAB_SCROLL]
+    mov [rbx + FilePane.scroll], edx
+    mov rdi, rbx
+    call FilePane_ensure_visible
+
+.Lftc_ret1:
+    mov eax, 1
+    pop r13
+    pop r12
+    pop rbx
+    ret
+.Lftc_fail:
+    pop r13
+    pop r12
+    pop rbx
+.Lftc_last:
+    xor eax, eax
+    ret

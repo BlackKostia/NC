@@ -15,6 +15,9 @@ FileStat.size:   .space 8     # File byte size
 FileStat.mtime:  .space 8     # Modification time (seconds since epoch)
 FileStat.mode:   .space 4     # POSIX file mode & type bits (S_IF* | perm)
 FileStat.mtime_nsec: .space 4 # Modification time nanoseconds (cache invalidation)
+FileStat.nlink:  .space 8     # Hardlink count
+FileStat.uid:    .space 4     # Owner user ID
+FileStat.gid:    .space 4     # Owner group ID
 FileStat._size:
 
 # --- Portable Directory Entry Types (from OS d_type when available) ---

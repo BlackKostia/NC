@@ -112,12 +112,18 @@ themes_table:
 
 .equ THEME_COUNT, 3
 
+.section .bss
+.align 8
+g_active_theme:    .space Theme._size
+
 .section .text
 .global theme_get
 .global theme_count
+.extern config_get
 
 # const Theme *theme_get(int idx)
 theme_get:
+    push rbx
     mov eax, edi
     cdq
     mov ecx, THEME_COUNT
@@ -127,8 +133,31 @@ theme_get:
     add edx, THEME_COUNT
 .Ltg_ok:
     imul rax, rdx, Theme._size
-    lea rcx, [rip + themes_table]
-    add rax, rcx
+    lea rsi, [rip + themes_table]
+    add rsi, rax
+    lea rdi, [rip + g_active_theme]
+    mov rbx, rdi
+    mov ecx, Theme._size / 8
+    rep movsq
+
+    call config_get
+    mov r8d, [rax + 16]       # CFG_COLOR_MASK
+    test r8d, r8d
+    jz .Ltg_done
+    xor ecx, ecx
+.Ltg_ov:
+    cmp ecx, 29
+    jae .Ltg_done
+    bt r8d, ecx
+    jnc .Ltg_next
+    mov edx, [rax + 32 + rcx * 4]  # CFG_COLORS
+    mov [rbx + Theme.bg + rcx * 4], edx
+.Ltg_next:
+    inc ecx
+    jmp .Ltg_ov
+.Ltg_done:
+    mov rax, rbx
+    pop rbx
     ret
 
 # int theme_count(void)

@@ -19,8 +19,6 @@ App_vtbl:
 .global App_new
 .global App_dtor
 .global App_run
-.global App_layout
-.global App_render
 .global App_set_status
 .global App_set_active_pane
 .global App_sync_preview
@@ -28,7 +26,9 @@ App_vtbl:
 .global App_open_selected_entry
 .global App_close_dialog
 .global App_dispatch_f_action
+.global get_inactive_pane
 .global App_reload_panes
+.global App_write_choosedir
 
 .global App_cmd_help
 .global App_cmd_rename
@@ -67,14 +67,30 @@ App_new:
 
     mov [rbx + App.envp], r14
     mov rdi, r14
+    call config_load
+    mov rdi, r14
     call DirModel_init_env
     mov dword ptr [rbx + App.running], 1
     mov dword ptr [rbx + App.need_redraw], 1
     mov dword ptr [rbx + App.theme_idx], 0
     mov dword ptr [rbx + App.right_mode], RIGHT_MODE_PANE
 
+    mov rdi, r14
+    call nav_state_init
+    call config_get
+    mov ecx, [rax + 0]        # CFG_THEME
+    test ecx, ecx
+    js .Lan_chk_cfg_lang
+    mov [rbx + App.theme_idx], ecx
+.Lan_chk_cfg_lang:
     cmp r15d, 0
     jge .Lan_set_lang
+    mov ecx, [rax + 4]        # CFG_LANG
+    test ecx, ecx
+    js .Lan_det_env
+    mov r15d, ecx
+    jmp .Lan_set_lang
+.Lan_det_env:
     mov rdi, r14
     call i18n_detect_env
     mov r15d, eax
@@ -85,7 +101,7 @@ App_new:
     call i18n_get_idx
     mov [rbx + App.lang_idx], eax
 
-    xor edi, edi
+    mov edi, [rbx + App.theme_idx]
     call theme_get
     mov [rbx + App.theme], rax
 
@@ -121,6 +137,42 @@ App_new:
     mov edx, 2
     call FilePane_new
     mov [rbx + App.right_pane], rax
+
+    # Apply show_hidden / sort_mode from duoprc if configured
+    mov rdi, r14
+    call nav_state_init
+    call config_get
+    mov r12, rax
+    mov ecx, [r12 + 8]        # CFG_HIDDEN
+    test ecx, ecx
+    js .Lan_cfg_sort
+    mov rax, [rbx + App.left_pane]
+    mov rax, [rax + FilePane.model]
+    mov [rax + DirModel.show_hidden], ecx
+    mov rdi, rax
+    call DirModel_apply_filter
+    mov ecx, [r12 + 8]
+    mov rax, [rbx + App.right_pane]
+    mov rax, [rax + FilePane.model]
+    mov [rax + DirModel.show_hidden], ecx
+    mov rdi, rax
+    call DirModel_apply_filter
+.Lan_cfg_sort:
+    mov ecx, [r12 + 12]       # CFG_SORT
+    test ecx, ecx
+    js .Lan_cfg_done
+    mov rax, [rbx + App.left_pane]
+    mov rax, [rax + FilePane.model]
+    mov [rax + DirModel.sort_mode], ecx
+    mov rdi, rax
+    call DirModel_sort
+    mov ecx, [r12 + 12]
+    mov rax, [rbx + App.right_pane]
+    mov rax, [rax + FilePane.model]
+    mov [rax + DirModel.sort_mode], ecx
+    mov rdi, rax
+    call DirModel_sort
+.Lan_cfg_done:
 
     mov rdi, rbx
     call PreviewPane_new
@@ -440,6 +492,8 @@ App_preview_fire:
 .Lasp_done:
     ret
 
+# Helper: app_jump_virtual_entry moved to src/app/app_ext.s
+
 # void App_open_selected_entry(App *this, FilePane *pane)
 App_open_selected_entry:
     push rbx
@@ -479,21 +533,46 @@ App_open_selected_entry:
     test dword ptr [r13 + FileEntry.flags], (FE_IS_DIR | FE_LINK_DIR)
     jz .Laos_open_file
 
-    mov rdi, [r12 + FilePane.model]
+    mov rcx, [r12 + FilePane.model]
+    mov dword ptr [rcx + DirModel.virtual_mode], 0
+    mov rdi, r12
     mov rsi, rsp
-    call DirModel_chdir
+    call FilePane_nav_to
     test rax, rax
     js .Laos_err
-    mov dword ptr [r12 + FilePane.cursor], 0
-    mov dword ptr [r12 + FilePane.scroll], 0
-    mov rdi, r12
-    call FilePane_ensure_visible
     mov rdi, rbx
     call App_sync_preview
     mov dword ptr [rbx + App.need_redraw], 1
     jmp .Laos_done
 
 .Laos_open_file:
+    mov rcx, [r12 + FilePane.model]
+    cmp dword ptr [rcx + DirModel.virtual_mode], 0
+    je .Laos_open_normal
+    mov rdi, rbx
+    mov rsi, r12
+    mov rdx, rsp
+    call app_jump_virtual_entry
+    jmp .Laos_done
+
+.Laos_open_normal:
+    # Check duoprc `open <ext> <cmd>` rule first
+    mov rdi, [r12 + FilePane.model]
+    mov rsi, r13
+    call DirModel_entry_name
+    mov r13, rax              # cur_name
+    mov rdi, r13
+    call config_lookup_open
+    test rax, rax
+    jz .Laos_viewer
+    mov rdi, rbx
+    mov rsi, rax              # tmpl
+    mov rdx, r13              # cur_name
+    mov rcx, rsp              # cur_path
+    call App_run_expanded_cmd
+    jmp .Laos_done
+
+.Laos_viewer:
     # Open built-in ViewerDialog
     mov rdi, rbx
     mov rsi, rsp
@@ -584,6 +663,14 @@ App_close_dialog:
     je .Lacd_goto
     cmp eax, OP_QUIT
     je .Lacd_quit
+    mov rdi, rbx
+    mov rsi, r13
+    mov rdx, r14
+    mov rcx, r8
+    mov r8d, r12d
+    call App_close_dialog_ext
+    test rax, rax
+    js .Lacd_fs_err
     jmp .Lacd_free
 
 .Lacd_mkdir:
@@ -668,6 +755,11 @@ App_close_dialog:
     call fs_rename
     test rax, rax
     js .Lacd_fs_err
+    mov edi, 1                # UNDO_RENAME
+    mov rsi, rsp
+    lea rdx, [rsp + PATH_MAX]
+    xor ecx, ecx
+    call undo_push
     lea rdi, [r13 + InputDialog.buf]
     call path_basename
     mov rdi, rbx
@@ -737,6 +829,8 @@ App_close_dialog:
     mov rdi, rbx
     call App_sync_preview
     jmp .Lacd_free
+
+# .Lacd_bm_fre..search moved to App_close_dialog_ext in app_ext.s
 
 .Lacd_fs_err:
     mov r14d, eax
@@ -1233,6 +1327,33 @@ handle_key:
     mov eax, [r12 + Event.key]
     mov ecx, [r12 + Event.mods]
 
+    # Configurable keybinds from duoprc
+    push rax
+    push rcx
+    mov edi, eax
+    mov esi, ecx
+    call config_lookup_bind
+    pop rcx
+    pop rdx                   # rdx = saved key
+    cmp eax, 0
+    jl .Lhk_default_keys
+    mov rdi, rbx
+    mov esi, eax
+    call App_dispatch_action
+    jmp .Lhk_done
+
+.Lhk_default_keys:
+    push rdx
+    push rcx
+    mov rdi, rbx
+    mov esi, edx
+    mov edx, ecx
+    call app_handle_ext_key
+    pop rcx
+    pop rdx
+    test eax, eax
+    jnz .Lhk_done
+    mov eax, edx
     # Ctrl+combos
     test ecx, MOD_CTRL
     jz .Lhk_chk_alt
@@ -1244,6 +1365,9 @@ handle_key:
     cmp eax, 'n'; je .Lhk_newfile
     cmp eax, 'g'; je .Lhk_goto
     cmp eax, 'o'; je .Lhk_shell
+    cmp eax, 't'; je .Lhk_tab_new
+    cmp eax, 'w'; je .Lhk_tab_close
+    cmp eax, 'd'; je .Lhk_bookmarks
     jmp .Lhk_pane
 
 .Lhk_chk_alt:
@@ -1261,6 +1385,10 @@ handle_key:
     cmp eax, 'J'; je .Lhk_tasks
     cmp eax, 0x043E; je .Lhk_tasks   # Cyrillic 'о' (Alt+J in UA layout)
     cmp eax, 0x041E; je .Lhk_tasks   # Cyrillic 'О'
+    cmp eax, 'u'; je .Lhk_usermenu
+    cmp eax, 'U'; je .Lhk_usermenu
+    cmp eax, 0x0433; je .Lhk_usermenu # Cyrillic 'г' (Alt+U in UA layout)
+    cmp eax, 0x0413; je .Lhk_usermenu # Cyrillic 'Г'
     jmp .Lhk_pane
 
 .Lhk_plain:
@@ -1279,6 +1407,7 @@ handle_key:
     cmp eax, 'Q';        je .Lhk_quit
     cmp eax, '/';        je .Lhk_filter
     cmp eax, '.';        je .Lhk_hidden
+    cmp eax, 'z';        je .Lhk_frecency
     cmp eax, KEY_DELETE; je .Lhk_del
     cmp eax, KEY_ESC;    je .Lhk_esc
 
@@ -1363,8 +1492,49 @@ handle_key:
 .Lhk_newfile: mov rdi, rbx; call App_cmd_newfile; jmp .Lhk_done
 .Lhk_goto:    mov rdi, rbx; call App_cmd_goto; jmp .Lhk_done
 .Lhk_shell:   mov rdi, rbx; call App_cmd_shell; jmp .Lhk_done
-.Lhk_del:     mov rdi, rbx; call App_cmd_delete; jmp .Lhk_done
+.Lhk_del:     mov rdi, rbx; call App_cmd_trash; jmp .Lhk_done
 .Lhk_tasks:   mov rdi, rbx; call App_task_show; jmp .Lhk_done
+.Lhk_usermenu: mov rdi, rbx; call App_cmd_usermenu; jmp .Lhk_done
+
+.Lhk_tab_new:
+    mov rdi, [rbx + App.active_pane]
+    call FilePane_tab_new
+    mov dword ptr [rbx + App.need_redraw], 1
+    jmp .Lhk_done
+
+.Lhk_tab_close:
+    mov rdi, [rbx + App.active_pane]
+    mov esi, -1
+    call FilePane_tab_close
+    test eax, eax
+    jnz .Lhk_tc_ok
+    call i18n_get
+    mov rsi, [rax + LangStrings.msg_tab_last]
+    mov rdi, rbx
+    mov edx, MSG_WARN
+    call App_set_status
+    jmp .Lhk_done
+.Lhk_tc_ok:
+    mov rdi, rbx
+    call App_sync_preview
+    mov dword ptr [rbx + App.need_redraw], 1
+    jmp .Lhk_done
+
+.Lhk_bookmarks:
+    mov rdi, rbx
+    xor esi, esi
+    call BookmarkDialog_new
+    mov [rbx + App.active_dialog], rax
+    mov dword ptr [rbx + App.need_redraw], 1
+    jmp .Lhk_done
+
+.Lhk_frecency:
+    mov rdi, rbx
+    mov esi, 1
+    call BookmarkDialog_new
+    mov [rbx + App.active_dialog], rax
+    mov dword ptr [rbx + App.need_redraw], 1
+    jmp .Lhk_done
 
 .Lhk_done:
     pop r12
@@ -1644,3 +1814,58 @@ App_run:
     add rsp, Event._size + 16
     pop rbx
     ret
+
+# void App_write_choosedir(App *this, const char *out_path)
+App_write_choosedir:
+    test rsi, rsi
+    jz .Lawc_ret
+    cmp byte ptr [rsi], 0
+    je .Lawc_ret
+    push rbx
+    push r12
+    push r13
+    sub rsp, 16
+    mov rbx, rdi
+    mov r12, rsi
+
+    mov rax, [rbx + App.active_pane]
+    test rax, rax
+    jz .Lawc_done
+    mov r13, [rax + FilePane.model]
+    test r13, r13
+    jz .Lawc_done
+
+    mov edi, AT_FDCWD
+    mov rsi, r12
+    mov edx, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC
+    mov r10d, 0644
+    OS_OPENAT
+    test rax, rax
+    js .Lawc_done
+    mov ebx, eax              # fd
+
+    lea r13, [r13 + DirModel.path]
+    mov rdi, r13
+    call str_len
+    mov rdx, rax
+    mov edi, ebx
+    mov rsi, r13
+    call sys_write_all
+
+    mov byte ptr [rsp], '\n'
+    mov edi, ebx
+    mov rsi, rsp
+    mov edx, 1
+    call sys_write_all
+
+    mov edi, ebx
+    OS_CLOSE
+.Lawc_done:
+    add rsp, 16
+    pop r13
+    pop r12
+    pop rbx
+.Lawc_ret:
+    ret
+
+# User menu & command expansion moved to src/app/app_menu.s

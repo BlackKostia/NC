@@ -368,6 +368,71 @@ def test_ukrainian(tmp: str) -> None:
         pass
 
 
+def test_conflict_dialog(base: str) -> None:
+    d = os.path.join(base, "conflict")
+    left, right = os.path.join(d, "L"), os.path.join(d, "R")
+    os.makedirs(left)
+    os.makedirs(right)
+    with open(os.path.join(left, "a.txt"), "w") as f:
+        f.write("NEW_A")
+    with open(os.path.join(left, "b.txt"), "w") as f:
+        f.write("NEW_B")
+    with open(os.path.join(right, "a.txt"), "w") as f:
+        f.write("OLD_A")
+    with open(os.path.join(right, "b.txt"), "w") as f:
+        f.write("OLD_B")
+
+    # B13: Copy a.txt -> Skip keeps OLD_A
+    sess = PtySession(BINARY, ["--lang", "en", left, right])
+    wait_for_text(sess, "a.txt")
+    sess.send(b"\x1b[B", wait=0.05)   # cursor -> a.txt
+    sess.send(KEY_F5, wait=0.1)
+    sess.send(b"\r", wait=0.2)
+    wait_for_text(sess, "File Conflict", timeout=2.5)
+    wait_for_text(sess, "Overwrite")
+    wait_for_text(sess, "Skip")
+    wait_for_text(sess, "Rename")
+    wait_for_text(sess, "For all")
+    sess.send(b"s", wait=0.25)        # Skip
+    wait_for_gone(sess, "File Conflict")
+    assert open(os.path.join(right, "a.txt")).read() == "OLD_A"
+    print("[PASS] B13. ConflictDialog Skip preserves destination")
+
+    # B14: Mark a.txt + b.txt -> F5 -> toggle For all ('x') + Overwrite ('o')
+    sess.send(b"  ", wait=0.08)       # Space marks a.txt and b.txt
+    sess.send(KEY_F5, wait=0.1)
+    sess.send(b"\r", wait=0.2)
+    wait_for_text(sess, "File Conflict", timeout=2.5)
+    sess.send(b"a", wait=0.08)        # toggle For all
+    sess.send(b"o", wait=0.35)        # Overwrite all
+    wait_for_gone(sess, "File Conflict")
+    wait_until(lambda: open(os.path.join(right, "a.txt")).read() == "NEW_A"
+               and open(os.path.join(right, "b.txt")).read() == "NEW_B",
+               "overwrite all")
+    print("[PASS] B14. ConflictDialog For all + Overwrite overwrites both without re-prompting")
+
+    # B15: Overwrite test setup for Rename ('r') + UA title check
+    with open(os.path.join(right, "a.txt"), "w") as f:
+        f.write("KEEP_OLD")
+    sess.send(b"\x1bl", wait=0.1)     # switch to UA
+    sess.send(b"\x1b[A", wait=0.05)   # cursor up to a.txt (or ensure on a.txt)
+    sess.send(KEY_F5, wait=0.1)
+    sess.send(b"\r", wait=0.2)
+    wait_for_text(sess, "Конфлікт файлу", timeout=2.5)
+    wait_for_text(sess, "Перезаписати")
+    wait_for_text(sess, "Пропустити")
+    wait_for_text(sess, "Перейменувати")
+    wait_for_text(sess, "Для всіх")
+    sess.send(b"r", wait=0.35)        # Rename (auto-unique name)
+    wait_for_gone(sess, "Конфлікт файлу")
+    assert open(os.path.join(right, "a.txt")).read() == "KEEP_OLD"
+    renamed = [n for n in os.listdir(right) if n != "a.txt" and n != "b.txt" and "a" in n]
+    assert len(renamed) == 1 and open(os.path.join(right, renamed[0])).read() == "NEW_A", f"renamed={renamed}"
+    print("[PASS] B15. ConflictDialog Rename + Ukrainian labels")
+    sess.send(b"q", wait=0.05)
+    assert sess.wait_exit(timeout=2.0) == 0
+
+
 def main() -> None:
     if not os.path.isfile(BINARY):
         raise SystemExit(f"Binary not found: {BINARY}")
@@ -377,6 +442,7 @@ def main() -> None:
         test_streaming_progress_pause_resume(tmp)
         test_busy_quit_and_bulk(tmp)
         test_ukrainian(tmp)
+        test_conflict_dialog(tmp)
     print(f"ALL BACKGROUND TASK TESTS PASSED ({time.monotonic() - t0:.2f}s).")
 
 
