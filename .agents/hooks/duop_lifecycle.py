@@ -270,6 +270,8 @@ def handle_post_tool_use(payload: dict, root: Path) -> dict:
             if is_verify_relevant(rel):
                 state["edited_code"] = True
                 state["needs_verify"] = True
+            if rel.startswith("docs/") or rel in ("README.md", "README.uk.md", "ROADMAP.md"):
+                state["docs_edited"] = True
             save_state(spath, state)
             if rel.startswith(I18N_PATHS):
                 mod_script = root / MODULARITY_SCRIPT
@@ -317,6 +319,22 @@ def handle_post_tool_use(payload: dict, root: Path) -> dict:
                         stderr=subprocess.DEVNULL,
                         check=False,
                     )
+            if (
+                rel.startswith(("src/app/", "src/ui/", "src/fs/pkg_", "src/main.s"))
+                and not state.get("docs_edited")
+                and not state.get("docs_reminded")
+            ):
+                state["docs_reminded"] = True
+                save_state(spath, state)
+                return {
+                    "feedback": (
+                        "Documentation sync reminder (duop-docs-sync): feature/UI/package code "
+                        f"in `{rel}` was modified, but no docs file has been updated yet.\n"
+                        "If user-facing behavior, hotkeys, or extension contracts changed, update "
+                        "the relevant docs (`docs/USER_GUIDE.md`, `docs/HOTKEYS.md`, "
+                        "`docs/EXTENSIONS_GUIDE.md`, or `ROADMAP.md`) before finishing."
+                    )
+                }
 
     elif name == "run_command" and not error:
         cmd = str(args.get("CommandLine") or args.get("command") or "")

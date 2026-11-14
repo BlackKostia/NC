@@ -52,6 +52,15 @@ if [[ -n "$BIN_CODE_STAGED" ]]; then
     fi
 fi
 
+# 4b. Warn when feature/UI/extension modules are staged without documentation updates
+FEATURE_STAGED="$(printf '%s\n' "$STAGED" | grep -E '^(src/app/|src/ui/|src/fs/pkg_|src/main\.s)' || true)"
+DOCS_STAGED="$(printf '%s\n' "$STAGED" | grep -E '^(docs/|README(\.uk)?\.md$|ROADMAP\.md$)' || true)"
+if [ -n "$FEATURE_STAGED" ] && [ -z "$DOCS_STAGED" ]; then
+    echo "WARN [docs-hook]: Feature/UI/package files staged without any docs/ or ROADMAP.md update:" >&2
+    printf '%s\n' "$FEATURE_STAGED" | sed 's/^/  /' >&2
+    echo "  If user-facing behavior, hotkeys, or extension contracts changed, see .agents/skills/duop-docs-sync/SKILL.md." >&2
+fi
+
 # 5. Build stripped release binary, verify ELF .data==0 & --version, and run PTY suite
 NEEDS_BUILD="$(printf '%s\n' "$STAGED" | grep -E '^(src/|include/|Makefile$|VERSION$|tests/.*\.py$)' || true)"
 if [[ -n "$NEEDS_BUILD" && "${DUOP_SKIP_PTY_HOOK:-${NC_SKIP_PTY_HOOK:-0}}" != "1" ]]; then
