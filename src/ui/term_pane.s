@@ -19,6 +19,7 @@ g_term_esc:     .space 4
 g_term_vis_w:   .space 4
 .align 8
 g_term_buf:     .space 8
+g_term_last_cwd: .space 4096
 
 .section .text
 .global term_toggle
@@ -139,6 +140,44 @@ term_put_byte:
 .Ltpb_ret:
     ret
 
+# void term_sync_cwd(App *app)
+term_sync_cwd:
+    push rbx; push r12
+    sub rsp, 4136
+    mov eax, [rip + g_term_fd]
+    test eax, eax; js .Ltsc_done
+    mov rax, [rdi + App.active_pane]
+    test rax, rax; jz .Ltsc_done
+    mov rax, [rax + FilePane.model]
+    test rax, rax; jz .Ltsc_done
+    lea rbx, [rax + DirModel.path]
+    cmp byte ptr [rbx], 0; je .Ltsc_done
+    mov rdi, rbx; lea rsi, [rip + g_term_last_cwd]
+    call str_cmp
+    test eax, eax; jz .Ltsc_done
+    lea rdi, [rip + g_term_last_cwd]; mov rsi, rbx; mov edx, 4096
+    call str_copy
+    mov dword ptr [rsp], 0x27206463  # "cd '"
+    mov ecx, 4; xor r8d, r8d
+.Ltsc_loop:
+    movzx eax, byte ptr [rbx + r8]
+    test al, al; jz .Ltsc_end
+    cmp ecx, 4120; jae .Ltsc_end
+    cmp al, 0x27; jne .Ltsc_char
+    mov dword ptr [rsp + rcx], 0x27275c27  # "'\''"
+    add ecx, 4; inc r8d; jmp .Ltsc_loop
+.Ltsc_char:
+    mov [rsp + rcx], al
+    inc ecx; inc r8d; jmp .Ltsc_loop
+.Ltsc_end:
+    mov word ptr [rsp + rcx], 0x0d27  # "'\r"
+    add ecx, 2
+    mov edi, [rip + g_term_fd]; mov rsi, rsp; mov edx, ecx
+    call os_pty_write
+.Ltsc_done:
+    add rsp, 4136
+    pop r12; pop rbx; ret
+
 # void term_toggle(App *app)
 term_toggle:
     push rbx; push r12
@@ -150,8 +189,12 @@ term_toggle:
     mov eax, [rbx + App.term_w]; sub eax, 2
     mov [rip + g_term_vis_w], eax
     cmp dword ptr [rip + g_term_inited], 0
-    jne .Ltt_layout
+    je .Ltt_spawn
+    mov rdi, rbx
+    call term_sync_cwd
+    jmp .Ltt_layout
 
+.Ltt_spawn:
     mov dword ptr [rip + g_term_inited], 1
     mov dword ptr [rip + g_term_fd], -1
     mov edi, TERM_BUF_SZ
@@ -168,11 +211,15 @@ term_toggle:
     mov rax, [rbx + App.active_pane]
     mov rax, [rax + FilePane.model]
     lea rdx, [rax + DirModel.path]
+    mov r12, rdx
     mov rcx, [rbx + App.envp]
     lea rdi, [rip + g_term_fd]
     lea rsi, [rip + g_term_pid]
     call os_pty_spawn
     test eax, eax; jnz .Ltt_layout
+    lea rdi, [rip + g_term_last_cwd]
+    mov rsi, r12; mov edx, 4096
+    call str_copy
     mov edi, 3; mov esi, [rip + g_term_fd]
     call input_set_aux_fd
 

@@ -108,5 +108,49 @@ def run_tests():
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def test_term_sync_cwd():
+    tmp = tempfile.mkdtemp(prefix="duop_tp_cwd_")
+    try:
+        dir_a = os.path.join(tmp, "dir_a")
+        dir_b = os.path.join(tmp, "dir_b")
+        os.makedirs(dir_a)
+        os.makedirs(dir_b)
+        s = PtySession(BINARY, ["--lang", "en", dir_a, dir_b], cols=100, rows=30)
+        try:
+            assert wait_for_text(s, "Help"), "Initial UI did not render"
+            os.write(s.master, b"\x00")
+            assert wait_for_text(s, "Terminal", timeout=2.0)
+            os.write(s.master, b'echo "CWD=$(pwd)"\r')
+            assert wait_for_text(s, f"CWD={dir_a}", timeout=3.0), (
+                f"Initial terminal pwd was not dir_a:\n{s.vt.full_text()}"
+            )
+            os.write(s.master, b"\x00")
+            time.sleep(0.1)
+            os.write(s.master, b"\t")
+            time.sleep(0.1)
+            os.write(s.master, b"\x00")
+            assert wait_for_text(s, "Terminal", timeout=2.0)
+            time.sleep(0.1)
+            os.write(s.master, b'echo "CWD=$(pwd)"\r')
+            assert wait_for_text(s, f"CWD={dir_b}", timeout=3.0), (
+                f"Terminal did not sync cwd to active tab dir_b:\n{s.vt.full_text()}"
+            )
+            print("[PASS] TP6. Terminal syncs working directory to active pane/tab")
+            os.write(s.master, b"\x00")
+            time.sleep(0.05)
+            os.write(s.master, b"\x1b[21~")
+            s.wait_exit(2.0)
+        finally:
+            try:
+                os.kill(s.pid, 9)
+                os.waitpid(s.pid, 0)
+            except OSError:
+                pass
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 if __name__ == "__main__":
     run_tests()
+    test_term_sync_cwd()
+    print("ALL TERMINAL PANE TESTS PASSED.")
