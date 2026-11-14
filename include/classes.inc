@@ -207,7 +207,7 @@ CLASS_BEGIN PreviewPane
     FIELD PreviewPane.is_binary,   4
     FIELD PreviewPane.is_dir,      4
     FIELD PreviewPane.file_mode,   4
-    FIELD PreviewPane.pad,         4
+    FIELD PreviewPane.pending,     4   # 1 while file head is being read asynchronously
     FIELD PreviewPane.target_path, PATH_MAX
 CLASS_END PreviewPane
 
@@ -293,6 +293,12 @@ CLASS_BEGIN App
     FIELD App.task_last_ms,  8          # last snapshot refresh
     FIELD App.task_active,   4          # 1 while a background worker runs
     FIELD App.task_hidden,   4          # 1 after user sent the dialog to background
+    FIELD App.preview_due,   8          # debounced preview deadline (0 = none)
+    FIELD App.watch_due,     16         # per pane: debounced auto-refresh deadline (0 = none)
+    FIELD App.watch_last,    16         # per pane: last auto-refresh (rate limit)
+    FIELD App.watch_kind,    8          # per pane: 1 = structural, 2 = content
+    FIELD App.preview_seq,   4          # sequence of the preview request we wait for
+    FIELD App.ev_pad,        4
     FIELD App.task_snap,     TaskSnap._size
 CLASS_END App
 

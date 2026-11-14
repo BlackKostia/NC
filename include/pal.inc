@@ -46,6 +46,14 @@ FileStat._size:
 #        while viewed) is answered by mapping a zero page there instead of killing the process
 #   size_t os_mem_find_byte(const void *p, size_t len, int byte)   -> index, or len if absent (SIMD)
 #   size_t os_mem_count_byte(const void *p, size_t len, int byte)  -> occurrences (SIMD)
+#   int  os_poll_many(const int *fds, int n, int timeout_ms) -> bitmask of ready fds (n <= 8;
+#        negative fds ignored), 0 on timeout, -errno (e.g. -EINTR)
+#   int  os_set_nonblock(int fd)                -> 0 or -errno
+#   int  os_watch_init(void)                    -> non-blocking close-on-exec watch fd (inotify)
+#   int  os_watch_add(int fd, const char *path, uint32_t pal_in_mask) -> watch descriptor / -errno
+#   int  os_watch_rm(int fd, int wd)
+#   ssize_t os_watch_read(int fd, void *buf, size_t cap)  -> bytes, 0 / -EAGAIN when drained
+#   int  os_watch_next(const void *buf, size_t len, size_t *pos, int *wd, uint32_t *mask) -> 1/0
 #   void os_signals_worker_mode(void)           -> background worker: ignore SIGWINCH/SIGINT,
 #        SIGTERM interrupts blocking syscalls with -EINTR (no SA_RESTART) instead of terminating.
 

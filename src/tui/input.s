@@ -12,33 +12,40 @@ in_pos:
     .space 4
 in_len:
     .space 4
-in_wake_fd1:
-    .space 4                  # auxiliary wake fd + 1 (0 = none), e.g. background worker pipe
+in_aux1:
+    .space 4 * 4              # auxiliary wake fds + 1 (0 = none): task pipe, dir watch, preview
 
 .section .text
 .global input_poll_event
 .global input_set_wake_fd
+.global input_set_aux_fd
 
-# void input_set_wake_fd(int fd)
-# Registers an extra descriptor (or -1) whose readability/hang-up ends the idle wait of
-# input_poll_event early (returning "no event"), so the app loop reacts instantly.
+# void input_set_wake_fd(int fd) -- aux slot 0 (background task pipe)
 input_set_wake_fd:
-    inc edi
-    mov [rip + in_wake_fd1], edi
+    mov esi, edi
+    xor edi, edi
+# void input_set_aux_fd(int slot /*0..3*/, int fd /*-1 = none*/)
+# Registers descriptors whose readability/hang-up ends the idle wait of input_poll_event
+# early (returning "no event"), so the app loop reacts to them instantly.
+input_set_aux_fd:
+    and edi, 3
+    inc esi
+    lea rax, [rip + in_aux1]
+    mov [rax + rdi * 4], esi
     ret
 
 # Internal: int wait_and_read(int timeout_ms)
 # Appends incoming bytes to in_buf (compacting if needed). Returns bytes read, 0 on timeout, -1 on EINTR.
 wait_and_read:
-    mov esi, -1
-# Internal: int wait_and_read_fd(int timeout_ms, int wake_fd)
-# Same as wait_and_read, but also returns 0 early when wake_fd becomes ready.
+    xor esi, esi
+# Internal: int wait_and_read_fd(int timeout_ms, int use_aux)
+# Same as wait_and_read, but also returns 0 early when an aux fd becomes ready.
 wait_and_read_fd:
     push rbx
     push r12
-    sub rsp, 8
+    sub rsp, 40               # [0..19] = fds[5]
     mov ebx, edi              # timeout_ms
-    mov r12d, esi             # wake fd (-1 = none)
+    mov r12d, esi             # use aux fds?
 
     # Compact buffer if needed
     mov eax, [rip + in_pos]
@@ -62,10 +69,24 @@ wait_and_read_fd:
     mov [rip + in_len], ecx
 
 .Lwar_poll:
-    mov edi, STDIN_FD
-    mov esi, r12d
+    mov dword ptr [rsp], STDIN_FD
+    lea rax, [rip + in_aux1]
+    xor ecx, ecx
+.Lwar_fds:
+    mov edx, [rax + rcx * 4]
+    dec edx                   # stored fd + 1 -> fd / -1
+    test r12d, r12d
+    jnz .Lwar_fd_put
+    mov edx, -1
+.Lwar_fd_put:
+    mov [rsp + 4 + rcx * 4], edx
+    inc ecx
+    cmp ecx, 4
+    jb .Lwar_fds
+    mov rdi, rsp
+    mov esi, 5
     mov edx, ebx
-    call os_poll_in2
+    call os_poll_many
 
     cmp rax, -EINTR
     je .Lwar_eintr
@@ -85,20 +106,20 @@ wait_and_read_fd:
     test rax, rax
     jle .Lwar_none
     add [rip + in_len], eax
-    add rsp, 8
+    add rsp, 40
     pop r12
     pop rbx
     ret
 
 .Lwar_eintr:
     mov eax, -1
-    add rsp, 8
+    add rsp, 40
     pop r12
     pop rbx
     ret
 .Lwar_none:
     xor eax, eax
-    add rsp, 8
+    add rsp, 40
     pop r12
     pop rbx
     ret
@@ -148,8 +169,7 @@ input_poll_event:
     jb .Lipe_have_data
 
     mov edi, r12d
-    mov esi, [rip + in_wake_fd1]
-    dec esi
+    mov esi, 1
     call wait_and_read_fd
     cmp eax, -1
     je .Lipe_check_sig_after_poll

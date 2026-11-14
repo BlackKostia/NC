@@ -13,6 +13,269 @@ str_ScreenBuffer:
 ScreenBuffer_vtbl:
     OBJECT_VTBL_SLOTS str_ScreenBuffer, Object_vtbl, ScreenBuffer._size, ScreenBuffer_dtor
 
+# 0..255 -> {len, d0, d1, d2}: RGB SGR digits without division
+u8_dec_tbl:
+    .byte 1, 48, 0, 0
+    .byte 1, 49, 0, 0
+    .byte 1, 50, 0, 0
+    .byte 1, 51, 0, 0
+    .byte 1, 52, 0, 0
+    .byte 1, 53, 0, 0
+    .byte 1, 54, 0, 0
+    .byte 1, 55, 0, 0
+    .byte 1, 56, 0, 0
+    .byte 1, 57, 0, 0
+    .byte 2, 49, 48, 0
+    .byte 2, 49, 49, 0
+    .byte 2, 49, 50, 0
+    .byte 2, 49, 51, 0
+    .byte 2, 49, 52, 0
+    .byte 2, 49, 53, 0
+    .byte 2, 49, 54, 0
+    .byte 2, 49, 55, 0
+    .byte 2, 49, 56, 0
+    .byte 2, 49, 57, 0
+    .byte 2, 50, 48, 0
+    .byte 2, 50, 49, 0
+    .byte 2, 50, 50, 0
+    .byte 2, 50, 51, 0
+    .byte 2, 50, 52, 0
+    .byte 2, 50, 53, 0
+    .byte 2, 50, 54, 0
+    .byte 2, 50, 55, 0
+    .byte 2, 50, 56, 0
+    .byte 2, 50, 57, 0
+    .byte 2, 51, 48, 0
+    .byte 2, 51, 49, 0
+    .byte 2, 51, 50, 0
+    .byte 2, 51, 51, 0
+    .byte 2, 51, 52, 0
+    .byte 2, 51, 53, 0
+    .byte 2, 51, 54, 0
+    .byte 2, 51, 55, 0
+    .byte 2, 51, 56, 0
+    .byte 2, 51, 57, 0
+    .byte 2, 52, 48, 0
+    .byte 2, 52, 49, 0
+    .byte 2, 52, 50, 0
+    .byte 2, 52, 51, 0
+    .byte 2, 52, 52, 0
+    .byte 2, 52, 53, 0
+    .byte 2, 52, 54, 0
+    .byte 2, 52, 55, 0
+    .byte 2, 52, 56, 0
+    .byte 2, 52, 57, 0
+    .byte 2, 53, 48, 0
+    .byte 2, 53, 49, 0
+    .byte 2, 53, 50, 0
+    .byte 2, 53, 51, 0
+    .byte 2, 53, 52, 0
+    .byte 2, 53, 53, 0
+    .byte 2, 53, 54, 0
+    .byte 2, 53, 55, 0
+    .byte 2, 53, 56, 0
+    .byte 2, 53, 57, 0
+    .byte 2, 54, 48, 0
+    .byte 2, 54, 49, 0
+    .byte 2, 54, 50, 0
+    .byte 2, 54, 51, 0
+    .byte 2, 54, 52, 0
+    .byte 2, 54, 53, 0
+    .byte 2, 54, 54, 0
+    .byte 2, 54, 55, 0
+    .byte 2, 54, 56, 0
+    .byte 2, 54, 57, 0
+    .byte 2, 55, 48, 0
+    .byte 2, 55, 49, 0
+    .byte 2, 55, 50, 0
+    .byte 2, 55, 51, 0
+    .byte 2, 55, 52, 0
+    .byte 2, 55, 53, 0
+    .byte 2, 55, 54, 0
+    .byte 2, 55, 55, 0
+    .byte 2, 55, 56, 0
+    .byte 2, 55, 57, 0
+    .byte 2, 56, 48, 0
+    .byte 2, 56, 49, 0
+    .byte 2, 56, 50, 0
+    .byte 2, 56, 51, 0
+    .byte 2, 56, 52, 0
+    .byte 2, 56, 53, 0
+    .byte 2, 56, 54, 0
+    .byte 2, 56, 55, 0
+    .byte 2, 56, 56, 0
+    .byte 2, 56, 57, 0
+    .byte 2, 57, 48, 0
+    .byte 2, 57, 49, 0
+    .byte 2, 57, 50, 0
+    .byte 2, 57, 51, 0
+    .byte 2, 57, 52, 0
+    .byte 2, 57, 53, 0
+    .byte 2, 57, 54, 0
+    .byte 2, 57, 55, 0
+    .byte 2, 57, 56, 0
+    .byte 2, 57, 57, 0
+    .byte 3, 49, 48, 48
+    .byte 3, 49, 48, 49
+    .byte 3, 49, 48, 50
+    .byte 3, 49, 48, 51
+    .byte 3, 49, 48, 52
+    .byte 3, 49, 48, 53
+    .byte 3, 49, 48, 54
+    .byte 3, 49, 48, 55
+    .byte 3, 49, 48, 56
+    .byte 3, 49, 48, 57
+    .byte 3, 49, 49, 48
+    .byte 3, 49, 49, 49
+    .byte 3, 49, 49, 50
+    .byte 3, 49, 49, 51
+    .byte 3, 49, 49, 52
+    .byte 3, 49, 49, 53
+    .byte 3, 49, 49, 54
+    .byte 3, 49, 49, 55
+    .byte 3, 49, 49, 56
+    .byte 3, 49, 49, 57
+    .byte 3, 49, 50, 48
+    .byte 3, 49, 50, 49
+    .byte 3, 49, 50, 50
+    .byte 3, 49, 50, 51
+    .byte 3, 49, 50, 52
+    .byte 3, 49, 50, 53
+    .byte 3, 49, 50, 54
+    .byte 3, 49, 50, 55
+    .byte 3, 49, 50, 56
+    .byte 3, 49, 50, 57
+    .byte 3, 49, 51, 48
+    .byte 3, 49, 51, 49
+    .byte 3, 49, 51, 50
+    .byte 3, 49, 51, 51
+    .byte 3, 49, 51, 52
+    .byte 3, 49, 51, 53
+    .byte 3, 49, 51, 54
+    .byte 3, 49, 51, 55
+    .byte 3, 49, 51, 56
+    .byte 3, 49, 51, 57
+    .byte 3, 49, 52, 48
+    .byte 3, 49, 52, 49
+    .byte 3, 49, 52, 50
+    .byte 3, 49, 52, 51
+    .byte 3, 49, 52, 52
+    .byte 3, 49, 52, 53
+    .byte 3, 49, 52, 54
+    .byte 3, 49, 52, 55
+    .byte 3, 49, 52, 56
+    .byte 3, 49, 52, 57
+    .byte 3, 49, 53, 48
+    .byte 3, 49, 53, 49
+    .byte 3, 49, 53, 50
+    .byte 3, 49, 53, 51
+    .byte 3, 49, 53, 52
+    .byte 3, 49, 53, 53
+    .byte 3, 49, 53, 54
+    .byte 3, 49, 53, 55
+    .byte 3, 49, 53, 56
+    .byte 3, 49, 53, 57
+    .byte 3, 49, 54, 48
+    .byte 3, 49, 54, 49
+    .byte 3, 49, 54, 50
+    .byte 3, 49, 54, 51
+    .byte 3, 49, 54, 52
+    .byte 3, 49, 54, 53
+    .byte 3, 49, 54, 54
+    .byte 3, 49, 54, 55
+    .byte 3, 49, 54, 56
+    .byte 3, 49, 54, 57
+    .byte 3, 49, 55, 48
+    .byte 3, 49, 55, 49
+    .byte 3, 49, 55, 50
+    .byte 3, 49, 55, 51
+    .byte 3, 49, 55, 52
+    .byte 3, 49, 55, 53
+    .byte 3, 49, 55, 54
+    .byte 3, 49, 55, 55
+    .byte 3, 49, 55, 56
+    .byte 3, 49, 55, 57
+    .byte 3, 49, 56, 48
+    .byte 3, 49, 56, 49
+    .byte 3, 49, 56, 50
+    .byte 3, 49, 56, 51
+    .byte 3, 49, 56, 52
+    .byte 3, 49, 56, 53
+    .byte 3, 49, 56, 54
+    .byte 3, 49, 56, 55
+    .byte 3, 49, 56, 56
+    .byte 3, 49, 56, 57
+    .byte 3, 49, 57, 48
+    .byte 3, 49, 57, 49
+    .byte 3, 49, 57, 50
+    .byte 3, 49, 57, 51
+    .byte 3, 49, 57, 52
+    .byte 3, 49, 57, 53
+    .byte 3, 49, 57, 54
+    .byte 3, 49, 57, 55
+    .byte 3, 49, 57, 56
+    .byte 3, 49, 57, 57
+    .byte 3, 50, 48, 48
+    .byte 3, 50, 48, 49
+    .byte 3, 50, 48, 50
+    .byte 3, 50, 48, 51
+    .byte 3, 50, 48, 52
+    .byte 3, 50, 48, 53
+    .byte 3, 50, 48, 54
+    .byte 3, 50, 48, 55
+    .byte 3, 50, 48, 56
+    .byte 3, 50, 48, 57
+    .byte 3, 50, 49, 48
+    .byte 3, 50, 49, 49
+    .byte 3, 50, 49, 50
+    .byte 3, 50, 49, 51
+    .byte 3, 50, 49, 52
+    .byte 3, 50, 49, 53
+    .byte 3, 50, 49, 54
+    .byte 3, 50, 49, 55
+    .byte 3, 50, 49, 56
+    .byte 3, 50, 49, 57
+    .byte 3, 50, 50, 48
+    .byte 3, 50, 50, 49
+    .byte 3, 50, 50, 50
+    .byte 3, 50, 50, 51
+    .byte 3, 50, 50, 52
+    .byte 3, 50, 50, 53
+    .byte 3, 50, 50, 54
+    .byte 3, 50, 50, 55
+    .byte 3, 50, 50, 56
+    .byte 3, 50, 50, 57
+    .byte 3, 50, 51, 48
+    .byte 3, 50, 51, 49
+    .byte 3, 50, 51, 50
+    .byte 3, 50, 51, 51
+    .byte 3, 50, 51, 52
+    .byte 3, 50, 51, 53
+    .byte 3, 50, 51, 54
+    .byte 3, 50, 51, 55
+    .byte 3, 50, 51, 56
+    .byte 3, 50, 51, 57
+    .byte 3, 50, 52, 48
+    .byte 3, 50, 52, 49
+    .byte 3, 50, 52, 50
+    .byte 3, 50, 52, 51
+    .byte 3, 50, 52, 52
+    .byte 3, 50, 52, 53
+    .byte 3, 50, 52, 54
+    .byte 3, 50, 52, 55
+    .byte 3, 50, 52, 56
+    .byte 3, 50, 52, 57
+    .byte 3, 50, 53, 48
+    .byte 3, 50, 53, 49
+    .byte 3, 50, 53, 50
+    .byte 3, 50, 53, 51
+    .byte 3, 50, 53, 52
+    .byte 3, 50, 53, 53
+seq_sync_begin: .ascii "\x1b[?2026h"
+.equ seq_sync_begin_len, . - seq_sync_begin
+seq_sync_end:   .ascii "\x1b[0m\x1b[?2026l"
+.equ seq_sync_end_len, . - seq_sync_end
+
 .section .text
 .global ScreenBuffer_new
 .global ScreenBuffer_dtor
@@ -613,73 +876,41 @@ out_cstr:
     ret
 
 # void out_rgb_sgr(ScreenBuffer *this, uint32_t rgb, int is_bg)
-# Emits "\x1b[38;2;R;G;Bm" or "\x1b[48;2;R;G;Bm"
+# Emits "\x1b[38;2;R;G;Bm" / "\x1b[48;2;R;G;Bm" straight into out_buf (caller reserved room);
+# channel digits come from u8_dec_tbl (no division, no per-byte calls).
 out_rgb_sgr:
-    push rbx
-    push r12
-    push r13
-    mov rbx, rdi
-    mov r12d, esi             # 0x01RRGGBB
-    mov r13d, edx             # is_bg
-
-    mov rdi, rbx
-    mov esi, 0x1B
-    call out_byte
-    mov rdi, rbx
-    mov esi, '['
-    call out_byte
-    mov rdi, rbx
-    mov esi, '3'
-    test r13d, r13d
+    mov rax, [rdi + ScreenBuffer.out_len]
+    mov rcx, [rdi + ScreenBuffer.out_buf]
+    add rcx, rax                      # write cursor
+    mov dword ptr [rcx], 0x38335B1B   # ESC [ 3 8
+    test edx, edx
     jz .Lors_fg
-    mov esi, '4'
+    mov byte ptr [rcx + 2], '4'
 .Lors_fg:
-    call out_byte
-    mov rdi, rbx
-    mov esi, '8'
-    call out_byte
-    mov rdi, rbx
-    mov esi, ';'
-    call out_byte
-    mov rdi, rbx
-    mov esi, '2'
-    call out_byte
-    mov rdi, rbx
-    mov esi, ';'
-    call out_byte
-
-    # R
-    mov rdi, rbx
-    mov esi, r12d
-    shr esi, 16
-    and esi, 0xFF
-    call out_u32
-    mov rdi, rbx
-    mov esi, ';'
-    call out_byte
-
-    # G
-    mov rdi, rbx
-    mov esi, r12d
-    shr esi, 8
-    and esi, 0xFF
-    call out_u32
-    mov rdi, rbx
-    mov esi, ';'
-    call out_byte
-
-    # B
-    mov rdi, rbx
-    mov esi, r12d
-    and esi, 0xFF
-    call out_u32
-    mov rdi, rbx
-    mov esi, 'm'
-    call out_byte
-
-    pop r13
-    pop r12
-    pop rbx
+    mov word ptr [rcx + 4], 0x323B    # ; 2
+    add rcx, 6
+    lea r8, [rip + u8_dec_tbl]
+    mov edx, 16                       # shift: R, G, B
+.Lors_chan:
+    mov byte ptr [rcx], ';'
+    mov eax, esi
+    push rcx
+    mov ecx, edx
+    shr eax, cl
+    pop rcx
+    and eax, 0xFF
+    mov r9d, [r8 + rax * 4]           # len | d0 << 8 | d1 << 16 | d2 << 24
+    mov eax, r9d
+    shr eax, 8
+    mov [rcx + 1], eax                # up to 3 digits (+1 scratch byte, overwritten)
+    and r9d, 0xFF
+    lea rcx, [rcx + r9 + 1]
+    sub edx, 8
+    jns .Lors_chan
+    mov byte ptr [rcx], 'm'
+    inc rcx
+    sub rcx, [rdi + ScreenBuffer.out_buf]
+    mov [rdi + ScreenBuffer.out_len], rcx
     ret
 
 # void ScreenBuffer_flush(ScreenBuffer *this)
@@ -703,6 +934,14 @@ ScreenBuffer_flush:
 
     mov rbx, rdi              # this
     mov qword ptr [rbx + ScreenBuffer.out_len], 0
+    # DEC 2026 synchronized update: the terminal presents the whole frame atomically
+    mov rdi, rbx
+    mov esi, 64
+    call out_ensure
+    mov rdi, rbx
+    lea rsi, [rip + seq_sync_begin]
+    mov edx, seq_sync_begin_len
+    call out_cstr
 
     mov eax, [rbx + ScreenBuffer.width]
     mov ecx, [rbx + ScreenBuffer.height]
@@ -740,17 +979,22 @@ ScreenBuffer_flush:
     mov dword ptr [rsp + 24], 0   # x = 0
 
 .Lfl_col:
+    # SIMD skip over unchanged cells (whole unchanged rows cost one PAL call)
+    mov edx, [rsp + 28]
+    sub edx, [rsp + 24]
+    jle .Lfl_next_row
+    mov rdi, r12
+    mov rsi, r13
+    call os_mem_mismatch16        # index of first differing Cell in the row remainder
+    add [rsp + 24], eax
+    shl rax, 4
+    add r12, rax
+    add r13, rax
     mov eax, [rsp + 24]
     cmp eax, [rsp + 28]
     jge .Lfl_next_row
-
-    # Compare 16 bytes of back vs front
     mov r8, [r12]
     mov r9, [r12 + 8]
-    cmp r8, [r13]
-    jne .Lfl_dirty
-    cmp r9, [r13 + 8]
-    je .Lfl_next_cell
 
 .Lfl_dirty:
     # Update front cell
@@ -761,7 +1005,7 @@ ScreenBuffer_flush:
     cmp dword ptr [r12 + Cell.ch], CELL_WIDE_TAIL
     je .Lfl_next_cell
 
-    # Ensure enough space in out_buf for one cell (~96 bytes max)
+    # Reserve room for one cell (cursor move + SGR + 2 TrueColor sequences + UTF-8 <= 96 B)
     mov rdi, rbx
     mov esi, 128
     call out_ensure
@@ -924,25 +1168,17 @@ ScreenBuffer_flush:
 
 .Lfl_finish:
     mov rdx, [rbx + ScreenBuffer.out_len]
-    test rdx, rdx
-    jz .Lfl_done
+    cmp rdx, seq_sync_begin_len
+    jbe .Lfl_nothing              # no cell changed: emit nothing at all
 
-    # Append "\x1b[0m"
+    # "\x1b[0m" + end of synchronized update
     mov rdi, rbx
-    mov esi, 16
+    mov esi, 32
     call out_ensure
     mov rdi, rbx
-    mov esi, 0x1B
-    call out_byte
-    mov rdi, rbx
-    mov esi, '['
-    call out_byte
-    mov rdi, rbx
-    mov esi, '0'
-    call out_byte
-    mov rdi, rbx
-    mov esi, 'm'
-    call out_byte
+    lea rsi, [rip + seq_sync_end]
+    mov edx, seq_sync_end_len
+    call out_cstr
 
     mov edi, STDOUT_FD
     mov rsi, [rbx + ScreenBuffer.out_buf]
@@ -950,6 +1186,8 @@ ScreenBuffer_flush:
     call sys_write_all
     mov qword ptr [rbx + ScreenBuffer.out_len], 0
 
+.Lfl_nothing:
+    mov qword ptr [rbx + ScreenBuffer.out_len], 0
 .Lfl_done:
     add rsp, 48
     pop r15

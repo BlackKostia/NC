@@ -30,6 +30,11 @@
 .equ TASK_TICK_MS,        100       # UI refresh cadence while a task runs
 .equ TASK_KILL_GRACE_MS,  3000      # shutdown: SIGKILL a worker that ignores cancel this long
 
+# --- Event loop timings ---
+.equ PREVIEW_DEBOUNCE_MS, 25        # coalesce rapid cursor moves into one preview read
+.equ WATCH_DEBOUNCE_MS,   150       # coalesce bursts of directory change events
+.equ WATCH_MIN_GAP_MS,    500       # at most two auto-refreshes per second per pane
+
 # --- LRU Directory Cache ---
 .equ DC_SLOTS,            16
 .equ DC_BUDGET,           33554432  # 32 MiB of cached entries/order/name pools at most

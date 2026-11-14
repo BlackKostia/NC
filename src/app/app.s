@@ -24,6 +24,7 @@ App_vtbl:
 .global App_set_status
 .global App_set_active_pane
 .global App_sync_preview
+.global App_preview_fire
 .global App_open_selected_entry
 .global App_close_dialog
 .global App_dispatch_f_action
@@ -371,8 +372,21 @@ get_inactive_pane:
 .Lgip_done:
     ret
 
-# void App_sync_preview(App *this)
+# void App_sync_preview(App *this) -- debounced: schedules App_preview_fire
 App_sync_preview:
+    cmp dword ptr [rdi + App.right_mode], RIGHT_MODE_PREVIEW
+    jne .Lasp_ret
+    push rdi
+    call sys_clock_ms
+    pop rdi
+    add rax, PREVIEW_DEBOUNCE_MS
+    mov [rdi + App.preview_due], rax
+.Lasp_ret:
+    ret
+
+# void App_preview_fire(App *this) -- load preview now; file heads come from the async reader
+App_preview_fire:
+    mov qword ptr [rdi + App.preview_due], 0
     cmp dword ptr [rdi + App.right_mode], RIGHT_MODE_PREVIEW
     jne .Lasp_done
     push rbx
@@ -401,6 +415,17 @@ App_sync_preview:
     mov rdi, [rbx + App.preview_pane]
     mov rsi, rsp
     call PreviewPane_load
+    test eax, eax
+    jz .Lasp_exit
+    mov rdi, rsp
+    call fs_preview_request
+    test eax, eax
+    jg .Lasp_async
+    mov rdi, [rbx + App.preview_pane]
+    call PreviewPane_read_sync
+    jmp .Lasp_exit
+.Lasp_async:
+    mov [rbx + App.preview_seq], eax
     jmp .Lasp_exit
 .Lasp_empty:
     mov rdi, [rbx + App.preview_pane]
@@ -408,6 +433,7 @@ App_sync_preview:
     xor edx, edx
     call PreviewPane_load
 .Lasp_exit:
+    mov dword ptr [rbx + App.need_redraw], 1
     add rsp, PATH_MAX + 16
     pop r12
     pop rbx
@@ -1480,6 +1506,8 @@ App_run:
     mov rbx, rdi
     mov qword ptr [rsp + Event._size], 0
 
+    call App_events_init
+    mov rdi, rbx
     call App_render
 
 .Larun_loop:
@@ -1495,15 +1523,12 @@ App_run:
     mov rcx, [rbx + App.right_pane]
     mov rcx, [rcx + FilePane.model]
     or edx, [rcx + DirModel.is_loading]
-    mov esi, 200
-    xor eax, eax
+    xor esi, esi
     test edx, edx
-    cmovnz esi, eax
-    cmp dword ptr [rbx + App.task_active], 0
-    je .Larun_poll
-    mov eax, TASK_TICK_MS
-    cmp esi, eax
-    cmova esi, eax
+    jnz .Larun_poll
+    mov rdi, rbx
+    call App_events_timeout           # -1 when idle: no periodic wake-ups at all
+    mov esi, eax
 .Larun_poll:
     mov rdi, rsp
     call input_poll_event
@@ -1560,6 +1585,8 @@ App_run:
     je .Larun_exit
     mov rdi, rbx
     call App_task_tick
+    mov rdi, rbx
+    call App_events_tick
     # Stream both panes concurrently: alternate batches when both are loading
     mov rax, [rbx + App.left_pane]
     mov rdi, [rax + FilePane.model]
@@ -1612,6 +1639,8 @@ App_run:
 .Larun_exit:
     mov rdi, rbx
     call App_task_shutdown
+    mov rdi, rbx
+    call App_events_shutdown
     add rsp, Event._size + 16
     pop rbx
     ret

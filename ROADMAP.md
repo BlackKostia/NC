@@ -33,6 +33,7 @@
 - **Принцип**: зашиті в `.rodata` дефолти гарантують 100% працездатність і без файлу `duoprc`.
 
 ### 1.2 Єдиний цикл подій (`poll`/`ppoll`) та автооновлення через `inotify`
+- **Статус (`v1.5.0`)**: ✅ один `ppoll` по `stdin` + каналу фонової задачі + `inotify` + каналу прев'ю ([input.s](src/tui/input.s), [app_events.s](src/app/app_events.s)); нескінченний таймаут у простої, точні дедлайни для тостів і дебаунсів; автооновлення обох панелей ([dir_watch.s](src/fs/dir_watch.s)) зі збереженням позначок.
 - **Файли**: [app.s](src/app/app.s), [input.s](src/tui/input.s), [linux_sys.inc](include/linux_sys.inc).
 - **Архітектурна зміна**: винести мультиплексування `SYS_poll`/`SYS_ppoll` із `wait_and_read` ([input.s](src/tui/input.s)) у головний цикл `App_run`, щоб водночас слухати `STDIN_FD`, `inotify_fd` (`SYS_inotify_init1`, `SYS_inotify_add_watch` для лівої й правої панелей), канали фонових задач (`pipe2`) і вбудований PTY без затримок у 200 мс.
 
@@ -134,6 +135,12 @@
 5. **Публічні анонси**: Hacker News (*«Dual-pane TUI file manager in pure x86-64 assembly, ~50 KB, zero libc»*), `r/linux`, `r/commandline`, `r/asm`, `lobste.rs`.
 
 ---
+
+## Аудит продуктивності (`v1.3.0` – `v1.5.0`) — виконано
+
+- **`v1.3.0`**: slab-алокатор ([memory.s](src/core/memory.s)), SSE2-примітиви в PAL ([pal_simd.s](src/os/linux/x86_64/pal_simd.s)), FD-відносні copy/delete з `FICLONE` → `copy_file_range` → спільний буфер 256 КіБ, видалення за `d_type` без `stat`, prefix-key radix для `SORT_NAME`/`SORT_EXT`, звуження фільтра без пересортування.
+- **`v1.4.0`**: LRU-кеш тек ([dir_cache.s](src/fs/dir_cache.s)) і лексичний `chdir` без `chdir`/`getcwd`, `mmap`-переглядач будь-якого розміру із захистом від `SIGBUS` ([viewer_dialog.s](src/ui/viewer_dialog.s)), ковзне вікно `io_uring` на 256 запитів і пакетний `statx` для цілей симлінків, почергове завантаження обох панелей.
+- **`v1.5.0`**: мультиплексований цикл подій без холостих пробуджень, `inotify`-автооновлення, дебаунс прев'ю й асинхронне читання в окремому процесі ([preview_io.s](src/fs/preview_io.s)), DEC 2026 synchronized output, SIMD-пропуск незмінених рядків у `ScreenBuffer_flush`, табличні RGB-послідовності, кеш `format_datetime`.
 
 ## Рекомендований порядок реалізації
 

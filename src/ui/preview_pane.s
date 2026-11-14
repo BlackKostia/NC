@@ -16,6 +16,8 @@ PreviewPane_vtbl:
 .global PreviewPane_new
 .global PreviewPane_dtor
 .global PreviewPane_load
+.global PreviewPane_accept
+.global PreviewPane_read_sync
 .global PreviewPane_render
 .global PreviewPane_on_mouse
 
@@ -65,7 +67,10 @@ PreviewPane_dtor:
     pop rbx
     ret
 
-# void PreviewPane_load(PreviewPane *this, const char *full_path, const FileEntry *entry)
+# int PreviewPane_load(PreviewPane *this, const char *full_path, const FileEntry *entry)
+# Directories / empty selection are shown immediately (returns 0). For files the pane enters
+# the pending state and returns 1: the caller supplies the head bytes in this->buf (async
+# reader) followed by PreviewPane_accept, or calls PreviewPane_read_sync.
 PreviewPane_load:
     push rbx
     push r12
@@ -79,11 +84,12 @@ PreviewPane_load:
     mov dword ptr [rbx + PreviewPane.total_lines], 0
     mov dword ptr [rbx + PreviewPane.is_binary], 0
     mov dword ptr [rbx + PreviewPane.is_dir], 0
+    mov dword ptr [rbx + PreviewPane.pending], 0
 
     test r13, r13
-    jz .Lppl_done
+    jz .Lppl_ldone
     test r12, r12
-    jz .Lppl_done
+    jz .Lppl_ldone
 
     lea rdi, [rbx + PreviewPane.target_path]
     mov rsi, r12
@@ -98,15 +104,44 @@ PreviewPane_load:
     test dword ptr [r13 + FileEntry.flags], (FE_IS_DIR | FE_LINK_DIR)
     jz .Lppl_read_file
     mov dword ptr [rbx + PreviewPane.is_dir], 1
-    jmp .Lppl_done
+    jmp .Lppl_ldone
 
 .Lppl_read_file:
-    mov rdi, r12
+    mov dword ptr [rbx + PreviewPane.pending], 1
+    mov eax, 1
+    jmp .Lppl_lret
+.Lppl_ldone:
+    xor eax, eax
+.Lppl_lret:
+    pop r13
+    pop r12
+    pop rbx
+    ret
+
+# void PreviewPane_read_sync(PreviewPane *this) -- fallback: read target_path head now
+PreviewPane_read_sync:
+    push rbx
+    mov rbx, rdi
+    lea rdi, [rbx + PreviewPane.target_path]
     mov rsi, [rbx + PreviewPane.buf]
     mov edx, PREVIEW_BUF_SIZE
     lea rcx, [rbx + PreviewPane.buf_len]
     call fs_read_file_head
+    mov rdi, rbx
+    mov rsi, [rbx + PreviewPane.buf_len]
+    pop rbx
+    jmp PreviewPane_accept
 
+# void PreviewPane_accept(PreviewPane *this, size_t len) -- analyse head bytes in this->buf
+PreviewPane_accept:
+    push rbx
+    push r12
+    push r13
+    mov rbx, rdi
+    mov [rbx + PreviewPane.buf_len], rsi
+    mov dword ptr [rbx + PreviewPane.pending], 0
+    mov dword ptr [rbx + PreviewPane.total_lines], 0
+    mov dword ptr [rbx + PreviewPane.is_binary], 0
     mov rcx, [rbx + PreviewPane.buf_len]
     mov r8, [rbx + PreviewPane.buf]
     mov byte ptr [r8 + rcx], 0
@@ -137,6 +172,7 @@ PreviewPane_load:
     xor r10d, r10d
 .Lppl_set_lines:
     mov [rbx + PreviewPane.total_lines], r10d
+    xor eax, eax
 
 .Lppl_done:
     pop r13
@@ -292,6 +328,8 @@ PreviewPane_render:
     jmp .Lppr_done
 
 .Lppr_chk_empty:
+    cmp dword ptr [rbx + PreviewPane.pending], 0
+    jne .Lppr_done                    # head bytes still on their way
     cmp qword ptr [rbx + PreviewPane.buf_len], 0
     jne .Lppr_chk_bin
     mov rdi, r12

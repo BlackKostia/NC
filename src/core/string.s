@@ -10,6 +10,10 @@ hex_digits:
 size_units:
     .ascii "BKMGTPE"
 
+.section .bss
+.align 16
+g_dt_cache: .space 64 * 32         # format_datetime minute cache
+
 .section .text
 .global str_len
 .global str_copy
@@ -455,8 +459,63 @@ format_perms:
     ret
 
 # void format_datetime(int64_t epoch_sec, char *buf)
-# Formats UTC timestamp as "YYYY-MM-DD HH:MM" (16 chars + NUL, buf >= 20 bytes)
+# Formats UTC timestamp as "YYYY-MM-DD HH:MM" (16 chars + NUL, buf >= 20 bytes).
+# Fronted by a 64-slot direct-mapped cache keyed by the minute (files of one directory share
+# few distinct minutes), so redrawing a pane skips the calendar divisions per visible row.
 format_datetime:
+    push rbx
+    push r12
+    push r13
+    mov rbx, rdi
+    mov r12, rsi
+    mov rax, rdi
+    mov rcx, 60
+    cqo
+    idiv rcx
+    test rdx, rdx
+    jns .Lfdc_min
+    dec rax                           # floor for pre-1970 timestamps
+.Lfdc_min:
+    mov r13, rax                      # minute key
+    mov rcx, rax
+    shr rcx, 7
+    xor rcx, rax
+    and ecx, 63
+    shl rcx, 5
+    lea rdx, [rip + g_dt_cache]
+    add rdx, rcx                      # slot: [0] key+1, [8..24] text
+    lea rax, [r13 + 1]
+    cmp [rdx], rax
+    jne .Lfdc_miss
+    mov rax, [rdx + 8]
+    mov [r12], rax
+    mov rax, [rdx + 16]
+    mov [r12 + 8], rax
+    mov byte ptr [r12 + 16], 0
+    pop r13
+    pop r12
+    pop rbx
+    ret
+.Lfdc_miss:
+    push rdx
+    sub rsp, 8
+    mov rdi, rbx
+    mov rsi, r12
+    call format_datetime_raw
+    add rsp, 8
+    pop rdx
+    lea rax, [r13 + 1]
+    mov [rdx], rax
+    mov rax, [r12]
+    mov [rdx + 8], rax
+    mov rax, [r12 + 8]
+    mov [rdx + 16], rax
+    pop r13
+    pop r12
+    pop rbx
+    ret
+
+format_datetime_raw:
     push rbx
     push r12
     push r13

@@ -23,9 +23,12 @@
 .equ OS_SYS_exit,           60
 .equ OS_SYS_wait4,          61
 .equ OS_SYS_kill,           62
+.equ OS_SYS_fcntl,          72
 .equ OS_SYS_getcwd,         79
 .equ OS_SYS_chdir,          80
 .equ OS_SYS_getdents64,     217
+.equ OS_SYS_inotify_add_watch, 254
+.equ OS_SYS_inotify_rm_watch, 255
 .equ OS_SYS_clock_gettime,  228
 .equ OS_SYS_openat,         257
 .equ OS_SYS_mkdirat,        258
@@ -36,6 +39,7 @@
 .equ OS_SYS_readlinkat,     267
 .equ OS_SYS_ppoll,          271
 .equ OS_SYS_pipe2,          293
+.equ OS_SYS_inotify_init1,  294
 .equ OS_SYS_copy_file_range, 326
 .equ OS_SYS_statx,          332
 .equ OS_SYS_io_uring_setup, 425
@@ -101,6 +105,20 @@
 .equ ENOTEMPTY,             39
 .equ EOPNOTSUPP,            95
 .equ ECANCELED,             125
+
+# --- Portable directory-watch event bits (Linux inotify values) ---
+.equ PAL_IN_MODIFY,         0x00000002
+.equ PAL_IN_ATTRIB,         0x00000004
+.equ PAL_IN_MOVED_FROM,     0x00000040
+.equ PAL_IN_MOVED_TO,       0x00000080
+.equ PAL_IN_CREATE,         0x00000100
+.equ PAL_IN_DELETE,         0x00000200
+.equ PAL_IN_DELETE_SELF,    0x00000400
+.equ PAL_IN_MOVE_SELF,      0x00000800
+.equ PAL_IN_Q_OVERFLOW,     0x00004000
+.equ KINOTIFY_HDR,          16       # struct inotify_event: wd, mask, cookie, len, name[]
+.equ F_GETFL,               3
+.equ F_SETFL,               4
 
 # --- Portable Process Control (signals & wait flags) ---
 .equ SIGKILL,               9

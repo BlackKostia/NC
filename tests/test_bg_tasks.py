@@ -213,8 +213,8 @@ def test_streaming_progress_pause_resume(tmp: str) -> None:
         chunk1 = bytes((i * 7) & 0xFF for i in range(256 * 1024))
         os.write(wfd, chunk1)
         wait_until(lambda: os.path.getsize(dst) == len(chunk1), "first chunk copied")
-        wait_for_text(sess, "Copying")
-        wait_for_text(sess, "256 K")
+        wait_for_text(sess, " Background ")       # ProgressDialog is up
+        wait_for_text(sess, "256 K  ·  Files")    # bytes row of the dialog
         wait_for_text(sess, "/s")
         print("[PASS] B5. Live byte progress & transfer speed rendered while streaming")
 

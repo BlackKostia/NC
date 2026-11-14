@@ -29,6 +29,8 @@ SRCS := \
 	src/fs/dir_cache.s \
 	src/fs/file_ops.s \
 	src/fs/task.s \
+	src/fs/dir_watch.s \
+	src/fs/preview_io.s \
 	src/ui/header_bar.s \
 	src/ui/function_bar.s \
 	src/ui/status_bar.s \
@@ -38,7 +40,8 @@ SRCS := \
 	src/ui/viewer_dialog.s \
 	src/ui/progress_dialog.s \
 	src/app/app.s \
-	src/app/app_task.s
+	src/app/app_task.s \
+	src/app/app_events.s
 
 PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_os.s \
@@ -78,6 +81,7 @@ test: $(TARGET)
 	python3 tests/test_bg_tasks.py
 	python3 tests/test_fastpath.py
 	python3 tests/test_nav_viewer.py
+	python3 tests/test_event_loop.py
 
 verify:
 	./.agents/skills/duop-pty-verify/scripts/verify_build.sh

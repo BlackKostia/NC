@@ -223,6 +223,29 @@ alloc_initial_arrays:
     ret
 
 # ==============================================================================
+# void DirModel_invalidate_stats(DirModel *this)
+# File contents/attributes changed (watch event): drop cached stats so visible rows re-stat
+# lazily; selections stay untouched.
+# ==============================================================================
+.global DirModel_invalidate_stats
+DirModel_invalidate_stats:
+    mov rcx, [rdi + DirModel.entries]
+    mov rdx, [rdi + DirModel.raw_count]
+    mov eax, [rdi + DirModel.has_dotdot]
+.Ldis_loop:
+    cmp rax, rdx
+    jae .Ldis_done
+    mov r8, rax
+    shl r8, 5
+    and dword ptr [rcx + r8 + FileEntry.flags], ~FE_STAT_READY
+    inc rax
+    jmp .Ldis_loop
+.Ldis_done:
+    mov qword ptr [rdi + DirModel.total_bytes], 0
+    mov dword ptr [rdi + DirModel.stats_complete], 0
+    ret
+
+# ==============================================================================
 # Helper: void reset_entry_stats(DirModel *this)
 # After restoring a cached listing: forget cached stat data and selections so visible rows
 # are lazily re-stat'ed exactly like a fresh load (file contents may change without the

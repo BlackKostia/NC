@@ -30,6 +30,13 @@ g_raw_active:
 .global os_pipe_cloexec
 .global os_signals_worker_mode
 .global os_clone_file
+.global os_poll_many
+.global os_set_nonblock
+.global os_watch_init
+.global os_watch_add
+.global os_watch_rm
+.global os_watch_read
+.global os_watch_next
 .global os_mmap_file_ro
 .global os_munmap
 .global os_sigbus_guard_install
@@ -270,6 +277,126 @@ os_munmap:
     mov eax, OS_SYS_munmap
     syscall
 .Lomu_ret:
+    ret
+
+# int os_poll_many(const int *fds, int n, int timeout_ms) -> ready bitmask / 0 / -errno
+os_poll_many:
+    push rbx
+    sub rsp, 96                       # [0..63] = 8 pollfds, [64..79] = timespec
+    mov r8, rdi
+    mov r9d, esi
+    cmp r9d, 8
+    jbe .Lopm_n_ok
+    mov r9d, 8
+.Lopm_n_ok:
+    xor ecx, ecx
+.Lopm_fill:
+    cmp ecx, r9d
+    jae .Lopm_ts
+    mov eax, [r8 + rcx * 4]
+    mov [rsp + rcx * 8 + POLLFD_FD], eax
+    mov word ptr [rsp + rcx * 8 + POLLFD_EVENTS], POLLIN
+    mov word ptr [rsp + rcx * 8 + POLLFD_REVENTS], 0
+    inc ecx
+    jmp .Lopm_fill
+.Lopm_ts:
+    xor ebx, ebx                      # NULL timespec (infinite) if timeout < 0
+    test edx, edx
+    js .Lopm_call
+    movsxd rax, edx
+    cqo
+    mov ecx, 1000
+    idiv rcx
+    imul rdx, rdx, 1000000
+    mov [rsp + 64 + TIMESPEC_SEC], rax
+    mov [rsp + 64 + TIMESPEC_NSEC], rdx
+    lea rbx, [rsp + 64]
+.Lopm_call:
+    mov rdi, rsp
+    mov esi, r9d
+    mov rdx, rbx
+    xor r10d, r10d
+    mov r8d, 8
+    mov eax, OS_SYS_ppoll
+    syscall
+    test rax, rax
+    jle .Lopm_ret
+    xor eax, eax
+    xor ecx, ecx
+.Lopm_mask:
+    cmp ecx, r9d
+    jae .Lopm_ret
+    cmp word ptr [rsp + rcx * 8 + POLLFD_REVENTS], 0
+    je .Lopm_next
+    bts eax, ecx
+.Lopm_next:
+    inc ecx
+    jmp .Lopm_mask
+.Lopm_ret:
+    add rsp, 96
+    pop rbx
+    ret
+
+# int os_set_nonblock(int fd)
+os_set_nonblock:
+    push rdi
+    mov esi, F_GETFL
+    mov eax, OS_SYS_fcntl
+    syscall
+    pop rdi
+    test rax, rax
+    js .Losn_ret
+    or eax, O_NONBLOCK
+    mov edx, eax
+    mov esi, F_SETFL
+    mov eax, OS_SYS_fcntl
+    syscall
+.Losn_ret:
+    ret
+
+# int os_watch_init(void) -> inotify fd (IN_NONBLOCK | IN_CLOEXEC)
+os_watch_init:
+    mov edi, O_NONBLOCK | O_CLOEXEC
+    mov eax, OS_SYS_inotify_init1
+    syscall
+    ret
+
+# int os_watch_add(int fd, const char *path, uint32_t mask)
+os_watch_add:
+    mov eax, OS_SYS_inotify_add_watch
+    syscall
+    ret
+
+# int os_watch_rm(int fd, int wd)
+os_watch_rm:
+    mov eax, OS_SYS_inotify_rm_watch
+    syscall
+    ret
+
+# ssize_t os_watch_read(int fd, void *buf, size_t cap)
+os_watch_read:
+    mov eax, OS_SYS_read
+    syscall
+    ret
+
+# int os_watch_next(const void *buf, size_t len, size_t *pos, int *wd, uint32_t *mask)
+os_watch_next:
+    mov rax, [rdx]
+    lea r9, [rax + KINOTIFY_HDR]
+    cmp r9, rsi
+    ja .Lown_end
+    lea r9, [rdi + rax]
+    mov r10d, [r9 + 0]
+    mov [rcx], r10d                   # wd
+    mov r10d, [r9 + 4]
+    mov [r8], r10d                    # mask
+    mov r10d, [r9 + 12]               # name len
+    lea rax, [rax + r10 + KINOTIFY_HDR]
+    mov [rdx], rax
+    mov eax, 1
+    ret
+.Lown_end:
+    xor eax, eax
     ret
 
 # int os_pipe_cloexec(int fds[2])
