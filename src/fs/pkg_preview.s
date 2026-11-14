@@ -140,7 +140,9 @@ pkpv_exec_pipe:
     mov edi, ebx; mov esi, 9; OS_KILL
 .Lpve_done:
     mov edi, [rsp + 40]; OS_CLOSE
+.Lpve_wait:
     mov edi, ebx; lea rsi, [rsp + 24]; xor edx, edx; xor r10d, r10d; OS_WAIT4
+    cmp rax, -EINTR; je .Lpve_wait
     mov eax, r12d; jmp .Lpve_ret
 .Lpve_err:
     mov eax, -1

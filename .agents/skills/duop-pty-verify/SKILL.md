@@ -29,4 +29,4 @@ What this verifies:
 
 ## When Adding Features or Bugfixes
 
-Follow `duop-tdd-first`: add deterministic PTY / fault-injection test cases under `tests/` (`tests/test_pal_architecture.py`, `tests/test_pty.py`, `tests/test_fs_reliability.py`, or a new module registered in `Makefile`) covering new flags, keys, dialogs, UI text (both EN and UA), PAL contracts, or filesystem behavior before editing `src/`/`include/` and running `verify_build.sh`.
+Follow `duop-tdd-first`: add deterministic PTY / fault-injection test cases under `tests/` (`tests/test_pal_architecture.py`, `tests/test_pty.py`, `tests/test_fs_reliability.py`, `tests/test_fault_injection.py`, or a new module registered in `Makefile`) covering new flags, keys, dialogs, UI text (both EN and UA), PAL contracts, or filesystem behavior before editing `src/`/`include/` and running `verify_build.sh` (which also executes `duop-reliability-audit` checks and `audit_elf_hardening.py`).

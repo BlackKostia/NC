@@ -321,22 +321,23 @@ def handle_post_tool_use(payload: dict, root: Path) -> dict:
                         check=False,
                     )
             if rel.startswith(("src/", "include/")) and rel.endswith((".s", ".inc")):
-                rel_script = root / RELIABILITY_SCRIPT
-                if rel_script.is_file():
-                    rproc = subprocess.run(
-                        [sys.executable, str(rel_script)],
-                        capture_output=True,
-                        text=True,
-                        timeout=4,
-                        check=False,
-                    )
-                    if rproc.returncode != 0:
-                        return {
-                            "feedback": (
-                                "Reliability audit (duop-reliability-audit) failed after editing " + rel + ":\n"
-                                + (rproc.stdout + rproc.stderr).strip()
-                            )
-                        }
+                for rscript_name in ("audit_stack_abi.py", "audit_oop_vtables.py", "audit_fd_eintr.py"):
+                    rel_script = root / ".agents/skills/duop-reliability-audit/scripts" / rscript_name
+                    if rel_script.is_file():
+                        rproc = subprocess.run(
+                            [sys.executable, str(rel_script)],
+                            capture_output=True,
+                            text=True,
+                            timeout=4,
+                            check=False,
+                        )
+                        if rproc.returncode != 0:
+                            return {
+                                "feedback": (
+                                    "Reliability audit (duop-reliability-audit/" + rscript_name + ") failed after editing " + rel + ":\n"
+                                    + (rproc.stdout + rproc.stderr).strip()
+                                )
+                            }
             if (
                 rel.startswith(("src/app/", "src/ui/", "src/fs/pkg_", "src/main.s"))
                 and not state.get("docs_edited")

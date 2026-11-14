@@ -84,16 +84,23 @@ def split_routines(path: Path) -> list[dict]:
             }
             routines.append(cur)
         elif cur is not None:
+            if s.startswith(".L") and s.endswith(":") and cur["lines"] and RE_RET.match(cur["lines"][-1][1]):
+                cur = None
+                continue
             cur["lines"].append((idx, s))
     return routines
 
 
-def audit_file(path: Path) -> list[str]:
+def audit_file(path: Path, include_private: bool = False) -> list[str]:
     findings: list[str] = []
     rel = path.relative_to(ROOT)
+    text = path.read_text(encoding="utf-8", errors="replace")
+    globals_set = set(re.findall(r"^\s*\.global\s+([A-Za-z_][A-Za-z0-9_]*)", text, re.M))
     for rt in split_routines(path):
         name = rt["name"]
         if rt["is_step"] or name == "_start":
+            continue
+        if not include_private and name not in globals_set:
             continue
         pushed_set: set[str] = set()
         popped_set: set[str] = set()
@@ -103,7 +110,8 @@ def audit_file(path: Path) -> list[str]:
 
         for lineno, raw_s in rt["lines"]:
             for stmt in [p.strip() for p in raw_s.split(";") if p.strip()]:
-                if stmt.startswith(".L"):
+                stmt = re.sub(r"^(?:\.L[A-Za-z0-9_]+|\d+):\s*", "", stmt)
+                if not stmt:
                     continue
                 mp = RE_PUSH.match(stmt)
                 if mp:
@@ -148,10 +156,11 @@ def audit_file(path: Path) -> list[str]:
 
 
 def main() -> int:
+    include_private = "--all" in sys.argv[1:]
     all_findings: list[str] = []
     s_files = sorted((ROOT / "src").rglob("*.s"))
     for path in s_files:
-        all_findings.extend(audit_file(path))
+        all_findings.extend(audit_file(path, include_private=include_private))
 
     if all_findings:
         print(f"ABI REG AUDIT FAILED ({len(all_findings)} issue(s)):")

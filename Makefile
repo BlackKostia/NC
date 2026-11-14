@@ -280,10 +280,19 @@ test: $(TARGET)
 	python3 tests/test_pkg_extensions.py
 	python3 tests/test_pkg_improvements.py
 	python3 tests/test_reliability_audit.py
+	python3 tests/test_fault_injection.py
 	python3 tests/test_smart_runner.py
 
 test-smart: $(TARGET)
 	python3 tests/run_smart_tests.py
+
+audit-all: $(TARGET)
+	python3 .agents/skills/duop-reliability-audit/scripts/audit_stack_abi.py
+	python3 .agents/skills/duop-reliability-audit/scripts/audit_abi_regs.py
+	python3 .agents/skills/duop-reliability-audit/scripts/audit_oop_vtables.py
+	python3 .agents/skills/duop-reliability-audit/scripts/audit_fd_eintr.py
+	python3 .agents/skills/duop-reliability-audit/scripts/audit_elf_hardening.py $(TARGET)
+	gcc -O2 -Wall -Wextra tools/abi_verify.c -o $(BUILD)/abi_verify && $(BUILD)/abi_verify include/os/linux/x86_64/pal_target.inc
 
 memcheck:
 	$(MAKE) MEMCHECK=1

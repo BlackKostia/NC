@@ -62,7 +62,7 @@ mc_init:
 .Lmi_open:
     lea rsi, [r12 + ENV_MCLOG_LEN]
     mov edi, AT_FDCWD
-    mov edx, O_WRONLY | O_CREAT | O_TRUNC
+    mov edx, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC
     mov r10d, 0644
     OS_OPENAT
     test rax, rax; js .Lmi_mmap

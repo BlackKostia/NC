@@ -19,6 +19,14 @@ fi
 echo "==> [1/4] Checking Duop modularity, stack/ABI reliability & i18n contracts..."
 python3 ./.agents/skills/duop-modular-asm/scripts/check_modularity.py --root "$ROOT"
 python3 ./.agents/skills/duop-reliability-audit/scripts/audit_stack_abi.py
+python3 ./.agents/skills/duop-reliability-audit/scripts/audit_abi_regs.py
+python3 ./.agents/skills/duop-reliability-audit/scripts/audit_oop_vtables.py
+python3 ./.agents/skills/duop-reliability-audit/scripts/audit_fd_eintr.py
+if command -v gcc >/dev/null 2>&1; then
+    mkdir -p "$ROOT/build"
+    gcc -O2 -Wall -Wextra "$ROOT/tools/abi_verify.c" -o "$ROOT/build/abi_verify"
+    "$ROOT/build/abi_verify" "$ROOT/include/os/linux/x86_64/pal_target.inc"
+fi
 # Lean gate: whole working tree, or only the staged commit content when run from pre-commit
 python3 ./.agents/skills/duop-lean-modules/scripts/check_lean.py --root "$ROOT" ${DUOP_LEAN_STAGED:+--staged}
 python3 ./tests/test_lean_gate.py
@@ -38,6 +46,7 @@ if [[ -z "$DATA_BYTES" || "$DATA_BYTES" -ne 0 ]]; then
     echo "ERROR: ELF .data section must be 0 bytes (got '${DATA_BYTES}')." >&2
     exit 1
 fi
+python3 ./.agents/skills/duop-reliability-audit/scripts/audit_elf_hardening.py "$ROOT/duop"
 
 VER_OUT="$("$ROOT/duop" --version)"
 if [[ "$VER_OUT" != *"v${VER}"* ]]; then

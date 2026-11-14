@@ -298,6 +298,11 @@ def audit_file(
                             f"{rel}:{alino} ({name}): mismatched `add rsp, {aval}` vs `sub rsp, {sub_val}`"
                         )
         else:
+            # Verify __step frame-sharing lea rsp, [rsp - 8] / [rsp + 8] symmetry
+            has_lea_sub = any("lea rsp, [rsp - 8]" in stmt for _, stmt, _ in rt["lines"])
+            has_lea_add = any("lea rsp, [rsp + 8]" in stmt for _, stmt, _ in rt["lines"])
+            if has_lea_sub and not has_lea_add:
+                findings.append(f"{rel}:{rt['start_line']} ({name}): `__step` uses `lea rsp, [rsp - 8]` without `lea rsp, [rsp + 8]`")
             parent_name = name.split("__", 1)[0]
             if parent_name in parent_info:
                 pinfo = parent_info[parent_name]

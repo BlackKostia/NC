@@ -48,3 +48,4 @@ Keep every Duop subsystem small, decoupled, zero-libc, and single-purpose.
    python3 ./.agents/skills/duop-modular-asm/scripts/check_modularity.py
    ```
    Confirm zero errors and check any file-size warnings before continuing.
+   Also run `audit_oop_vtables.py` and `audit_stack_abi.py` (or `make audit-all`) after editing OOP vtables or stack frames.

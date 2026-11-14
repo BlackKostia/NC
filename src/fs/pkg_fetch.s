@@ -27,11 +27,14 @@ pkg_fetch_url:
     js .Lpf_err
     jz .Lpf_child
     mov r14, rax                      # child pid
+.Lpf_wait:
     mov rdi, r14
     lea rsi, [rsp + 48]               # status
     xor edx, edx
     xor r10d, r10d
     OS_WAIT4
+    cmp rax, -EINTR
+    je .Lpf_wait
     test rax, rax
     js .Lpf_err
     mov eax, [rsp + 48]

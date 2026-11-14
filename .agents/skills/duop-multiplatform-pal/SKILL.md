@@ -51,3 +51,4 @@ Kernel structs (`struct stat`, `dirent`/`dirent64`, `termios`, `sigaction`, `pol
 - Keep shared algorithms scalar by default (`core/string.s`, `core/memory.s`); avoid unguarded `xmm`/`ymm`/`zmm` SSE/AVX instructions in shared x86-64 paths unless isolated behind matching NEON counterparts under arch-specific modules.
 - Preserve strict ABI hygiene (`x0..x7` / `x19..x29` callee-saved on `AAPCS64`, `x8` syscall number + `svc #0` on Linux AArch64).
 - Note `check_modularity.py` treats `.intel_syntax noprefix` as an x86-only requirement and enforces PAL boundary rules statically across all `src/` layers.
+- Run `tools/abi_verify.c` (`make audit-all`) whenever modifying `include/os/<os>/<arch>/pal_target.inc` to verify all kernel struct offsets and flags against OS headers.

@@ -100,7 +100,8 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/app/app_layout*", ("tests/test_ui_visual.py", "tests/test_pty.py")),
     ("src/app/app_close_dialog*", ("tests/test_pty.py",)),
     (".agents/skills/duop-lean-modules/*", ("tests/test_lean_gate.py", "tests/test_lean_split.py")),
-    (".agents/skills/duop-reliability-audit/*", ("tests/test_reliability_audit.py",)),
+    (".agents/skills/duop-reliability-audit/*", ("tests/test_reliability_audit.py", "tests/test_fault_injection.py")),
+    ("tools/abi_verify.c", ("tests/test_reliability_audit.py",)),
     (".agents/hooks/*", ("tests/test_lean_gate.py", "tests/test_i18n_hook.py")),
 )
 

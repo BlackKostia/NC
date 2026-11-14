@@ -112,7 +112,9 @@ pkv_exec_list:
     jmp .Lpve2_rd
 .Lpve2_done:
     mov edi, [rsp + 56]; OS_CLOSE
+.Lpve2_wait:
     mov edi, ebx; lea rsi, [rsp + 40]; xor edx, edx; xor r10d, r10d; OS_WAIT4
+    cmp rax, -EINTR; je .Lpve2_wait
     xor eax, eax; jmp .Lpve2_ret
 .Lpve2_err:
     mov eax, -1

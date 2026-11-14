@@ -180,7 +180,9 @@ pkvp_exec_capture:
     add r12d, eax; jmp .Lpvec_rd
 .Lpvec_done:
     mov edi, [rsp + 64]; OS_CLOSE
+.Lpvec_wait:
     mov edi, ebx; lea rsi, [rsp + 60]; xor edx, edx; xor r10d, r10d; OS_WAIT4
+    cmp rax, -EINTR; je .Lpvec_wait
     mov eax, r12d; jmp .Lpvec_ret
 .Lpvec_err:
     mov eax, -1
