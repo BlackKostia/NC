@@ -12,6 +12,7 @@ zoom_steps: .long 25, 33, 50, 67, 75, 100, 125, 150, 200, 300, 400, 600, 800
 .section .text
 .global vim_zoom_key
 .global vim_zoom_mouse
+.global vz_invalidate
 
 # int vim_zoom_key(ViewerDialog *v, Event *e) -> 1 if handled
 vim_zoom_key:
@@ -40,6 +41,7 @@ vim_zoom_key:
     xor esi, esi; mov edx, -4; cmp eax, KEY_PGUP;  je .Lzk_pan
     xor esi, esi; mov edx, 4;  cmp eax, KEY_PGDN;  je .Lzk_pan
     cmp eax, KEY_HOME; je .Lzk_home
+    cmp eax, KEY_END;  je .Lzk_end
     pop rbx
 .Lzk_no:
     xor eax, eax
@@ -67,6 +69,12 @@ vim_zoom_key:
     mov dword ptr [rbx + ViewerDialog.img_pan_x], 0
     mov dword ptr [rbx + ViewerDialog.img_pan_y], 0
     jmp .Lzk_inv
+.Lzk_end:
+    mov eax, [rbx + ViewerDialog.img + Image.w]
+    mov [rbx + ViewerDialog.img_pan_x], eax
+    mov eax, [rbx + ViewerDialog.img + Image.h]
+    mov [rbx + ViewerDialog.img_pan_y], eax
+    jmp .Lzk_inv
 .Lzk_pan:
     mov rdi, rbx; call vz_pan
 .Lzk_inv:
@@ -83,7 +91,7 @@ vim_zoom_mouse:
     cmp dword ptr [rdi + ViewerDialog.img_state], 1
     jne .Lzm_no
     cmp dword ptr [rsi + Event.mouse_kind], MACT_WHEEL
-    jne .Lzm_no
+    jne vw_img_scrollbar_mouse
     push rbx
     mov rbx, rdi
     mov eax, [rsi + Event.mouse_btn]

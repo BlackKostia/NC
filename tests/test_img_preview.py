@@ -305,10 +305,63 @@ def test_braille_mode():
                 pass
 
 
+def test_scrollbar_mouse():
+    with tempfile.TemporaryDirectory() as tmp:
+        l = os.path.join(tmp, "left")
+        r = os.path.join(tmp, "right")
+        os.makedirs(l)
+        os.makedirs(r)
+        make_png_grid(os.path.join(l, "grid.png"), 200, 200)
+
+        sess = PtySession(BINARY, ["--lang", "en", l, r], cols=100, rows=30)
+        try:
+            drain_raw(sess, 0.25)
+            os.write(sess.master, b"\x1b[B")    # grid.png
+            drain_raw(sess, 0.1)
+            os.write(sess.master, b"\x1bOR")    # F3 -> Open as
+            drain_raw(sess, 0.15)
+            os.write(sess.master, b"i")         # Image mode
+            drain_raw(sess, 0.3)
+            os.write(sess.master, b"1")         # 100% zoom -> scrollbars active
+            drain_raw(sess, 0.25)
+
+            # Click top of vertical scrollbar (1-based col=98, row=3)
+            os.write(sess.master, b"\x1b[<0;98;3M\x1b[<0;98;3m")
+            drain_raw(sess, 0.25)
+            lines = sess.vt.full_text().splitlines()
+            assert lines[2][-3] == "█", f"Expected V-thumb at top after click:\n" + "\n".join(lines)
+
+            # Click bottom of vertical scrollbar (1-based col=98, row=27)
+            os.write(sess.master, b"\x1b[<0;98;27M\x1b[<0;98;27m")
+            drain_raw(sess, 0.25)
+            lines = sess.vt.full_text().splitlines()
+            assert lines[26][-3] == "█", f"Expected V-thumb at bottom after click:\n" + "\n".join(lines)
+
+            # Click left of horizontal scrollbar (1-based col=4, row=29 -> y=28)
+            os.write(sess.master, b"\x1b[<0;4;29M\x1b[<0;4;29m")
+            drain_raw(sess, 0.25)
+            lines = sess.vt.full_text().splitlines()
+            assert lines[28][3] == "█", f"Expected H-thumb at left after click:\n" + "\n".join(lines)
+
+            # Click right of horizontal scrollbar (1-based col=97, row=29 -> y=28)
+            os.write(sess.master, b"\x1b[<0;97;29M\x1b[<0;97;29m")
+            drain_raw(sess, 0.25)
+            lines = sess.vt.full_text().splitlines()
+            assert lines[28][96] == "█", f"Expected H-thumb at right after click:\n" + "\n".join(lines)
+            print("[PASS] IMG6. Interactive mouse click/drag on ViewerDialog H/V scrollbars")
+        finally:
+            try:
+                os.kill(sess.pid, 9)
+                os.waitpid(sess.pid, 0)
+            except OSError:
+                pass
+
+
 if __name__ == "__main__":
     test_kitty_and_cleanup()
     test_halfblock_fallback()
     test_img_zoom_and_quality()
     test_viewer_scrollbars()
     test_braille_mode()
+    test_scrollbar_mouse()
     print("ALL IMAGE PREVIEW TESTS PASSED.")

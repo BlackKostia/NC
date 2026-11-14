@@ -7,6 +7,7 @@
 .section .text
 .global vw_draw_img_scrollbars
 .global vw_draw_text_scrollbar
+.global vw_img_scrollbar_mouse
 
 # Internal: void vw_draw_bar(ScreenBuffer *scr, Theme *th, int x, int y, int track_len,
 #                            int horiz, long pos, long vis, long total)
@@ -136,4 +137,69 @@ vw_draw_text_scrollbar:
     call vw_draw_bar
     add rsp, 24
 .Ldts_ret:
+    ret
+
+# Internal: int vw_scrub_axis(int rel, int track, int img_dim, int box_dim, int zoom) -> clamped pan
+vw_scrub_axis:
+    push rbx
+    mov ebx, edi
+    mov eax, ecx; imul eax, 100
+    xor edx, edx; div r8d
+    test eax, eax; jnz 1f; mov eax, 1
+1:  cmp eax, r9d; jle 2f; mov eax, r9d
+2:  mov ecx, r9d; sub ecx, eax        # max_pan = img_dim - vis
+    test ecx, ecx; jg 3f
+    xor eax, eax; pop rbx; ret
+3:  dec esi
+    cmp esi, 1; jge 4f; mov esi, 1
+4:  mov eax, ebx; imul eax, ecx
+    xor edx, edx; div esi
+    cmp eax, ecx; jle 5f; mov eax, ecx
+5:  pop rbx
+    ret
+
+# int vw_img_scrollbar_mouse(ViewerDialog *v, Event *e) -> 1 if handled
+vw_img_scrollbar_mouse:
+    mov r8d, [rdi + ViewerDialog.img_zoom]
+    test r8d, r8d; jz .Lsm_no
+    mov eax, [rsi + Event.mouse_kind]
+    cmp eax, MACT_PRESS; je 1f
+    cmp eax, MACT_DRAG;  jne .Lsm_no
+1:  cmp dword ptr [rsi + Event.mouse_btn], MOUSE_LEFT
+    jne .Lsm_no
+    mov ecx, [rsi + Event.mouse_x]
+    mov edx, [rsi + Event.mouse_y]
+    mov r9d, [rdi + Widget.x]; add r9d, [rdi + Widget.w]; dec r9d
+    cmp ecx, r9d; jne .Lsm_chk_h
+    mov r10d, [rdi + Widget.y]; inc r10d
+    mov r11d, [rdi + Widget.h]; sub r11d, 3
+    sub edx, r10d; js .Lsm_no
+    cmp edx, r11d; jge .Lsm_no
+    push rdi
+    mov edi, edx; mov esi, r11d
+    mov rcx, [rsp]; mov ecx, [rcx + ViewerDialog.img_box_h]
+    mov r9, [rsp]; mov r9d, [r9 + ViewerDialog.img + Image.h]
+    call vw_scrub_axis
+    pop rdi
+    mov [rdi + ViewerDialog.img_pan_y], eax
+    call vz_invalidate
+    mov eax, 1; ret
+.Lsm_chk_h:
+    mov r9d, [rdi + Widget.y]; add r9d, [rdi + Widget.h]; dec r9d
+    cmp edx, r9d; jne .Lsm_no
+    mov r10d, [rdi + Widget.x]; inc r10d
+    mov r11d, [rdi + Widget.w]; sub r11d, 2
+    sub ecx, r10d; js .Lsm_no
+    cmp ecx, r11d; jge .Lsm_no
+    push rdi
+    mov edi, ecx; mov esi, r11d
+    mov rcx, [rsp]; mov ecx, [rcx + ViewerDialog.img_box_w]
+    mov r9, [rsp]; mov r9d, [r9 + ViewerDialog.img + Image.w]
+    call vw_scrub_axis
+    pop rdi
+    mov [rdi + ViewerDialog.img_pan_x], eax
+    call vz_invalidate
+    mov eax, 1; ret
+.Lsm_no:
+    xor eax, eax
     ret
