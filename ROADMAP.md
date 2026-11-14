@@ -75,22 +75,22 @@
 
 ## Рівень 2 (`v1.2` – `v2.0`) — «Вау»-можливості, що перевершують `mc` / `ranger` / `lf` / `yazi`
 
-### 2.1 Вбудований Fuzzy Finder + Command Palette (`Ctrl+K`)
-- **Файли**: [dialogs.s](src/ui/dialogs.s), [app.s](src/app/app.s), [types.inc](include/types.inc) (`FuzzyDialog`).
+### 2.1 Вбудований Fuzzy Finder + Command Palette (`Ctrl+K`) ✅
+- **Файли**: [fuzzy_dialog.s](src/ui/fuzzy_dialog.s), [dir_fuzzy.s](src/fs/dir_fuzzy.s), [app_ext.s](src/app/app_ext.s), [dialogs_ext.inc](include/dialogs_ext.inc) (`FuzzyDialog`).
 - **Можливості**:
   - **Command Palette (`Ctrl+K`)**: миттєвий пошук будь-якої дії та комбінації клавіш;
-  - **Fuzzy Finder** (`fzf`-стиль) по всьому дереву каталогів із підсвічуванням збігів символів і сортуванням за релевантністю.
+  - **Fuzzy Finder (`Ctrl+P`)** (`fzf`-стиль) по всьому дереву каталогів із підсвічуванням збігів символів і сортуванням за релевантністю.
 
-### 2.2 Перегляд зображень у терміналі
-- **Файли**: [preview_pane.s](src/ui/preview_pane.s), [screen.s](src/tui/screen.s).
+### 2.2 Перегляд зображень у терміналі ✅
+- **Файли**: [img_preview.s](src/ui/img_preview.s), [inflate.s](src/fs/inflate.s), [preview_pane.s](src/ui/preview_pane.s), [app.s](src/app/app.s).
 - **Підхід**:
   - **Kitty Graphics Protocol (`f=100`)** передає PNG-файли «як є» без написання PNG-декодера;
-  - облік графічного прямокутника в `ScreenBuffer`, щоб при перекритті діалогами чи зміні файлу коректно надсилати команду очищення (`\x1b_Ga=d...\x1b\\`) і уникати артефактів поверх тексту;
-  - наступний крок: fallback на **Sixel** та TrueColor half-blocks (`▀`/`▄`) для SSH/rescue-консолей без Kitty.
+  - облік графічного прямокутника, щоб при перекритті діалогами чи зміні файлу коректно надсилати команду очищення (`\x1b_Ga=d...\x1b\\`) і уникати артефактів поверх тексту;
+  - fallback на TrueColor half-blocks (`▀`) для SSH/rescue-консолей без Kitty.
 
-### 2.3 Режим аналізу диска (`Alt+D`, `ncdu`-режим)
-- **Файли**: [dir_model.s](src/fs/dir_model.s), [file_pane.s](src/ui/file_pane.s).
-- **Реалізація**: високошвидкісний паралельний обхід каталогів на `getdents64` (окремі `mmap`-арени на воркер), візуальні TrueColor-бари частки розміру в таблиці, сортування за розміром та видалення прямо з режиму аналізу.
+### 2.3 Режим аналізу диска (`Alt+D`, `ncdu`-режим) ✅
+- **Файли**: [disk_usage.s](src/fs/disk_usage.s), [du_render.s](src/ui/du_render.s), [file_pane.s](src/ui/file_pane.s).
+- **Реалізація**: рекурсивний обхід каталогів на `getdents64`, візуальні TrueColor-бари частки розміру в таблиці, сортування за розміром та навігація всередину каталогів у режимі аналізу.
 
 ### 2.4 Віртуальна файлова система архівів (VFS)
 - **Файли**: [dir_model.s](src/fs/dir_model.s) + модуль розпакування (`src/fs/inflate.s`).

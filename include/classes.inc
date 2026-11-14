@@ -139,6 +139,8 @@ CLASS_BEGIN DirModel
     FIELD DirModel.flt_valid,      4   # 1: order[] == filter(flt_applied) over all raw entries
     FIELD DirModel.flt_hidden,     4   # show_hidden used for flt_applied
     FIELD DirModel.virtual_mode,   4   # 0=normal, 1=VIRTUAL_SEARCH
+    FIELD DirModel.du_mode,        4   # 0=normal, 1=ncdu disk usage mode
+    FIELD DirModel.du_total,       8   # total bytes in du_mode
     FIELD DirModel.path,           PATH_MAX
     FIELD DirModel.filter,         FILTER_MAX
     FIELD DirModel.flt_lc,         FILTER_MAX  # ASCII-lowercased filter (SIMD needle)
@@ -352,6 +354,8 @@ CLASS_END App
 .equ OP_INFO,      17
 .equ OP_SYMLINK,   18
 .equ OP_HARDLINK,  19
+.equ OP_PALETTE,   20
+.equ OP_FUZZY,     21
 
 # --- HeaderBar Action IDs ---
 .equ HDR_BTN_THEME,   1

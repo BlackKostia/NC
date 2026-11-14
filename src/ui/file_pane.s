@@ -1139,6 +1139,7 @@ FilePane_render:
 
     # 6. Interactive Scrollbar on right border (if count > list_h)
 .Lfpr_scrollbar:
+    mov rdi, rbx; mov rsi, r12; mov rdx, r13; call fp_draw_du_pane
     mov rax, [r14 + DirModel.count]
     mov ecx, [rsp + 184]      # list_h
     cmp rax, rcx
@@ -1933,13 +1934,11 @@ FilePane_nav_to:
     mov r12, rsi
     mov rdi, [rbx + FilePane.model]
     mov rsi, r12
-    call DirModel_chdir
-    test rax, rax
-    js .Lfnt_ret
-    mov dword ptr [rbx + FilePane.cursor], 0
-    mov dword ptr [rbx + FilePane.scroll], 0
-    mov rdi, rbx
-    call FilePane_ensure_visible
+    call DirModel_chdir; test rax, rax; js .Lfnt_ret
+    mov rdi, [rbx + FilePane.model]; cmp dword ptr [rdi + DirModel.du_mode], 0; je .Lfnt_cur; call dir_du_populate
+.Lfnt_cur:
+    mov dword ptr [rbx + FilePane.cursor], 0; mov dword ptr [rbx + FilePane.scroll], 0
+    mov rdi, rbx; call FilePane_ensure_visible
     mov rdi, rbx
     call fp_get_active_tab
     test rax, rax

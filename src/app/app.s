@@ -364,8 +364,12 @@ App_render:
     VCALL WidgetVtbl.render
 
 .Lar_flush:
+    mov rdi, rbx
+    call img_preview_pre_flush
     mov rdi, r12
     call ScreenBuffer_flush
+    mov rdi, rbx
+    call img_preview_post_flush
     mov dword ptr [rbx + App.need_redraw], 0
 
     pop r13

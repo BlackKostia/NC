@@ -194,16 +194,9 @@ PreviewPane_render:
     mov r12, rsi              # scr
     mov r13, rdx              # theme
 
-    cmp dword ptr [rbx + Widget.w], 10
-    jl .Lppr_done
-    cmp dword ptr [rbx + Widget.h], 6
-    jl .Lppr_done
-
-    # Box
-    mov rdi, r12
-    mov esi, [r13 + Theme.border_inactive]
-    mov edx, [r13 + Theme.surface]
-    xor ecx, ecx
+    cmp dword ptr [rbx + Widget.w], 10; jl .Lppr_done
+    cmp dword ptr [rbx + Widget.h], 6; jl .Lppr_done
+    mov rdi, r12; mov esi, [r13 + Theme.border_inactive]; mov edx, [r13 + Theme.surface]; xor ecx, ecx
     call ScreenBuffer_set_pen
 
     mov rdi, r12
@@ -351,6 +344,7 @@ PreviewPane_render:
     jmp .Lppr_done
 
 .Lppr_chk_bin:
+    mov rdi, rbx; mov rsi, r12; mov rdx, r13; call img_preview_try_render; test eax, eax; jnz .Lppr_done
     cmp dword ptr [rbx + PreviewPane.is_binary], 0
     je .Lppr_text_mode
 

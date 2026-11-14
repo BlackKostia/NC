@@ -101,7 +101,7 @@ fp_exit_virtual:
 fp_draw_search_badge:
     mov rax, [rdi + FilePane.model]
     cmp dword ptr [rax + DirModel.virtual_mode], 0
-    je .Lfdsb_done
+    je fp_draw_du_badge
     push rbx
     push r12
     sub rsp, 8

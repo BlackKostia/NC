@@ -39,3 +39,18 @@ CLASS_BEGIN InfoDialog
     FIELD InfoDialog.sha_hex,      68
     FIELD InfoDialog.target_path,  PATH_MAX
 CLASS_END InfoDialog
+
+CLASS_BEGIN FuzzyDialog
+    EXTENDS Dialog
+    FIELD FuzzyDialog.mode,        4   # 0=Command Palette, 1=Fuzzy Finder
+    FIELD FuzzyDialog.query_len,   4
+    FIELD FuzzyDialog.cursor,      4
+    FIELD FuzzyDialog.scroll,      4
+    FIELD FuzzyDialog.total_cnt,   4
+    FIELD FuzzyDialog.match_cnt,   4
+    FIELD FuzzyDialog.items_ptr,   8   # { char *label (8), uint32_t score (4), uint32_t payload (4) }
+    FIELD FuzzyDialog.pool_ptr,    8   # string pool for Fuzzy Finder paths
+    FIELD FuzzyDialog.matches_ptr, 8   # { uint32_t item_idx (4), int32_t score (4), uint64_t mask (8) }
+    FIELD FuzzyDialog.query_buf,   128
+    FIELD FuzzyDialog.base_path,   PATH_MAX
+CLASS_END FuzzyDialog

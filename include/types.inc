@@ -297,6 +297,10 @@ LangStrings.chm_hint:           .space 8
 LangStrings.msg_trashed:        .space 8
 LangStrings.msg_undone:         .space 8
 LangStrings.msg_undo_empty:     .space 8
+LangStrings.dlg_title_palette:  .space 8
+LangStrings.dlg_title_fuzzy:    .space 8
+LangStrings.fuz_hint:           .space 8
+LangStrings.fp_du_badge:        .space 8
 LangStrings._size:
 
 .section .text

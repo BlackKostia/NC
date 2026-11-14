@@ -37,6 +37,9 @@ SRCS := \
 	src/fs/nav_state.s \
 	src/fs/dir_search_match.s \
 	src/fs/dir_search.s \
+	src/fs/dir_fuzzy.s \
+	src/fs/inflate.s \
+	src/fs/disk_usage.s \
 	src/fs/trash_undo.s \
 	src/ui/header_bar.s \
 	src/ui/function_bar.s \
@@ -52,6 +55,9 @@ SRCS := \
 	src/ui/search_dialog.s \
 	src/ui/attr_dialogs.s \
 	src/ui/info_dialog.s \
+	src/ui/fuzzy_dialog.s \
+	src/ui/img_preview.s \
+	src/ui/du_render.s \
 	src/app/app.s \
 	src/app/app_task.s \
 	src/app/app_events.s \
@@ -101,6 +107,9 @@ test: $(TARGET)
 	python3 tests/test_nav_tabs.py
 	python3 tests/test_search_virtual.py
 	python3 tests/test_trash_undo_attr.py
+	python3 tests/test_fuzzy_palette.py
+	python3 tests/test_img_preview.py
+	python3 tests/test_disk_usage.py
 	python3 tests/test_nav_viewer.py
 	python3 tests/test_event_loop.py
 

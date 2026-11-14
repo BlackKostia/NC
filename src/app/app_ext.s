@@ -28,6 +28,11 @@
 .extern App_cmd_chmod
 .extern App_cmd_info
 .extern App_cmd_link
+.extern App_dispatch_action
+.extern FuzzyDialog_new
+.extern FuzzyDialog_get_selected
+.extern du_toggle
+.extern path_join
 .extern config_menu_item
 .extern i18n_get
 .extern path_basename
@@ -91,6 +96,26 @@ app_jump_virtual_entry:
     pop rbx
     ret
 
+# Helper: void app_close_fuzzy_dlg(App *app, FuzzyDialog *dlg, FilePane *pane)
+app_close_fuzzy_dlg:
+    push rbx; push r12; push r13
+    mov rbx, rdi; mov r12, rsi; mov r13, rdx
+    mov rdi, r12; call FuzzyDialog_get_selected
+    test rax, rax; jz .Lacfd_done
+    cmp dword ptr [r12 + Dialog.op_tag], OP_PALETTE
+    jne .Lacfd_fuz
+    mov rdi, rbx; mov esi, eax; call App_dispatch_action
+    jmp .Lacfd_done
+.Lacfd_fuz:
+    sub rsp, PATH_MAX
+    mov rdi, rsp; lea rsi, [r12 + FuzzyDialog.base_path]; mov rdx, rax
+    call path_join
+    mov rdi, rbx; mov rsi, r13; mov rdx, rsp
+    call app_jump_virtual_entry
+    add rsp, PATH_MAX
+.Lacfd_done:
+    pop r13; pop r12; pop rbx; ret
+
 # int App_close_dialog_ext(App *app, Dialog *dlg, FilePane *pane, DirModel *model, int dlg_res)
 App_close_dialog_ext:
     push rbx
@@ -112,6 +137,13 @@ App_close_dialog_ext:
     cmp eax, OP_CHMOD;     je .Lacde_chm
     cmp eax, OP_SYMLINK;   je .Lacde_sym
     cmp eax, OP_HARDLINK;  je .Lacde_hrd
+    cmp eax, OP_PALETTE;   je .Lacde_fuz
+    cmp eax, OP_FUZZY;     je .Lacde_fuz
+    jmp .Lacde_ok
+
+.Lacde_fuz:
+    mov rdi, rbx; mov rsi, r13; mov rdx, r14
+    call app_close_fuzzy_dlg
     jmp .Lacde_ok
 
 .Lacde_um:
@@ -210,11 +242,14 @@ app_handle_ext_key:
     jz .Lahek_alt
     cmp esi, 'f'; je .Lahek_srch
     cmp esi, 'z'; je .Lahek_undo
+    cmp esi, 'k'; je .Lahek_pal
     xor eax, eax
     ret
 .Lahek_alt:
     test edx, MOD_ALT
     jz .Lahek_no
+    cmp esi, 'p'; je .Lahek_fuz
+    cmp esi, 'P'; je .Lahek_fuz
     cmp esi, 'a'; je .Lahek_chm
     cmp esi, 'A'; je .Lahek_chm
     cmp esi, 'i'; je .Lahek_inf
@@ -223,6 +258,8 @@ app_handle_ext_key:
     cmp esi, 'S'; je .Lahek_sym
     cmp esi, 'h'; je .Lahek_hrd
     cmp esi, 'H'; je .Lahek_hrd
+    cmp esi, 'd'; je .Lahek_du
+    cmp esi, 'D'; je .Lahek_du
     cmp esi, KEY_LEFT;  je .Lahek_hb
     cmp esi, KEY_RIGHT; je .Lahek_hf
 .Lahek_no:
@@ -282,4 +319,28 @@ app_handle_ext_key:
     mov esi, 1
     call App_cmd_link
     mov eax, 1
+    ret
+.Lahek_du:
+    call du_toggle
+    mov eax, 1
+    ret
+.Lahek_pal:
+    xor esi, esi
+    jmp .Lahek_fuz_open
+.Lahek_fuz:
+    mov esi, 1
+.Lahek_fuz_open:
+    push rbx
+    mov rbx, rdi
+    mov rax, [rbx + App.active_pane]
+    mov rax, [rax + FilePane.model]
+    lea rdx, [rax + DirModel.path]
+    call FuzzyDialog_new
+    test rax, rax
+    jz .Lahek_fdone
+    mov [rbx + App.active_dialog], rax
+    mov dword ptr [rbx + App.need_redraw], 1
+.Lahek_fdone:
+    mov eax, 1
+    pop rbx
     ret

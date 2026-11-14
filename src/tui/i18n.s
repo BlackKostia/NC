@@ -186,6 +186,10 @@ en_chm_hint:          .asciz "1-9/Space: Bit • u/g: uid:gid • Enter: Apply"
 en_msg_trashed:       .asciz "Moved to Trash"
 en_msg_undone:        .asciz "Undone"
 en_msg_undo_empty:    .asciz "Nothing to undo"
+en_dlg_title_palette: .asciz "Command Palette"
+en_dlg_title_fuzzy:   .asciz "Fuzzy Finder"
+en_fuz_hint:          .asciz "Type: Filter   Up/Dn: Select   Enter: Run/Jump   Esc: Close"
+en_fp_du_badge:       .asciz "Disk Usage"
 
 # ==============================================================================
 # Ukrainian String Table (LANG_UA = 1)
@@ -363,6 +367,10 @@ ua_chm_hint:          .asciz "1-9/Пробіл: Біт • u/g: uid:gid • Ente
 ua_msg_trashed:       .asciz "Переміщено до кошика"
 ua_msg_undone:        .asciz "Скасовано"
 ua_msg_undo_empty:    .asciz "Нічого скасовувати"
+ua_dlg_title_palette: .asciz "Палітра команд"
+ua_dlg_title_fuzzy:   .asciz "Швидкий пошук"
+ua_fuz_hint:          .asciz "Ввід: Фільтр   Вгору/Вниз: Вибір   Enter: Виконати   Esc: Закрити"
+ua_fp_du_badge:       .asciz "Аналіз диска"
 
 .align 8
 .global lang_en_table
@@ -398,7 +406,7 @@ lang_en_table:
     .quad en_msg_bm_added, en_msg_hist_empty, en_msg_tab_last
     .quad en_dlg_title_conflict, en_cfl_btn_overwrite, en_cfl_btn_skip, en_cfl_btn_rename, en_cfl_lbl_forall, en_cfl_hint
     .quad en_dlg_title_search, en_srch_lbl_name, en_srch_lbl_grep, en_srch_hint, en_fp_search_badge, en_msg_search_none
-    .quad en_dlg_title_info, en_dlg_title_chmod, en_dlg_title_symlink, en_dlg_title_hardlink, en_prm_link_target, en_chm_hint, en_msg_trashed, en_msg_undone, en_msg_undo_empty
+    .quad en_dlg_title_info, en_dlg_title_chmod, en_dlg_title_symlink, en_dlg_title_hardlink, en_prm_link_target, en_chm_hint, en_msg_trashed, en_msg_undone, en_msg_undo_empty, en_dlg_title_palette, en_dlg_title_fuzzy, en_fuz_hint, en_fp_du_badge
 .if (. - lang_en_table) != LangStrings._size
     .error "lang_en_table size does not match LangStrings._size"
 .endif
@@ -437,7 +445,7 @@ lang_ua_table:
     .quad ua_msg_bm_added, ua_msg_hist_empty, ua_msg_tab_last
     .quad ua_dlg_title_conflict, ua_cfl_btn_overwrite, ua_cfl_btn_skip, ua_cfl_btn_rename, ua_cfl_lbl_forall, ua_cfl_hint
     .quad ua_dlg_title_search, ua_srch_lbl_name, ua_srch_lbl_grep, ua_srch_hint, ua_fp_search_badge, ua_msg_search_none
-    .quad ua_dlg_title_info, ua_dlg_title_chmod, ua_dlg_title_symlink, ua_dlg_title_hardlink, ua_prm_link_target, ua_chm_hint, ua_msg_trashed, ua_msg_undone, ua_msg_undo_empty
+    .quad ua_dlg_title_info, ua_dlg_title_chmod, ua_dlg_title_symlink, ua_dlg_title_hardlink, ua_prm_link_target, ua_chm_hint, ua_msg_trashed, ua_msg_undone, ua_msg_undo_empty, ua_dlg_title_palette, ua_dlg_title_fuzzy, ua_fuz_hint, ua_fp_du_badge
 .if (. - lang_ua_table) != LangStrings._size
     .error "lang_ua_table size does not match LangStrings._size"
 .endif
