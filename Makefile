@@ -114,6 +114,7 @@ SRCS := \
 	src/fs/pkg_fetch.s \
 	src/fs/pkg_archive.s \
 	src/fs/pkg_manager.s \
+	src/fs/pkg_actions.s \
 	src/fs/pkg_cli.s \
 	src/fs/archive_vfs.s \
 	src/fs/archive_extract.s \

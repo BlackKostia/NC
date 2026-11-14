@@ -30,6 +30,9 @@ UserMenuDialog_vtbl:
 .extern i18n_get
 .extern config_menu_count
 .extern config_menu_item
+.extern pkg_menu_refresh
+.extern pkg_menu_count
+.extern pkg_menu_get
 
 # UserMenuDialog *UserMenuDialog_new(App *app)
 UserMenuDialog_new:
@@ -49,6 +52,8 @@ UserMenuDialog_new:
     call Dialog_init
     mov dword ptr [rbx + UserMenuDialog.cursor], 0
     mov dword ptr [rbx + UserMenuDialog.scroll], 0
+    mov rdi, [r12 + App.envp]
+    call pkg_menu_refresh
 
     mov rdi, rbx
     xor esi, esi
@@ -133,7 +138,7 @@ UserMenuDialog_render__draw_frame:
     mov rdx, r13
     call Dialog_draw_frame
 
-    call config_menu_count
+    call um_total_count
     mov [rsp + 4 + 16], eax
     mov ecx, [rbx + Widget.h]
     sub ecx, 5
@@ -162,7 +167,7 @@ UserMenuDialog_render__row:
     mov edi, r15d
     lea rsi, [rsp + 8 + 16]
     lea rdx, [rsp + 16 + 16]
-    call config_menu_item
+    call um_get_label
     test eax, eax
     jz .Lumr_hint
 
@@ -268,7 +273,7 @@ UserMenuDialog_on_key:
     jmp .Lumk_redraw
 
 .Lumk_dn:
-    call config_menu_count
+    call um_total_count
     mov ecx, [rbx + UserMenuDialog.cursor]
     inc ecx
     cmp ecx, eax
@@ -333,7 +338,7 @@ UserMenuDialog_on_mouse:
     sub eax, ecx
     add eax, [rbx + UserMenuDialog.scroll]
     push rax
-    call config_menu_count
+    call um_total_count
     pop rcx
     cmp ecx, eax
     jae .Lumm_base
@@ -351,3 +356,25 @@ UserMenuDialog_on_mouse:
     pop r12
     pop rbx
     ret
+
+um_total_count:
+    call config_menu_count
+    push rax
+    call pkg_menu_count
+    pop rcx
+    add eax, ecx
+    ret
+
+um_get_label:
+    push rbx; push r12; push r13
+    mov ebx, edi; mov r12, rsi; mov r13, rdx
+    call config_menu_count
+    cmp ebx, eax; jge .Lugl_pkg
+    mov edi, ebx; mov rsi, r12; mov rdx, r13; call config_menu_item
+    jmp .Lugl_ret
+.Lugl_pkg:
+    mov edi, ebx; sub edi, eax; call pkg_menu_get
+    test rax, rax; jz .Lugl_ret
+    add rax, 128; mov [r12], rax; mov eax, 1
+.Lugl_ret:
+    pop r13; pop r12; pop rbx; ret

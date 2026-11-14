@@ -14,6 +14,7 @@
 .extern BookmarkDialog_get_selected
 .extern App_task_conflict_done
 .extern App_exec_menu_tmpl
+.extern App_run_pkg_action
 .extern App_sync_preview
 .extern App_set_status
 .extern App_apply_chmod
@@ -30,6 +31,8 @@
 .extern BulkRenameDialog_new
 .extern path_join
 .extern config_menu_item
+.extern config_menu_count
+.extern pkg_menu_get
 .extern i18n_get
 .extern path_basename
 .extern str_copy
@@ -116,6 +119,24 @@ app_close_fuzzy_dlg:
 .Lacfd_done:
     pop r13; pop r12; pop rbx; ret
 
+# Helper: void app_close_usermenu_dlg(App *app, UserMenuDialog *dlg)
+app_close_usermenu_dlg:
+    push rbx; push r12; sub rsp, 24
+    mov rbx, rdi; mov r12, rsi
+    call config_menu_count
+    mov edi, [r12 + UserMenuDialog.cursor]
+    cmp edi, eax; jge .Lacud_pkg
+    mov rsi, rsp; lea rdx, [rsp + 8]; call config_menu_item
+    test eax, eax; jz .Lacud_done
+    mov rdi, rbx; mov rsi, [rsp + 8]; call App_exec_menu_tmpl
+    jmp .Lacud_done
+.Lacud_pkg:
+    sub edi, eax; call pkg_menu_get
+    test rax, rax; jz .Lacud_done
+    mov rdi, rbx; mov rsi, rax; call App_run_pkg_action
+.Lacud_done:
+    add rsp, 24; pop r12; pop rbx; ret
+
 # int App_close_dialog_ext(App *app, Dialog *dlg, FilePane *pane, DirModel *model, int dlg_res)
 App_close_dialog_ext:
     push rbx
@@ -146,15 +167,7 @@ App_close_dialog_ext:
     jmp .Lacde_ok
 
 .Lacde_um:
-    mov edi, [r13 + UserMenuDialog.cursor]
-    mov rsi, rsp
-    lea rdx, [rsp + 8]
-    call config_menu_item
-    test eax, eax
-    jz .Lacde_ok
-    mov rdi, rbx
-    mov rsi, [rsp + 8]
-    call App_exec_menu_tmpl
+    mov rdi, rbx; mov rsi, r13; call app_close_usermenu_dlg
     jmp .Lacde_ok
 .Lacde_bm:
     mov rdi, r13

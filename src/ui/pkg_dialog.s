@@ -25,6 +25,7 @@ PkgDialog_vtbl:
 .global App_pkg_install_confirm
 
 .extern App_close_dialog
+.extern App_run_pkg_action
 .extern App_set_status
 .extern Dialog_draw_frame
 .extern Dialog_dtor
@@ -40,6 +41,7 @@ PkgDialog_vtbl:
 .extern i18n_get
 .extern mem_alloc
 .extern mem_free
+.extern pkg_action_find
 .extern pkg_install_archive
 .extern pkg_list
 .extern pkg_remove
@@ -193,6 +195,7 @@ PkgDialog_handle_key:
     cmp eax, 'd'; je .Lpdk_rem
     cmp eax, KEY_DELETE; je .Lpdk_rem
     cmp eax, 'i'; je .Lpdk_inst
+    cmp eax, 'r'; je .Lpdk_run
     xor eax, eax; pop r12; pop rbx; ret
 .Lpdk_close:
     mov rdi, [rbx + Dialog.app]; xor esi, esi; call App_close_dialog
@@ -239,6 +242,18 @@ PkgDialog_handle_key:
     mov [r12 + App.active_dialog], rax
     mov dword ptr [r12 + App.need_redraw], 1
     mov eax, 1; pop r12; pop rbx; ret
+.Lpdk_run:
+    cmp dword ptr [rbx + PKGD_COUNT], 0; jle .Lpdk_ok
+    sub rsp, 512
+    mov r12, [rbx + Dialog.app]
+    mov eax, [rbx + PKGD_CURSOR]; imul rax, PKG_ENTRY_SZ; add rax, [rbx + PKGD_ENTRIES]
+    mov rdi, [r12 + App.envp]; mov rsi, rax; mov rdx, rsp; call pkg_action_find
+    test eax, eax; jnz .Lpdk_run_err
+    mov rdi, r12; xor esi, esi; call App_close_dialog
+    mov rdi, r12; mov rsi, rsp; call App_run_pkg_action
+    add rsp, 512; mov eax, 1; pop r12; pop rbx; ret
+.Lpdk_run_err:
+    add rsp, 512; jmp .Lpdk_err
 
 PkgDialog_handle_mouse:
     mov eax, [rsi + Event.mouse_btn]

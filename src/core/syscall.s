@@ -43,6 +43,7 @@ g_sigterm:
 .global signals_install
 .global env_getenv
 .global sys_exec_sh_arg
+.global sys_exec_argv
 .global sys_open_external
 
 # ssize_t sys_write_all(int fd, const void *buf, size_t len)
@@ -294,4 +295,33 @@ sys_open_external:
     mov eax, -1
 .Loe_ret:
     pop r13; pop r12; pop rbx
+    ret
+
+# int sys_exec_argv(const char *exe, char **argv, char **envp)
+# Exits raw mode, execve(exe, argv, envp), waits, re-enters raw mode.
+sys_exec_argv:
+    push rbx; push r12; push r13; push r14
+    mov r12, rdi; mov r13, rsi; mov r14, rdx
+    call term_exit_raw
+    OS_FORK
+    test rax, rax
+    js .Lsea_restore
+    jnz .Lsea_parent
+    mov rdi, r12; mov rsi, r13; mov rdx, r14
+    OS_EXECVE
+    mov edi, 127; OS_EXIT
+.Lsea_parent:
+    mov rbx, rax
+    sub rsp, 16
+.Lsea_wait:
+    mov rdi, rbx; mov rsi, rsp; xor edx, edx; xor r10d, r10d
+    OS_WAIT4
+    cmp rax, -EINTR; je .Lsea_wait
+    mov eax, [rsp]
+    add rsp, 16
+.Lsea_restore:
+    push rax
+    call term_enter_raw
+    pop rax
+    pop r14; pop r13; pop r12; pop rbx
     ret
