@@ -22,7 +22,10 @@ def wait_for(sess, text, timeout=3.0):
 
 
 def git(cwd, *args):
-    subprocess.run(["git", *args], cwd=cwd, check=True,
+    # Never inherit GIT_DIR/GIT_INDEX_FILE (e.g. from a pre-commit hook): the scratch repo must
+    # not be created on top of the repository under test.
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    subprocess.run(["git", *args], cwd=cwd, check=True, env=env,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 

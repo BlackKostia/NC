@@ -56,5 +56,8 @@ fi
 NEEDS_BUILD="$(printf '%s\n' "$STAGED" | grep -E '^(src/|include/|Makefile$|VERSION$|tests/.*\.py$)' || true)"
 if [[ -n "$NEEDS_BUILD" && "${DUOP_SKIP_PTY_HOOK:-${NC_SKIP_PTY_HOOK:-0}}" != "1" ]]; then
     echo "[pre-commit] Running release build + ELF audit + PTY test suite..."
-    DUOP_LEAN_STAGED=1 ./.agents/skills/duop-pty-verify/scripts/verify_build.sh --release-only
+    # Git exports GIT_DIR/GIT_INDEX_FILE to hooks: tests that build scratch repos (and duop's own
+    # `git status`) must not inherit them, or they would write into this repository's config/index.
+    env -u GIT_DIR -u GIT_INDEX_FILE -u GIT_WORK_TREE -u GIT_PREFIX -u GIT_COMMON_DIR \
+        DUOP_LEAN_STAGED=1 ./.agents/skills/duop-pty-verify/scripts/verify_build.sh --release-only
 fi
