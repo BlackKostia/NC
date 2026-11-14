@@ -52,6 +52,19 @@ make verify                         # Run modularity, lean-gate, and PTY test su
 | `Alt+=` | Dir Diff (mark differing/missing) | `Ctrl+\`` | Toggle Embedded PTY Terminal |
 | `Alt+T` / `Alt+L` | Cycle Theme / Toggle EN↔UA | `Ctrl+Z` | Undo last Trash / Hex byte |
 
+### Keyboard Layouts
+
+Hotkeys follow the physical key, so `Alt+T`, `Alt+L`, `j`/`k` or the dialog letters work without switching away from a non-Latin layout. The mapping is plain data in `*.layout` files, loaded at startup — add a layout by dropping a file, no rebuild:
+
+```text
+# ~/.config/duop/layouts/el.layout
+name  = Ελληνικά
+keys  = qwertyuiopasdfghjklzxcvbnm
+chars = ;ςερτυθιοπασδφγηξκλζχψωβνμ
+```
+
+Each `chars` line lists what the layout types on the keys of the preceding `keys` line; ASCII characters are ignored and text typed into input fields is never changed. Search path: `$DUOP_LAYOUTS` (`:`-separated, replaces the defaults) or `~/.config/duop/layouts` (`$XDG_CONFIG_HOME`), then `layouts/` and `../share/duop/layouts` next to the binary, `/usr/local/share/duop/layouts`, `/usr/share/duop/layouts`. Ukrainian ships as [`layouts/uk.layout`](layouts/uk.layout).
+
 ## Developer
 
 - **Author**: Kostiantyn Nedbailo (Недбайло Костянтин Геннадійович) — `<ChessPlayerSedoy@gmail.com>`

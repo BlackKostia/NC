@@ -123,6 +123,10 @@
 - **Реалізація**: дочірня PTY-сесія (`/dev/ptmx`) із компактним VT-парсером прямо під панелями файлів як неруйнівна альтернатива повному виходу у shell на `Ctrl+O`. ✅
 - **Введення** ([term_keys.s](src/ui/term_keys.s)): UTF-8 (кирилиця), `Tab`, `Esc`, стрілки, `Home`/`End`/`PgUp`/`PgDn`/`Del`, `Ctrl+літера`, `Alt+клавіша` передаються у shell; видимий курсор у панелі; F-клавіші лишаються за файловим менеджером. ✅
 
+### 2.10 Розкладки клавіатури як дані (`*.layout`) ✅
+- **Файли**: [kbd_layout.s](src/tui/kbd_layout.s) (шлях пошуку: `$DUOP_LAYOUTS`, `~/.config/duop/layouts`, поруч із бінарником через `AT_EXECFN`, `share/duop/layouts`), [kbd_map.s](src/tui/kbd_map.s) (парсер `keys`/`chars`, таблиця `кодова точка → латинська клавіша`), [input.s](src/tui/input.s) (`input_next_event` заповнює `Event.lat`), [layouts/uk.layout](layouts/uk.layout).
+- **Реалізація**: жодної вшитої кирилиці в коді — гарячі клавіші порівнюються з `Event.lat`, поля введення отримують `Event.key` без змін; нова розкладка додається файлом без перекомпіляції. Тести: [test_kbd_layout.py](tests/test_kbd_layout.py) (KL1–KL6). ✅
+
 ---
 
 ## Рівень 3 — Популяризація, дистрибуція та переносимість

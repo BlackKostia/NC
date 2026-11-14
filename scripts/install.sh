@@ -10,6 +10,7 @@ if command -v git >/dev/null 2>&1 && command -v as >/dev/null 2>&1 && command -v
     git clone --depth 1 "https://github.com/$REPO.git" "$TMP/duop"
     make -C "$TMP/duop" release
     install -Dm755 "$TMP/duop/duop" "$PREFIX/bin/duop"
+    install -Dm644 -t "$PREFIX/share/duop/layouts" "$TMP"/duop/layouts/*.layout
     echo "Installed $PREFIX/bin/duop ($("$PREFIX/bin/duop" --version | head -n1))"
 else
     echo "Requires git, binutils (as/ld), and make." >&2

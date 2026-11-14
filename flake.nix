@@ -18,6 +18,8 @@
           mkdir -p $out/bin $out/share/duop
           cp duop $out/bin/duop
           cp scripts/duop-cd.sh $out/share/duop/duop-cd.sh
+          mkdir -p $out/share/duop/layouts
+          cp layouts/*.layout $out/share/duop/layouts/
         '';
       };
     };

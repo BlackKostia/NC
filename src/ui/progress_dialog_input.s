@@ -16,14 +16,12 @@
 ProgressDialog_on_key:
     push rbx
     mov rbx, rdi
-    mov eax, [rsi + Event.key]
+    mov eax, [rsi + Event.lat]        # any keyboard layout (*.layout files)
     mov ecx, [rsi + Event.mods]
     test ecx, MOD_ALT
     jz .Lpdk_plain
     cmp eax, 'j';    je .Lpdk_hide
     cmp eax, 'J';    je .Lpdk_hide
-    cmp eax, 0x043E; je .Lpdk_hide   # Cyrillic 'о' (Alt+J on Ukrainian layout)
-    cmp eax, 0x041E; je .Lpdk_hide   # Cyrillic 'О'
     jmp .Lpdk_swallow
 .Lpdk_plain:
     test ecx, MOD_CTRL
@@ -37,16 +35,10 @@ ProgressDialog_on_key:
     cmp eax, ' ';       je .Lpdk_pause
     cmp eax, 'p';       je .Lpdk_pause
     cmp eax, 'P';       je .Lpdk_pause
-    cmp eax, 0x0437;    je .Lpdk_pause   # 'з' (P key, Ukrainian layout)
-    cmp eax, 0x0417;    je .Lpdk_pause   # 'З'
     cmp eax, 'b';       je .Lpdk_hide
     cmp eax, 'B';       je .Lpdk_hide
-    cmp eax, 0x0438;    je .Lpdk_hide    # 'и' (B key)
-    cmp eax, 0x0418;    je .Lpdk_hide    # 'И'
     cmp eax, 'c';       je .Lpdk_cancel
     cmp eax, 'C';       je .Lpdk_cancel
-    cmp eax, 0x0441;    je .Lpdk_cancel  # 'с' (C key)
-    cmp eax, 0x0421;    je .Lpdk_cancel  # 'С'
     jmp .Lpdk_swallow
 
 .Lpdk_next:

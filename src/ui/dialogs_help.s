@@ -223,7 +223,7 @@ HelpDialog_render__section_headings_start_xe2:
     ret
 
 HelpDialog_on_key:
-    mov eax, [rsi + Event.key]
+    mov eax, [rsi + Event.lat]
     cmp eax, KEY_ESC
     je .Lhdk_close
     cmp eax, KEY_ENTER

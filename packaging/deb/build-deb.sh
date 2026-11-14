@@ -7,6 +7,7 @@ mkdir -p "$STAGE/DEBIAN" "$STAGE/usr/bin" "$STAGE/usr/share/duop" "$STAGE/usr/sh
 make release
 install -m755 duop "$STAGE/usr/bin/duop"
 install -m755 scripts/duop-cd.sh "$STAGE/usr/share/duop/duop-cd.sh"
+install -Dm644 -t "$STAGE/usr/share/duop/layouts" layouts/*.layout
 install -m644 LICENSE "$STAGE/usr/share/doc/duop/copyright"
 sed "s/^Version:.*/Version: ${VER}/" packaging/deb/control > "$STAGE/DEBIAN/control"
 dpkg-deb --build "$STAGE"

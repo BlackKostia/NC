@@ -30,7 +30,7 @@ ViewerDialog_on_key:
     pop rsi
     test eax, eax
     jnz .Lvk_ret
-    mov eax, [rsi + Event.key]
+    mov eax, [rsi + Event.lat]
     cmp eax, KEY_ESC;   je .Lvk_close
     cmp eax, 'q';       je .Lvk_close; cmp eax, 'Q'; je .Lvk_close
     cmp eax, KEY_F3;    je .Lvk_close; cmp eax, KEY_F10; je .Lvk_close

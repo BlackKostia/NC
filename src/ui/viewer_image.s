@@ -72,7 +72,7 @@ viewer_img_free:
 viewer_mode_key:
     push rbx
     mov rbx, rdi
-    mov eax, [rsi + Event.key]
+    mov eax, [rsi + Event.lat]
     or eax, 0x20
     cmp eax, 'i'
     je .Lmk_image

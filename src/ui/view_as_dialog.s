@@ -220,7 +220,7 @@ vas_buttons:
 ViewAsDialog_on_key:
     push rbx
     mov rbx, rdi
-    mov eax, [rsi + Event.key]
+    mov eax, [rsi + Event.lat]
     cmp eax, KEY_ESC;   je .Lvk_cancel
     or eax, 0x20                      # i / h / t, any case
     mov ecx, PV_MODE_IMAGE

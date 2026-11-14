@@ -13,7 +13,6 @@ BookmarkDialog_handle_key:
     mov rbx, rdi
     mov r12, rsi
     mov eax, [r12 + Event.key]
-
     cmp eax, KEY_ESC
     je .Lbmk_cancel
     cmp eax, KEY_ENTER
@@ -26,7 +25,8 @@ BookmarkDialog_handle_key:
     cmp dword ptr [rbx + BookmarkDialog.mode], 1
     je .Lbmk_fre_key
 
-    # Bookmarks mode keys
+    # Bookmarks mode keys (layout-independent; the frecency mode above filters by typed text)
+    mov eax, [r12 + Event.lat]
     cmp eax, 'k'
     je .Lbmk_up
     cmp eax, 'j'

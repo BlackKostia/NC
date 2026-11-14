@@ -11,6 +11,7 @@ class Duop < Formula
     system "make", "release"
     bin.install "duop"
     pkgshare.install "scripts/duop-cd.sh"
+    (pkgshare/"layouts").install Dir["layouts/*.layout"]
   end
 
   test do

@@ -210,7 +210,7 @@ App_run__non_blocking_poll_while:
     mov esi, eax
 .Larun_poll:
     lea rdi, [rsp + 16]
-    call input_poll_event
+    call input_next_event
 
 .LApp_run__non_blocking_poll_while_ret:
     lea rsp, [rsp + 8]
@@ -340,7 +340,7 @@ App_run__drain_queued_events:
     js .Ldq_ret
     lea rdi, [rsp + 16]               # Event on App_run's frame (+8 ret, +8 push r12)
     xor esi, esi                      # timeout = 0 (non-blocking)
-    call input_poll_event
+    call input_next_event
     test eax, eax
     jz .Ldq_ret
     mov eax, [rsp + 16 + Event.type]

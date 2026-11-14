@@ -147,7 +147,7 @@ FilePane_on_key__part1:
     mov r12, rsi
     mov r13, [rbx + FilePane.model]
 
-    mov eax, [r12 + Event.key]
+    mov eax, [r12 + Event.lat]
     mov ecx, [r12 + Event.mods]
 
 .LFilePane_on_key__part1_ret:

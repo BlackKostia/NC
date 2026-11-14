@@ -52,6 +52,7 @@
 .equ AT_FDCWD,                -100
 .equ AT_SYMLINK_NOFOLLOW,     0x100
 .equ AT_REMOVEDIR,            0x200
+.equ OS_AT_EXECFN,            31      // auxv: path given to execve
 .equ O_RDONLY,                0
 .equ O_WRONLY,                1
 .equ O_RDWR,                  2

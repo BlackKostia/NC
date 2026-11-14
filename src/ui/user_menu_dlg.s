@@ -241,7 +241,7 @@ UserMenuDialog_on_key:
     sub rsp, 8
     mov rbx, rdi
     mov r12, rsi
-    mov eax, [r12 + Event.key]
+    mov eax, [r12 + Event.lat]
 
     cmp eax, KEY_UP;   je .Lumk_up
     cmp eax, 'k';      je .Lumk_up

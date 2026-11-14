@@ -16,6 +16,7 @@ in_aux1:
     .space 4 * 4              # auxiliary wake fds + 1 (0 = none): task pipe, dir watch, preview
 
 .section .text
+.global input_next_event
 .global input_set_wake_fd
 .global input_set_aux_fd
 .global wait_and_read
@@ -24,6 +25,29 @@ in_aux1:
 .global in_buf
 .global in_pos
 .global in_len
+
+# int input_next_event(Event *evt, int timeout_ms) -> 1 if an event was populated, 0 on timeout
+# Decodes one event (input_poll_event) and sets Event.lat: for keys, the Latin key under the
+# pressed one according to the *.layout files (kbd_layout.s), so hotkeys work in any layout.
+input_next_event:
+    push rbx
+    push r12
+    sub rsp, 8
+    mov rbx, rdi
+    call input_poll_event
+    mov r12d, eax
+    mov edi, [rbx + Event.key]
+    mov [rbx + Event.lat], edi
+    cmp dword ptr [rbx + Event.type], EVT_KEY
+    jne .Lipv_ret
+    call kbd_latin
+    mov [rbx + Event.lat], eax
+.Lipv_ret:
+    mov eax, r12d
+    add rsp, 8
+    pop r12
+    pop rbx
+    ret
 
 # void input_set_wake_fd(int fd) -- aux slot 0 (background task pipe)
 input_set_wake_fd:

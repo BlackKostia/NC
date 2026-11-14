@@ -48,7 +48,7 @@ Event.mouse_x:    .space 4   # 0-based col
 Event.mouse_y:    .space 4   # 0-based row
 Event.mouse_btn:  .space 4   # MOUSE_*
 Event.mouse_kind: .space 4   # MACT_*
-Event.pad:        .space 4
+Event.lat:        .space 4   # layout-independent hotkey: Latin key under `key` (*.layout files), else = key
 Event._size:
 
 # --- HitZone (8 bytes) for clickable/hoverable regions ---

@@ -1,0 +1,27 @@
+# Ukrainian (ЙЦУКЕН, the default xkb "ua" / Windows layout) on a US QWERTY keyboard.
+#
+# duop maps what this layout types back to the Latin key underneath, so hotkeys (Alt+T, Alt+L,
+# Alt+J, single letters in dialogs and the viewer) keep working without switching the layout.
+# Text you type into input fields is never changed.
+#
+# Format: every "chars" line lists, in order, what the layout types on the keys of the
+# nearest preceding "keys" line. ASCII characters in "chars" are ignored. To add a layout,
+# copy this file to ~/.config/duop/layouts/<name>.layout and edit it -- no rebuild needed.
+name  = Українська (ЙЦУКЕН)
+
+keys  = qwertyuiop[]\
+chars = йцукенгшщзхїґ
+keys  = asdfghjkl;'
+chars = фівапролджє
+keys  = zxcvbnm,.
+chars = ячсмитьбю
+
+keys  = QWERTYUIOP{}|
+chars = ЙЦУКЕНГШЩЗХЇҐ
+keys  = ASDFGHJKL:"
+chars = ФІВАПРОЛДЖЄ
+keys  = ZXCVBNM<>
+chars = ЯЧСМИТЬБЮ
+
+keys  = ~#
+chars = ʼ№

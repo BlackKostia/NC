@@ -305,7 +305,7 @@ InfoDialog_render__id_draw_kv_2:
 
 # void InfoDialog_on_key(InfoDialog *this, Event *ev)
 InfoDialog_on_key:
-    mov eax, [rsi + Event.key]
+    mov eax, [rsi + Event.lat]
     cmp eax, KEY_ESC
     je Dialog_on_cancel
     cmp eax, KEY_ENTER

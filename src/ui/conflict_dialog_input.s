@@ -10,7 +10,7 @@
 ConflictDialog_on_key:
     push rbx
     mov rbx, rdi
-    mov eax, [rsi + Event.key]
+    mov eax, [rsi + Event.lat]
 
     cmp eax, KEY_ESC;   je .Lcd_cancel
     cmp eax, 'a';       je .Lcd_forall

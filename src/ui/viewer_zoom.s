@@ -22,7 +22,7 @@ vim_zoom_key:
     jne .Lzk_no
     push rbx
     mov rbx, rdi
-    mov eax, [rsi + Event.key]
+    mov eax, [rsi + Event.lat]
     cmp eax, '+';      je .Lzk_in
     cmp eax, '=';      je .Lzk_in
     cmp eax, '-';      je .Lzk_out

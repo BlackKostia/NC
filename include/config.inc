@@ -43,6 +43,8 @@
 .equ IMG_PROTO_SIXEL, 2               # DEC Sixel (DA1 reports ;4 or DUOP_IMG_MODE=sixel)
 .equ IMG_PROTO_KITTY, 3               # Kitty graphics protocol, f=32 RGBA
 .equ IMG_PX_MAX,      2048            # pixel-protocol images never exceed this per side
+.equ KBD_MAP_MAX,     1024            # keyboard layout entries {codepoint -> Latin key}, all files
+.equ KBD_FILE_MAX,    16384           # bytes read from one *.layout file
 .equ PV_SHM_CAP,      25165824        # helper -> UI shared payload buffer (24 MiB, lazily touched)
 .equ PV_THUMB_OFF,  PREVIEW_BUF_SIZE + 16              # thumbnail inside PreviewPane.buf
 .equ PV_BUF_TOTAL,  PV_THUMB_OFF + IMG_THUMB_CAP

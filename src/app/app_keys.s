@@ -57,22 +57,11 @@ handle_key:
 .Lhk_chk_alt:
     test ecx, MOD_ALT
     jz .Lhk_plain
+    or eax, 0x20                      # Alt+letter in either case
     cmp eax, 't'; je .Lhk_theme
-    cmp eax, 'T'; je .Lhk_theme
-    cmp eax, 0x0435; je .Lhk_theme   # Cyrillic 'е' (Alt+T in UA layout)
-    cmp eax, 0x0415; je .Lhk_theme   # Cyrillic 'Е'
     cmp eax, 'l'; je .Lhk_lang
-    cmp eax, 'L'; je .Lhk_lang
-    cmp eax, 0x0434; je .Lhk_lang    # Cyrillic 'д' (Alt+L in UA layout)
-    cmp eax, 0x0414; je .Lhk_lang    # Cyrillic 'Д'
     cmp eax, 'j'; je .Lhk_tasks
-    cmp eax, 'J'; je .Lhk_tasks
-    cmp eax, 0x043E; je .Lhk_tasks   # Cyrillic 'о' (Alt+J in UA layout)
-    cmp eax, 0x041E; je .Lhk_tasks   # Cyrillic 'О'
     cmp eax, 'u'; je .Lhk_usermenu
-    cmp eax, 'U'; je .Lhk_usermenu
-    cmp eax, 0x0433; je .Lhk_usermenu # Cyrillic 'г' (Alt+U in UA layout)
-    cmp eax, 0x0413; je .Lhk_usermenu # Cyrillic 'Г'
     jmp .Lhk_pane
 
 .Lhk_plain:
@@ -220,7 +209,7 @@ handle_key__modal_dialog_intercepts_keys:
 # handle_key step: Configurable keybinds from duoprc (runs on the caller's frame)
 handle_key__configurable_keybinds_from_duopr:
     lea rsp, [rsp - 8]
-    mov eax, [r12 + Event.key]
+    mov eax, [r12 + Event.lat]        # hotkeys by key position: any layout (*.layout files)
     mov ecx, [r12 + Event.mods]
 
     # Configurable keybinds from duoprc
