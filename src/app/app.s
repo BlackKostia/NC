@@ -25,6 +25,7 @@ App_vtbl:
 .global App_preview_fire
 .global App_open_selected_entry
 .global App_close_dialog
+.global App_layout
 .global App_dispatch_f_action
 .global get_inactive_pane
 .global App_reload_panes
@@ -234,9 +235,12 @@ App_layout:
     mov edx, r13d
     call ScreenBuffer_resize
 
-    # main_h = max(6, term_h - 3)
+    # main_h = max(6, term_h - 3 - term_height)
     mov r14d, r13d
     sub r14d, 3
+    mov edi, r14d
+    call term_height
+    sub r14d, eax
     cmp r14d, 6
     jge .Lal_mh_ok
     mov r14d, 6
@@ -355,6 +359,11 @@ App_render:
     mov rsi, r12
     mov rdx, r13
     VCALL WidgetVtbl.render
+
+    mov rdi, rbx
+    mov rsi, r12
+    mov rdx, r13
+    call term_render
 
     mov rdi, [rbx + App.active_dialog]
     test rdi, rdi
@@ -1360,6 +1369,21 @@ handle_key:
     push rdx
     push rcx
     mov rdi, rbx
+    mov rsi, r12
+    call term_on_key
+    pop rcx
+    pop rdx
+    cmp eax, 2
+    jne .Lhk_tok_chk
+    mov rdi, rbx
+    call App_layout
+    jmp .Lhk_done
+.Lhk_tok_chk:
+    test eax, eax
+    jnz .Lhk_done
+    push rdx
+    push rcx
+    mov rdi, rbx
     mov esi, edx
     mov edx, ecx
     call app_handle_ext_key
@@ -1589,23 +1613,17 @@ handle_mouse:
     jmp .Lhm_done
 
 .Lhm_route:
+    mov rdi, rbx
+    mov rsi, r12
+    call pane_mouse_ext
+    test eax, eax
+    jnz .Lhm_done
     # On MACT_MOVE, let HeaderBar, FunctionBar, and panes update hover states cleanly
     cmp dword ptr [r12 + Event.mouse_kind], MACT_MOVE
     jne .Lhm_hit_test
-    mov rdi, [rbx + App.header_bar]
+    mov rdi, rbx
     mov rsi, r12
-    VCALL WidgetVtbl.on_mouse
-    mov rdi, [rbx + App.func_bar]
-    mov rsi, r12
-    VCALL WidgetVtbl.on_mouse
-    mov rdi, [rbx + App.left_pane]
-    mov rsi, r12
-    VCALL WidgetVtbl.on_mouse
-    cmp dword ptr [rbx + App.right_mode], RIGHT_MODE_PREVIEW
-    je .Lhm_done
-    mov rdi, [rbx + App.right_pane]
-    mov rsi, r12
-    VCALL WidgetVtbl.on_mouse
+    call app_mouse_hover
     jmp .Lhm_done
 
 .Lhm_hit_test:
@@ -1883,3 +1901,16 @@ App_write_choosedir:
     ret
 
 # User menu & command expansion moved to src/app/app_menu.s
+
+app_mouse_hover:
+    push rbx; push r12
+    sub rsp, 8
+    mov rbx, rdi; mov r12, rsi
+    mov rdi, [rbx + App.header_bar]; mov rsi, r12; VCALL WidgetVtbl.on_mouse
+    mov rdi, [rbx + App.func_bar];   mov rsi, r12; VCALL WidgetVtbl.on_mouse
+    mov rdi, [rbx + App.left_pane];  mov rsi, r12; VCALL WidgetVtbl.on_mouse
+    cmp dword ptr [rbx + App.right_mode], RIGHT_MODE_PREVIEW
+    je .Lamh_done
+    mov rdi, [rbx + App.right_pane]; mov rsi, r12; VCALL WidgetVtbl.on_mouse
+.Lamh_done:
+    add rsp, 8; pop r12; pop rbx; ret

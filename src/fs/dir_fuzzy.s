@@ -10,6 +10,7 @@
 .section .text
 .global fuzzy_score
 .global dir_fuzzy_collect
+.global fs_write_file
 
 .extern sys_open
 .extern sys_close
@@ -341,6 +342,28 @@ dir_fuzzy_collect:
 .Ldfc_ret:
     add rsp, 48
     pop rbx
+    ret
+
+# int fs_write_file(const char *path, const void *buf, uint64_t len) -> 0 ok, -1 err
+fs_write_file:
+    push rbx; push r12; push r13
+    mov r12, rsi; mov r13, rdx
+    mov rsi, rdi; mov edi, AT_FDCWD
+    mov edx, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC
+    mov r10d, 0644; OS_OPENAT
+    test rax, rax; js .Lfwf_err
+    mov ebx, eax
+    mov rdi, rbx; mov rsi, r12; mov rdx, r13
+    OS_WRITE
+    push rax
+    mov edi, ebx; OS_CLOSE
+    pop rax
+    test rax, rax; js .Lfwf_err
+    xor eax, eax; jmp .Lfwf_ret
+.Lfwf_err:
+    mov eax, -1
+.Lfwf_ret:
+    pop r13; pop r12; pop rbx
     ret
 
 .section .rodata

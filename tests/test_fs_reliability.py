@@ -538,11 +538,11 @@ def run_adversarial_failure_tests() -> None:
             # F7: Partial Batch Delete failure reloads pane honestly & protects locked item
             reset_status(sess)
             dx1, dy1 = sess.vt.find_text("02a_deleteme_dir")
-            sess.send_mouse(2, dx1, dy1, "M", wait=0.05)
-            sess.send_mouse(2, dx1, dy1, "m", wait=0.05)
+            sess.send_mouse(0, dx1, dy1, "M", wait=0.05); sess.send_mouse(0, dx1, dy1, "m", wait=0.05)
+            sess.send(b" ", wait=0.05)
             dx2, dy2 = sess.vt.find_text("03_locked_sub")
-            sess.send_mouse(2, dx2, dy2, "M", wait=0.05)
-            sess.send_mouse(2, dx2, dy2, "m", wait=0.05)
+            sess.send_mouse(0, dx2, dy2, "M", wait=0.05); sess.send_mouse(0, dx2, dy2, "m", wait=0.05)
+            sess.send(b" ", wait=0.05)
             wait_for_text(sess, "2 selected")
             delete_focused(sess, expect_text="Permission denied")
             assert not os.path.exists(del_dir), "Valid item before failing item was expected deleted"

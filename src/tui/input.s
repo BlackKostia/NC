@@ -205,8 +205,6 @@ input_poll_event:
     cmp ecx, 0x08
     je .Lipe_bs
 
-    cmp ecx, 0x01
-    jb .Lipe_ctrl_zero
     cmp ecx, 0x1A
     jbe .Lipe_ctrl_letter
 
@@ -241,10 +239,6 @@ input_poll_event:
     mov [rbx + Event.key], eax
     mov eax, 1
     jmp .Lipe_ret
-
-.Lipe_ctrl_zero:
-    inc dword ptr [rip + in_pos]
-    jmp .Lipe_none
 
 .Lipe_tab:
     inc dword ptr [rip + in_pos]

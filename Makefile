@@ -24,6 +24,7 @@ SRCS := \
 	src/core/hash.s \
 	src/tui/theme.s \
 	src/tui/i18n.s \
+	src/tui/i18n_env.s \
 	src/tui/screen.s \
 	src/tui/input.s \
 	src/fs/dir_model.s \
@@ -38,6 +39,7 @@ SRCS := \
 	src/fs/dir_search_match.s \
 	src/fs/dir_search.s \
 	src/fs/dir_fuzzy.s \
+	src/fs/dir_diff.s \
 	src/fs/inflate.s \
 	src/fs/disk_usage.s \
 	src/fs/archive_vfs.s \
@@ -62,6 +64,11 @@ SRCS := \
 	src/ui/du_render.s \
 	src/ui/git_render.s \
 	src/ui/bulk_rename.s \
+	src/ui/popup_menu.s \
+	src/ui/term_pane.s \
+	src/ui/syntax.s \
+	src/ui/elf_inspect.s \
+	src/ui/hex_edit.s \
 	src/app/app.s \
 	src/app/app_task.s \
 	src/app/app_events.s \
@@ -73,7 +80,8 @@ SRCS := \
 PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_os.s \
 	src/os/$(OS)/$(ARCH)/pal_uring.s \
-	src/os/$(OS)/$(ARCH)/pal_simd.s
+	src/os/$(OS)/$(ARCH)/pal_simd.s \
+	src/os/$(OS)/$(ARCH)/pal_pty.s
 
 OBJS := $(patsubst src/%.s,$(BUILD)/%.o,$(SRCS) $(PAL_SRCS))
 INCS := $(wildcard include/*.inc) $(wildcard $(PAL_INC)/*.inc)
@@ -118,6 +126,9 @@ test: $(TARGET)
 	python3 tests/test_archive_vfs.py
 	python3 tests/test_git_status.py
 	python3 tests/test_bulk_rename.py
+	python3 tests/test_viewer_pro.py
+	python3 tests/test_diff_menu_clip.py
+	python3 tests/test_term_pane.py
 	python3 tests/test_nav_viewer.py
 	python3 tests/test_event_loop.py
 

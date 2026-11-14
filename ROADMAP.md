@@ -107,19 +107,19 @@
 - **Два режими**:
   - вбудований діалог (`Alt+B`) із живим прев'ю **`Було → Стане`**, заміною підрядків і шаблонами `{n}`, `{name}`, `{ext}`. ✅
 
-### 2.7 Підсвітка синтаксису, ELF64-інспектор та In-place Hex-редактор
-- **Файли**: [preview_pane.s](src/ui/preview_pane.s), [dialogs.s](src/ui/dialogs.s).
-- **Підсвітка синтаксису**: табличний лексер для C, x86-64 asm, Python, shell, JSON, Markdown (`Makefile`).
-- **ELF64-інспектор**: показ заголовків, секцій і точки входу для виконуваних файлів та `.o`-модулів.
-- **Hex-редактор**: редагування байтів прямо в Hex-режимі `ViewerDialog` (введення hex-пар або ASCII, запис у файл, `Ctrl+Z` відкат у межах буфера).
+### 2.7 Підсвітка синтаксису, ELF64-інспектор та In-place Hex-редактор ✅
+- **Файли**: [syntax.s](src/ui/syntax.s), [elf_inspect.s](src/ui/elf_inspect.s), [hex_edit.s](src/ui/hex_edit.s), [preview_pane.s](src/ui/preview_pane.s), [viewer_dialog.s](src/ui/viewer_dialog.s).
+- **Підсвітка синтаксису**: табличний лексер для C, x86-64 asm, Python, shell, JSON, Markdown (`Makefile`). ✅
+- **ELF64-інспектор**: показ заголовків, секцій і точки входу для виконуваних файлів та `.o`-модулів. ✅
+- **Hex-редактор**: редагування байтів прямо в Hex-режимі `ViewerDialog` (`e` для редагування hex-пар, запис у файл `Ctrl+S`, `Ctrl+Z` відкат у межах буфера). ✅
 
-### 2.8 Порівняння/синхронізація панелей, Mouse Drag-and-Drop і контекстне меню
-- **Файли**: [file_pane.s](src/ui/file_pane.s), [app.s](src/app/app.s), `src/ui/popup_menu.s`.
-- **Функції**: підсвітка відмінностей лівої та правої панелей + sync за датою/розміром; Mouse Drag-and-Drop (`MACT_DRAG`) між панелями; плаваюче контекстне меню правої кнопки + копіювання шляхів через `OSC 52`.
+### 2.8 Порівняння/синхронізація панелей, Mouse Drag-and-Drop і контекстне меню ✅
+- **Файли**: [dir_diff.s](src/fs/dir_diff.s), [popup_menu.s](src/ui/popup_menu.s), [app_ext.s](src/app/app_ext.s), [app.s](src/app/app.s).
+- **Функції**: підсвітка/виділення відмінностей лівої та правої панелей (`Alt+=`) для sync; Mouse Drag-and-Drop (`MACT_DRAG`) між панелями; плаваюче контекстне меню правої кнопки + копіювання шляхів через `OSC 52`. ✅
 
-### 2.9 Вбудований термінал знизу (`Ctrl+\``)
-- **Файли**: `src/ui/term_pane.s`, [app.s](src/app/app.s).
-- **Реалізація**: дочірня PTY-сесія (`/dev/ptmx`) із компактним VT-парсером прямо під панелями файлів як неруйнівна альтернатива повному виходу у shell на `Ctrl+O`.
+### 2.9 Вбудований термінал знизу (`Ctrl+\``) ✅
+- **Файли**: [pal_pty.s](src/os/linux/x86_64/pal_pty.s), [term_pane.s](src/ui/term_pane.s), [app.s](src/app/app.s), [app_events.s](src/app/app_events.s).
+- **Реалізація**: дочірня PTY-сесія (`/dev/ptmx`) із компактним VT-парсером прямо під панелями файлів як неруйнівна альтернатива повному виходу у shell на `Ctrl+O`. ✅
 
 ---
 

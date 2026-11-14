@@ -305,6 +305,14 @@ LangStrings.br_title:           .space 8
 LangStrings.br_tmpl:            .space 8
 LangStrings.br_find:            .space 8
 LangStrings.br_repl:            .space 8
+LangStrings.ctx_view:           .space 8
+LangStrings.ctx_copy:           .space 8
+LangStrings.ctx_move:           .space 8
+LangStrings.ctx_copy_path:      .space 8
+LangStrings.ctx_delete:         .space 8
+LangStrings.msg_copied_path:    .space 8
+LangStrings.diff_pfx:           .space 8
+LangStrings.term_title:         .space 8
 LangStrings._size:
 
 .section .text

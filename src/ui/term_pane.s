@@ -1,0 +1,326 @@
+# Embedded Bottom PTY Terminal Pane (Ctrl+`)
+
+.intel_syntax noprefix
+.include "pal.inc"
+.include "classes.inc"
+
+.equ TERM_COLS, 160
+.equ TERM_ROWS, 48
+.equ TERM_BUF_SZ, (TERM_COLS * TERM_ROWS)
+
+.section .bss
+g_term_visible: .space 4
+g_term_inited:  .space 4
+g_term_fd:      .space 4
+g_term_pid:     .space 4
+g_term_cx:      .space 4
+g_term_cy:      .space 4
+g_term_esc:     .space 4
+g_term_vis_w:   .space 4
+.align 8
+g_term_buf:     .space 8
+
+.section .text
+.global term_toggle
+.global term_height
+.global term_poll_read
+.global term_render
+.global term_on_key
+.global term_shutdown
+
+# int term_height(int main_h) -> 0 if hidden, else max(6, main_h / 3)
+term_height:
+    xor eax, eax
+    cmp dword ptr [rip + g_term_visible], 0
+    je .Lth_ret
+    mov eax, edi
+    xor edx, edx
+    mov ecx, 3
+    div ecx
+    cmp eax, 6
+    jge .Lth_ret
+    mov eax, 6
+.Lth_ret:
+    ret
+
+term_scroll_up:
+    push rbx
+    mov rbx, [rip + g_term_buf]
+    test rbx, rbx; jz .Ltsu_done
+    mov rdi, rbx
+    lea rsi, [rbx + TERM_COLS]
+    mov rdx, TERM_COLS * (TERM_ROWS - 1)
+    call mem_copy
+    lea rdi, [rbx + TERM_COLS * (TERM_ROWS - 1)]
+    mov esi, ' '
+    mov edx, TERM_COLS
+    call mem_set
+.Ltsu_done:
+    pop rbx; ret
+
+term_put_byte:
+    mov eax, [rip + g_term_esc]
+    cmp eax, 1; je .Ltpb_esc1
+    cmp eax, 2; je .Ltpb_esc2
+    cmp eax, 3; je .Ltpb_esc3
+
+    cmp edi, 0x1B; je .Ltpb_start_esc
+    cmp edi, '\r'; je .Ltpb_cr
+    cmp edi, '\n'; je .Ltpb_lf
+    cmp edi, '\b'; je .Ltpb_bs
+    cmp edi, 0x7F; je .Ltpb_bs
+    cmp edi, '\t'; je .Ltpb_tab
+    cmp edi, 0x20; jb .Ltpb_ret
+
+    mov rcx, [rip + g_term_buf]
+    test rcx, rcx; jz .Ltpb_ret
+    mov eax, [rip + g_term_cy]
+    imul eax, TERM_COLS
+    add eax, [rip + g_term_cx]
+    cmp eax, TERM_BUF_SZ; jae .Ltpb_ret
+    mov [rcx + rax], dil
+    mov eax, [rip + g_term_cx]
+    inc eax
+    mov edx, [rip + g_term_vis_w]
+    cmp edx, 10; jge .Ltpb_w_ok
+    mov edx, 80
+.Ltpb_w_ok:
+    cmp edx, TERM_COLS; jle .Ltpb_w_cap
+    mov edx, TERM_COLS
+.Ltpb_w_cap:
+    cmp eax, edx; jl .Ltpb_setcx
+    mov dword ptr [rip + g_term_cx], 0
+    jmp .Ltpb_lf
+.Ltpb_setcx:
+    mov [rip + g_term_cx], eax
+    ret
+
+.Ltpb_start_esc:
+    mov dword ptr [rip + g_term_esc], 1; ret
+.Ltpb_esc1:
+    cmp edi, '['; je .Ltpb_e2
+    cmp edi, ']'; je .Ltpb_e3
+    mov dword ptr [rip + g_term_esc], 0; ret
+.Ltpb_e2:
+    mov dword ptr [rip + g_term_esc], 2; ret
+.Ltpb_e3:
+    mov dword ptr [rip + g_term_esc], 3; ret
+.Ltpb_esc2:
+    cmp edi, 0x40; jb .Ltpb_ret
+    cmp edi, 0x7E; ja .Ltpb_ret
+    mov dword ptr [rip + g_term_esc], 0; ret
+.Ltpb_esc3:
+    cmp edi, 7; je .Ltpb_e0
+    cmp edi, '\n'; je .Ltpb_e0
+    ret
+.Ltpb_e0:
+    mov dword ptr [rip + g_term_esc], 0; ret
+.Ltpb_cr:
+    mov dword ptr [rip + g_term_cx], 0; ret
+.Ltpb_lf:
+    mov dword ptr [rip + g_term_cx], 0
+    mov eax, [rip + g_term_cy]
+    inc eax
+    cmp eax, TERM_ROWS; jl .Ltpb_setcy
+    call term_scroll_up
+    mov eax, TERM_ROWS - 1
+.Ltpb_setcy:
+    mov [rip + g_term_cy], eax
+    ret
+.Ltpb_bs:
+    mov eax, [rip + g_term_cx]
+    test eax, eax; jz .Ltpb_ret
+    dec eax; mov [rip + g_term_cx], eax; ret
+.Ltpb_tab:
+    mov eax, [rip + g_term_cx]
+    add eax, 8; and eax, ~7
+    cmp eax, TERM_COLS; jl .Ltpb_setcx
+    mov eax, TERM_COLS - 1; jmp .Ltpb_setcx
+.Ltpb_ret:
+    ret
+
+# void term_toggle(App *app)
+term_toggle:
+    push rbx; push r12
+    mov rbx, rdi
+    xor dword ptr [rip + g_term_visible], 1
+    cmp dword ptr [rip + g_term_visible], 0
+    je .Ltt_layout
+
+    mov eax, [rbx + App.term_w]; sub eax, 2
+    mov [rip + g_term_vis_w], eax
+    cmp dword ptr [rip + g_term_inited], 0
+    jne .Ltt_layout
+
+    mov dword ptr [rip + g_term_inited], 1
+    mov dword ptr [rip + g_term_fd], -1
+    mov edi, TERM_BUF_SZ
+    call mem_alloc
+    mov [rip + g_term_buf], rax
+    mov rdi, rax; mov esi, ' '; mov edx, TERM_BUF_SZ
+    call mem_set
+
+    mov eax, [rbx + App.term_h]; sub eax, 3
+    mov edi, eax; call term_height
+    sub eax, 2
+    mov r9d, eax              # rows
+    mov r8d, [rbx + App.term_w]; sub r8d, 2  # cols
+    mov rax, [rbx + App.active_pane]
+    mov rax, [rax + FilePane.model]
+    lea rdx, [rax + DirModel.path]
+    mov rcx, [rbx + App.envp]
+    lea rdi, [rip + g_term_fd]
+    lea rsi, [rip + g_term_pid]
+    call os_pty_spawn
+    test eax, eax; jnz .Ltt_layout
+    mov edi, 3; mov esi, [rip + g_term_fd]
+    call input_set_aux_fd
+
+.Ltt_layout:
+    mov dword ptr [rbx + App.need_redraw], 1
+    pop r12; pop rbx; ret
+
+# void term_poll_read(App *app)
+term_poll_read:
+    push rbx; push r12; push r13
+    sub rsp, 1024
+    mov rbx, rdi
+    cmp dword ptr [rip + g_term_inited], 0; je .Ltpr_done
+    mov eax, [rip + g_term_fd]
+    test eax, eax; js .Ltpr_done
+.Ltpr_loop:
+    mov edi, [rip + g_term_fd]
+    mov rsi, rsp; mov edx, 1024
+    call os_pty_read
+    test rax, rax; jle .Ltpr_done
+    mov r12, rax
+    xor r13d, r13d
+.Ltpr_bytes:
+    cmp r13, r12; jge .Ltpr_dirty
+    movzx edi, byte ptr [rsp + r13]
+    call term_put_byte
+    inc r13; jmp .Ltpr_bytes
+.Ltpr_dirty:
+    mov dword ptr [rbx + App.need_redraw], 1
+    jmp .Ltpr_loop
+.Ltpr_done:
+    add rsp, 1024; pop r13; pop r12; pop rbx; ret
+
+# void term_render(App *app, ScreenBuffer *scr, Theme *theme)
+term_render:
+    push rbx; push r12; push r13; push r14; push r15
+    sub rsp, 32
+    cmp dword ptr [rip + g_term_visible], 0; je .Ltr_done
+    mov rbx, rdi; mov r12, rsi; mov r13, rdx
+    mov edi, [rbx + App.term_h]; sub edi, 3
+    call term_height
+    mov r14d, eax             # th
+    mov r15d, [rbx + App.term_h]; sub r15d, 2; sub r15d, r14d  # y0
+
+    mov rdi, r12; mov esi, [r13 + Theme.text]; mov edx, [r13 + Theme.surface]; xor ecx, ecx
+    call ScreenBuffer_set_pen
+    mov rdi, r12; xor esi, esi; mov edx, r15d; mov ecx, [rbx + App.term_w]; mov r8d, r14d; mov r9d, ' '
+    call ScreenBuffer_fill_rect
+
+    mov rdi, r12; mov esi, [r13 + Theme.border_active]; mov edx, [r13 + Theme.surface]; xor ecx, ecx
+    call ScreenBuffer_set_pen
+    mov rdi, r12; xor esi, esi; mov edx, r15d; mov ecx, [rbx + App.term_w]; mov r8d, r14d; mov r9d, 1
+    call ScreenBuffer_draw_box
+
+    call i18n_get
+    mov rcx, [rax + LangStrings.term_title]
+    mov rdi, r12; mov esi, 2; mov edx, r15d; mov r8d, 20
+    call ScreenBuffer_draw_text
+
+    mov rdi, r12; mov esi, [r13 + Theme.text]; mov edx, [r13 + Theme.surface]; xor ecx, ecx
+    call ScreenBuffer_set_pen
+
+    mov eax, r14d; sub eax, 2 # inner_h
+    mov [rsp + 0], eax
+    mov ecx, [rip + g_term_cy]; inc ecx; sub ecx, eax
+    jns .Ltr_start_ok
+    xor ecx, ecx
+.Ltr_start_ok:
+    mov [rsp + 4], ecx        # start_row
+    xor ecx, ecx              # i = 0
+.Ltr_rows:
+    cmp ecx, [rsp + 0]; jge .Ltr_done
+    mov eax, [rsp + 4]; add eax, ecx
+    cmp eax, TERM_ROWS; jge .Ltr_done
+    imul eax, TERM_COLS
+    mov r8, [rip + g_term_buf]; add r8, rax
+    mov edx, [rbx + App.term_w]; sub edx, 2
+    cmp edx, TERM_COLS; jle .Ltr_w_ok
+    mov edx, TERM_COLS
+.Ltr_w_ok:
+    mov [rsp + 8], ecx
+    mov [rsp + 12], edx
+    sub rsp, 176
+    mov rdi, rsp; mov rsi, r8
+    call mem_copy
+    mov edx, [rsp + 176 + 12]
+    mov byte ptr [rsp + rdx], 0
+    mov eax, [rsp + 176 + 8]
+    lea edx, [r15d + eax + 1]
+    mov rdi, r12; mov esi, 1; mov rcx, rsp; mov r8d, [rbx + App.term_w]; sub r8d, 2
+    call ScreenBuffer_draw_text
+    add rsp, 176
+    mov ecx, [rsp + 8]
+    inc ecx; jmp .Ltr_rows
+.Ltr_done:
+    add rsp, 32; pop r15; pop r14; pop r13; pop r12; pop rbx; ret
+
+# int term_on_key(App *app, Event *evt) -> 1 if consumed
+term_on_key:
+    push rbx; push r12
+    sub rsp, 16
+    mov rbx, rdi; mov r12, rsi
+    cmp dword ptr [rip + g_term_visible], 0
+    je .Ltok_zero
+    cmp dword ptr [r12 + Event.mods], MOD_CTRL
+    jne .Ltok_send
+    cmp dword ptr [r12 + Event.key], '`'
+    jne .Ltok_send
+    mov rdi, rbx; call term_toggle
+    mov eax, 2; jmp .Ltok_ret
+
+.Ltok_send:
+    mov eax, [rip + g_term_fd]
+    test eax, eax; js .Ltok_one
+    mov eax, [r12 + Event.key]
+    cmp eax, KEY_ENTER; je .Ltok_cr
+    cmp eax, KEY_BACKSPACE; je .Ltok_bs
+    cmp eax, 0x20; jb .Ltok_one
+    cmp eax, 0x7E; ja .Ltok_one
+    cmp dword ptr [r12 + Event.mods], MOD_CTRL
+    jne .Ltok_ascii
+    and eax, 0x1F
+.Ltok_ascii:
+    mov [rsp], al
+    mov edi, [rip + g_term_fd]; mov rsi, rsp; mov edx, 1
+    call os_pty_write
+    jmp .Ltok_one
+.Ltok_cr:
+    mov byte ptr [rsp], '\r'
+    mov edi, [rip + g_term_fd]; mov rsi, rsp; mov edx, 1
+    call os_pty_write
+    jmp .Ltok_one
+.Ltok_bs:
+    mov byte ptr [rsp], 0x7F
+    mov edi, [rip + g_term_fd]; mov rsi, rsp; mov edx, 1
+    call os_pty_write
+.Ltok_one:
+    mov eax, 1; jmp .Ltok_ret
+.Ltok_zero:
+    xor eax, eax
+.Ltok_ret:
+    add rsp, 16; pop r12; pop rbx; ret
+
+term_shutdown:
+    cmp dword ptr [rip + g_term_inited], 0; je .Lts_done
+    mov edi, [rip + g_term_fd]
+    test edi, edi; js .Lts_done
+    call os_pty_close
+    mov dword ptr [rip + g_term_fd], -1
+.Lts_done:
+    ret

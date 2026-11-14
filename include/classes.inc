@@ -260,6 +260,7 @@ CLASS_BEGIN ViewerDialog
     FIELD ViewerDialog.hex_row,     8   # hex mode: top 16-byte row
     FIELD ViewerDialog.hex_mode,    4
     FIELD ViewerDialog.vis_rows,    4   # rows rendered last frame (page size)
+    FIELD ViewerDialog.hex_edit_ctx, 8  # HexEditCtx* when editing in hex mode
     FIELD ViewerDialog.path,        PATH_MAX
 CLASS_END ViewerDialog
 

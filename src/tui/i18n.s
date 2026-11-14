@@ -194,6 +194,14 @@ en_br_title:          .asciz "Bulk Rename"
 en_br_tmpl:           .asciz "Template:"
 en_br_find:           .asciz "Find:"
 en_br_repl:           .asciz "Replace:"
+en_ctx_view:          .asciz "View"
+en_ctx_copy:          .asciz "Copy"
+en_ctx_move:          .asciz "Move"
+en_ctx_copy_path:     .asciz "Copy Path"
+en_ctx_delete:        .asciz "Delete"
+en_msg_copied_path:   .asciz "Copied path to clipboard"
+en_diff_pfx:          .asciz "Diff: "
+en_term_title:        .asciz "Terminal"
 
 # ==============================================================================
 # Ukrainian String Table (LANG_UA = 1)
@@ -379,6 +387,14 @@ ua_br_title:          .asciz "Групове перейменування"
 ua_br_tmpl:           .asciz "Шаблон:"
 ua_br_find:           .asciz "Знайти:"
 ua_br_repl:           .asciz "Заміна:"
+ua_ctx_view:          .asciz "Перегляд"
+ua_ctx_copy:          .asciz "Копіювати"
+ua_ctx_move:          .asciz "Перемістити"
+ua_ctx_copy_path:     .asciz "Копіювати шлях"
+ua_ctx_delete:        .asciz "Видалити"
+ua_msg_copied_path:   .asciz "Шлях скопійовано"
+ua_diff_pfx:          .asciz "Різн: "
+ua_term_title:        .asciz "Термінал"
 
 .align 8
 .global lang_en_table
@@ -415,6 +431,7 @@ lang_en_table:
     .quad en_dlg_title_conflict, en_cfl_btn_overwrite, en_cfl_btn_skip, en_cfl_btn_rename, en_cfl_lbl_forall, en_cfl_hint
     .quad en_dlg_title_search, en_srch_lbl_name, en_srch_lbl_grep, en_srch_hint, en_fp_search_badge, en_msg_search_none
     .quad en_dlg_title_info, en_dlg_title_chmod, en_dlg_title_symlink, en_dlg_title_hardlink, en_prm_link_target, en_chm_hint, en_msg_trashed, en_msg_undone, en_msg_undo_empty, en_dlg_title_palette, en_dlg_title_fuzzy, en_fuz_hint, en_fp_du_badge, en_br_title, en_br_tmpl, en_br_find, en_br_repl
+    .quad en_ctx_view, en_ctx_copy, en_ctx_move, en_ctx_copy_path, en_ctx_delete, en_msg_copied_path, en_diff_pfx, en_term_title
 .if (. - lang_en_table) != LangStrings._size
     .error "lang_en_table size does not match LangStrings._size"
 .endif
@@ -454,6 +471,7 @@ lang_ua_table:
     .quad ua_dlg_title_conflict, ua_cfl_btn_overwrite, ua_cfl_btn_skip, ua_cfl_btn_rename, ua_cfl_lbl_forall, ua_cfl_hint
     .quad ua_dlg_title_search, ua_srch_lbl_name, ua_srch_lbl_grep, ua_srch_hint, ua_fp_search_badge, ua_msg_search_none
     .quad ua_dlg_title_info, ua_dlg_title_chmod, ua_dlg_title_symlink, ua_dlg_title_hardlink, ua_prm_link_target, ua_chm_hint, ua_msg_trashed, ua_msg_undone, ua_msg_undo_empty, ua_dlg_title_palette, ua_dlg_title_fuzzy, ua_fuz_hint, ua_fp_du_badge, ua_br_title, ua_br_tmpl, ua_br_find, ua_br_repl
+    .quad ua_ctx_view, ua_ctx_copy, ua_ctx_move, ua_ctx_copy_path, ua_ctx_delete, ua_msg_copied_path, ua_diff_pfx, ua_term_title
 .if (. - lang_ua_table) != LangStrings._size
     .error "lang_ua_table size does not match LangStrings._size"
 .endif
@@ -474,8 +492,6 @@ g_cur_lang_idx: .space 4
 .global i18n_set_lang
 .global i18n_get_idx
 .global i18n_count
-.global i18n_detect_env
-.global i18n_is_uk_code
 
 # const LangStrings *i18n_get(void)
 # Preserves all registers except RAX.
@@ -508,88 +524,4 @@ i18n_get_idx:
 # int i18n_count(void)
 i18n_count:
     mov eax, LANG_COUNT
-    ret
-
-# int i18n_is_uk_code(const char *s)
-# Returns 1 if s starts with "uk" or "ua" (case-insensitive) as a whole code/locale prefix.
-i18n_is_uk_code:
-    test rdi, rdi
-    jz .Liuk_no
-    movzx eax, byte ptr [rdi]
-    or eax, 0x20
-    cmp al, 'u'
-    jne .Liuk_no
-    movzx eax, byte ptr [rdi + 1]
-    or eax, 0x20
-    cmp al, 'k'
-    je .Liuk_sep
-    cmp al, 'a'
-    jne .Liuk_no
-.Liuk_sep:
-    movzx eax, byte ptr [rdi + 2]
-    test eax, eax
-    jz .Liuk_yes
-    cmp al, '_'
-    je .Liuk_yes
-    cmp al, '-'
-    je .Liuk_yes
-    cmp al, '.'
-    je .Liuk_yes
-    cmp al, '@'
-    je .Liuk_yes
-    cmp al, ' '
-    je .Liuk_yes
-.Liuk_no:
-    xor eax, eax
-    ret
-.Liuk_yes:
-    mov eax, 1
-    ret
-
-# int i18n_detect_env(char **envp)
-# POSIX locale precedence: LC_ALL > LC_MESSAGES > LANG. Returns LANG_UA or LANG_EN.
-i18n_detect_env:
-    push rbx
-    mov rbx, rdi
-    test rbx, rbx
-    jz .Lide_en
-
-    mov rdi, rbx
-    lea rsi, [rip + env_lc_all]
-    call env_getenv
-    test rax, rax
-    jz .Lide_lc_msg
-    cmp byte ptr [rax], 0
-    jne .Lide_check
-
-.Lide_lc_msg:
-    mov rdi, rbx
-    lea rsi, [rip + env_lc_messages]
-    call env_getenv
-    test rax, rax
-    jz .Lide_lang
-    cmp byte ptr [rax], 0
-    jne .Lide_check
-
-.Lide_lang:
-    mov rdi, rbx
-    lea rsi, [rip + env_lang]
-    call env_getenv
-    test rax, rax
-    jz .Lide_en
-    cmp byte ptr [rax], 0
-    je .Lide_en
-
-.Lide_check:
-    mov rdi, rax
-    call i18n_is_uk_code
-    test eax, eax
-    jz .Lide_en
-    mov eax, LANG_UA
-    pop rbx
-    ret
-
-.Lide_en:
-    xor eax, eax              # LANG_EN
-    pop rbx
     ret

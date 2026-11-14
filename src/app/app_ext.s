@@ -245,6 +245,7 @@ app_handle_ext_key:
     cmp esi, 'f'; je .Lahek_srch
     cmp esi, 'z'; je .Lahek_undo
     cmp esi, 'k'; je .Lahek_pal
+    cmp esi, '`'; je .Lahek_term
     xor eax, eax
     ret
 .Lahek_alt:
@@ -264,6 +265,7 @@ app_handle_ext_key:
     cmp esi, 'D'; je .Lahek_du
     cmp esi, 'b'; je .Lahek_br
     cmp esi, 'B'; je .Lahek_br
+    cmp esi, '='; je .Lahek_diff
     cmp esi, KEY_LEFT;  je .Lahek_hb
     cmp esi, KEY_RIGHT; je .Lahek_hf
     jmp .Lahek_no
@@ -333,6 +335,17 @@ app_handle_ext_key:
     call du_toggle
     mov eax, 1
     ret
+.Lahek_diff:
+    jmp app_cmd_diff
+.Lahek_term:
+    push rbx
+    mov rbx, rdi
+    call term_toggle
+    mov rdi, rbx
+    call App_layout
+    mov eax, 1
+    pop rbx
+    ret
 .Lahek_br:
     jmp app_open_bulkrename
 .Lahek_pal:
@@ -369,3 +382,33 @@ app_open_bulkrename:
     mov eax, 1
     pop rbx
     ret
+
+app_cmd_diff:
+    push rbx; push r12
+    sub rsp, 64
+    mov rbx, rdi
+    mov rax, [rbx + App.active_pane]
+    mov rdx, [rbx + App.right_pane]
+    cmp rax, rdx
+    jne .Lacd_have_other
+    mov rdx, [rbx + App.left_pane]
+.Lacd_have_other:
+    mov rdi, [rax + FilePane.model]
+    mov rsi, [rdx + FilePane.model]
+    call dir_diff_mark
+    mov r12d, eax
+    call i18n_get
+    mov rsi, [rax + LangStrings.diff_pfx]
+    mov rdi, rsp
+    call str_copy
+    mov edi, r12d
+    lea rsi, [rsp + 32]
+    call u64_to_dec
+    mov rdi, rsp
+    lea rsi, [rsp + 32]
+    call str_cat
+    mov rdi, rbx; mov rsi, rsp; mov edx, MSG_INFO
+    call App_set_status
+    mov dword ptr [rbx + App.need_redraw], 1
+    mov eax, 1
+    add rsp, 64; pop r12; pop rbx; ret

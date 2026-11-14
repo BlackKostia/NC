@@ -29,6 +29,9 @@ App_events_init:
 
 # void App_events_shutdown(App *app)
 App_events_shutdown:
+    sub rsp, 8
+    call term_shutdown
+    add rsp, 8
     jmp fs_preview_stop
 
 # Internal: rax = min(rax, deadline - now) for a pending deadline (rsi = deadline, rdx = now)
@@ -187,6 +190,8 @@ App_events_tick:
     mov rdi, rbx
     call App_preview_fire
 .Leti_replies:
+    mov rdi, rbx
+    call term_poll_read
     call fs_preview_fd
     mov esi, eax
     mov edi, 2

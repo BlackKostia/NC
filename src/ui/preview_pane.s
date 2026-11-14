@@ -345,6 +345,7 @@ PreviewPane_render:
 
 .Lppr_chk_bin:
     mov rdi, rbx; mov rsi, r12; mov rdx, r13; call img_preview_try_render; test eax, eax; jnz .Lppr_done
+    mov rdi, rbx; mov rsi, r12; mov rdx, r13; call elf_preview_try_render; test eax, eax; jnz .Lppr_done
     cmp dword ptr [rbx + PreviewPane.is_binary], 0
     je .Lppr_text_mode
 

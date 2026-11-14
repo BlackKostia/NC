@@ -137,6 +137,7 @@ ViewerDialog_new:
 ViewerDialog_dtor:
     push rbx
     mov rbx, rdi
+    call hex_edit_free
     mov rdi, [rbx + ViewerDialog.data]
     mov rsi, [rbx + ViewerDialog.map_len]
     test rsi, rsi
@@ -574,23 +575,23 @@ ViewerDialog_render:
     jmp .Lvr_copy
 .Lvr_copied:
     mov byte ptr [rsp + 8 + rdx], 0
-    mov rdi, r12
-    mov esi, [r13 + Theme.text]
-    mov edx, [r13 + Theme.dialog_bg]
-    xor ecx, ecx
-    call ScreenBuffer_set_pen
+    mov eax, [r13 + Theme.dialog_bg]
+    push rax
+    push r13
     mov rdi, r12
     mov esi, [rbx + Widget.x]
     add esi, 3
-    add esi, [rsp + 304]
+    add esi, [rsp + 304 + 16]
     mov edx, [rbx + Widget.y]
     add edx, 2
-    add edx, [rsp + 300]
-    lea rcx, [rsp + 8]
+    add edx, [rsp + 300 + 16]
+    lea rcx, [rsp + 8 + 16]
     mov r8d, [rbx + Widget.w]
     sub r8d, 5
-    sub r8d, [rsp + 304]
-    call ScreenBuffer_draw_text
+    sub r8d, [rsp + 304 + 16]
+    lea r9, [rbx + ViewerDialog.path]
+    call syntax_draw_line
+    add rsp, 16
     inc dword ptr [rsp + 300]
     inc qword ptr [rsp + 312]
     jmp .Lvr_tloop
@@ -693,23 +694,21 @@ ViewerDialog_render:
 ViewerDialog_on_key:
     push rbx
     mov rbx, rdi
+    push rsi
+    call hex_edit_on_key
+    pop rsi
+    test eax, eax
+    jnz .Lvk_ret
     mov eax, [rsi + Event.key]
     cmp eax, KEY_ESC;   je .Lvk_close
-    cmp eax, 'q';       je .Lvk_close
-    cmp eax, 'Q';       je .Lvk_close
-    cmp eax, KEY_F3;    je .Lvk_close
-    cmp eax, KEY_F10;   je .Lvk_close
-    cmp eax, 'h';       je .Lvk_hex
-    cmp eax, 'H';       je .Lvk_hex
-    cmp eax, KEY_UP;    je .Lvk_up
-    cmp eax, 'k';       je .Lvk_up
-    cmp eax, KEY_DOWN;  je .Lvk_dn
-    cmp eax, 'j';       je .Lvk_dn
+    cmp eax, 'q';       je .Lvk_close; cmp eax, 'Q'; je .Lvk_close
+    cmp eax, KEY_F3;    je .Lvk_close; cmp eax, KEY_F10; je .Lvk_close
+    cmp eax, 'h';       je .Lvk_hex;   cmp eax, 'H'; je .Lvk_hex
+    cmp eax, KEY_UP;    je .Lvk_up;    cmp eax, 'k'; je .Lvk_up
+    cmp eax, KEY_DOWN;  je .Lvk_dn;    cmp eax, 'j'; je .Lvk_dn
     cmp eax, KEY_PGUP;  je .Lvk_pgup
-    cmp eax, KEY_PGDN;  je .Lvk_pgdn
-    cmp eax, ' ';       je .Lvk_pgdn
-    cmp eax, KEY_HOME;  je .Lvk_home
-    cmp eax, KEY_END;   je .Lvk_end
+    cmp eax, KEY_PGDN;  je .Lvk_pgdn;  cmp eax, ' '; je .Lvk_pgdn
+    cmp eax, KEY_HOME;  je .Lvk_home;  cmp eax, KEY_END; je .Lvk_end
     jmp .Lvk_ret
 .Lvk_close:
     mov rdi, rbx

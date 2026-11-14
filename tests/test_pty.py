@@ -308,11 +308,11 @@ def run_tests():
             sess.send(b"\x10")
             assert "dest_existing.txt" in sess.vt.full_text(), "Did not switch back to Dual pane"
 
-            # 4. Right-click mark file + Mouse wheel scroll + Scrollbar verification
+            # 4. Space mark file + Mouse wheel scroll + Scrollbar verification
             hx, hy = sess.vt.find_text("hello.txt")
-            sess.send_mouse(2, hx, hy, "M")  # right-click press
-            sess.send_mouse(2, hx, hy, "m")
-            assert "1 selected" in sess.vt.full_text(), "Right-click did not mark file"
+            sess.send_mouse(0, hx, hy, "M"); sess.send_mouse(0, hx, hy, "m")
+            sess.send(b" ")                    # Space to mark file
+            assert "1 selected" in sess.vt.full_text(), "Space did not mark file"
             # Wheel down 3 times on left pane
             for _ in range(4):
                 sess.send_mouse(65, 10, 10, "M", wait=0.05)
