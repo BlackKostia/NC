@@ -1,4 +1,5 @@
-# Environment locale detection for Duop i18n
+# Duop i18n runtime: current-language accessors and environment locale detection
+# (the EN/UA string tables themselves live in i18n.s)
 
 .intel_syntax noprefix
 .include "pal.inc"
@@ -96,4 +97,55 @@ i18n_detect_env:
 .Lide_en:
     xor eax, eax              # LANG_EN
     pop rbx
+    ret
+
+.section .rodata
+.align 8
+lang_ptrs:
+    .quad lang_en_table
+    .quad lang_ua_table
+.equ LANG_COUNT, 2
+
+.section .bss
+.align 8
+g_cur_lang:     .space 8
+g_cur_lang_idx: .space 4
+
+.section .text
+.global i18n_get
+.global i18n_set_lang
+.global i18n_get_idx
+.global i18n_count
+
+# const LangStrings *i18n_get(void)
+# Preserves all registers except RAX.
+i18n_get:
+    mov rax, [rip + g_cur_lang]
+    test rax, rax
+    jnz .Lig_ret
+    lea rax, [rip + lang_en_table]
+.Lig_ret:
+    ret
+
+# const LangStrings *i18n_set_lang(int idx)
+i18n_set_lang:
+    xor eax, eax
+    cmp edi, LANG_UA
+    jne .Lisl_store
+    mov eax, LANG_UA
+.Lisl_store:
+    mov [rip + g_cur_lang_idx], eax
+    lea rcx, [rip + lang_ptrs]
+    mov rax, [rcx + rax*8]
+    mov [rip + g_cur_lang], rax
+    ret
+
+# int i18n_get_idx(void)
+i18n_get_idx:
+    mov eax, [rip + g_cur_lang_idx]
+    ret
+
+# int i18n_count(void)
+i18n_count:
+    mov eax, LANG_COUNT
     ret

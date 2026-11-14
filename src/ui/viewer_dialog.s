@@ -160,6 +160,8 @@ ViewerDialog_new__layout:
 ViewerDialog_dtor:
     push rbx
     mov rbx, rdi
+    call viewer_img_free
+    mov rdi, rbx
     call hex_edit_free
     mov rdi, [rbx + ViewerDialog.data]
     mov rsi, [rbx + ViewerDialog.map_len]

@@ -16,7 +16,7 @@ A modern, dual-pane TUI file manager written **100% in pure GNU Assembler** (`.i
   - TrueColor RGB diff-renderer, 5 built-in themes, live EN/UA localization (`--lang en|ua`, `Alt+L`), SGR-1006 mouse & drag-and-drop.
   - Command Palette (`Ctrl+K`), Recursive Fuzzy Finder (`Ctrl+P`), Recursive Name/Grep Virtual Panel (`Alt+F`), Bookmarks (`Ctrl+D`), Frecency (`z`), Tabs (`Ctrl+T`/`Ctrl+W`), History (`Alt+Left`/`Alt+Right`).
   - Archive VFS (`.tar`, `.tar.gz`, `.zip`), Git branch/status badges, Disk Usage analyzer (`Alt+D`), Bulk Rename (`Alt+B`), Dir Diff (`Alt+=`), Right-click Context Menu + `OSC 52` clipboard.
-  - Syntax highlighting (C, x86-64 asm, Python, shell, JSON, Makefile/Markdown), ELF64 inspector, In-place Hex editor (`e`, `Ctrl+Z`, `Ctrl+S`), Kitty Graphics & TrueColor half-block image preview, and Embedded PTY Terminal (`Ctrl+\``).
+  - Syntax highlighting (C, x86-64 asm, Python, shell, JSON, Makefile/Markdown), ELF64 inspector, In-place Hex editor (`e`, `Ctrl+Z`, `Ctrl+S`), Kitty Graphics & TrueColor half-block image preview (PNG incl. palette/16-bit/Adam7, baseline JPEG, GIF, BMP, TGA, PNM, QOI; `Alt+V` and the F3 "Open as" dialog switch Image / Hex / Text), and Embedded PTY Terminal (`Ctrl+\``).
 - **Shell Integration**: `--choosedir=FILE` ([`scripts/duop-cd.sh`](scripts/duop-cd.sh)), `~/.config/duop/duoprc`, XDG Trash + `Ctrl+Z` Undo.
 
 ## Quick Start

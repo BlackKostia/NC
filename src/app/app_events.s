@@ -176,11 +176,11 @@ App_events_tick:
     push rbx
     push r12
     push r13
-    sub rsp, 16                       # [0]=seq, [8]=len
+    sub rsp, 32                       # [0]=seq, [8]=len, [16]=thumbnail len
     call App_events_tick__debounced_preview
     # Keep watches on the directories currently shown, collect change events
     call App_events_tick__keep_watches_directories_current
-    add rsp, 16
+    add rsp, 32
     pop r13
     pop r12
     pop rbx
@@ -211,9 +211,10 @@ App_events_tick__debounced_preview:
 .Leti_recv:
     mov r13, [rbx + App.preview_pane]
     mov rdi, [r13 + PreviewPane.buf]
-    mov esi, PREVIEW_BUF_SIZE
+    mov esi, PREVIEW_BUF_SIZE + IMG_THUMB_CAP
     lea rdx, [rsp + 16]
     lea rcx, [rsp + 8 + 16]
+    lea r8, [rsp + 16 + 16]
     call fs_preview_receive
     test eax, eax
     jz .Leti_watch
@@ -224,6 +225,7 @@ App_events_tick__debounced_preview:
     je .Leti_recv
     mov rdi, r13
     mov rsi, [rsp + 8 + 16]
+    mov rdx, [rsp + 16 + 16]
     call PreviewPane_accept
     mov dword ptr [rbx + App.need_redraw], 1
     jmp .Leti_recv

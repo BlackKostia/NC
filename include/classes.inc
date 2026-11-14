@@ -217,6 +217,8 @@ CLASS_BEGIN PreviewPane
     FIELD PreviewPane.is_dir,      4
     FIELD PreviewPane.file_mode,   4
     FIELD PreviewPane.pending,     4   # 1 while file head is being read asynchronously
+    FIELD PreviewPane.thumb_len,   4   # image thumbnail bytes at buf + PV_THUMB_OFF (0 = not an image)
+    FIELD PreviewPane.view_mode,   4   # PV_MODE_* chosen with Alt+V (reset per file)
     FIELD PreviewPane.target_path, PATH_MAX
 CLASS_END PreviewPane
 
@@ -261,8 +263,21 @@ CLASS_BEGIN ViewerDialog
     FIELD ViewerDialog.hex_mode,    4
     FIELD ViewerDialog.vis_rows,    4   # rows rendered last frame (page size)
     FIELD ViewerDialog.hex_edit_ctx, 8  # HexEditCtx* when editing in hex mode
+    FIELD ViewerDialog.img_mode,    4   # 1 = picture view (Image decoded from data)
+    FIELD ViewerDialog.img_state,   4   # 0 = not decoded yet, 1 = ok, < 0 = IMG_E_*
+    FIELD ViewerDialog.img,         Image._size
+    FIELD ViewerDialog.thumb,       8   # img scaled to the window (RGBA), rebuilt on resize
+    FIELD ViewerDialog.thumb_w,     4
+    FIELD ViewerDialog.thumb_h,     4
     FIELD ViewerDialog.path,        PATH_MAX
 CLASS_END ViewerDialog
+
+CLASS_BEGIN ViewAsDialog
+    EXTENDS Dialog
+    FIELD ViewAsDialog.choice,      4   # PV_MODE_IMAGE / HEX / TEXT
+    FIELD ViewAsDialog.fmt,         4   # IMG_FMT_* of the file
+    FIELD ViewAsDialog.path,        PATH_MAX
+CLASS_END ViewAsDialog
 
 CLASS_BEGIN HelpDialog
     EXTENDS Dialog
@@ -359,6 +374,7 @@ CLASS_END App
 .equ OP_HARDLINK,  19
 .equ OP_PALETTE,   20
 .equ OP_FUZZY,     21
+.equ OP_VIEWAS,    22
 
 # --- HeaderBar Action IDs ---
 .equ HDR_BTN_THEME,   1

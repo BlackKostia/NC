@@ -87,6 +87,7 @@
   - **Kitty Graphics Protocol (`f=100`)** передає PNG-файли «як є» без написання PNG-декодера;
   - облік графічного прямокутника, щоб при перекритті діалогами чи зміні файлу коректно надсилати команду очищення (`\x1b_Ga=d...\x1b\\`) і уникати артефактів поверх тексту;
   - fallback на TrueColor half-blocks (`▀`) для SSH/rescue-консолей без Kitty.
+- **Формати й режими** ✅: декодери в [src/fs/img_*.s](src/fs/img_core.s) — PNG (усі типи кольору, 1–16 біт, палітра/tRNS, Adam7, файли будь-якого розміру), baseline JPEG (4:2:0/4:2:2/4:4:4, сірий, рестарт-маркери), GIF (LZW, прозорість, interlace), BMP (1/4/8/16/24/32), TGA (+RLE), PNM (P5/P6), QOI; декодування у фоновому помічнику прев'ю ([preview_helper.s](src/fs/preview_helper.s)) з RGBA-мініатюрою; `Alt+V` перемикає прев'ю Зображення / HEX / Текст ([preview_mode.s](src/ui/preview_mode.s)); `F3` на зображенні питає «Відкрити як» ([view_as_dialog.s](src/ui/view_as_dialog.s)), переглядач має режим зображення ([viewer_image.s](src/ui/viewer_image.s)). Тести: [test_image_formats.py](tests/test_image_formats.py). Progressive JPEG і WebP розпізнаються, але показуються як HEX/Текст.
 
 ### 2.3 Режим аналізу диска (`Alt+D`, `ncdu`-режим) ✅
 - **Файли**: [disk_usage.s](src/fs/disk_usage.s), [du_render.s](src/ui/du_render.s), [file_pane.s](src/ui/file_pane.s).

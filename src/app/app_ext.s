@@ -134,7 +134,11 @@ App_close_dialog_ext:
     cmp eax, OP_HARDLINK;  je .Lacde_hrd
     cmp eax, OP_PALETTE;   je .Lacde_fuz
     cmp eax, OP_FUZZY;     je .Lacde_fuz
+    cmp eax, OP_VIEWAS;    je .Lacde_vas
     jmp .Lacde_ok
+
+.Lacde_vas:
+    mov rdi, rbx; mov rsi, r13; call App_view_as_done; jmp .Lacde_ok
 
 .Lacde_fuz:
     mov rdi, rbx; mov rsi, r13; mov rdx, r14
@@ -166,11 +170,7 @@ App_close_dialog_ext:
     call App_sync_preview
     jmp .Lacde_ok
 .Lacde_cfl:
-    mov rdi, rbx
-    mov esi, r12d
-    mov rdx, r13
-    call App_task_conflict_done
-    jmp .Lacde_ok
+    mov rdi, rbx; mov esi, r12d; mov rdx, r13; call App_task_conflict_done; jmp .Lacde_ok
 .Lacde_chm:
     mov rdi, rbx
     mov rsi, r13

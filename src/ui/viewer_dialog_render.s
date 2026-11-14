@@ -14,6 +14,8 @@ vw_hex: .ascii "0123456789abcdef"
 
 # void ViewerDialog_render(ViewerDialog *this, ScreenBuffer *scr, Theme *theme)
 ViewerDialog_render:
+    cmp dword ptr [rdi + ViewerDialog.img_mode], 0
+    jne ViewerDialog_render_image
     push rbx
     push r12
     push r13

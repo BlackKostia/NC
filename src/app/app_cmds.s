@@ -140,9 +140,7 @@ App_cmd_view:
 .Lacv_open:
     mov rdi, rbx
     mov rsi, rsp
-    call ViewerDialog_new
-    mov [rbx + App.active_dialog], rax
-    mov dword ptr [rbx + App.need_redraw], 1
+    call App_open_viewer              # images ask Image / Hex / Text first
     jmp .Lacv_done
 .Lacv_isdir:
     call i18n_get

@@ -45,10 +45,9 @@ PreviewPane_render:
     jmp .Lppr_done
 
 .Lppr_chk_bin:
-    mov rdi, rbx; mov rsi, r12; mov rdx, r13; call img_preview_try_render; test eax, eax; jnz .Lppr_done
-    mov rdi, rbx; mov rsi, r12; mov rdx, r13; call elf_preview_try_render; test eax, eax; jnz .Lppr_done
-    cmp dword ptr [rbx + PreviewPane.is_binary], 0
-    je .Lppr_text_mode
+    mov rdi, rbx; mov rsi, r12; mov rdx, r13; call pv_mode_dispatch   # Image / Hex / Text (Alt+V)
+    test eax, eax; jz .Lppr_done
+    cmp eax, 2; je .Lppr_text_mode
 
     # Binary hex preview
     call PreviewPane_render__binary_hex_preview

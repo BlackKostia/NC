@@ -50,20 +50,16 @@ app_handle_ext_key:
 .Lahek_alt:
     test edx, MOD_ALT
     jz .Lahek_plain
-    cmp esi, 'p'; je .Lahek_fuz
-    cmp esi, 'P'; je .Lahek_fuz
-    cmp esi, 'a'; je .Lahek_chm
-    cmp esi, 'A'; je .Lahek_chm
-    cmp esi, 'i'; je .Lahek_inf
-    cmp esi, 'I'; je .Lahek_inf
-    cmp esi, 's'; je .Lahek_sym
-    cmp esi, 'S'; je .Lahek_sym
-    cmp esi, 'h'; je .Lahek_hrd
-    cmp esi, 'H'; je .Lahek_hrd
-    cmp esi, 'd'; je .Lahek_du
-    cmp esi, 'D'; je .Lahek_du
-    cmp esi, 'b'; je .Lahek_br
-    cmp esi, 'B'; je .Lahek_br
+    mov eax, esi
+    or eax, 0x20                      # Alt+letter works in either case
+    cmp eax, 'p'; je .Lahek_fuz
+    cmp eax, 'a'; je .Lahek_chm
+    cmp eax, 'v'; je App_cmd_view_mode
+    cmp eax, 'i'; je .Lahek_inf
+    cmp eax, 's'; je .Lahek_sym
+    cmp eax, 'h'; je .Lahek_hrd
+    cmp eax, 'd'; je .Lahek_du
+    cmp eax, 'b'; je .Lahek_br
     cmp esi, '='; je .Lahek_diff
     cmp esi, KEY_LEFT;  je .Lahek_hb
     cmp esi, KEY_RIGHT; je .Lahek_hf

@@ -18,6 +18,12 @@ ViewerDialog_on_key:
     pop rsi
     test eax, eax
     jnz .Lvk_ret
+    push rsi
+    mov rdi, rbx
+    call viewer_mode_key              # i / h / t: Image / Hex / Text
+    pop rsi
+    test eax, eax
+    jnz .Lvk_ret
     mov eax, [rsi + Event.key]
     cmp eax, KEY_ESC;   je .Lvk_close
     cmp eax, 'q';       je .Lvk_close; cmp eax, 'Q'; je .Lvk_close

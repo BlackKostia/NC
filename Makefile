@@ -61,6 +61,20 @@ SRCS := \
 	src/fs/task_conflict.s \
 	src/fs/dir_watch.s \
 	src/fs/preview_io.s \
+	src/fs/preview_helper.s \
+	src/fs/img_core.s \
+	src/fs/img_png.s \
+	src/fs/img_png_px.s \
+	src/fs/img_bmp.s \
+	src/fs/img_pnm.s \
+	src/fs/img_tga.s \
+	src/fs/img_gif.s \
+	src/fs/img_gif_lzw.s \
+	src/fs/img_jpeg.s \
+	src/fs/img_jpeg_frame.s \
+	src/fs/img_jpeg_scan.s \
+	src/fs/img_jpeg_bits.s \
+	src/fs/img_jpeg_idct.s \
 	src/fs/nav_state.s \
 	src/fs/nav_state_history.s \
 	src/fs/nav_state_bookmarks.s \
@@ -94,6 +108,7 @@ SRCS := \
 	src/ui/file_pane_mouse.s \
 	src/ui/file_pane_tabs.s \
 	src/ui/preview_pane.s \
+	src/ui/preview_mode.s \
 	src/ui/preview_pane_render.s \
 	src/ui/preview_pane_mouse.s \
 	src/ui/dialogs.s \
@@ -102,6 +117,8 @@ SRCS := \
 	src/ui/dialogs_input_keys.s \
 	src/ui/dialogs_help.s \
 	src/ui/viewer_dialog.s \
+	src/ui/viewer_image.s \
+	src/ui/view_as_dialog.s \
 	src/ui/viewer_dialog_end.s \
 	src/ui/viewer_dialog_render.s \
 	src/ui/viewer_dialog_input.s \
@@ -144,6 +161,7 @@ SRCS := \
 	src/app/app_task.s \
 	src/app/app_task_tick.s \
 	src/app/app_events.s \
+	src/app/app_view.s \
 	src/app/app_attr.s \
 	src/app/app_ext.s \
 	src/app/app_ext_keys.s \
@@ -195,6 +213,7 @@ test: $(TARGET)
 	python3 tests/test_trash_undo_attr.py
 	python3 tests/test_fuzzy_palette.py
 	python3 tests/test_img_preview.py
+	python3 tests/test_image_formats.py
 	python3 tests/test_disk_usage.py
 	python3 tests/test_archive_vfs.py
 	python3 tests/test_git_status.py

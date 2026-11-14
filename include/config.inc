@@ -18,6 +18,33 @@
 .equ STREAM_BATCH_BUDGET, 4096      # entries per incremental load batch in App_run
 .equ HUGE_DIR_THRESHOLD,  50000     # switch to ls -f unsorted mode above this threshold
 
+# --- Image decoding & preview thumbnails (src/fs/img_*.s) ---
+.equ IMG_FMT_NONE, 0
+.equ IMG_FMT_PNG,  1
+.equ IMG_FMT_JPEG, 2
+.equ IMG_FMT_GIF,  3
+.equ IMG_FMT_BMP,  4
+.equ IMG_FMT_PNM,  5
+.equ IMG_FMT_TGA,  6
+.equ IMG_FMT_QOI,  7
+.equ IMG_FMT_WEBP, 8                 # detected, not decoded
+.equ IMG_MAX_DIM,    16384
+.equ IMG_MAX_PIXELS, 40000000
+.equ IMG_E_FORMAT,  -1               # not an image / bad header
+.equ IMG_E_UNSUP,   -2               # valid but unsupported variant (progressive JPEG, WebP, ...)
+.equ IMG_E_CORRUPT, -3
+.equ IMG_E_NOMEM,   -4
+.equ IMG_THUMB_MAXW, 160             # thumbnail pixels (half-block: 1 col x 2 rows per cell)
+.equ IMG_THUMB_MAXH, 100
+.equ IMG_THUMB_HDR,  16              # u32 fmt, u32 src_w, u32 src_h, u16 tw, u16 th
+.equ IMG_THUMB_CAP,  IMG_THUMB_HDR + IMG_THUMB_MAXW * IMG_THUMB_MAXH * 4
+.equ PV_THUMB_OFF,  PREVIEW_BUF_SIZE + 16              # thumbnail inside PreviewPane.buf
+.equ PV_BUF_TOTAL,  PV_THUMB_OFF + IMG_THUMB_CAP
+.equ PV_MODE_AUTO,  0                # preview / viewer presentation of a file
+.equ PV_MODE_IMAGE, 1
+.equ PV_MODE_HEX,   2
+.equ PV_MODE_TEXT,  3
+
 # --- Background Task (fork worker) ---
 .equ TASK_OP_COPY,        1
 .equ TASK_OP_MOVE,        2

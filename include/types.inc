@@ -18,6 +18,15 @@ Cell.bg:       .space 4    # 0x01RRGGBB (0 = default)
 Cell.attrs:    .space 4    # ATTR_* bitmask
 Cell._size:
 
+# --- Image (24 bytes): decoded picture, RGBA8 rows (src/fs/img_*.s) ---
+.struct 0
+Image.px:      .space 8    # w * h * 4 bytes (mem_alloc), R,G,B,A per pixel
+Image.w:       .space 4
+Image.h:       .space 4
+Image.fmt:     .space 4    # IMG_FMT_*
+Image.pad:     .space 4
+Image._size:
+
 # --- Event (32 bytes) ---
 .struct 0
 Event.type:       .space 4   # EVT_*
@@ -313,6 +322,13 @@ LangStrings.ctx_delete:         .space 8
 LangStrings.msg_copied_path:    .space 8
 LangStrings.diff_pfx:           .space 8
 LangStrings.term_title:         .space 8
+LangStrings.img_unsup:          .space 8
+LangStrings.dlg_title_viewas:   .space 8
+LangStrings.vas_image:          .space 8
+LangStrings.vas_hex:            .space 8
+LangStrings.vas_text:           .space 8
+LangStrings.vas_hint:           .space 8
+LangStrings.vw_img_hint:        .space 8
 LangStrings._size:
 
 .section .text

@@ -6,9 +6,6 @@
 .include "version.inc"
 
 .section .rodata
-env_lc_all:      .asciz "LC_ALL"
-env_lc_messages: .asciz "LC_MESSAGES"
-env_lang:        .asciz "LANG"
 
 # ==============================================================================
 # English String Table (LANG_EN = 0)
@@ -95,9 +92,9 @@ en_hl_5:  .asciz "  /                              Live filename filter (Esc cle
 en_hl_6:  .asciz "  . or Ctrl+H                    Toggle hidden (dot) files"
 en_hl_7:  .asciz "  Alt+T / Alt+L / Ctrl+P / G     Theme / Language / Preview / Go to path"
 en_hl_8:  .asciz "◆ FILE OPERATIONS (F-KEYS & SHORTCUTS)"
-en_hl_9:  .asciz "  F2 Rename   F3 View (Text/Hex)   F4 Edit ($EDITOR)   Ctrl+N New File"
+en_hl_9:  .asciz "  F2 Rename   F3 View (Image/Hex/Text)   F4 Edit   Ctrl+N New File"
 en_hl_10: .asciz "  F5 Copy     F6 Move              F7 Mkdir            F8/Del Delete"
-en_hl_11: .asciz "  F9 Preview  Ctrl+O Subshell      Ctrl+R Refresh      F10/q Quit"
+en_hl_11: .asciz "  F9 Preview (Alt+V Image/Hex/Text)  Ctrl+O Shell  Ctrl+R  F10 Quit"
 en_hl_12: .asciz "◆ MOUSE SUPPORT (SGR 1006)"
 en_hl_13: .asciz "  Left Click / Double Click        Select row / Open dir or View file"
 en_hl_14: .asciz "  Right Click / Scroll Wheel       Mark file / Scroll panel under mouse"
@@ -202,6 +199,13 @@ en_ctx_delete:        .asciz "Delete"
 en_msg_copied_path:   .asciz "Copied path to clipboard"
 en_diff_pfx:          .asciz "Diff: "
 en_term_title:        .asciz "Terminal"
+en_img_unsup:         .asciz "Image format not supported (Alt+V: Hex / Text)"
+en_dlg_title_viewas:  .asciz "Open as"
+en_vas_image:         .asciz "Image"
+en_vas_hex:           .asciz "Hex"
+en_vas_text:          .asciz "Text"
+en_vas_hint:          .asciz "i: Image  h: Hex  t: Text  Esc: Cancel"
+en_vw_img_hint:       .asciz "i: Image  h: Hex  t: Text  Esc: Close"
 
 # ==============================================================================
 # Ukrainian String Table (LANG_UA = 1)
@@ -288,9 +292,9 @@ ua_hl_5:  .asciz "  /                              Фільтр назв наж�
 ua_hl_6:  .asciz "  . або Ctrl+H                   Показати / приховати файли з крапкою"
 ua_hl_7:  .asciz "  Alt+T / Alt+L / Ctrl+P / G     Тема / Мова / Швидк.перегл. / Шлях"
 ua_hl_8:  .asciz "◆ ФАЙЛОВІ ОПЕРАЦІЇ (F-КЛАВІШІ ТА ГАРЯЧІ КЛАВІШІ)"
-ua_hl_9:  .asciz "  F2 Перейм.   F3 Перегляд    F4 Редаг. ($EDITOR)    Ctrl+N Новий файл"
+ua_hl_9:  .asciz "  F2 Перейм.   F3 Перегляд (Зобр./HEX/Текст)   F4 Редаг.   Ctrl+N Новий"
 ua_hl_10: .asciz "  F5 Копія     F6 Переміст.   F7 Створити теку       F8/Del Видалити"
-ua_hl_11: .asciz "  F9 Прев'ю    Ctrl+O Шелл    Ctrl+R Оновити         F10/q Вихід"
+ua_hl_11: .asciz "  F9 Прев'ю (Alt+V Зобр./HEX/Текст)  Ctrl+O Шелл  Ctrl+R  F10 Вихід"
 ua_hl_12: .asciz "◆ ПІДТРИМКА МИШІ (SGR 1006)"
 ua_hl_13: .asciz "  Лівий клік / Подвійний клік    Вибрати рядок / Відкрити або Перегляд"
 ua_hl_14: .asciz "  Правий клік / Колесо           Позначити файл / Прокрутка під курсором"
@@ -395,6 +399,13 @@ ua_ctx_delete:        .asciz "Видалити"
 ua_msg_copied_path:   .asciz "Шлях скопійовано"
 ua_diff_pfx:          .asciz "Різн: "
 ua_term_title:        .asciz "Термінал"
+ua_img_unsup:         .asciz "Формат зображення не підтримується (Alt+V: HEX / Текст)"
+ua_dlg_title_viewas:  .asciz "Відкрити як"
+ua_vas_image:         .asciz "Зображення"
+ua_vas_hex:           .asciz "HEX"
+ua_vas_text:          .asciz "Текст"
+ua_vas_hint:          .asciz "i: Зображення  h: HEX  t: Текст  Esc: Скасувати"
+ua_vw_img_hint:       .asciz "i: Зображення  h: HEX  t: Текст  Esc: Закрити"
 
 .align 8
 .global lang_en_table
@@ -432,6 +443,7 @@ lang_en_table:
     .quad en_dlg_title_search, en_srch_lbl_name, en_srch_lbl_grep, en_srch_hint, en_fp_search_badge, en_msg_search_none
     .quad en_dlg_title_info, en_dlg_title_chmod, en_dlg_title_symlink, en_dlg_title_hardlink, en_prm_link_target, en_chm_hint, en_msg_trashed, en_msg_undone, en_msg_undo_empty, en_dlg_title_palette, en_dlg_title_fuzzy, en_fuz_hint, en_fp_du_badge, en_br_title, en_br_tmpl, en_br_find, en_br_repl
     .quad en_ctx_view, en_ctx_copy, en_ctx_move, en_ctx_copy_path, en_ctx_delete, en_msg_copied_path, en_diff_pfx, en_term_title
+    .quad en_img_unsup, en_dlg_title_viewas, en_vas_image, en_vas_hex, en_vas_text, en_vas_hint, en_vw_img_hint
 .if (. - lang_en_table) != LangStrings._size
     .error "lang_en_table size does not match LangStrings._size"
 .endif
@@ -472,56 +484,7 @@ lang_ua_table:
     .quad ua_dlg_title_search, ua_srch_lbl_name, ua_srch_lbl_grep, ua_srch_hint, ua_fp_search_badge, ua_msg_search_none
     .quad ua_dlg_title_info, ua_dlg_title_chmod, ua_dlg_title_symlink, ua_dlg_title_hardlink, ua_prm_link_target, ua_chm_hint, ua_msg_trashed, ua_msg_undone, ua_msg_undo_empty, ua_dlg_title_palette, ua_dlg_title_fuzzy, ua_fuz_hint, ua_fp_du_badge, ua_br_title, ua_br_tmpl, ua_br_find, ua_br_repl
     .quad ua_ctx_view, ua_ctx_copy, ua_ctx_move, ua_ctx_copy_path, ua_ctx_delete, ua_msg_copied_path, ua_diff_pfx, ua_term_title
+    .quad ua_img_unsup, ua_dlg_title_viewas, ua_vas_image, ua_vas_hex, ua_vas_text, ua_vas_hint, ua_vw_img_hint
 .if (. - lang_ua_table) != LangStrings._size
     .error "lang_ua_table size does not match LangStrings._size"
 .endif
-
-.align 8
-lang_ptrs:
-    .quad lang_en_table
-    .quad lang_ua_table
-.equ LANG_COUNT, 2
-
-.section .bss
-.align 8
-g_cur_lang:     .space 8
-g_cur_lang_idx: .space 4
-
-.section .text
-.global i18n_get
-.global i18n_set_lang
-.global i18n_get_idx
-.global i18n_count
-
-# const LangStrings *i18n_get(void)
-# Preserves all registers except RAX.
-i18n_get:
-    mov rax, [rip + g_cur_lang]
-    test rax, rax
-    jnz .Lig_ret
-    lea rax, [rip + lang_en_table]
-.Lig_ret:
-    ret
-
-# const LangStrings *i18n_set_lang(int idx)
-i18n_set_lang:
-    xor eax, eax
-    cmp edi, LANG_UA
-    jne .Lisl_store
-    mov eax, LANG_UA
-.Lisl_store:
-    mov [rip + g_cur_lang_idx], eax
-    lea rcx, [rip + lang_ptrs]
-    mov rax, [rcx + rax*8]
-    mov [rip + g_cur_lang], rax
-    ret
-
-# int i18n_get_idx(void)
-i18n_get_idx:
-    mov eax, [rip + g_cur_lang_idx]
-    ret
-
-# int i18n_count(void)
-i18n_count:
-    mov eax, LANG_COUNT
-    ret

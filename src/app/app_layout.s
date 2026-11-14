@@ -341,6 +341,9 @@ App_preview_fire:
     call PreviewPane_load
     test eax, eax
     jz .Lasp_exit
+    mov rdi, [rbx + App.preview_pane]
+    call PreviewPane_thumb_dims
+    mov esi, eax
     mov rdi, rsp
     call fs_preview_request
     test eax, eax

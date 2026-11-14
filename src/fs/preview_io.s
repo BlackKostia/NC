@@ -1,7 +1,8 @@
 # Async Preview Reader: a tiny helper process reads file heads for the live preview
 #
 # The UI never touches the disk for previews: it writes {seq, path} requests into a
-# non-blocking pipe and receives {seq, err, len, data[len]} replies on another pipe that the
+# non-blocking pipe and receives {seq, err, len, tlen, data[len], thumb[tlen]} replies (an image
+# under the cursor is decoded here, in the helper, and sent as a small RGBA thumbnail) on a pipe the
 # event loop polls. Files are opened O_NONBLOCK (a FIFO under the cursor cannot hang), and a
 # helper stuck on a dead filesystem is killed and respawned after PV_STUCK_MS, so the UI stays
 # responsive no matter what the storage does. Stale replies are filtered by sequence number.
@@ -11,7 +12,8 @@
 .include "classes.inc"
 
 .equ PV_STUCK_MS, 1000
-.equ PV_HDR,      12          # u32 seq, i32 err, u32 len
+.equ PV_HDR,      16          # u32 seq, i32 err, u32 len, u32 thumb len
+.equ PV_REQ,      12          # u32 seq, u32 path len, u16 thumb w | u16 thumb h << 16
 
 .section .bss
 .align 8
@@ -28,85 +30,9 @@ g_pv_busy:    .space 4        # a request for g_pv_seq is outstanding
 .global fs_preview_fd
 .global fs_preview_receive
 .global fs_preview_stop
+.global pv_read_exact
 
-# ------------------------------------------------------------------------------
-# Helper process main loop (never returns). r12d = request fd, r13d = reply fd.
-# ------------------------------------------------------------------------------
-pv_helper_main:
-    and rsp, -16
-    sub rsp, PATH_MAX + PREVIEW_BUF_SIZE + 64
-    # [0..15] = request header / reply header, [64..] = path, [64+PATH_MAX..] = data
-    call os_signals_worker_mode
-.Lph_loop:
-    mov edi, r12d
-    mov rsi, rsp
-    mov edx, 8
-    call pv_read_exact
-    test rax, rax
-    jle .Lph_exit
-    mov ecx, [rsp + 4]                # path length
-    cmp ecx, PATH_MAX - 1
-    ja .Lph_exit
-    mov edi, r12d
-    lea rsi, [rsp + 64]
-    mov edx, ecx
-    call pv_read_exact
-    test rax, rax
-    js .Lph_exit
-    mov ecx, [rsp + 4]
-    mov byte ptr [rsp + 64 + rcx], 0
-    mov dword ptr [rsp + 8], 0        # len
-    mov edi, AT_FDCWD
-    lea rsi, [rsp + 64]
-    mov edx, O_RDONLY | O_NONBLOCK | O_CLOEXEC
-    xor r10d, r10d
-    OS_OPENAT
-    mov [rsp + 4], eax                # err (fd if >= 0)
-    test rax, rax
-    js .Lph_reply
-    mov r14d, eax
-    xor r15d, r15d                    # bytes read
-.Lph_read:
-    cmp r15d, PREVIEW_BUF_SIZE
-    jae .Lph_close
-    mov edi, r14d
-    lea rsi, [rsp + 64 + PATH_MAX]
-    add rsi, r15
-    mov edx, PREVIEW_BUF_SIZE
-    sub edx, r15d
-    OS_READ
-    cmp rax, -EINTR
-    je .Lph_read
-    test rax, rax
-    jle .Lph_close                    # EOF, error or EAGAIN (empty FIFO)
-    add r15d, eax
-    jmp .Lph_read
-.Lph_close:
-    mov edi, r14d
-    OS_CLOSE
-    mov dword ptr [rsp + 4], 0
-    mov [rsp + 8], r15d
-.Lph_reply:
-    # reply header at [64+PATH_MAX-12] so header + data are one contiguous write
-    lea rsi, [rsp + 64 + PATH_MAX - PV_HDR]
-    mov eax, [rsp]
-    mov [rsi], eax
-    mov eax, [rsp + 4]
-    mov [rsi + 4], eax
-    mov eax, [rsp + 8]
-    mov [rsi + 8], eax
-    mov edx, eax
-    add edx, PV_HDR
-    mov edi, r13d
-    call sys_write_all
-    test rax, rax
-    js .Lph_exit
-    jmp .Lph_loop
-.Lph_exit:
-    xor edi, edi
-    OS_EXIT
-
-# Internal: ssize_t pv_read_exact(int fd, void *buf, size_t n) -- blocking; 0 on EOF
+# ssize_t pv_read_exact(int fd, void *buf, size_t n) -- blocking; 0 on EOF (also used by the helper)
 pv_read_exact:
     push rbx
     push r12
@@ -253,13 +179,15 @@ fs_preview_fd:
     dec eax
     ret
 
-# int fs_preview_request(const char *path) -> sequence number (> 0), or -1 (caller reads sync)
+# int fs_preview_request(const char *path, uint32_t thumb_dims /*tw | th << 16, 0 = none*/)
+# -> sequence number (> 0), or -1 (caller reads sync)
 fs_preview_request:
     push rbx
     push r12
     push r13
     sub rsp, PATH_MAX + 16
     mov r12, rdi
+    mov [rsp + PATH_MAX + 8], esi
     call os_clock_ms
     mov r13, rax
     cmp dword ptr [rip + g_pv_pid], 0
@@ -285,16 +213,18 @@ fs_preview_request:
     mov eax, [rip + g_pv_seq]
     mov [rsp], eax
     mov [rsp + 4], ebx
-    lea rdi, [rsp + 8]
+    mov eax, [rsp + PATH_MAX + 8]
+    mov [rsp + 8], eax
+    lea rdi, [rsp + PV_REQ]
     mov rsi, r12
     mov rdx, rbx
     call mem_copy
     mov edi, [rip + g_pv_req1]
     dec edi
     mov rsi, rsp
-    lea rdx, [rbx + 8]
+    lea rdx, [rbx + PV_REQ]
     OS_WRITE
-    lea rcx, [rbx + 8]
+    lea rcx, [rbx + PV_REQ]
     cmp rax, rcx
     jne .Lpr_restart                  # pipe full / broken: helper is not keeping up
     mov dword ptr [rip + g_pv_busy], 1
@@ -312,7 +242,8 @@ fs_preview_request:
     pop rbx
     ret
 
-# int fs_preview_receive(void *buf, size_t cap, uint32_t *out_seq, size_t *out_len)
+# int fs_preview_receive(void *buf, size_t cap, uint32_t *out_seq, size_t *out_len, size_t *out_tlen)
+# buf receives the head bytes followed by the thumbnail (if any).
 # Non-blocking: returns 1 with one complete reply copied into buf, or 0 when none is ready.
 # Replies to older requests are consumed too (caller compares seq).
 fs_preview_receive:
@@ -321,11 +252,12 @@ fs_preview_receive:
     push r13
     push r14
     push r15
-    sub rsp, 16
+    sub rsp, 32
     mov r12, rdi
     mov r13, rsi
     mov r14, rdx
     mov r15, rcx
+    mov [rsp + 24], r8                # out_tlen
     mov ebx, [rip + g_pv_resp1]
     dec ebx
     js .Lprv_none
@@ -346,9 +278,15 @@ fs_preview_receive:
     jle .Lprv_broken
 .Lprv_hdr:
     mov edx, [rsp + 8]                # len
+    mov [r15], rdx
+    mov eax, [rsp + 12]               # thumb len
+    mov rcx, [rsp + 24]
+    test rcx, rcx
+    jz 1f
+    mov [rcx], rax
+1:  add rdx, rax
     cmp rdx, r13
     ja .Lprv_broken
-    mov [r15], rdx
     test edx, edx
     jz .Lprv_done
     mov edi, ebx
@@ -370,7 +308,7 @@ fs_preview_receive:
 .Lprv_none:
     xor eax, eax
 .Lprv_ret:
-    add rsp, 16
+    add rsp, 32
     pop r15
     pop r14
     pop r13
