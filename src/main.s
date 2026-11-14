@@ -123,6 +123,10 @@ _start:
     mov qword ptr [rsp + 24], 0
     xor r14d, r14d            # left_path = NULL
     xor r15d, r15d            # right_path = NULL
+.ifdef MEMCHECK
+    mov rdi, r13
+    call mc_init
+.endif
 
 .Lmain_arg_loop:
     mov eax, [rsp + 8]
@@ -290,29 +294,34 @@ _start:
 
     DELETE_OBJ rbx
     call term_exit_raw
-
     xor edi, edi
-    OS_EXIT
+    jmp main_exit
 
 .Lmain_cleanup_err:
     call term_exit_raw
     mov edi, 1
-    OS_EXIT
+    jmp main_exit
 
 .Lmain_help:
     lea rsi, [rip + str_usage]
     mov edx, str_usage_len
     lea r8, [rip + str_usage_ua]
     mov r9d, str_usage_ua_len
-    jmp .Lmain_print_i18n
+    jmp main_print_i18n
 
 .Lmain_version:
     lea rsi, [rip + str_version]
     mov edx, str_version_len
     lea r8, [rip + str_version_ua]
     mov r9d, str_version_ua_len
+    jmp main_print_i18n
 
-.Lmain_print_i18n:
+.Lmain_license:
+    lea rsi, [rip + str_license]
+    mov edx, str_license_len
+    jmp main_print_exit
+
+main_print_i18n:
     mov eax, [rsp]
     cmp eax, 0
     jge .Lmain_lang_picked
@@ -328,18 +337,19 @@ _start:
     pop rsi
 .Lmain_lang_picked:
     cmp eax, LANG_UA
-    jne .Lmain_print_exit
+    jne main_print_exit
     mov rsi, r8
     mov edx, r9d
-    jmp .Lmain_print_exit
 
-.Lmain_license:
-    lea rsi, [rip + str_license]
-    mov edx, str_license_len
-
-.Lmain_print_exit:
+main_print_exit:
     mov edi, STDOUT_FD
     call sys_write_all
-
     xor edi, edi
+
+main_exit:
+    push rdi
+.ifdef MEMCHECK
+    call mc_report
+.endif
+    pop rdi
     OS_EXIT

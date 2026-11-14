@@ -42,8 +42,11 @@ if [[ "$VER_OUT" != *"v${VER}"* ]]; then
 fi
 echo "Verified binary version: $VER_OUT"
 
-echo "==> [4/4] Running end-to-end PTY test suite (release)..."
+echo "==> [4/5] Running end-to-end PTY test suite (release)..."
 make -s test
+
+echo "==> [5/5] Running assembly memcheck leak/bad-free suite..."
+make -s memcheck
 
 if [[ "$MODE" == "full" ]]; then
     echo "==> [Extra] Rebuilding DWARF debug binary & running PTY tests..."

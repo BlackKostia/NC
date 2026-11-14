@@ -36,6 +36,7 @@ str_duop_dir:   .asciz "duop"
 .global nav_tabs_free
 .global nav_u32_to_str
 .global nav_state_init
+.global nav_state_cleanup
 
 # Internal: char *nav_strdup(const char *s)
 nav_strdup:
@@ -282,6 +283,8 @@ nav_u32_to_str:
 
 # void nav_state_init(char **envp)
 nav_state_init:
+    cmp dword ptr [rip + g_data_ready], 0
+    jne .Lnsi_ret
     push rbx
     sub rsp, PATH_MAX + 8
     mov rbx, rdi
@@ -331,5 +334,41 @@ nav_state_init:
 
 .Lnsi_done:
     add rsp, PATH_MAX + 8
+    pop rbx
+.Lnsi_ret:
+    ret
+
+# void nav_state_cleanup(void) -- frees global bookmark & frecency string arrays
+nav_state_cleanup:
+    lea rdi, [rip + g_bm_ptrs]
+    lea rsi, [rip + g_bm_cnt]
+    call nav_free_ptr_array
+    lea rdi, [rip + g_fre_ptrs]
+    lea rsi, [rip + g_fre_cnt]
+    # fall through
+
+# void nav_free_ptr_array(void **ptrs, int *cnt)
+nav_free_ptr_array:
+    push rbx
+    push r12
+    push r13
+    mov rbx, rdi
+    mov r12d, [rsi]
+    mov dword ptr [rsi], 0
+    xor r13d, r13d
+.Lnfp_loop:
+    cmp r13d, r12d
+    jge .Lnfp_done
+    mov rdi, [rbx + r13*8]
+    mov qword ptr [rbx + r13*8], 0
+    test rdi, rdi
+    jz .Lnfp_next
+    call mem_free
+.Lnfp_next:
+    inc r13d
+    jmp .Lnfp_loop
+.Lnfp_done:
+    pop r13
+    pop r12
     pop rbx
     ret

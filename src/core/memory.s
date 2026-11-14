@@ -39,12 +39,25 @@ slab_end:  .space 8 * SLAB_CLASSES   # end of the current arena
 # void *mem_alloc(size_t size)
 # rdi = size -> returns rax = zeroed 16-byte aligned pointer, or 0 on error
 mem_alloc:
+.ifdef MEMCHECK
+    mov r10, [rsp]
+    push rbx; push r12; push r13
+    mov rbx, rdi; mov r12, r10
+    call mem_alloc_raw
+    test rax, rax; jz 1f
+    mov r13, rax
+    mov rdi, rax; mov rsi, rbx; mov rdx, r12
+    call mc_on_alloc
+    mov rax, r13
+1:  pop r13; pop r12; pop rbx; ret
+mem_alloc_raw:
+.endif
     test rdi, rdi
     jnz .Lalloc_nz
     mov edi, 1
 .Lalloc_nz:
     cmp rdi, SLAB_MAX_REQ
-    ja .Lalloc_big
+    ja mem_alloc_big
 
     # class k = max(6, bsr(size + 15) + 1); idx = k - 6
     lea rax, [rdi + 15]
@@ -110,7 +123,11 @@ mem_alloc:
     mov [r10 + rcx * 8], rax
     jmp .Lalloc_try
 
-.Lalloc_big:
+.Lalloc_fail:
+    xor eax, eax
+    ret
+
+mem_alloc_big:
     # total = align_up_page(size + 16)
     lea rsi, [rdi + 16 + 4095]
     and rsi, -4096
@@ -124,12 +141,18 @@ mem_alloc:
     mov [rax], rsi                    # mapped size
     add rax, 16
     ret
-.Lalloc_fail:
-    xor eax, eax
-    ret
 
 # void mem_free(void *ptr) -- safe on NULL
 mem_free:
+.ifdef MEMCHECK
+    test rdi, rdi
+    jz .Lfree_done
+    mov rsi, [rsp]
+    push rdi; sub rsp, 8
+    call mc_on_free
+    add rsp, 8; pop rdi
+mem_free_raw:
+.endif
     test rdi, rdi
     jz .Lfree_done
     sub rdi, 16
@@ -151,10 +174,27 @@ mem_free:
 # void *mem_realloc(void *ptr, size_t new_size)
 # rdi = ptr, rsi = new_size -> returns rax = new ptr, or 0 on failure (old block intact)
 mem_realloc:
+.ifdef MEMCHECK
+    mov r10, [rsp]
+    push rbx; push r12; push r13
+    mov rbx, rdi; mov r12, rsi; mov r13, r10
+    call mem_realloc_raw
+    test rax, rax; jz 1f
+    push rax; sub rsp, 8
+    mov rdi, rbx; mov rsi, rax; mov rdx, r12; mov rcx, r13
+    call mc_on_realloc
+    add rsp, 8; pop rax
+1:  pop r13; pop r12; pop rbx; ret
+mem_realloc_raw:
+.endif
     test rdi, rdi
     jnz .Lrealloc_existing
     mov rdi, rsi
+.ifdef MEMCHECK
+    jmp mem_alloc_raw
+.else
     jmp mem_alloc
+.endif
 
 .Lrealloc_existing:
     push rbx
@@ -188,7 +228,11 @@ mem_realloc:
     cmp rax, r13
     jbe .Lrealloc_same
     mov rdi, r12
+.ifdef MEMCHECK
+    call mem_alloc_raw
+.else
     call mem_alloc
+.endif
     test rax, rax
     jz .Lrealloc_fail
     mov r12, rax
@@ -197,7 +241,11 @@ mem_realloc:
     lea rdx, [r13 - 16]
     call os_mem_copy_fast
     mov rdi, rbx
+.ifdef MEMCHECK
+    call mem_free_raw
+.else
     call mem_free
+.endif
     mov rax, r12
     jmp .Lrealloc_ret
 

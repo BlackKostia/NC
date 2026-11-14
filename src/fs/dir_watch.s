@@ -31,6 +31,7 @@ DW._size:
 .global dirwatch_fd
 .global dirwatch_set
 .global dirwatch_poll
+.global dirwatch_cleanup
 
 # int dirwatch_init(void) -> 0 or -errno (feature simply stays off on failure)
 dirwatch_init:
@@ -188,5 +189,27 @@ dirwatch_poll:
     pop r14
     pop r13
     pop r12
+    pop rbx
+    ret
+
+# void dirwatch_cleanup(void) -- closes watch fd and frees g_dw_state
+dirwatch_cleanup:
+    push rbx
+    mov eax, [rip + g_dw_fd1]
+    test eax, eax
+    jz .Ldwc_state
+    lea edi, [eax - 1]
+    OS_CLOSE
+    mov dword ptr [rip + g_dw_fd1], 0
+.Ldwc_state:
+    mov rbx, [rip + g_dw_state]
+    test rbx, rbx
+    jz .Ldwc_done
+    mov qword ptr [rip + g_dw_state], 0
+    mov rdi, rbx
+    call mem_free
+.Ldwc_done:
+    mov dword ptr [rip + g_dw_wd], -1
+    mov dword ptr [rip + g_dw_wd + 4], -1
     pop rbx
     ret

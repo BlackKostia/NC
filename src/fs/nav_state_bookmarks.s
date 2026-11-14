@@ -39,6 +39,7 @@ str_bm_file:    .asciz "bookmarks"
 .global g_data_dir
 .global g_data_ready
 .global g_bm_cnt
+.global g_bm_ptrs
 
 # Internal: load bookmarks file
 nav_bookmarks_load:

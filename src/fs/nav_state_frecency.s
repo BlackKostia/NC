@@ -35,6 +35,7 @@ str_fre_file:   .asciz "frecency"
 .global nav_frecency_score
 .global nav_frecency_match
 .global g_fre_cnt
+.global g_fre_ptrs
 
 # Internal: load frecency file ("<score> <path>\n")
 nav_frecency_load:

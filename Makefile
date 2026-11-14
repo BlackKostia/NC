@@ -2,10 +2,10 @@
 
 OS      ?= linux
 ARCH    ?= x86_64
+MEMCHECK ?= 0
 TARGET  := duop
 BUILD   := build
 VERSION := $(strip $(shell cat VERSION))
-VER_INC := $(BUILD)/version.inc
 PAL_INC := include/os/$(OS)/$(ARCH)
 
 AS      := as
@@ -13,9 +13,18 @@ LD      := ld
 ASFLAGS := -I $(PAL_INC) -I include -I $(BUILD) -g --strip-local-absolute
 LDFLAGS :=
 
+ifeq ($(MEMCHECK),1)
+TARGET  := duop_memcheck
+BUILD   := build_mc
+ASFLAGS += --defsym MEMCHECK=1
+endif
+
+VER_INC := $(BUILD)/version.inc
+
 SRCS := \
 	src/main.s \
 	src/core/memory.s \
+	src/core/memcheck.s \
 	src/core/string.s \
 	src/core/string_format.s \
 	src/core/string_datetime.s \
@@ -40,6 +49,8 @@ SRCS := \
 	src/tui/term_caps.s \
 	src/tui/screen_rect.s \
 	src/tui/input_parse.s \
+	src/tui/kbd_map.s \
+	src/tui/kbd_layout.s \
 	src/fs/dir_model.s \
 	src/fs/dir_model_load.s \
 	src/fs/dir_model_stream.s \
@@ -189,7 +200,7 @@ PAL_SRCS := \
 OBJS := $(patsubst src/%.s,$(BUILD)/%.o,$(SRCS) $(PAL_SRCS))
 INCS := $(wildcard include/*.inc) $(wildcard $(PAL_INC)/*.inc)
 
-.PHONY: all release run test verify hooks clean
+.PHONY: all release run test memcheck verify hooks clean
 
 all: $(TARGET)
 
@@ -236,6 +247,11 @@ test: $(TARGET)
 	python3 tests/test_term_pane.py
 	python3 tests/test_nav_viewer.py
 	python3 tests/test_event_loop.py
+	python3 tests/test_kbd_layout.py
+
+memcheck:
+	$(MAKE) MEMCHECK=1
+	python3 tests/test_memcheck.py
 
 verify:
 	./.agents/skills/duop-pty-verify/scripts/verify_build.sh
@@ -245,4 +261,4 @@ hooks:
 	chmod +x .githooks/* .agents/hooks/*.py .agents/skills/*/scripts/*
 
 clean:
-	rm -rf $(BUILD) $(TARGET)
+	rm -rf $(BUILD) $(TARGET) build_mc duop_memcheck

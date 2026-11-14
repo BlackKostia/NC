@@ -24,7 +24,8 @@ What this verifies:
 3. `size duop` — fails if ELF `.data != 0` (mutable state belongs in `.bss` or heap).
 4. `./duop --version` — verifies binary output embeds exact `VERSION`.
 5. `make test` — runs `tests/test_pal_architecture.py`, `tests/test_pty.py`, and `tests/test_fs_reliability.py` (all registered tests) against release build.
-6. `make clean && make && make test` — verifies DWARF debug build also compiles cleanly and passes all PTY/PAL tests (skipped if `--release-only` is passed for fast pre-commit checks).
+6. `make memcheck` — builds `duop_memcheck` (`MEMCHECK=1`, `-g`) and runs `tests/test_memcheck.py` (CLI + interactive PTY smoke leak/bad-free check + `addr2line` symbol resolution). For ad-hoc runs use `python3 scripts/memcheck.py --smoke` or `python3 scripts/memcheck.py -- ./duop_memcheck ...`.
+7. `make clean && make && make test` — verifies DWARF debug build also compiles cleanly and passes all PTY/PAL tests (skipped if `--release-only` is passed for fast pre-commit checks).
 
 ## When Adding Features or Bugfixes
 

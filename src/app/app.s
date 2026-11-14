@@ -62,6 +62,8 @@ App_new__cfg_theme:
     mov rdi, r14
     call config_load
     mov rdi, r14
+    call kbd_layout_load              # keyboard layouts from *.layout files
+    mov rdi, r14
     call DirModel_init_env
     mov dword ptr [rbx + App.running], 1
     mov dword ptr [rbx + App.need_redraw], 1
@@ -206,5 +208,7 @@ App_dtor:
     DELETE_OBJ rdi
     mov rdi, [rbx + App.screen]
     DELETE_OBJ rdi
+    call dirwatch_cleanup
+    call nav_state_cleanup
     pop rbx
     ret
