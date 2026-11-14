@@ -10,11 +10,6 @@ PopupMenuDialog.pad:    .space 4
 PopupMenuDialog._size:
 
 .section .rodata
-b64_table:
-    .ascii "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-osc52_pfx:
-    .ascii "\x1b]52;c;"
-.equ OSC52_PFX_LEN, 7
 str_PopupMenuDialog:
     .asciz "PopupMenuDialog"
 .align 8
@@ -36,90 +31,27 @@ g_dnd_src_pane: .space 8
 
 .section .text
 .global PopupMenu_new
-.global osc52_copy_text
 .global pane_mouse_ext
+
+.extern osc52_copy_text
 
 .extern App_close_dialog
 .extern App_cmd_view
 .extern App_cmd_copy
 .extern App_cmd_move
 .extern App_cmd_delete
+.extern App_run_pkg_action
+.extern DirModel_entry_name
+.extern FilePane_get_selected_entry
+.extern pkg_popup_refresh
+.extern pkg_popup_count
+.extern pkg_popup_label
+.extern pkg_popup_get
 .extern Dialog_dtor
 .extern Dialog_on_confirm
 .extern Dialog_on_cancel
 .extern Widget_on_focus
 .extern Widget_hit_test
-
-# void osc52_copy_text(const char *str)
-osc52_copy_text:
-    push rbx; push r12; push r13; push r14
-    mov rbx, rdi
-    test rbx, rbx; jz .Losc_done
-    call str_len
-    mov r12, rax              # raw_len
-    lea rdi, [rax * 2 + 64]
-    call mem_alloc
-    mov r13, rax              # out_buf
-    xor r14d, r14d            # out_pos
-    lea rsi, [rip + osc52_pfx]
-    mov ecx, OSC52_PFX_LEN
-.Losc_pfx:
-    mov al, [rsi]
-    mov [r13 + r14], al
-    inc rsi; inc r14
-    dec ecx; jnz .Losc_pfx
-
-    lea r8, [rip + b64_table]
-    xor ecx, ecx              # i = 0
-.Losc_b64:
-    cmp rcx, r12; jae .Losc_end
-    movzx eax, byte ptr [rbx + rcx]
-    shl eax, 16
-    mov r9d, 1                # bytes in group
-    lea rdx, [rcx + 1]
-    cmp rdx, r12; jae .Losc_emit
-    movzx edx, byte ptr [rbx + rdx]
-    shl edx, 8
-    or eax, edx
-    inc r9d
-    lea rdx, [rcx + 2]
-    cmp rdx, r12; jae .Losc_emit
-    movzx edx, byte ptr [rbx + rdx]
-    or eax, edx
-    inc r9d
-.Losc_emit:
-    mov edx, eax; shr edx, 18; and edx, 0x3F
-    mov dl, [r8 + rdx]; mov [r13 + r14], dl; inc r14
-    mov edx, eax; shr edx, 12; and edx, 0x3F
-    mov dl, [r8 + rdx]; mov [r13 + r14], dl; inc r14
-    cmp r9d, 2; jb .Losc_eq1
-    mov edx, eax; shr edx, 6; and edx, 0x3F
-    mov dl, [r8 + rdx]; mov [r13 + r14], dl; inc r14
-    jmp .Losc_c3
-.Losc_eq1:
-    mov byte ptr [r13 + r14], '='; inc r14
-.Losc_c3:
-    cmp r9d, 3; jb .Losc_eq2
-    mov edx, eax; and edx, 0x3F
-    mov dl, [r8 + rdx]; mov [r13 + r14], dl; inc r14
-    jmp .Losc_next3
-.Losc_eq2:
-    mov byte ptr [r13 + r14], '='; inc r14
-.Losc_next3:
-    add rcx, 3
-    jmp .Losc_b64
-
-.Losc_end:
-    mov byte ptr [r13 + r14], 7
-    inc r14
-    mov edi, 1
-    mov rsi, r13
-    mov rdx, r14
-    call sys_write_all
-    mov rdi, r13
-    call mem_free
-.Losc_done:
-    pop r14; pop r13; pop r12; pop rbx; ret
 
 # PopupMenuDialog *PopupMenu_new(App *app, int x, int y)
 PopupMenu_new:
@@ -134,10 +66,21 @@ PopupMenu_new:
     mov [rbx], rax
     mov [rbx + Dialog.app], r12
     mov dword ptr [rbx + PopupMenuDialog.cursor], 0
-    mov dword ptr [rbx + Widget.w], 24
-    mov dword ptr [rbx + Widget.h], 7
-    mov dword ptr [rbx + Widget.x], r13d
-    mov dword ptr [rbx + Widget.y], r14d
+    mov rdi, [r12 + App.active_pane]; call FilePane_get_selected_entry
+    xor esi, esi; xor edx, edx
+    test rax, rax; jz .Lpmn_ref
+    mov ecx, [rax + FileEntry.flags]; test ecx, FE_IS_DIR; jz .Lpmn_nm
+    mov esi, 1
+.Lpmn_nm:
+    push rsi; mov rcx, [r12 + App.active_pane]; mov rdi, [rcx + FilePane.model]; mov rsi, rax
+    call DirModel_entry_name; mov rdx, rax; pop rsi
+.Lpmn_ref:
+    mov rdi, [r12 + App.envp]; call pkg_popup_refresh
+    add eax, 7; mov [rbx + Widget.h], eax
+    mov ecx, 24; cmp eax, 7; je .Lpmn_w; mov ecx, 30
+.Lpmn_w:
+    mov [rbx + Widget.w], ecx
+    mov [rbx + Widget.x], r13d; mov [rbx + Widget.y], r14d
     mov rdi, rbx
     call PopupMenu_layout
     mov [r12 + App.active_dialog], rbx
@@ -183,7 +126,8 @@ PopupMenu_render:
 
     xor r14d, r14d
 .Lpmr_loop:
-    cmp r14d, 5; jge .Lpmr_done
+    call pkg_popup_count; add eax, 5
+    cmp r14d, eax; jge .Lpmr_done
     mov eax, [rbx + Widget.y]; lea r15d, [rax + r14 + 1]
     mov esi, [r13 + Theme.text]; mov edx, [r13 + Theme.dialog_bg]
     cmp r14d, [rbx + PopupMenuDialog.cursor]; jne .Lpmr_pen
@@ -195,10 +139,14 @@ PopupMenu_render:
     mov ecx, [rbx + Widget.w]; sub ecx, 2; mov r8d, 1; mov r9d, ' '
     call ScreenBuffer_fill_rect
 
+    cmp r14d, 5; jge .Lpmr_pkg_lbl
     call i18n_get
     lea rcx, [rip + popup_item_offs]
     mov edx, [rcx + r14 * 4]
-    mov rcx, [rax + rdx]
+    mov rcx, [rax + rdx]; jmp .Lpmr_txt
+.Lpmr_pkg_lbl:
+    lea edi, [r14d - 5]; call pkg_popup_label; mov rcx, rax
+.Lpmr_txt:
     mov rdi, r12; mov esi, [rbx + Widget.x]; add esi, 2; mov edx, r15d
     mov r8d, [rbx + Widget.w]; sub r8d, 4
     call ScreenBuffer_draw_text
@@ -246,6 +194,10 @@ popup_exec_item:
     cmp r12d, 2; je .Lpei_move
     cmp r12d, 3; je .Lpei_cpath
     cmp r12d, 4; je .Lpei_del
+    cmp r12d, 5; jl .Lpei_done
+    lea edi, [r12d - 5]; call pkg_popup_get
+    test rax, rax; jz .Lpei_done
+    mov rdi, rbx; mov rsi, rax; call App_run_pkg_action
     jmp .Lpei_done
 .Lpei_view:  call App_cmd_view; jmp .Lpei_done
 .Lpei_copy:  call App_cmd_copy; jmp .Lpei_done
@@ -264,12 +216,14 @@ PopupMenu_on_key:
     cmp eax, KEY_ENTER; je .Lpmk_ent
     xor eax, eax; pop rbx; ret
 .Lpmk_up:
-    mov eax, [rbx + PopupMenuDialog.cursor]; add eax, 4; xor edx, edx; mov ecx, 5; div ecx
+    call pkg_popup_count; lea ecx, [eax + 5]; lea r8d, [ecx - 1]
+    mov eax, [rbx + PopupMenuDialog.cursor]; add eax, r8d; xor edx, edx; div ecx
     mov [rbx + PopupMenuDialog.cursor], edx
     mov rax, [rbx + Dialog.app]; mov dword ptr [rax + App.need_redraw], 1
     mov eax, 1; pop rbx; ret
 .Lpmk_dn:
-    mov eax, [rbx + PopupMenuDialog.cursor]; inc eax; xor edx, edx; mov ecx, 5; div ecx
+    call pkg_popup_count; lea ecx, [eax + 5]
+    mov eax, [rbx + PopupMenuDialog.cursor]; inc eax; xor edx, edx; div ecx
     mov [rbx + PopupMenuDialog.cursor], edx
     mov rax, [rbx + Dialog.app]; mov dword ptr [rax + App.need_redraw], 1
     mov eax, 1; pop rbx; ret
@@ -288,7 +242,8 @@ PopupMenu_on_mouse:
     mov eax, [rbx + Widget.x]; cmp r8d, eax; jl .Lpmm_out
     add eax, [rbx + Widget.w]; cmp r8d, eax; jge .Lpmm_out
     mov eax, [rbx + Widget.y]; inc eax; cmp r9d, eax; jl .Lpmm_out
-    add eax, 5; cmp r9d, eax; jge .Lpmm_out
+    push r9; push rax; call pkg_popup_count; mov ecx, eax; pop rax; pop r9
+    lea eax, [eax + ecx + 5]; cmp r9d, eax; jge .Lpmm_out
     sub r9d, [rbx + Widget.y]; dec r9d
     mov [rbx + PopupMenuDialog.cursor], r9d
     mov rdi, rbx; call popup_exec_item

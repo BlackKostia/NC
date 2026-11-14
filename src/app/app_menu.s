@@ -38,6 +38,8 @@
 .extern sys_exec_sh_arg
 .extern sys_exec_argv
 .extern pkg_action_build_argv
+.extern pkg_action_has_marked
+.extern pkg_write_marked_list
 .extern str_copy
 .extern path_join
 
@@ -270,10 +272,10 @@ App_exec_menu_tmpl:
 # void App_run_pkg_action(App *this, PkgAction *act)
 App_run_pkg_action:
     push rbx; push r12; push r13
-    # Stack: [0..31]=ctx[4], [32..32+PATH_MAX-1]=path_buf,
-    # [32+PATH_MAX..1055+PATH_MAX]=str_buf[1024], [1056+PATH_MAX..1311+PATH_MAX]=argv[32*8],
-    # [1312+PATH_MAX..1312+2*PATH_MAX-1]=cwd_buf
-    sub rsp, 32 + PATH_MAX * 2 + 1024 + 256 + 8
+    # Stack: [0..39]=ctx[5], [40..40+PATH_MAX-1]=path_buf,
+    # [40+PATH_MAX..1063+PATH_MAX]=str_buf[1024], [1064+PATH_MAX..1319+PATH_MAX]=argv[32*8],
+    # [1320+PATH_MAX..1320+2*PATH_MAX-1]=cwd_buf, [1320+2*PATH_MAX..1447+2*PATH_MAX]=marked_tmp[128]
+    sub rsp, 40 + PATH_MAX * 2 + 1024 + 256 + 128 + 8
     mov rbx, rdi; mov r12, rsi
     mov rax, [rbx + App.active_pane]; mov rax, [rax + FilePane.model]
     lea rcx, [rax + DirModel.path]; mov [rsp + 0], rcx
@@ -281,31 +283,46 @@ App_run_pkg_action:
     mov rax, [rax + FilePane.model]; lea rax, [rax + DirModel.path]
     mov [rsp + 8], rax
     mov qword ptr [rsp + 16], 0
-    mov byte ptr [rsp + 32], 0
-    lea rax, [rsp + 32]; mov [rsp + 24], rax
+    mov byte ptr [rsp + 40], 0
+    lea rax, [rsp + 40]; mov [rsp + 24], rax
+    mov qword ptr [rsp + 32], 0
+    lea rax, [rsp + 40 + PATH_MAX * 2 + 1024 + 256]; mov byte ptr [rax], 0
     mov rdi, [rbx + App.active_pane]; call FilePane_get_selected_entry
-    test rax, rax; jz .Larpa_build
+    test rax, rax; jz .Larpa_chk_mk
     mov rcx, [rbx + App.active_pane]; mov rdi, [rcx + FilePane.model]; mov rsi, rax
     call DirModel_entry_name
     mov [rsp + 16], rax
-    lea rdi, [rsp + 32]; mov rsi, [rsp + 0]; mov rdx, rax; mov ecx, PATH_MAX
+    lea rdi, [rsp + 40]; mov rsi, [rsp + 0]; mov rdx, rax; mov ecx, PATH_MAX
     call path_join
+.Larpa_chk_mk:
+    mov rdi, r12; call pkg_action_has_marked
+    test eax, eax; jz .Larpa_build
+    mov rcx, [rbx + App.active_pane]; mov rdi, [rcx + FilePane.model]
+    mov rsi, [rsp + 24]
+    lea rdx, [rsp + 40 + PATH_MAX * 2 + 1024 + 256]; mov ecx, 128
+    call pkg_write_marked_list
+    test eax, eax; jnz .Larpa_build
+    lea rax, [rsp + 40 + PATH_MAX * 2 + 1024 + 256]; mov [rsp + 32], rax
 .Larpa_build:
     mov rdi, r12; mov rsi, rsp
-    lea rdx, [rsp + 32 + PATH_MAX]; mov ecx, 1024
-    lea r8, [rsp + 32 + PATH_MAX + 1024]; mov r9d, 32
+    lea rdx, [rsp + 40 + PATH_MAX]; mov ecx, 1024
+    lea r8, [rsp + 40 + PATH_MAX + 1024]; mov r9d, 32
     call pkg_action_build_argv
-    lea r13, [rsp + 32 + PATH_MAX + 1024 + 256]
+    lea r13, [rsp + 40 + PATH_MAX + 1024 + 256]
     mov rdi, r13; mov esi, PATH_MAX; OS_GETCWD
     mov rdi, [rsp + 0]; OS_CHDIR
-    lea rsi, [rsp + 32 + PATH_MAX + 1024]
+    lea rsi, [rsp + 40 + PATH_MAX + 1024]
     mov rdi, [rsi]; push rdi; push rsi
     mov rsi, rdi; mov edi, AT_FDCWD; mov edx, 0755; xor r10d, r10d; OS_FCHMODAT
     pop rsi; pop rdi
     mov rdx, [rbx + App.envp]; call sys_exec_argv
     mov rdi, r13; OS_CHDIR
+    lea rsi, [rsp + 40 + PATH_MAX * 2 + 1024 + 256]
+    cmp byte ptr [rsi], 0; je .Larpa_redraw
+    mov edi, AT_FDCWD; xor edx, edx; OS_UNLINKAT
+.Larpa_redraw:
     mov rdi, [rbx + App.screen]; mov dword ptr [rdi + ScreenBuffer.force_full], 1
     mov rdi, rbx; xor esi, esi; call App_reload_panes
-    add rsp, 32 + PATH_MAX * 2 + 1024 + 256 + 8
+    add rsp, 40 + PATH_MAX * 2 + 1024 + 256 + 128 + 8
     pop r13; pop r12; pop rbx
     ret

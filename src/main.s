@@ -40,8 +40,13 @@ str_license:
     .ascii "SOFTWARE.\n"
 .equ str_license_len, . - str_license
 
+.section .bss
+.align 8
+g_envp: .space 8
+
 .section .text
 .global _start
+.global g_envp
 
 # Helper: --lang value (id, code or locale) -> language index; English (0) when no pack matches
 parse_lang_val:
@@ -66,7 +71,7 @@ _start:
     # Read argc, argv, envp from initial Linux stack
     mov rbx, [rsp]            # argc
     lea r12, [rsp + 8]        # argv
-    lea r13, [r12 + rbx*8 + 8] # envp
+    lea r13, [r12 + rbx*8 + 8]; mov [rip + g_envp], r13 # envp
     and rsp, -16              # ensure 16-byte ABI stack alignment
     # [rsp+0]=lang (-1), [rsp+4]=help (0), [rsp+8]=arg_idx (1), [rsp+12]=ver (0), [rsp+16]=lic (0), [rsp+24]=choosedir_path (0)
     sub rsp, 32

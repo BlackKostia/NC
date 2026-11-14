@@ -3,13 +3,14 @@
 .include "pal.inc"
 .include "classes.inc"
 
-.equ PKGA_SIZE,     512
+.equ PKGA_SIZE,     576
 .equ PKGA_EXEC,     64
 .equ PKGA_MENU,     128
 .equ PKGA_ARGS,     192
 .equ PKGA_SCOPE,    320
 .equ PKGA_MODE,     336
 .equ PKGA_DIR,      352
+.equ PKGA_EXT,      512
 
 .section .rodata
 pka_manifest:  .asciz "manifest.ini"
@@ -19,10 +20,12 @@ pka_k_menu:    .asciz "menu"
 pka_k_args:    .asciz "args"
 pka_k_scope:   .asciz "scope"
 pka_k_mode:    .asciz "mode"
+pka_k_ext:     .asciz "ext"
 pka_ph_dir:    .asciz "{dir}"
 pka_ph_other:  .asciz "{other_dir}"
 pka_ph_file:   .asciz "{file}"
 pka_ph_path:   .asciz "{path}"
+pka_ph_marked: .asciz "{marked_file}"
 pka_empty:     .asciz ""
 pka_dotdot:    .asciz ".."
 
@@ -104,8 +107,12 @@ pka_parse_kv:
     mov rdi, r12; mov rsi, r13; lea rdx, [r14 + PKGA_SCOPE]; mov ecx, 16; call pka_trim_copy; jmp .Lpkv_ret
 .Lpkv_mode:
     mov rdi, rbx; lea rsi, [rip + pka_k_mode]; call str_cmp
+    test eax, eax; jnz .Lpkv_ext
+    mov rdi, r12; mov rsi, r13; lea rdx, [r14 + PKGA_MODE]; mov ecx, 16; call pka_trim_copy; jmp .Lpkv_ret
+.Lpkv_ext:
+    mov rdi, rbx; lea rsi, [rip + pka_k_ext]; call str_cmp
     test eax, eax; jnz .Lpkv_ret
-    mov rdi, r12; mov rsi, r13; lea rdx, [r14 + PKGA_MODE]; mov ecx, 16; call pka_trim_copy
+    mov rdi, r12; mov rsi, r13; lea rdx, [r14 + PKGA_EXT]; mov ecx, 64; call pka_trim_copy
 .Lpkv_ret:
     pop r14; pop r13; pop r12; pop rbx; ret
 
@@ -220,6 +227,7 @@ pka_resolve_tok:
     mov rdi, rbx; lea rsi, [rip + pka_ph_other]; call str_cmp; test eax, eax; jz .Lprt_1
     mov rdi, rbx; lea rsi, [rip + pka_ph_file]; call str_cmp; test eax, eax; jz .Lprt_2
     mov rdi, rbx; lea rsi, [rip + pka_ph_path]; call str_cmp; test eax, eax; jz .Lprt_3
+    mov rdi, rbx; lea rsi, [rip + pka_ph_marked]; call str_cmp; test eax, eax; jz .Lprt_4
     xor eax, eax; pop r12; pop rbx; ret
 .Lprt_0:
     mov rax, [r12 + 0]; jmp .Lprt_chk
@@ -228,7 +236,9 @@ pka_resolve_tok:
 .Lprt_2:
     mov rax, [r12 + 16]; jmp .Lprt_chk
 .Lprt_3:
-    mov rax, [r12 + 24]
+    mov rax, [r12 + 24]; jmp .Lprt_chk
+.Lprt_4:
+    mov rax, [r12 + 32]
 .Lprt_chk:
     test rax, rax; jnz .Lprt_done
     lea rax, [rip + pka_empty]

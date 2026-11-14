@@ -14,6 +14,8 @@
 .section .text
 .global pv_helper_main
 .global pv_make_thumb
+.extern g_envp
+.extern pkg_preview_try
 
 # ------------------------------------------------------------------------------
 # Helper process main loop (never returns). r12d = request fd, r13d = reply fd.
@@ -42,9 +44,12 @@ pv_helper_main:
     js .Lph_exit
     mov ecx, [rsp + PV_TREQ - 4]
     mov byte ptr [rsp + 64 + rcx], 0
-    mov eax, [rsp + PV_TREQ - 8]      # seq -> reply header
-    mov [rsp], eax
-    mov dword ptr [rsp + 8], 0        # len
+    mov eax, [rsp + PV_TREQ - 8]; mov [rsp], eax; mov dword ptr [rsp + 8], 0
+    mov rdi, [rip + g_envp]; lea rsi, [rsp + 64]; lea rdx, [rsp + 64 + PATH_MAX]; mov ecx, PREVIEW_BUF_SIZE
+    call pkg_preview_try
+    test eax, eax; js .Lph_open_raw
+    mov dword ptr [rsp + 4], 0; mov [rsp + 8], eax; jmp .Lph_reply
+.Lph_open_raw:
     mov edi, AT_FDCWD
     lea rsi, [rsp + 64]
     mov edx, O_RDONLY | O_NONBLOCK | O_CLOEXEC
@@ -53,28 +58,17 @@ pv_helper_main:
     mov [rsp + 4], eax                # err (fd if >= 0)
     test rax, rax
     js .Lph_reply
-    mov r14d, eax
-    xor r15d, r15d                    # bytes read
+    mov r14d, eax; xor r15d, r15d
 .Lph_read:
-    cmp r15d, PREVIEW_BUF_SIZE
-    jae .Lph_close
-    mov edi, r14d
-    lea rsi, [rsp + 64 + PATH_MAX]
-    add rsi, r15
-    mov edx, PREVIEW_BUF_SIZE
-    sub edx, r15d
-    OS_READ
-    cmp rax, -EINTR
-    je .Lph_read
-    test rax, rax
-    jle .Lph_close                    # EOF, error or EAGAIN (empty FIFO)
-    add r15d, eax
-    jmp .Lph_read
+    cmp r15d, PREVIEW_BUF_SIZE; jae .Lph_close
+    mov edi, r14d; lea rsi, [rsp + 64 + PATH_MAX + r15]
+    mov edx, PREVIEW_BUF_SIZE; sub edx, r15d; OS_READ
+    cmp rax, -EINTR; je .Lph_read
+    test rax, rax; jle .Lph_close
+    add r15d, eax; jmp .Lph_read
 .Lph_close:
-    mov edi, r14d
-    OS_CLOSE
-    mov dword ptr [rsp + 4], 0
-    mov [rsp + 8], r15d
+    mov edi, r14d; OS_CLOSE
+    mov dword ptr [rsp + 4], 0; mov [rsp + 8], r15d
 .Lph_reply:
     call pv_helper_thumb              # sets the thumbnail length ([12], 0 = none)
     # reply header at [64+PATH_MAX-12] so header + data are one contiguous write

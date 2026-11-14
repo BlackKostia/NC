@@ -115,6 +115,10 @@ SRCS := \
 	src/fs/pkg_archive.s \
 	src/fs/pkg_manager.s \
 	src/fs/pkg_actions.s \
+	src/fs/pkg_popup.s \
+	src/fs/pkg_preview.s \
+	src/fs/pkg_registry.s \
+	src/fs/pkg_vfs.s \
 	src/fs/pkg_cli.s \
 	src/fs/archive_vfs.s \
 	src/fs/archive_extract.s \
@@ -179,6 +183,7 @@ SRCS := \
 	src/ui/bulk_rename.s \
 	src/ui/bulk_rename_ui.s \
 	src/ui/popup_menu.s \
+	src/ui/popup_osc52.s \
 	src/ui/pkg_dialog.s \
 	src/ui/term_pane.s \
 	src/ui/term_pane_input.s \

@@ -6,6 +6,7 @@
 .equ PKGD_COUNT,   Dialog._size + 8
 .equ PKGD_CURSOR,  Dialog._size + 12
 .equ PKGD_SCROLL,  Dialog._size + 16
+.equ PKGD_TAB,     Dialog._size + 20
 .equ PKGD_SIZE,    Dialog._size + 24
 .equ PKG_ENTRY_SZ, 296
 .equ PKG_MAX_UI,   32
@@ -44,18 +45,46 @@ PkgDialog_vtbl:
 .extern pkg_action_find
 .extern pkg_install_archive
 .extern pkg_list
+.extern pkg_registry_find
+.extern pkg_registry_list
 .extern pkg_remove
 .extern pkg_verify
 .extern str_cat
 .extern str_copy
 
 pkd_refresh:
-    push rbx; mov rbx, rdi
+    push rbx; push r12; push r13; push r14
+    mov rbx, rdi
     mov rax, [rbx + Dialog.app]
     mov rdi, [rax + App.envp]
+    cmp dword ptr [rbx + PKGD_TAB], 0; jne .Lpdr_avail
     mov rsi, [rbx + PKGD_ENTRIES]
     mov edx, PKG_MAX_UI
     call pkg_list
+    jmp .Lpdr_cnt
+.Lpdr_avail:
+    push rdi
+    mov edi, PKG_MAX_UI * 512; call mem_alloc
+    pop rdi
+    test rax, rax; jz .Lpdr_zero
+    mov r12, rax
+    mov rsi, r12; mov edx, PKG_MAX_UI; call pkg_registry_list
+    mov r13d, eax; xor r14d, r14d
+.Lpdr_cp:
+    cmp r14d, r13d; jge .Lpdr_free
+    imul rsi, r14, 512; add rsi, r12
+    imul rdi, r14, PKG_ENTRY_SZ; add rdi, [rbx + PKGD_ENTRIES]
+    push rdi; push rsi; mov edx, 64; call str_copy; pop rsi; pop rdi
+    push rdi; push rsi; add rdi, 64; add rsi, 64; mov edx, 32; call str_copy; pop rsi; pop rdi
+    push rdi; push rsi; add rdi, 96; add rsi, 96; mov edx, 16; call str_copy; pop rsi; pop rdi
+    add rdi, 112; add rsi, 384; mov edx, 112; call str_copy
+    inc r14d; jmp .Lpdr_cp
+.Lpdr_free:
+    mov rdi, r12; call mem_free
+    mov eax, r13d; jmp .Lpdr_cnt
+.Lpdr_zero:
+    xor eax, eax
+.Lpdr_cnt:
     mov [rbx + PKGD_COUNT], eax
     mov ecx, [rbx + PKGD_CURSOR]
     cmp ecx, eax; jl .Lpdr_ok
@@ -64,7 +93,7 @@ pkd_refresh:
 .Lpdr_set:
     mov [rbx + PKGD_CURSOR], eax
 .Lpdr_ok:
-    pop rbx; ret
+    pop r14; pop r13; pop r12; pop rbx; ret
 
 PkgDialog_new:
     push rbx; push r12
@@ -180,6 +209,29 @@ PkgDialog_render:
     call ScreenBuffer_draw_text
     add rsp, 168; pop r15; pop r14; pop r13; pop r12; pop rbx; ret
 
+pkd_install_avail:
+    sub rsp, 512
+    mov r12, [rbx + Dialog.app]
+    mov eax, [rbx + PKGD_CURSOR]; imul rax, PKG_ENTRY_SZ; add rax, [rbx + PKGD_ENTRIES]
+    mov rdi, [r12 + App.envp]; mov rsi, rax; mov rdx, rsp; call pkg_registry_find
+    test eax, eax; jnz .Lpia_err
+    mov rdi, [r12 + App.envp]; lea rsi, [rsp + 192]; lea rdx, [rsp + 112]; call pkg_install_archive
+    add rsp, 512; ret
+.Lpia_err:
+    add rsp, 512; mov eax, -1; ret
+
+pkd_run_selected:
+    sub rsp, 576
+    mov r12, [rbx + Dialog.app]
+    mov eax, [rbx + PKGD_CURSOR]; imul rax, PKG_ENTRY_SZ; add rax, [rbx + PKGD_ENTRIES]
+    mov rdi, [r12 + App.envp]; mov rsi, rax; mov rdx, rsp; call pkg_action_find
+    test eax, eax; jnz .Lprs_err
+    mov rdi, r12; xor esi, esi; call App_close_dialog
+    mov rdi, r12; mov rsi, rsp; call App_run_pkg_action
+    add rsp, 576; xor eax, eax; ret
+.Lprs_err:
+    add rsp, 576; mov eax, -1; ret
+
 PkgDialog_handle_key:
     push rbx; push r12
     mov rbx, rdi; mov r12, rsi
@@ -191,7 +243,8 @@ PkgDialog_handle_key:
     cmp eax, KEY_DOWN; je .Lpdk_down
     cmp eax, 'j'; je .Lpdk_down
     cmp eax, 'v'; je .Lpdk_verify
-    cmp eax, KEY_ENTER; je .Lpdk_verify
+    cmp eax, KEY_ENTER; je .Lpdk_enter
+    cmp eax, KEY_TAB; je .Lpdk_tab
     cmp eax, 'd'; je .Lpdk_rem
     cmp eax, KEY_DELETE; je .Lpdk_rem
     cmp eax, 'i'; je .Lpdk_inst
@@ -207,6 +260,16 @@ PkgDialog_handle_key:
     mov eax, [rbx + PKGD_CURSOR]; inc eax
     cmp eax, [rbx + PKGD_COUNT]; jge .Lpdk_ok
     mov [rbx + PKGD_CURSOR], eax; jmp .Lpdk_redraw
+.Lpdk_tab:
+    xor dword ptr [rbx + PKGD_TAB], 1; mov dword ptr [rbx + PKGD_CURSOR], 0
+    mov dword ptr [rbx + PKGD_SCROLL], 0; mov rdi, rbx; call pkd_refresh; jmp .Lpdk_redraw
+.Lpdk_enter:
+    cmp dword ptr [rbx + PKGD_TAB], 0; je .Lpdk_verify
+    cmp dword ptr [rbx + PKGD_COUNT], 0; jle .Lpdk_ok
+    call pkd_install_avail
+    test eax, eax; jnz .Lpdk_err
+    mov dword ptr [rbx + PKGD_TAB], 0; mov rdi, rbx; call pkd_refresh
+    call i18n_get; mov rsi, [rax + LangStrings.pkg_installed]; mov edx, MSG_OK; jmp .Lpdk_st
 .Lpdk_verify:
     cmp dword ptr [rbx + PKGD_COUNT], 0; jle .Lpdk_ok
     mov r12, [rbx + Dialog.app]
@@ -244,16 +307,9 @@ PkgDialog_handle_key:
     mov eax, 1; pop r12; pop rbx; ret
 .Lpdk_run:
     cmp dword ptr [rbx + PKGD_COUNT], 0; jle .Lpdk_ok
-    sub rsp, 512
-    mov r12, [rbx + Dialog.app]
-    mov eax, [rbx + PKGD_CURSOR]; imul rax, PKG_ENTRY_SZ; add rax, [rbx + PKGD_ENTRIES]
-    mov rdi, [r12 + App.envp]; mov rsi, rax; mov rdx, rsp; call pkg_action_find
-    test eax, eax; jnz .Lpdk_run_err
-    mov rdi, r12; xor esi, esi; call App_close_dialog
-    mov rdi, r12; mov rsi, rsp; call App_run_pkg_action
-    add rsp, 512; mov eax, 1; pop r12; pop rbx; ret
-.Lpdk_run_err:
-    add rsp, 512; jmp .Lpdk_err
+    call pkd_run_selected
+    test eax, eax; jnz .Lpdk_err
+    mov eax, 1; pop r12; pop rbx; ret
 
 PkgDialog_handle_mouse:
     mov eax, [rsi + Event.mouse_btn]
