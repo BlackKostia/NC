@@ -14,6 +14,29 @@ from pathlib import Path
 SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+$")
 CODE_PATH_PREFIXES = ("src/", "include/")
 VERIFY_RELEVANT_FILES = ("Makefile", "VERSION", "tests/test_pty.py")
+LEAN_SUFFIXES = (".s", ".inc", ".py")
+LEAN_SCRIPT = Path(".agents/skills/duop-lean-modules/scripts/check_lean.py")
+
+
+def lean_target(rel_path: str) -> bool:
+    return rel_path.endswith(LEAN_SUFFIXES) and (
+        rel_path.startswith(("src/", "include/")) or (rel_path.startswith("tests/") and rel_path.count("/") == 1)
+    )
+
+
+def lean_check(root: Path, rel_path: str, content: str | None = None) -> str:
+    """Run the duop-lean-modules gate on one file; returns violation text ('' = ok)."""
+    script = root / LEAN_SCRIPT
+    if not script.is_file() or os.environ.get("DUOP_LEAN_BYPASS") == "1":
+        return ""
+    cmd = [sys.executable, str(script), "--root", str(root), "--file", rel_path]
+    if content is not None:
+        cmd += ["--text-from", "-"]
+    try:
+        res = subprocess.run(cmd, input=content, text=True, capture_output=True, timeout=4, check=False)
+    except Exception:
+        return ""
+    return res.stderr.strip() if res.returncode != 0 else ""
 
 
 def resolve_repo_root(payload: dict) -> Path:
@@ -120,7 +143,8 @@ def handle_session_start(payload: dict, root: Path) -> dict:
         f"[Duop Workspace] VERSION={ver} | branch={branch or 'detached'} ({head or 'unborn'}) "
         f"| latest_tag={tag or 'none'} | dirty_files={dirty_count} | git_hooks={hooks_path or 'default'}.\n"
         "Use workspace rules in AGENTS.md and skills in .agents/skills/: "
-        "duop-tdd-first, duop-modular-asm, duop-multiplatform-pal, duop-ui-i18n-widget, duop-pty-verify, duop-version-release. "
+        "duop-tdd-first, duop-modular-asm, duop-lean-modules, duop-multiplatform-pal, duop-ui-i18n-widget, duop-pty-verify, duop-version-release. "
+        "Keep modules lean: .s <= 600 lines, routines <= 120 lines (duop-lean-modules gate). "
         "Always design & write tests under tests/ before editing src/ or include/. "
         "Verify with ./.agents/skills/duop-pty-verify/scripts/verify_build.sh, maintain SemVer in VERSION, "
         "and commit after verified changes."
@@ -155,6 +179,16 @@ def handle_pre_tool_use(payload: dict, root: Path) -> dict:
                     return {
                         "decision": "deny",
                         "reason": f"Invalid SemVer '{content}' for VERSION; expected X.Y.Z (e.g. 1.0.2).",
+                    }
+            if name == "write_file" and lean_target(rel):
+                problems = lean_check(root, rel, str(args.get("Content") or ""))
+                if problems:
+                    return {
+                        "decision": "deny",
+                        "reason": (
+                            "Lean-module gate (duop-lean-modules): " + problems.replace("LEAN: ", "")
+                            + " Split the code into focused modules/helpers instead of growing this file."
+                        ),
                     }
             if rel.startswith(CODE_PATH_PREFIXES) and os.environ.get("DUOP_TDD_BYPASS") != "1":
                 spath = state_file_for(payload, root)
@@ -235,6 +269,15 @@ def handle_post_tool_use(payload: dict, root: Path) -> dict:
                 state["edited_code"] = True
                 state["needs_verify"] = True
             save_state(spath, state)
+            if lean_target(rel) and (root / rel).is_file():
+                problems = lean_check(root, rel)
+                if problems:
+                    return {
+                        "feedback": (
+                            "Lean-module gate (duop-lean-modules) violated by this edit:\n" + problems
+                            + "\nRefactor now: extract helpers / move a cohesive part into a new module."
+                        )
+                    }
 
     elif name == "run_command" and not error:
         cmd = str(args.get("CommandLine") or args.get("command") or "")

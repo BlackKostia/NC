@@ -16,6 +16,9 @@ fi
 
 echo "==> [1/4] Checking Duop modularity & i18n contracts..."
 python3 ./.agents/skills/duop-modular-asm/scripts/check_modularity.py --root "$ROOT"
+# Lean gate: whole working tree, or only the staged commit content when run from pre-commit
+python3 ./.agents/skills/duop-lean-modules/scripts/check_lean.py --root "$ROOT" ${DUOP_LEAN_STAGED:+--staged}
+python3 ./tests/test_lean_gate.py
 
 VER="$(tr -d '[:space:]' < "$ROOT/VERSION")"
 

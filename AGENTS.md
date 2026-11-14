@@ -18,6 +18,11 @@ Code flows downward only — never introduce upward or cyclic dependencies acros
 - Place cohesive new subsystems in dedicated files registered in `Makefile` `SRCS` (or `PAL_SRCS` for OS/arch backends) rather than growing `src/ui/dialogs.s`, `src/app/app.s`, or `src/ui/file_pane.s`.
 - Put compile-time OS syscall numbers, kernel structs, and `OS_*` inline macros in `include/os/<os>/<arch>/pal_target.inc` and normalized ABI adapters (`os_statat`, `os_dir_read`/`os_dir_next`, `os_mem_remap`, `os_poll_in`, terminal/signal adapters) in `src/os/<os>/<arch>/pal_os.s`; never add runtime OS checks (`cmp [g_os]`) or function-pointer tables.
 
+### Lean Modules (`duop-lean-modules`, enforced by hooks, `verify_build.sh` and pre-commit)
+- Budgets: `src/**/*.s` ≤ 600 lines (aim 200–400), top-level routine ≤ 120 lines, ≤ 24 `.global` symbols; `include/**/*.inc` ≤ 400 lines; `tests/*.py` ≤ 700 lines, `def` ≤ 150 lines.
+- Legacy offenders are frozen in `.agents/skills/duop-lean-modules/scripts/lean_baseline.json` and may only shrink; after shrinking run `check_lean.py --update`.
+- Grow by splitting: new concern → new `src/<layer>/<topic>.s`; long routine → named local helpers.
+
 ## 2. Assembly, ABI & I18n Invariants
 
 - Use `.intel_syntax noprefix` at the top of every `.s`/`.inc` file.
@@ -30,6 +35,7 @@ Code flows downward only — never introduce upward or cyclic dependencies acros
 - Use workspace skills in `.agents/skills/`:
   - `duop-tdd-first` to design and write failing tests in `tests/` (happy-path + edge/fault cases) **before** implementing changes in `src/` or `include/`
   - `duop-modular-asm` when adding/splitting modules, OOP classes, or registering targets
+  - `duop-lean-modules` before creating/growing any module, on `LEAN:` errors, and when refactoring large files/routines
   - `duop-multiplatform-pal` when touching OS syscalls, `pal.inc`, `FileStat`, `src/os/`, `Makefile` (`OS`/`ARCH`), or SIMD code
   - `duop-ui-i18n-widget` when building UI widgets, themes, mouse zones, or translations
   - `duop-pty-verify` to validate modularity, ELF footprint, release/debug builds, and PTY tests

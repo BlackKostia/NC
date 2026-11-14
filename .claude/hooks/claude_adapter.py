@@ -84,7 +84,10 @@ def main() -> int:
             }
 
     elif event == "PostToolUse":
-        dl.handle_post_tool_use(agy, root)
+        res = dl.handle_post_tool_use(agy, root) or {}
+        if res.get("feedback"):
+            # "block" on PostToolUse surfaces the reason to the agent right after the edit
+            out = {"decision": "block", "reason": res["feedback"]}
 
     elif event == "Stop":
         res = dl.handle_stop(agy, root)
