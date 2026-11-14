@@ -66,6 +66,7 @@ SRCS := \
 	src/ui/bulk_rename.s \
 	src/ui/popup_menu.s \
 	src/ui/term_pane.s \
+	src/ui/term_keys.s \
 	src/ui/syntax.s \
 	src/ui/elf_inspect.s \
 	src/ui/hex_edit.s \

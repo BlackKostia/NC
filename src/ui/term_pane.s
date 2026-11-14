@@ -244,9 +244,9 @@ term_render:
     mov [rsp + 4], ecx        # start_row
     xor ecx, ecx              # i = 0
 .Ltr_rows:
-    cmp ecx, [rsp + 0]; jge .Ltr_done
+    cmp ecx, [rsp + 0]; jge .Ltr_cursor
     mov eax, [rsp + 4]; add eax, ecx
-    cmp eax, TERM_ROWS; jge .Ltr_done
+    cmp eax, TERM_ROWS; jge .Ltr_cursor
     imul eax, TERM_COLS
     mov r8, [rip + g_term_buf]; add r8, rax
     mov edx, [rbx + App.term_w]; sub edx, 2
@@ -267,13 +267,50 @@ term_render:
     add rsp, 176
     mov ecx, [rsp + 8]
     inc ecx; jmp .Ltr_rows
+.Ltr_cursor:
+    mov rdi, r12; mov rsi, r13; mov edx, r15d
+    mov ecx, [rsp + 4]; mov r8d, [rsp + 0]
+    mov r9d, [rbx + App.term_w]; dec r9d
+    call term_draw_cursor
 .Ltr_done:
     add rsp, 32; pop r15; pop r14; pop r13; pop r12; pop rbx; ret
+
+# Internal: void term_draw_cursor(ScreenBuffer *scr, Theme *theme, int y0, int start_row,
+#                                 int inner_h, int max_x) -- inverted cell at the shell cursor
+term_draw_cursor:
+    push rbx; push r12; push r13; push r14; push r15
+    sub rsp, 176
+    mov eax, [rip + g_term_cy]
+    sub eax, ecx; js .Ltdc_done
+    cmp eax, r8d; jge .Ltdc_done
+    mov rbx, rdi; mov r12, rsi; mov r14d, r9d
+    lea r13d, [edx + eax + 1]             # screen row
+    mov eax, [rip + g_term_cy]; imul eax, TERM_COLS
+    mov r15, [rip + g_term_buf]; add r15, rax  # row start
+    mov rdi, rsp; mov rsi, r15; mov edx, [rip + g_term_cx]
+    call mem_copy
+    mov eax, [rip + g_term_cx]
+    mov byte ptr [rsp + rax], 0
+    mov rdi, rsp; call utf8_display_width
+    lea esi, [eax + 1]                    # screen column
+    cmp esi, r14d; jge .Ltdc_done
+    mov eax, [rip + g_term_cx]
+    movzx ecx, byte ptr [r15 + rax]
+    cmp ecx, 0x21; jb .Ltdc_blank
+    cmp ecx, 0x7F; jb .Ltdc_draw
+.Ltdc_blank:
+    mov ecx, ' '
+.Ltdc_draw:
+    mov rdi, rbx; mov edx, r13d
+    mov r8d, [r12 + Theme.surface]; mov r9d, [r12 + Theme.text]
+    call ScreenBuffer_set_cell
+.Ltdc_done:
+    add rsp, 176; pop r15; pop r14; pop r13; pop r12; pop rbx; ret
 
 # int term_on_key(App *app, Event *evt) -> 1 if consumed
 term_on_key:
     push rbx; push r12
-    sub rsp, 16
+    sub rsp, 24
     mov rbx, rdi; mov r12, rsi
     cmp dword ptr [rip + g_term_visible], 0
     je .Ltok_zero
@@ -287,34 +324,19 @@ term_on_key:
 .Ltok_send:
     mov eax, [rip + g_term_fd]
     test eax, eax; js .Ltok_one
-    mov eax, [r12 + Event.key]
-    cmp eax, KEY_ENTER; je .Ltok_cr
-    cmp eax, KEY_BACKSPACE; je .Ltok_bs
-    cmp eax, 0x20; jb .Ltok_one
-    cmp eax, 0x7E; ja .Ltok_one
-    cmp dword ptr [r12 + Event.mods], MOD_CTRL
-    jne .Ltok_ascii
-    and eax, 0x1F
-.Ltok_ascii:
-    mov [rsp], al
-    mov edi, [rip + g_term_fd]; mov rsi, rsp; mov edx, 1
-    call os_pty_write
-    jmp .Ltok_one
-.Ltok_cr:
-    mov byte ptr [rsp], '\r'
-    mov edi, [rip + g_term_fd]; mov rsi, rsp; mov edx, 1
-    call os_pty_write
-    jmp .Ltok_one
-.Ltok_bs:
-    mov byte ptr [rsp], 0x7F
-    mov edi, [rip + g_term_fd]; mov rsi, rsp; mov edx, 1
+    mov rdi, r12; mov rsi, rsp
+    call term_key_encode
+    test eax, eax; js .Ltok_zero
+    jz .Ltok_one
+    mov edx, eax
+    mov edi, [rip + g_term_fd]; mov rsi, rsp
     call os_pty_write
 .Ltok_one:
     mov eax, 1; jmp .Ltok_ret
 .Ltok_zero:
     xor eax, eax
 .Ltok_ret:
-    add rsp, 16; pop r12; pop rbx; ret
+    add rsp, 24; pop r12; pop rbx; ret
 
 term_shutdown:
     cmp dword ptr [rip + g_term_inited], 0; je .Lts_done

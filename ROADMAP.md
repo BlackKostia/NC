@@ -120,6 +120,7 @@
 ### 2.9 Вбудований термінал знизу (`Ctrl+\``) ✅
 - **Файли**: [pal_pty.s](src/os/linux/x86_64/pal_pty.s), [term_pane.s](src/ui/term_pane.s), [app.s](src/app/app.s), [app_events.s](src/app/app_events.s).
 - **Реалізація**: дочірня PTY-сесія (`/dev/ptmx`) із компактним VT-парсером прямо під панелями файлів як неруйнівна альтернатива повному виходу у shell на `Ctrl+O`. ✅
+- **Введення** ([term_keys.s](src/ui/term_keys.s)): UTF-8 (кирилиця), `Tab`, `Esc`, стрілки, `Home`/`End`/`PgUp`/`PgDn`/`Del`, `Ctrl+літера`, `Alt+клавіша` передаються у shell; видимий курсор у панелі; F-клавіші лишаються за файловим менеджером. ✅
 
 ---
 
