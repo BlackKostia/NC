@@ -159,7 +159,7 @@ def test_img_zoom_and_quality():
         r = os.path.join(tmp, "right")
         os.makedirs(l)
         os.makedirs(r)
-        make_png_grid(os.path.join(l, "grid.png"), 200, 200)
+        make_png_grid(os.path.join(l, "grid.png"), 600, 600)
 
         sess = PtySession(BINARY, ["--lang", "en", l, r], cols=100, rows=30)
         try:
@@ -270,7 +270,7 @@ def test_braille_mode():
         r = os.path.join(tmp, "right")
         os.makedirs(l)
         os.makedirs(r)
-        make_png_grid(os.path.join(l, "grid.png"), 200, 200)
+        make_png_grid(os.path.join(l, "grid.png"), 600, 600)
 
         sess = PtySession(BINARY, ["--lang", "en", l, r], cols=100, rows=30)
         try:
@@ -311,7 +311,7 @@ def test_scrollbar_mouse():
         r = os.path.join(tmp, "right")
         os.makedirs(l)
         os.makedirs(r)
-        make_png_grid(os.path.join(l, "grid.png"), 200, 200)
+        make_png_grid(os.path.join(l, "grid.png"), 600, 600)
 
         sess = PtySession(BINARY, ["--lang", "en", l, r], cols=100, rows=30)
         try:
@@ -363,7 +363,7 @@ def test_wheel_scroll_and_drag():
         r = os.path.join(tmp, "right")
         os.makedirs(l)
         os.makedirs(r)
-        make_png_grid(os.path.join(l, "grid.png"), 200, 200)
+        make_png_grid(os.path.join(l, "grid.png"), 600, 600)
 
         sess = PtySession(BINARY, ["--lang", "en", l, r], cols=100, rows=30)
         try:
@@ -403,6 +403,49 @@ def test_wheel_scroll_and_drag():
                 pass
 
 
+def test_kitty_scroll_no_flicker():
+    with tempfile.TemporaryDirectory() as tmp:
+        l = os.path.join(tmp, "left")
+        r = os.path.join(tmp, "right")
+        os.makedirs(l)
+        os.makedirs(r)
+        make_png_grid(os.path.join(l, "grid.png"), 600, 600)
+
+        sess = PtySession(
+            BINARY, ["--lang", "en", l, r], cols=100, rows=30,
+            extra_env={"KITTY_WINDOW_ID": "1"},
+        )
+        try:
+            drain_raw(sess, 0.25)
+            os.write(sess.master, b"\x1b[B")    # grid.png
+            drain_raw(sess, 0.1)
+            os.write(sess.master, b"\x1bOR")    # F3 -> Open as
+            drain_raw(sess, 0.15)
+            os.write(sess.master, b"i")         # Image mode
+            drain_raw(sess, 0.4)
+            os.write(sess.master, b"1")         # 100% zoom
+            drain_raw(sess, 0.4)
+
+            # Wheel down: must delete+redraw atomically inside DEC 2026
+            os.write(sess.master, b"\x1b[<65;50;15M")
+            raw = drain_raw(sess, 0.4)
+            assert b"\x1b_Ga=T,f=32" in raw, "Kitty image not re-emitted on wheel scroll"
+            sync_on = raw.rfind(b"\x1b[?2026h")
+            del_pos = raw.rfind(b"\x1b_Ga=d")
+            emit_pos = raw.find(b"\x1b_Ga=T,f=32", del_pos if del_pos != -1 else 0)
+            sync_off = raw.find(b"\x1b[?2026l", emit_pos if emit_pos != -1 else 0)
+            assert del_pos != -1 and sync_on != -1 and sync_on < del_pos < emit_pos < sync_off, (
+                f"Kitty scroll delete/emit not atomic inside DEC 2026: sync_on={sync_on} del={del_pos} emit={emit_pos} sync_off={sync_off}"
+            )
+            print("[PASS] IMG8. Kitty scroll swaps image atomically inside DEC 2026 (no flicker)")
+        finally:
+            try:
+                os.kill(sess.pid, 9)
+                os.waitpid(sess.pid, 0)
+            except OSError:
+                pass
+
+
 if __name__ == "__main__":
     test_kitty_and_cleanup()
     test_halfblock_fallback()
@@ -411,4 +454,5 @@ if __name__ == "__main__":
     test_braille_mode()
     test_scrollbar_mouse()
     test_wheel_scroll_and_drag()
+    test_kitty_scroll_no_flicker()
     print("ALL IMAGE PREVIEW TESTS PASSED.")

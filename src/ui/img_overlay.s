@@ -10,6 +10,8 @@
 .section .rodata
 seq_kitty_del: .ascii "\x1b_Ga=d,d=A,q=2\x1b\\"
 .equ SEQ_KITTY_DEL_LEN, 16
+seq_ov_sync_on:  .ascii "\x1b[?2026h"
+seq_ov_sync_off: .ascii "\x1b[?2026l"
 
 .section .bss
 .align 8
@@ -19,6 +21,7 @@ ov_cur_on:     .space 4
 ov_last_on:    .space 4
 ov_last_proto: .space 4
 ov_emit:       .space 4
+ov_del_on_emit: .space 4
 
 .section .text
 .global img_overlay_show
@@ -40,6 +43,7 @@ img_preview_pre_flush:
     sub rsp, 8
     mov rbx, rdi
     mov dword ptr [rip + ov_emit], 0
+    mov dword ptr [rip + ov_del_on_emit], 0
     xor r12d, r12d                    # visible this frame?
     cmp dword ptr [rip + ov_cur_on], 0
     je .Lpf_hide
@@ -58,6 +62,20 @@ img_preview_pre_flush:
     call ov_same
     test eax, eax
     jnz .Lpf_keep
+    cmp dword ptr [rip + ov_last_proto], IMG_PROTO_KITTY
+    jne .Lpf_rep_sixel
+    mov dword ptr [rip + ov_del_on_emit], 1
+    mov dword ptr [rip + ov_last_on], 0
+    jmp .Lpf_show
+.Lpf_rep_sixel:
+    mov rax, [rip + ov_cur + ImgPlace.x]
+    cmp rax, [rip + ov_last + ImgPlace.x]
+    jne .Lpf_drop
+    mov rax, [rip + ov_cur + ImgPlace.w]
+    cmp rax, [rip + ov_last + ImgPlace.w]
+    jne .Lpf_drop
+    mov dword ptr [rip + ov_last_on], 0
+    jmp .Lpf_show
 .Lpf_drop:
     mov rdi, rbx
     call ov_remove
@@ -127,7 +145,18 @@ img_preview_post_flush:
     je .Lpo_ret
     push rbx
     sub rsp, 48                       # "ESC [ row ; col H"
-    mov word ptr [rsp], 0x5B1B
+    mov edi, STDOUT_FD
+    lea rsi, [rip + seq_ov_sync_on]
+    mov edx, 8
+    call sys_write_all
+    cmp dword ptr [rip + ov_del_on_emit], 0
+    je 1f
+    mov dword ptr [rip + ov_del_on_emit], 0
+    mov edi, STDOUT_FD
+    lea rsi, [rip + seq_kitty_del]
+    mov edx, SEQ_KITTY_DEL_LEN
+    call sys_write_all
+1:  mov word ptr [rsp], 0x5B1B
     lea rbx, [rsp + 2]
     mov edi, [rip + ov_cur + ImgPlace.y]
     inc edi
@@ -151,6 +180,10 @@ img_preview_post_flush:
     mov edi, STDOUT_FD
     mov rsi, [rip + ov_cur + ImgPlace.data]
     mov rdx, [rip + ov_cur + ImgPlace.len]
+    call sys_write_all
+    mov edi, STDOUT_FD
+    lea rsi, [rip + seq_ov_sync_off]
+    mov edx, 8
     call sys_write_all
     lea rdi, [rip + ov_last]
     lea rsi, [rip + ov_cur]
