@@ -7,10 +7,12 @@ cd "$ROOT"
 MODE="full"
 if [[ "${1:-}" == "--release-only" ]]; then
     MODE="release-only"
+elif [[ "${1:-}" == "--smart" ]]; then
+    MODE="smart"
 elif [[ "${1:-}" == "--full" || -z "${1:-}" ]]; then
     MODE="full"
 else
-    echo "Usage: $0 [--full|--release-only]" >&2
+    echo "Usage: $0 [--full|--release-only|--smart]" >&2
     exit 2
 fi
 
@@ -44,11 +46,18 @@ if [[ "$VER_OUT" != *"v${VER}"* ]]; then
 fi
 echo "Verified binary version: $VER_OUT"
 
-echo "==> [4/5] Running end-to-end PTY test suite (release)..."
-make -s test
+if [[ "$MODE" == "smart" ]]; then
+    echo "==> [4/5] Running selective smart PTY tests..."
+    python3 ./tests/run_smart_tests.py ${DUOP_LEAN_STAGED:+--staged}
+else
+    echo "==> [4/5] Running end-to-end PTY test suite (release)..."
+    make -s test
+fi
 
-echo "==> [5/5] Running assembly memcheck leak/bad-free suite..."
-make -s memcheck
+if [[ "$MODE" != "smart" || "${DUOP_SMART_MEMCHECK:-0}" == "1" ]]; then
+    echo "==> [5/5] Running assembly memcheck leak/bad-free suite..."
+    make -s memcheck
+fi
 
 if [[ "$MODE" == "full" ]]; then
     echo "==> [Extra] Rebuilding DWARF debug binary & running PTY tests..."

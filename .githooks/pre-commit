@@ -69,6 +69,10 @@ if [[ -n "$NEEDS_BUILD" && "${DUOP_SKIP_PTY_HOOK:-${NC_SKIP_PTY_HOOK:-0}}" != "1
     echo "[pre-commit] Running release build + ELF audit + PTY test suite..."
     # Git exports GIT_DIR/GIT_INDEX_FILE to hooks: tests that build scratch repos (and duop's own
     # `git status`) must not inherit them, or they would write into this repository's config/index.
+    HOOK_MODE="--smart"
+    if [[ "${DUOP_FULL_PTY_HOOK:-0}" == "1" ]]; then
+        HOOK_MODE="--release-only"
+    fi
     env -u GIT_DIR -u GIT_INDEX_FILE -u GIT_WORK_TREE -u GIT_PREFIX -u GIT_COMMON_DIR \
-        DUOP_LEAN_STAGED=1 ./.agents/skills/duop-pty-verify/scripts/verify_build.sh --release-only
+        DUOP_LEAN_STAGED=1 ./.agents/skills/duop-pty-verify/scripts/verify_build.sh "$HOOK_MODE"
 fi

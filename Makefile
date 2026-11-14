@@ -280,6 +280,10 @@ test: $(TARGET)
 	python3 tests/test_pkg_extensions.py
 	python3 tests/test_pkg_improvements.py
 	python3 tests/test_reliability_audit.py
+	python3 tests/test_smart_runner.py
+
+test-smart: $(TARGET)
+	python3 tests/run_smart_tests.py
 
 memcheck:
 	$(MAKE) MEMCHECK=1
