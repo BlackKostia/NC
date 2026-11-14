@@ -284,10 +284,10 @@ dfc_walk:
 
     mov rdi, rbx
     lea rsi, [rsp + PATH_MAX]
-    mov edx, [rsp + PATH_MAX * 2 + 24]
+    movzx edx, byte ptr [rsp + PATH_MAX * 2 + 24]   # d_type is a byte
     call dfc_push_item
 
-    cmp dword ptr [rsp + PATH_MAX * 2 + 24], PAL_DT_DIR
+    cmp byte ptr [rsp + PATH_MAX * 2 + 24], PAL_DT_DIR
     jne .Ldw_ent
     mov rdi, rsp
     mov rsi, r12

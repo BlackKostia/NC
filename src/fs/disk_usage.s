@@ -53,7 +53,7 @@ du_walk_fd:
     cmp byte ptr [r15 + 2], 0; je .Ldwf_ent
 
 .Ldwf_chk_type:
-    mov eax, [rsp + FileStat._size + 16]
+    movzx eax, byte ptr [rsp + FileStat._size + 16]   # d_type is a byte
     cmp eax, PAL_DT_LNK; je .Ldwf_ent
     cmp eax, PAL_DT_DIR; je .Ldwf_dir
     mov edi, ebx; mov rsi, r15; mov rdx, rsp; xor ecx, ecx
