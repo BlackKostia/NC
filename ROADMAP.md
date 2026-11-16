@@ -13,7 +13,7 @@
 - **Графіка та ввід**: 24-біт TrueColor diff-рендер ([screen.s](src/tui/screen.s)), 3 теми ([theme.s](src/tui/theme.s)), повний декодер клавіатури (включно з `Alt + UTF-8`) і миші `SGR 1006` ([input.s](src/tui/input.s)).
 - **Двомовність (UA / EN)** ([i18n.s](src/tui/i18n.s)): `--lang ua|en`, автовизначення `LC_ALL`/`LC_MESSAGES`/`LANG`, миттєве перемикання `Alt+L` (`Alt+д`) або кнопкою у шапці, динамічні UTF-8 хіт-зони (`utf8_display_width`).
 - **Файлова підсистема** ([dir_model.s](src/fs/dir_model.s), [file_ops.s](src/fs/file_ops.s)): `getdents64`, `newfstatat`, QuickSort, живий фільтр, рекурсивні `copy`/`move`/`delete`, Text/Hex viewer і live preview.
-- **Автотести** ([test_pty.py](tests/test_pty.py)): 14 наскрізних PTY-тестів.
+- **Автотести** ([test_pty.py](tests/test_pty.py)): 50 тестових модулів у `tests/` (PTY, ФС-надійність, `io_uring`, продуктивність, fault-injection, PAL).
 
 ---
 
@@ -36,7 +36,7 @@
 
 ### 1.2 Єдиний цикл подій (`poll`/`ppoll`) та автооновлення через `inotify`
 - **Статус (`v1.5.0`)**: ✅ один `ppoll` по `stdin` + каналу фонової задачі + `inotify` + каналу прев'ю ([input.s](src/tui/input.s), [app_events.s](src/app/app_events.s)); нескінченний таймаут у простої, точні дедлайни для тостів і дебаунсів; автооновлення обох панелей ([dir_watch.s](src/fs/dir_watch.s)) зі збереженням позначок.
-- **Файли**: [app.s](src/app/app.s), [input.s](src/tui/input.s), [linux_sys.inc](include/linux_sys.inc).
+- **Файли**: [app.s](src/app/app.s), [input.s](src/tui/input.s), [pal.inc](include/pal.inc), [pal_target.inc](include/os/linux/x86_64/pal_target.inc).
 - **Архітектурна зміна**: винести мультиплексування `SYS_poll`/`SYS_ppoll` із `wait_and_read` ([input.s](src/tui/input.s)) у головний цикл `App_run`, щоб водночас слухати `STDIN_FD`, `inotify_fd` (`SYS_inotify_init1`, `SYS_inotify_add_watch` для лівої й правої панелей), канали фонових задач (`pipe2`) і вбудований PTY без затримок у 200 мс.
 
 ### 1.3 Історія навігації, закладки, `frecency` та вкладки панелей
@@ -50,7 +50,7 @@
 
 ### 1.4 Асинхронні файлові операції, `copy_file_range` і діалоги прогресу/конфліктів
 - **Статус (`v1.2.0`–`v1.6.0`)**: ✅ фоновий `fork`-воркер ([task.s](src/fs/task.s)) зі спільною `MAP_SHARED`-сторінкою прогресу (seqlock для імені файлу) та `pipe2(O_CLOEXEC)`-пробудженням циклу подій через `ppoll` ([input.s](src/tui/input.s)); ✅ `FICLONE` + `copy_file_range` + 256 КіБ буфер у [file_ops.s](src/fs/file_ops.s); ✅ `ProgressDialog` ([progress_dialog.s](src/ui/progress_dialog.s)); ✅ інтерактивний діалог конфліктів `ConflictDialog` ([conflict_dialog.s](src/ui/conflict_dialog.s): `Перезаписати`/`Пропустити`/`Перейменувати`/`Для всіх`).
-- **Файли**: [file_ops.s](src/fs/file_ops.s), [dialogs.s](src/ui/dialogs.s), [classes.inc](include/classes.inc) (`TaskQueue`), [linux_sys.inc](include/linux_sys.inc).
+- **Файли**: [file_ops.s](src/fs/file_ops.s), [dialogs.s](src/ui/dialogs.s), [classes.inc](include/classes.inc) (`TaskQueue`), [pal.inc](include/pal.inc), [pal_target.inc](include/os/linux/x86_64/pal_target.inc).
 - **Архітектура**:
   - фонова черга задач у окремому процесі (`fork`/`clone(SIGCHLD)` + двосторонні `pipe2`) замість спільного `CLONE_VM`, що гарантує відсутність data race у алокаторі [memory.s](src/core/memory.s) та глобальних буферах;
   - zero-copy копіювання через `SYS_copy_file_range` (миттєвий reflink на `btrfs`/`xfs`, без копіювання байтів через user-space) з fallback на `read`/`write`;
@@ -139,13 +139,34 @@
 
 1. **Англомовний `README.md` + переклад ✅**: головний [README.md](README.md) англійською мовою та окремий [README.uk.md](README.uk.md). ✅
 2. **Публічні бенчмарки у `README` ✅**:
-   - розмір stripped ELF-бінарника (`134 KiB`, `.data=0`), час холодного старту (`0.32 ms`), швидкість відкриття `100 000` файлів (`112.5 ms`) через [scripts/bench.sh](scripts/bench.sh). ✅
+   - розмір stripped ELF-бінарника (~193 КБ, `.data=0`), час холодного старту (`0.32 ms`), швидкість відкриття `100 000` файлів (`112.5 ms`) через [scripts/bench.sh](scripts/bench.sh). ✅
 3. **CI та дистрибуція ✅**:
    - GitHub Actions CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)); ✅
    - пакети для `AUR` ([packaging/aur/PKGBUILD](packaging/aur/PKGBUILD)), `.deb` ([packaging/deb/](packaging/deb/build-deb.sh)), `Nix` ([flake.nix](flake.nix)), `Homebrew` ([Formula/duop.rb](Formula/duop.rb)) та однорядковий [scripts/install.sh](scripts/install.sh). ✅
-4. **Порт на AArch64 (compile-time PAL, верифікація асемблюванням ✅)**:
-   - повний compile-time PAL-бекенд у [include/os/linux/aarch64/pal_target.inc](include/os/linux/aarch64/pal_target.inc) та [src/os/linux/aarch64/](src/os/linux/aarch64/pal_os.s) (`pal_os.s`, `pal_simd.s` NEON, `pal_uring.s`, `pal_pty.s`), верифікований через `aarch64-linux-gnu-as` (`P4`); основною runtime-тестованою платформою є `linux/x86_64`. ✅
-5. **Публічні анонси**: Hacker News, `r/linux`, `r/commandline`, `r/asm`, `lobste.rs` (зовнішня публікація).
+4. **Порт на AArch64 (compile-time PAL ✅, повний runtime-бінарник ⏳)**:
+   - повний compile-time PAL-бекенд у [include/os/linux/aarch64/pal_target.inc](include/os/linux/aarch64/pal_target.inc) та [src/os/linux/aarch64/](src/os/linux/aarch64/pal_os.s) (`pal_os.s`, `pal_simd.s` NEON, `pal_uring.s` fallback, `pal_pty.s`), верифікований через `aarch64-linux-gnu-as` (`P4`); основною та єдиною зібраною runtime-платформою наразі є `linux/x86_64`.
+5. **⏳ Публічні анонси та реліз `v2.6.6`**: фіналізація тегу `v2.6.6` після зеленого CI та публікація на Hacker News, `r/linux`, `r/commandline`, `r/asm`, `lobste.rs`.
+
+---
+
+## Рівень 4 (`v2.7+`) — Невиконані завдання та ідеї розвитку (Product Roadmap)
+
+### 4.1 Повноцінні інструменти роботи з архівами (`v2.7.0` — не реалізовано, план у [ARCHIVE_TOOLS_PLAN.md](docs/ARCHIVE_TOOLS_PLAN.md))
+- [ ] **Зняття лімітів та потоковий `DEFLATE`** (`src/fs/inflate_stream.s`): відкриття `.tar`, `.zip` / ZIP64 і `.tar.gz` довільного розміру через `os_mmap_file_ro` та кільцевий 32 КіБ словник без завантаження всього розпакованого файлу в RAM.
+- [ ] **Розпакування через `F5`** (`src/fs/archive_unpack.s`): копіювання файлів/тек із архіву в протилежну панель через `TaskWorker`, захист від Zip-Slip (`openat` + `O_NOFOLLOW`), перевірка `crc32_update`, відновлення `mode`/`mtime`.
+- [ ] **Створення архівів (`Pack`)** (`src/fs/deflate.s`, `src/fs/archive_pack.s`): пакування позначених файлів/тек у `.tar`, `.tar.gz` та `.zip`/ZIP64.
+- [ ] **Перевірка архіву (`Test Archive`) та захист від Zip-Bomb**: перевірка CRC32 без запису на диск і миттєве скасування по `Esc` на кожному 64 КіБ чанку.
+
+### 4.2 Щоденні DevOps / SRE / Dev сценарії (ідеї розвитку — не реалізовано)
+- [ ] **Віддалена панель `sftp://` через `pkg_vfs`** (`virtual_mode = 3` у [pkg_vfs_pane.s](src/fs/pkg_vfs_pane.s)): навігація та копіювання файлів по SSH без вшивання TLS/SSH-бібліотек у статичний бінарник.
+- [ ] **Live Log-Tailing у `ViewerDialog`** (`F` / follow-режим): відстеження дописуваних логів у реальному часі поверх `mmap` + `inotify`.
+- [ ] **Side-by-side Text Diff у переглядачі**: построкове порівняння вмісту двох файлів із лівої та правої панелей (доповнення до `Alt+=` для директорій).
+- [ ] **Мікро-образ для debug-контейнерів**: офіційний `FROM scratch` OCI-образ / сценарій швидкої доставки в `kubectl debug` та `docker cp` як автономного rescue-інструменту.
+
+### 4.3 Безпека екосистеми, кросплатформність і техборг (не реалізовано)
+- [ ] **Криптографічний підпис реєстру пакетів (`registry.tsv`)**: перевірка Ed25519/minisign-підпису індексу розширень (на додачу до наявного SHA-256 архівів) та курировані VFS-пакети (`docker://`, `systemd://`, `s3://`).
+- [ ] **Повний порт на Linux AArch64 та FreeBSD**: перенесення прикладних шарів (`core/`, `tui/`, `fs/`, `ui/`, `app/`) на AArch64 (включно з нативним `io_uring` у PAL) та реалізація `src/os/freebsd/` (після підтвердження попиту від спільноти).
+- [ ] **Закриття техборгу в [`lean_baseline.json`](.agents/skills/duop-lean-modules/scripts/lean_baseline.json)**: декомпозиція 9 великих модулів (зокрема [file_pane_render.s](src/ui/file_pane_render.s) — 1224 рядки) і 39 функцій понад бюджет у 80 рядків (`StatusBar_render`, `ScreenBuffer_flush`, `DirModel_step_load` тощо).
 
 ---
 
@@ -161,7 +182,7 @@
 2. ✅ **Уніфікований `poll`/`ppoll`-цикл + `inotify`** (`v1.5.0`).
 3. **Конфіг `duoprc`** (`src/core/config.s` + User Menu `%f %F %d %D %s` + розширення відкриття).
 4. **Історія (`Alt+←/→`), закладки (`Ctrl+D`), `frecency` (`z`), вкладки (`Ctrl+T`/`Ctrl+W`)**.
-5. 🚧 **Асинхронні операції (`fork`+`pipe2`+`copy_file_range`+`ProgressDialog` ✅ `v1.2.0`–`v1.3.0`) + діалог конфліктів + Trash/Undo**.
+5. ✅ **Асинхронні операції (`fork`+`pipe2`+`copy_file_range`+`ProgressDialog` ✅ `v1.2.0`–`v1.6.0`) + діалог конфліктів + Trash/Undo**.
 6. **Fuzzy finder + Command Palette (`Ctrl+K`) + рекурсивний пошук у віртуальну панель**.
 7. **`ncdu`-режим (паралельний `getdents64`)** + бенчмарки на 100k файлів.
 8. **Kitty-прев'ю зображень (`f=100`) + Git-колонка + `tar`/`zip` VFS**.
@@ -182,7 +203,7 @@
 | [src/ui/dialogs.s](src/ui/dialogs.s) | `ProgressDialog`, діалоги конфліктів, `ChmodDialog`, `CommandPalette`, `FuzzyDialog`, Hex-edit, `BulkRename` |
 | [src/ui/file_pane.s](src/ui/file_pane.s) | Смужка вкладок (`Tabs`), колонка Git-статусів, смужки розміру `ncdu`, підсвітка `DirDiff` |
 | [src/ui/preview_pane.s](src/ui/preview_pane.s) | `Kitty f=100` / `Sixel` / half-block прев'ю, таблична підсвітка синтаксису, `ELF64`-інспектор |
-| [include/classes.inc](include/classes.inc), [include/types.inc](include/types.inc), [include/config.inc](include/config.inc), [include/linux_sys.inc](include/linux_sys.inc) | Структури `TaskQueue`, `Config`, `History`, `FuzzyDialog`, константи нових клавіш і системних викликів (`inotify`, `copy_file_range`, `fchmodat`, `ppoll`, `pipe2`) |
+| [include/classes.inc](include/classes.inc), [include/types.inc](include/types.inc), [include/config.inc](include/config.inc), [include/pal.inc](include/pal.inc) | Структури `TaskQueue`, `Config`, `History`, `FuzzyDialog`, константи нових клавіш і системних викликів (`inotify`, `copy_file_range`, `fchmodat`, `ppoll`, `pipe2`) |
 
 ---
 
