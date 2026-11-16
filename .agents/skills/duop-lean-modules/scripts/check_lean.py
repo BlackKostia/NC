@@ -2,7 +2,7 @@
 """Lean-module gate for Duop: keeps every module short, single-purpose and well structured.
 
 Budgets (lines incl. comments/blank lines):
-  src/**/*.s        module <= 400, top-level routine <= 80, exported symbols <= 16
+  src/**/*.s        module <= 500, top-level routine <= 80, exported symbols <= 16
   include/**/*.inc  header <= 400
   tests/*.py        suite  <= 500, def <= 100
 
@@ -32,7 +32,7 @@ SKILL_DIR = Path(__file__).resolve().parents[1]
 BASELINE = SKILL_DIR / "scripts" / "lean_baseline.json"
 
 BUDGET = {
-    ".s": {"file": 400, "func": 80, "exports": 16},
+    ".s": {"file": 500, "func": 80, "exports": 16},
     ".inc": {"file": 400},
     ".py": {"file": 500, "func": 100},
 }

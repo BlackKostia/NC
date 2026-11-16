@@ -72,7 +72,7 @@ ViewerDialog_new__regular_file_read_only:
     # Regular file -> read-only mapping of the whole file
     mov edi, AT_FDCWD
     mov rsi, r13
-    mov edx, O_RDONLY | O_CLOEXEC
+    mov edx, O_RDONLY | O_NONBLOCK | O_CLOEXEC
     xor r10d, r10d
     OS_OPENAT
     test rax, rax

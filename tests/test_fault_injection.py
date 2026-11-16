@@ -99,8 +99,8 @@ def test_corrupt_images_preview_and_viewer() -> None:
         dst.mkdir()
         write_malformed_images(src)
 
-        # Toggle Preview (Alt+P), step down through all 6 bad images, open F3 on one, Esc
-        seqs = [b"\x1bp"] + [b"\x1b[B"] * 6 + [b"\x1b[13~", b"\x1b"]
+        # Toggle Preview (Ctrl+P), step down through all 6 bad images, open F3 on one, Esc
+        seqs = [b"\x10"] + [b"\x1b[B"] * 6 + [b"\x1bOR", b"\x1b"]
         rc, _ = run_pty(BIN, [str(src), str(dst)], base, seqs)
         assert rc == 0, f"duop crashed on malformed images (rc={rc})"
 
@@ -139,7 +139,7 @@ def test_memcheck_malformed_image_no_leaks() -> None:
             MC_BIN,
             [str(src), str(base)],
             base,
-            [b"\x1bp", b"\x1b[B", b"\x1b[B"],
+            [b"\x10", b"\x1b[B", b"\x1b[B", b"\x1bOR", b"\x1b"],
             env_extra={"DUOP_MEMCHECK_LOG": str(mc_log)},
         )
         assert rc == 0, f"duop_memcheck crashed (rc={rc})"
@@ -205,6 +205,28 @@ def test_parallel_du_stress() -> None:
             assert "LEAK " not in txt and "BAD_FREE" not in txt, f"DU memcheck error:\n{txt}"
 
 
+def test_ppoll_enomem_stays_alive() -> None:
+    """Transient ppoll -ENOMEM must retry instead of closing stdin/quitting UI."""
+    import shutil
+    if not (ROOT / "tools/faultlab/faultlab.c").is_file() or not shutil.which("gcc"):
+        return
+    rules = []
+    for occ in range(2, 6):
+        rules += ["-r", f"e:u:271:{occ}:1:12:any"]
+    res = subprocess.run(
+        [sys.executable, str(ROOT / "tools/faultlab/campaign.py"), "one", "copy", *rules],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        timeout=30,
+        check=True,
+    )
+    json_part = res.stdout.split("\n}\n", 1)[0] + "\n}"
+    import json
+    data = json.loads(json_part)
+    assert data["cls"] == "OK", f"ppoll -ENOMEM killed UI early: {data}"
+
+
 def main() -> int:
     assert BIN.exists(), "duop binary missing; run make first"
     for fn in (
@@ -213,6 +235,7 @@ def main() -> int:
         test_memcheck_malformed_image_no_leaks,
         test_path_max_boundary_no_crash,
         test_parallel_du_stress,
+        test_ppoll_enomem_stays_alive,
     ):
         fn()
         print(f"PASS: {fn.__name__}")

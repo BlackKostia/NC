@@ -11,7 +11,7 @@ PAL_INC := include/os/$(OS)/$(ARCH)
 AS      := as
 LD      := ld
 ASFLAGS := -I $(PAL_INC) -I include -I $(BUILD) -g --strip-local-absolute
-LDFLAGS :=
+LDFLAGS := -z noexecstack
 
 ifeq ($(MEMCHECK),1)
 TARGET  := duop_memcheck
@@ -53,6 +53,7 @@ SRCS := \
 	src/tui/term_caps.s \
 	src/tui/screen_rect.s \
 	src/tui/input_parse.s \
+	src/tui/input_seq.s \
 	src/tui/kbd_map.s \
 	src/tui/kbd_layout.s \
 	src/tui/data_dirs.s \
@@ -70,6 +71,8 @@ SRCS := \
 	src/fs/dir_cache_fetch.s \
 	src/fs/file_ops.s \
 	src/fs/file_ops_copy_at.s \
+	src/fs/file_ops_copy_link.s \
+	src/fs/file_ops_overwrite.s \
 	src/fs/file_ops_copy.s \
 	src/fs/file_ops_delete.s \
 	src/fs/file_ops_read.s \
@@ -128,8 +131,10 @@ SRCS := \
 	src/fs/archive_extract.s \
 	src/fs/git_status.s \
 	src/fs/git_status_query.s \
+	src/fs/git_trust.s \
 	src/fs/trash_undo.s \
 	src/fs/trash_undo_ops.s \
+	src/fs/trash_info.s \
 	src/ui/header_bar.s \
 	src/ui/header_bar_render.s \
 	src/ui/header_bar_git.s \
@@ -213,7 +218,8 @@ SRCS := \
 	src/app/app_ext_keys.s \
 	src/app/app_du.s \
 	src/app/app_arc.s \
-	src/app/app_menu.s
+	src/app/app_menu.s \
+	src/app/app_cmdline.s
 
 PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_os.s \
@@ -222,7 +228,8 @@ PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_simd.s \
 	src/os/$(OS)/$(ARCH)/pal_pty.s \
 	src/os/$(OS)/$(ARCH)/pal_thread.s \
-	src/os/$(OS)/$(ARCH)/pal_du.s
+	src/os/$(OS)/$(ARCH)/pal_du.s \
+	src/os/$(OS)/$(ARCH)/pal_time.s
 
 OBJS := $(patsubst src/%.s,$(BUILD)/%.o,$(SRCS) $(PAL_SRCS))
 INCS := $(wildcard include/*.inc) $(wildcard $(PAL_INC)/*.inc)
@@ -232,11 +239,15 @@ INCS := $(wildcard include/*.inc) $(wildcard $(PAL_INC)/*.inc)
 all: $(TARGET)
 
 release: ASFLAGS := -I $(PAL_INC) -I include -I $(BUILD)
-release: LDFLAGS := -s
+release: LDFLAGS := -s -z noexecstack
 release: clean $(TARGET)
 
 $(TARGET): $(OBJS)
 	$(LD) $(LDFLAGS) $(OBJS) -o $@
+
+# Unstripped link of the same objects: the binary-level audits (audit_live_regs.py) need the symbol table
+$(BUILD)/duop.sym: $(OBJS)
+	$(LD) -z noexecstack $(OBJS) -o $@
 
 $(VER_INC): VERSION
 	@mkdir -p $(BUILD)
@@ -292,11 +303,26 @@ test: $(TARGET)
 	python3 tests/test_perf_and_arch_fixes.py
 	python3 tests/test_critical_fixes.py
 	python3 tests/test_medium_fixes.py
+	python3 tests/test_audit_regressions_parsers.py
+	python3 tests/test_audit_regressions_mem.py
+	python3 tests/test_audit_regressions_io.py
+	python3 tests/test_audit_regressions_sig.py
+	python3 tests/test_crash_regressions.py
+	python3 tests/test_archive_hardening.py
+	python3 tests/test_cmd_expand_safety.py
+	python3 tests/test_git_trust.py
+	python3 tests/test_trash_spec.py
+	python3 tests/test_copy_overwrite_atomic.py
+	python3 tests/test_config_limits.py
+	python3 tests/test_decoder_bounds.py
+	python3 tests/test_elf_hardening.py
+	python3 tests/test_pane_scrollbar.py
+	python3 tests/test_audit_live_regs.py
 
 test-smart: $(TARGET)
 	python3 tests/run_smart_tests.py
 
-audit-all: $(TARGET)
+audit-all: $(TARGET) $(BUILD)/duop.sym
 	python3 .agents/skills/duop-reliability-audit/scripts/audit_stack_abi.py
 	python3 .agents/skills/duop-reliability-audit/scripts/audit_cfg_stack.py
 	python3 .agents/skills/duop-reliability-audit/scripts/audit_syscall_clobber.py
@@ -304,6 +330,7 @@ audit-all: $(TARGET)
 	python3 .agents/skills/duop-reliability-audit/scripts/audit_oop_vtables.py
 	python3 .agents/skills/duop-reliability-audit/scripts/audit_fd_eintr.py
 	python3 .agents/skills/duop-reliability-audit/scripts/audit_elf_hardening.py $(TARGET)
+	python3 .agents/skills/duop-reliability-audit/scripts/audit_live_regs.py $(BUILD)/duop.sym
 	python3 .agents/skills/duop-docs-sync/scripts/gen_symbols_catalog.py --check
 	gcc -O2 -Wall -Wextra tools/abi_verify.c -o $(BUILD)/abi_verify && $(BUILD)/abi_verify include/os/linux/x86_64/pal_target.inc
 

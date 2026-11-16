@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 21
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 779
+- **Exported `.global` Symbols**: 809
 
 ## Structs (`include/*.inc`)
 
@@ -33,7 +33,7 @@
 | `Theme` | `include/types.inc` | `name`, `bg`, `surface`, `surface_alt`, `header_bg`, `header_fg`, `accent`, `accent_fg`, `border_active`, `border_inactive`, `text`, `muted`, `dir_fg`, `exec_fg`, `link_fg`, `hidden_fg`, `selected_fg`, `selected_bg`, `cursor_active_bg`, `cursor_inactive_bg`, `badge_bg`, `badge_hover_bg`, `badge_fg`, `dialog_bg`, `dialog_border`, `ok_fg`, `warn_fg`, `err_fg`, `scroll_track`, `scroll_thumb`, `pad` |
 | `DuProgress` | `include/types.inc` | `start_ms`, `dirs`, `files`, `bytes`, `done`, `total`, `cancel`, `phase` |
 | `DataSpec` | `include/types.inc` | `env`, `sub`, `ext`, `load` |
-| `LangStrings` | `include/types.inc` | `code`, `name`, `hdr_brand`, `hdr_mode_dual`, `hdr_mode_prev`, `hdr_btn_quit`, `hdr_btn_help`, `hdr_btn_lang`, `hdr_btn_hid_on`, `hdr_btn_hid_off`, `hdr_btn_prev`, `hdr_theme_pfx`, `f_labels`, `sb_dir_tag`, `sb_filter_pfx`, `sb_filter_sfx`, `sb_hint_right`, `msg_lang_switched`, `fp_col_name`, `fp_col_size`, `fp_col_mod`, `fp_col_perm`, `fp_dir_badge`, `fp_sel_pfx`, `fp_sel_mid`, `fp_sel_end`, `fp_sum_dirs`, `fp_sum_files`, `fp_flt_tag`, `pv_title`, `pv_dir_msg`, `pv_bin_hdr`, `pv_empty`, `pv_sz_lbl`, `pv_perm_lbl`, `err_perm`, `err_exists`, `err_noent`, `err_notempty`, `err_isdir`, `err_notdir`, `err_same`, `err_generic`, `dlg_btn_ok`, `dlg_btn_cancel`, `dlg_btn_yes`, `dlg_btn_no`, `dlg_btn_close`, `dlg_btn_hex`, `dlg_title_help`, `dlg_title_viewer`, `dlg_vw_hint`, `dlg_hlp_hint`, `help_lines`, `app_title_mkdir`, `app_prm_mkdir`, `app_title_newfile`, `app_prm_newfile`, `app_title_rename`, `app_prm_rename`, `app_title_copy`, `app_prm_copy`, `app_title_move`, `app_prm_move`, `app_title_filter`, `app_prm_filter`, `app_title_goto`, `app_prm_goto`, `app_title_delete`, `app_msg_del_one`, `app_msg_del_many`, `app_sel_items_sfx`, `app_ok_mkdir`, `app_ok_newfile`, `app_ok_rename`, `app_ok_copy`, `app_ok_move`, `app_ok_delete`, `app_ok_refresh`, `app_err_parent`, `app_err_isdir`, `fp_loading_pfx`, `fp_huge_badge`, `fp_abort_badge`, `app_load_aborted`, `task_title_copy`, `task_title_move`, `task_title_delete`, `task_btn_pause`, `task_btn_resume`, `task_btn_bg`, `task_lbl_files`, `task_lbl_eta`, `task_lbl_scan`, `task_lbl_paused`, `task_lbl_canceling`, `task_sb_hint`, `err_canceled`, `err_busy`, `app_title_quit_task`, `app_msg_quit_task`, `dlg_title_usermenu`, `um_hint`, `dlg_title_bookmarks`, `bm_hint`, `dlg_title_frecency`, `fre_hint`, `msg_bm_added`, `msg_hist_empty`, `msg_tab_last`, `dlg_title_conflict`, `cfl_btn_overwrite`, `cfl_btn_skip`, `cfl_btn_rename`, `cfl_lbl_forall`, `cfl_hint`, `dlg_title_search`, `srch_lbl_name`, `srch_lbl_grep`, `srch_hint`, `fp_search_badge`, `msg_search_none`, `dlg_title_info`, `dlg_title_chmod`, `dlg_title_symlink`, `dlg_title_hardlink`, `prm_link_target`, `chm_hint`, `msg_trashed`, `msg_undone`, `msg_undo_empty`, `dlg_title_palette`, `dlg_title_fuzzy`, `fuz_hint`, `fp_du_badge`, `br_title`, `br_tmpl`, `br_find`, `br_repl`, `ctx_view`, `ctx_copy`, `ctx_move`, `ctx_copy_path`, `ctx_delete`, `msg_copied_path`, `diff_pfx`, `term_title`, `img_unsup`, `dlg_title_viewas`, `vas_image`, `vas_hex`, `vas_text`, `vas_hint`, `vw_img_hint`, `img_fit`, `pal_theme`, `pal_lang`, `pal_preview`, `pal_hidden`, `pal_help`, `pal_rename`, `pal_view`, `pal_edit`, `pal_copy`, `pal_move`, `pal_mkdir`, `pal_delete`, `pal_newfile`, `pal_filter`, `pal_goto`, `pal_refresh`, `pal_usermenu`, `pal_shell`, `pal_quit`, `cli_version`, `cli_usage`, `help_tab_overview`, `help_tab_instr`, `help_instr_lines`, `du_scan_title`, `du_lbl_folders`, `du_lbl_scanned`, `du_unit_dirs`, `du_unit_files`, `du_scan_hint`, `msg_du_canceled`, `pkg_title`, `pkg_hint`, `pkg_empty`, `pkg_install_prompt`, `pkg_installed`, `pkg_removed`, `pkg_verified`, `pkg_err`, `pkg_tab_inst`, `pkg_tab_avail`, `arc_truncated` |
+| `LangStrings` | `include/types.inc` | `code`, `name`, `hdr_brand`, `hdr_mode_dual`, `hdr_mode_prev`, `hdr_btn_quit`, `hdr_btn_help`, `hdr_btn_lang`, `hdr_btn_hid_on`, `hdr_btn_hid_off`, `hdr_btn_prev`, `hdr_theme_pfx`, `f_labels`, `sb_dir_tag`, `sb_filter_pfx`, `sb_filter_sfx`, `sb_hint_right`, `msg_lang_switched`, `fp_col_name`, `fp_col_size`, `fp_col_mod`, `fp_col_perm`, `fp_dir_badge`, `fp_sel_pfx`, `fp_sel_mid`, `fp_sel_end`, `fp_sum_dirs`, `fp_sum_files`, `fp_flt_tag`, `pv_title`, `pv_dir_msg`, `pv_bin_hdr`, `pv_empty`, `pv_sz_lbl`, `pv_perm_lbl`, `err_perm`, `err_exists`, `err_noent`, `err_notempty`, `err_isdir`, `err_notdir`, `err_same`, `err_generic`, `dlg_btn_ok`, `dlg_btn_cancel`, `dlg_btn_yes`, `dlg_btn_no`, `dlg_btn_close`, `dlg_btn_hex`, `dlg_title_help`, `dlg_title_viewer`, `dlg_vw_hint`, `dlg_hlp_hint`, `help_lines`, `app_title_mkdir`, `app_prm_mkdir`, `app_title_newfile`, `app_prm_newfile`, `app_title_rename`, `app_prm_rename`, `app_title_copy`, `app_prm_copy`, `app_title_move`, `app_prm_move`, `app_title_filter`, `app_prm_filter`, `app_title_goto`, `app_prm_goto`, `app_title_delete`, `app_msg_del_one`, `app_msg_del_many`, `app_sel_items_sfx`, `app_ok_mkdir`, `app_ok_newfile`, `app_ok_rename`, `app_ok_copy`, `app_ok_move`, `app_ok_delete`, `app_ok_refresh`, `app_err_parent`, `app_err_isdir`, `fp_loading_pfx`, `fp_huge_badge`, `fp_abort_badge`, `app_load_aborted`, `task_title_copy`, `task_title_move`, `task_title_delete`, `task_btn_pause`, `task_btn_resume`, `task_btn_bg`, `task_lbl_files`, `task_lbl_eta`, `task_lbl_scan`, `task_lbl_paused`, `task_lbl_canceling`, `task_sb_hint`, `err_canceled`, `err_busy`, `app_title_quit_task`, `app_msg_quit_task`, `dlg_title_usermenu`, `um_hint`, `dlg_title_bookmarks`, `bm_hint`, `dlg_title_frecency`, `fre_hint`, `msg_bm_added`, `msg_hist_empty`, `msg_tab_last`, `dlg_title_conflict`, `cfl_btn_overwrite`, `cfl_btn_skip`, `cfl_btn_rename`, `cfl_lbl_forall`, `cfl_hint`, `dlg_title_search`, `srch_lbl_name`, `srch_lbl_grep`, `srch_hint`, `fp_search_badge`, `msg_search_none`, `dlg_title_info`, `dlg_title_chmod`, `dlg_title_symlink`, `dlg_title_hardlink`, `prm_link_target`, `chm_hint`, `msg_trashed`, `msg_undone`, `msg_undo_empty`, `dlg_title_palette`, `dlg_title_fuzzy`, `fuz_hint`, `fp_du_badge`, `br_title`, `br_tmpl`, `br_find`, `br_repl`, `ctx_view`, `ctx_copy`, `ctx_move`, `ctx_copy_path`, `ctx_delete`, `msg_copied_path`, `diff_pfx`, `term_title`, `img_unsup`, `dlg_title_viewas`, `vas_image`, `vas_hex`, `vas_text`, `vas_hint`, `vw_img_hint`, `img_fit`, `pal_theme`, `pal_lang`, `pal_preview`, `pal_hidden`, `pal_help`, `pal_rename`, `pal_view`, `pal_edit`, `pal_copy`, `pal_move`, `pal_mkdir`, `pal_delete`, `pal_newfile`, `pal_filter`, `pal_goto`, `pal_refresh`, `pal_usermenu`, `pal_shell`, `pal_quit`, `cli_version`, `cli_usage`, `help_tab_overview`, `help_tab_instr`, `help_instr_lines`, `du_scan_title`, `du_lbl_folders`, `du_lbl_scanned`, `du_unit_dirs`, `du_unit_files`, `du_scan_hint`, `msg_du_canceled`, `pkg_title`, `pkg_hint`, `pkg_empty`, `pkg_install_prompt`, `pkg_installed`, `pkg_removed`, `pkg_verified`, `pkg_err`, `pkg_tab_inst`, `pkg_tab_avail`, `arc_truncated`, `err_cmd_long`, `cfg_truncated`, `err_special` |
 
 ## OOP Classes (`CLASS_BEGIN`)
 
@@ -81,6 +81,17 @@
   - `os_du_usage`
   - `os_fstat_du`
   - `os_fs_is_derived`
+- **`src/os/linux/aarch64/pal_fault.s`**
+  - `os_fault_guard_install_slot`
+  - `os_signals_install`
+  - `os_sig_reset_pipe`
+  - `pf_reg_mmap`
+  - `pf_unreg_mmap`
+  - `pf_sigbus_fallback`
+  - `os_parent_alive`
+  - `os_set_pdeathsig`
+  - `os_raise_nofile`
+  - `os_mark_child_forked`
 - **`src/os/linux/aarch64/pal_os.s`**
   - `os_statat`
   - `os_fstat`
@@ -93,7 +104,6 @@
   - `os_get_winsize`
   - `os_term_save_and_raw`
   - `os_term_restore`
-  - `os_signals_install`
   - `os_poll_in2`
   - `os_pipe_cloexec`
   - `os_signals_worker_mode`
@@ -108,7 +118,6 @@
   - `os_pty_write`
   - `os_pty_close`
   - `os_get_winsize_px`
-  - `os_sig_reset_pipe`
   - `os_poll_out`
 - **`src/os/linux/aarch64/pal_simd.s`**
   - `os_mem_copy_fast`
@@ -123,9 +132,12 @@
 - **`src/os/linux/aarch64/pal_thread.s`**
   - `os_thread_spawn`
   - `os_thread_join`
+- **`src/os/linux/aarch64/pal_time.s`**
+  - `os_time_sec`
 - **`src/os/linux/aarch64/pal_uring.s`**
   - `os_batch_stat`
   - `os_uring_shutdown`
+  - `os_uring_atfork_reset`
 - **`src/os/linux/x86_64/pal_du.s`**
   - `os_du_usage` — (lstat semantics; out gets dev, ino, mode, nlink, ... for directory and hard-link checks)
   - `os_fstat_du` — int os_fstat_du(int fd, FileStat *out, int64_t *alloc_out) -> 0 or -errno
@@ -137,6 +149,10 @@
   - `pf_reg_mmap` — void pf_reg_mmap(void *base, size_t len)
   - `pf_unreg_mmap` — void pf_unreg_mmap(void *base)
   - `pf_sigbus_fallback` — SIGBUS fallback: patch only registered file mappings, else default action
+  - `os_parent_alive` — int os_parent_alive(int expected_ppid) -> 1 if getppid() == expected_ppid, else 0
+  - `os_set_pdeathsig` — int os_set_pdeathsig(int expected_ppid, int sig) -> 1 alive, 0 if parent died in race
+  - `os_raise_nofile` — int os_raise_nofile(uint64_t want) -> 0 on success or -errno
+  - `os_mark_child_forked` — void os_mark_child_forked(void) - reset child TRY owner and clear inherited slot
 - **`src/os/linux/x86_64/pal_os.s`**
   - `os_statat` — Returns 0 on success or -errno on failure.
   - `os_fstat` — Returns 0 on success or -errno on failure.
@@ -185,9 +201,12 @@
 - **`src/os/linux/x86_64/pal_thread.s`**
   - `os_thread_spawn` — rdi=fn, rsi=arg, rdx=stack_top, rcx=ctid_out
   - `os_thread_join` — void os_thread_join(int *ctid)
+- **`src/os/linux/x86_64/pal_time.s`**
+  - `os_time_sec` — int64_t os_time_sec(void) -- CLOCK_REALTIME seconds; 0 when the clock cannot be read
 - **`src/os/linux/x86_64/pal_uring.s`**
   - `os_batch_stat` — Returns 0 when the batch finishes.
   - `os_uring_shutdown` — void os_uring_shutdown(void)
+  - `os_uring_atfork_reset` — void os_uring_atfork_reset(void) - drop inherited ring mappings/fd in a forked child
 
 ### Core Runtime (`src/core/`)
 
@@ -198,7 +217,7 @@
   - `parse_key_spec` — rdi = tok -> eax = key, edx = mods (or eax = 0 on invalid)
   - `next_token` — rdi = cursor -> rax = token_start (NUL-terminated in buffer), rdx = next_cursor
 - **`src/core/config_expand.s`**
-  - `config_expand_cmd` — ConfigExpandCtx: +0 cur_name, +8 cur_path, +16 sel_names, +24 active_dir, +32 inactive_dir
+  - `config_expand_cmd` — Returns 0, or -ENAMETOOLONG when the expansion does not fit (out is then an empty string).
 - **`src/core/config_load.s`**
   - `config_load` — void config_load(char **envp)
   - `config_get` — Config *config_get(void)
@@ -207,6 +226,7 @@
   - `config_menu_count` — int config_menu_count(void)
   - `config_menu_item` — int config_menu_item(int idx, const char **out_label, const char **out_cmd)
   - `g_config`
+  - `g_cfg_warn`
 - **`src/core/config_parse.s`**
   - `parse_config_line` — Helper: parse one NUL-terminated line (modified in place)
 - **`src/core/hash.s`**
@@ -323,7 +343,9 @@
 - **`src/tui/i18n_pack.s`**
   - `i18n_load` — void i18n_load(char **envp) -- (re)build the language registry from the packs on the data path
 - **`src/tui/input.s`**
-  - `input_next_event` — pressed one according to the *.layout files (kbd_layout.s), so hotkeys work in any layout.
+  - `input_next_event` — int input_next_event(Event *evt, int timeout_ms) -> 1 if event, 0 on timeout, -2 on stdin EOF
+  - `input_is_eof` — int input_is_eof(void)
+  - `input_probe_eof` — int input_probe_eof(void) -- non-blocking stdin EOF probe before raw mode
   - `input_set_wake_fd` — void input_set_wake_fd(int fd) -- aux slot 0 (background task pipe)
   - `input_set_aux_fd` — early (returning "no event"), so the app loop reacts to them instantly.
   - `wait_and_read` — Appends incoming bytes to in_buf (compacting if needed). Returns bytes read, 0 on timeout, -1 on EINTR.
@@ -334,6 +356,9 @@
   - `in_len`
 - **`src/tui/input_parse.s`**
   - `input_poll_event` — Returns 1 if an event was populated, 0 on timeout/none.
+- **`src/tui/input_seq.s`**
+  - `input_parse_csi` — int input_parse_csi(Event *evt)
+  - `input_parse_ss3` — int input_parse_ss3(Event *evt)
 - **`src/tui/kbd_layout.s`**
   - `kbd_layout_load` — void kbd_layout_load(char **envp) -- the initial-stack envp (the auxiliary vector follows it)
 - **`src/tui/kbd_map.s`**
@@ -364,7 +389,7 @@
   - `ScreenBuffer_draw_box` — Uses current pen! Draws rounded corners (╭╮╰╯─│). If fill_interior != 0, fills interior spaces.
   - `ScreenBuffer_draw_text` — Uses current pen! Returns display columns written.
   - `ScreenBuffer_draw_text_pad` — Draws utf8 up to `width` columns and pads remaining columns with spaces using current pen.
-  - `out_ensure` — void out_ensure(ScreenBuffer *this, size_t need)
+  - `out_ensure` — int out_ensure(ScreenBuffer *this, size_t need) -> 0 ok, -ENOMEM on failure
   - `out_byte` — void out_byte(ScreenBuffer *this, uint8_t b)
 - **`src/tui/term_caps.s`**
   - `term_caps_init` — void term_caps_init(char **envp)
@@ -449,6 +474,7 @@
 - **`src/fs/dir_search.s`**
   - `ds_ensure_model_cap` — int ds_ensure_model_cap(DirModel *m, size_t add_name_bytes)
   - `ds_append_entry` — void ds_append_entry(DirModel *m, const char *rel_name, const FileStat *st)
+  - `ds_append_parent` — hidden by the live filter, never selectable), has_dotdot = 1 (sort keeps it first), not a dir.
   - `ds_join_rel` — void ds_join_rel(char *dst, const char *prefix, const char *name)
   - `dir_search_run` — int dir_search_run(DirModel *m, const char *root_path, const char *mask, const char *grep)
 - **`src/fs/dir_search_match.s`**
@@ -499,7 +525,7 @@
   - `fs_mkdir` — int fs_mkdir(const char *path)
   - `fs_touch` — int fs_touch(const char *path)
   - `fs_rename` — int fs_rename(const char *old_path, const char *new_path)
-  - `fs_rename_noreplace` — int fs_rename_noreplace(const char *old_path, const char *new_path)
+  - `fs_rename_noreplace` — Uses renameat2(RENAME_NOREPLACE); on a kernel/filesystem without it the target is looked at first.
   - `path_is_same_or_descendant` — Returns 1 if dst == src (ignoring trailing '/') or dst is strictly inside src/
   - `copy_data` — Returns 0, -errno, or -ECANCELED. Reports bytes through fs_progress_bytes.
 - **`src/fs/file_ops_copy.s`**
@@ -508,12 +534,17 @@
   - `fs_copy_recursive` — int fs_copy_recursive(const char *src_path, const char *dst_path)
 - **`src/fs/file_ops_copy_at.s`**
   - `copy_reg_at` — being truncated. A canceled copy unlinks its partial destination.
-  - `copy_link_at` — Internal: int copy_link_at(int sdir, const char *sname, int ddir, const char *dname)
   - `copy_dir_fd` — Internal: int copy_dir_fd(int sfd, int dfd, int depth) -- copies every entry of sfd into dfd
+- **`src/fs/file_ops_copy_link.s`**
+  - `copy_link_at` — Internal: int copy_link_at(int sdir, const char *sname, int ddir, const char *dname)
 - **`src/fs/file_ops_delete.s`**
   - `fs_delete_recursive` — Symlinks are removed, never followed (O_NOFOLLOW on every directory open).
   - `fs_move_recursive` — int fs_move_recursive(const char *src_path, const char *dst_path)
   - `fs_read_file_head` — int fs_read_file_head(const char *path, void *buf, size_t max_bytes, size_t *out_read)
+- **`src/fs/file_ops_overwrite.s`**
+  - `fo_open_overwrite` — Returns the fd or -errno (no fallback on ENOSPC: truncating would destroy the old file for nothing).
+  - `fo_overwrite_open` — Returns the open fd, or -errno.
+  - `fo_overwrite_commit` — Atomically replaces `name` with the finished temp file.
 - **`src/fs/file_ops_read.s`**
   - `fs_read_file_alloc` — int fs_read_file_alloc(const char *path, size_t max_bytes, void **out_buf, size_t *out_len)
 - **`src/fs/git_status.s`**
@@ -525,6 +556,8 @@
   - `git_lookup` — int git_lookup(DirModel *dm, const char *name) -> status char or 0
   - `git_branch` — const char *git_branch(DirModel *dm) -> branch string or ""
   - `g_git_defer`
+- **`src/fs/git_trust.s`**
+  - `git_repo_trusted` — int git_repo_trusted(const char *dotgit) -- dotgit = "<worktree>/.git"; 1 = trusted, 0 = refuse
 - **`src/fs/img_bmp.s`**
   - `img_bmp_decode` — int img_bmp_decode(const uint8_t *d, size_t n, Image *out)
 - **`src/fs/img_core.s`**
@@ -625,6 +658,7 @@
   - `pkg_load_archive_sha` — ArcCtx *pkg_load_archive_sha(const char *path, char *out_sha_hex65)
   - `pkg_free_archive` — void pkg_free_archive(ArcCtx *ctx)
   - `pkg_extract_entry_to` — int pkg_extract_entry_to(ArcCtx *ctx, ArcEntry *ent, const char *dest_path) -> 0 ok, -1 err
+  - `pkg_ensure_exec` — int pkg_ensure_exec(const char *path) -> 0 ok (S_ISREG + 0755), -1 err/symlink
 - **`src/fs/pkg_cli.s`**
   - `pkg_cli_dispatch` — int pkg_cli_dispatch(int argc, char **argv, char **envp) -> exit code
 - **`src/fs/pkg_fetch.s`**
@@ -635,6 +669,7 @@
   - `pkg_install_archive` — int pkg_install_archive(char **envp, const char *path_or_url, const char *expected_sha256) -> 0 ok, <0 err
   - `pkg_remove` — int pkg_remove(char **envp, const char *name) -> 0 ok, -1 err
   - `pkm_safe_name` — int pkm_safe_name(const char *s) -> 1 safe, 0 unsafe
+  - `pkm_safe_relpath`
 - **`src/fs/pkg_popup.s`**
   - `pkg_popup_refresh` — int pkg_popup_refresh(char **envp, int is_dir, const char *entry_name) -> count
   - `pkg_popup_count`
@@ -671,11 +706,12 @@
   - `fs_preview_stop` — void fs_preview_stop(void) -- close the request pipe (helper exits) and reap it
   - `pv_read_exact` — ssize_t pv_read_exact(int fd, void *buf, size_t n) -- blocking; 0 on EOF (also used by the helper)
   - `fs_preview_shm` — uint8_t *fs_preview_shm(void) -> image payload of the latest reply (valid while the helper idles)
+  - `fs_preview_shm_slot` — uint8_t *fs_preview_shm_slot(uint32_t seq) -> ping-pong SHM slot for seq
 - **`src/fs/task.s`**
   - `fs_progress_begin` — Publishes basename(path) as the current item using the TaskShared.seq seqlock.
   - `fs_progress_bytes` — void fs_progress_bytes(uint64_t n) -- preserves every register
   - `fs_progress_item` — void fs_progress_item(void) -- preserves every register
-  - `fs_progress_cancelled` — int fs_progress_cancelled(void) -- eax = 1 when cancel was requested; clobbers only rax
+  - `fs_progress_cancelled` — int fs_progress_cancelled(void) -- eax = 1 when cancel requested or parent died; clobbers only rax
   - `task_measure` — Returns 0 or -ECANCELED.
   - `g_fs_progress`
   - `g_measure_bytes`
@@ -684,7 +720,7 @@
   - `fs_task_resolve_conflict` — int fs_task_resolve_conflict(int dst_dfd, const char *dst_rel, uint64_t src_sz, uint64_t dst_sz, char *out_name)
   - `fs_task_check_conflict` — int fs_task_check_conflict(char *out_name, uint64_t *out_src_sz, uint64_t *out_dst_sz)
   - `fs_task_reply_conflict` — void fs_task_reply_conflict(int action, int for_all)
-  - `fo_resolve_eexist_open` — Returns: fd >= 0, -2 = SKIP, -9999 = same file, or -errno.
+  - `fo_resolve_eexist_open` — Returns: fd >= 0 (edx = 1: temp file to rename over the target), -2 = SKIP, -9999 = same file, or -errno.
   - `fo_move_check_conflict` — int fo_move_check_conflict(const char *src, const char *dst, char *out_ren)
 - **`src/fs/task_control.s`**
   - `fs_task_poll` — worker checked the flag just before entering a blocking syscall.
@@ -698,16 +734,18 @@
   - `g_task_pid`
   - `g_task_paused`
 - **`src/fs/task_worker.s`**
+  - `g_task_parent_pid`
   - `fs_task_start` — Forks the worker. Returns 0 (caller keeps and may free `job`), -EBUSY, or -errno.
   - `fs_task_is_active` — int fs_task_is_active(void)
   - `fs_task_wake_fd` — int fs_task_wake_fd(void) -> read end that hangs up when the worker exits, or -1
   - `g_task_start_ms`
   - `g_task_wake_fd`
   - `g_task_op`
+- **`src/fs/trash_info.s`**
+  - `tu_write_info` — int tu_write_info(const char *info_path, const char *orig_path) -> 0, or -errno
 - **`src/fs/trash_undo.s`**
   - `tu_get_data_home` — Helper: void tu_get_data_home(const char **envp, char *dst, size_t cap)
   - `tu_mkdir_p_base` — Helper: void tu_mkdir_p_base(const char *data_home)
-  - `tu_write_info` — Helper: int tu_write_info(const char *info_path, const char *orig_path)
   - `tu_pick_unique` — Helper: void tu_pick_unique(const char *data_home, const char *base, char *out_files, char *out_info)
 - **`src/fs/trash_undo_ops.s`**
   - `trash_move_file` — int trash_move_file(const char *src_path, const char **envp, char *out_trash_path, char *out_info_path)
@@ -1005,6 +1043,8 @@
   - `App_close_dialog` — void App_close_dialog(App *this, int result)
   - `App_cmd_help` — ==============================================================================
   - `App_cmd_mkdir`
+- **`src/app/app_cmdline.s`**
+  - `App_run_expanded_cmd` — void App_run_expanded_cmd(App *this, const char *tmpl, const char *cur_name, const char *cur_path)
 - **`src/app/app_cmds.s`**
   - `App_cmd_newfile`
   - `App_cmd_start_filter`
@@ -1043,7 +1083,6 @@
 - **`src/app/app_menu.s`**
   - `App_cmd_usermenu` — void App_cmd_usermenu(App *this)
   - `App_dispatch_action` — void App_dispatch_action(App *this, int act_id)
-  - `App_run_expanded_cmd` — void App_run_expanded_cmd(App *this, const char *tmpl, const char *cur_name, const char *cur_path)
   - `App_exec_menu_tmpl` — void App_exec_menu_tmpl(App *this, const char *tmpl)
   - `App_run_pkg_action` — void App_run_pkg_action(App *this, PkgAction *act)
 - **`src/app/app_open.s`**

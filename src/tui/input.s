@@ -14,9 +14,13 @@ in_len:
     .space 4
 in_aux1:
     .space 4 * 4              # auxiliary wake fds + 1 (0 = none): task pipe, dir watch, preview
+g_stdin_eof:
+    .space 4
 
 .section .text
 .global input_next_event
+.global input_is_eof
+.global input_probe_eof
 .global input_set_wake_fd
 .global input_set_aux_fd
 .global wait_and_read
@@ -26,10 +30,28 @@ in_aux1:
 .global in_pos
 .global in_len
 
-# int input_next_event(Event *evt, int timeout_ms) -> 1 if an event was populated, 0 on timeout
-# Decodes one event (input_poll_event) and sets Event.lat: for keys, the Latin key under the
-# pressed one according to the *.layout files (kbd_layout.s), so hotkeys work in any layout.
+# int input_is_eof(void)
+input_is_eof:
+    mov eax, [rip + g_stdin_eof]
+    ret
+
+# int input_probe_eof(void) -- non-blocking stdin EOF probe before raw mode
+input_probe_eof:
+    sub rsp, 8
+    xor edi, edi
+    xor esi, esi
+    call wait_and_read_fd
+    mov eax, [rip + g_stdin_eof]
+    add rsp, 8
+    ret
+
+# int input_next_event(Event *evt, int timeout_ms) -> 1 if event, 0 on timeout, -2 on stdin EOF
 input_next_event:
+    cmp dword ptr [rip + g_stdin_eof], 0
+    je .Line_poll
+    mov eax, -2
+    ret
+.Line_poll:
     push rbx
     push r12
     sub rsp, 8
@@ -76,6 +98,10 @@ wait_and_read_fd:
     call wait_and_read_fd__compact_buffer_needed
     cmp rax, -EINTR
     je .Lwar_eintr
+    cmp rax, -ENOMEM
+    je .Lwar_eintr
+    cmp rax, -EAGAIN
+    je .Lwar_none
     test rax, rax
     js .Lwar_fatal
     jz .Lwar_none
@@ -91,7 +117,16 @@ wait_and_read_fd:
     add rsi, r8
     call sys_read_retry
     test rax, rax
-    jle .Lwar_none
+    jz .Lwar_eof
+    js .Lwar_read_err
+    jmp .Lwar_got
+.Lwar_read_err:
+    cmp rax, -EAGAIN
+    je .Lwar_none
+.Lwar_eof:
+    mov dword ptr [rip + g_stdin_eof], 1
+    jmp .Lwar_fatal
+.Lwar_got:
     add [rip + in_len], eax
     mov [rsp + 24], eax
     lea rdi, [rip + in_buf]           # terminal replies (DA1, cell size) never reach the parser

@@ -66,7 +66,7 @@ ChmodDialog_new:
     mov edi, AT_FDCWD
     mov rsi, r13
     mov rdx, rsp
-    mov ecx, AT_SYMLINK_NOFOLLOW
+    xor ecx, ecx                      # OS_STAT_NOFOLLOW
     call os_statat
     test eax, eax
     js .Lcdn_def

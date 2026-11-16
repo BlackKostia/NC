@@ -19,6 +19,20 @@ jpeg_sof:
     push r15
     mov rbx, rdi
     mov r12, rsi
+    cmp dword ptr [rbx + Jpeg.frame], 0
+    je .Lsf_chk
+    push rdx
+    xor r14d, r14d
+10: cmp r14d, 4; jge 11f
+    imul rax, r14, JC._size
+    mov rdi, [rbx + Jpeg.comp + rax + JC.plane]
+    mov qword ptr [rbx + Jpeg.comp + rax + JC.plane], 0
+    call mem_free
+    inc r14d; jmp 10b
+11: mov rdi, [rbx + Jpeg.out]; call img_free
+    mov dword ptr [rbx + Jpeg.frame], 0
+    pop rdx
+.Lsf_chk:
     mov eax, IMG_E_CORRUPT
     cmp edx, 6
     jl .Lsf_ret
@@ -37,9 +51,13 @@ jpeg_sof:
     jl .Lsf_ret
     movzx eax, word ptr [r12 + 1]
     rol ax, 8
+    test eax, eax; jz .Lsf_ret
+    cmp eax, IMG_MAX_DIM; ja .Lsf_ret
     mov [rbx + Jpeg.h], eax
     movzx eax, word ptr [r12 + 3]
     rol ax, 8
+    test eax, eax; jz .Lsf_ret
+    cmp eax, IMG_MAX_DIM; ja .Lsf_ret
     mov [rbx + Jpeg.w], eax
     mov rdi, rbx
     lea rsi, [r12 + 6]
@@ -167,12 +185,22 @@ jsof_plane:
     div dword ptr [r12 + JC.h]
     test edx, edx
     jnz .Lpl_unsup
+    test eax, eax
+    jz .Lpl_unsup
+    lea ecx, [eax - 1]
+    test eax, ecx
+    jnz .Lpl_unsup
     bsf ecx, eax
     mov [r12 + JC.sx], ecx
     mov eax, [rbx + Jpeg.vmax]
     xor edx, edx
     div dword ptr [r12 + JC.v]
     test edx, edx
+    jnz .Lpl_unsup
+    test eax, eax
+    jz .Lpl_unsup
+    lea ecx, [eax - 1]
+    test eax, ecx
     jnz .Lpl_unsup
     bsf ecx, eax
     mov [r12 + JC.sy], ecx
@@ -221,6 +249,9 @@ jpeg_sos:
     jz .Lss_fail
     cmp ecx, 4
     ja .Lss_fail
+    lea eax, [ecx + ecx + 4]
+    cmp r13d, eax
+    jl .Lss_fail
     mov [rbx + Jpeg.sncomp], ecx
     mov rdi, rbx
     lea rsi, [r12 + 1]

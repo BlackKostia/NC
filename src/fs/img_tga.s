@@ -99,7 +99,17 @@ tga_header:
     lea rax, [rsi + rax + 18]
     mov [rdi + TC_CMAP], rax
     cmp byte ptr [rsi + 1], 0         # color map present?
-    je .Lth_ret
+    jne .Lth_has_cmap
+    cmp dword ptr [rdi + TC_TYPE], 1
+    je .Lth_no
+    jmp .Lth_ret
+.Lth_has_cmap:
+    cmp dword ptr [rdi + TC_CMAPE], 1
+    jb .Lth_no
+    cmp dword ptr [rdi + TC_CMAPE], 4
+    ja .Lth_no
+    cmp dword ptr [rdi + TC_CMAPN], 0
+    je .Lth_no
     mov ecx, [rdi + TC_CMAPN]
     imul ecx, [rdi + TC_CMAPE]
     add rax, rcx

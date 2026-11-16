@@ -12,7 +12,9 @@
 # Internal: void vz_axis_crop(int img_dim, int box_dim, int zoom, int *pan, int *out_t, int *out_s)
 vz_axis_crop:
     push rbx
-    mov rbx, r9                       # out_s
+    test edi, edi; jg 0f; mov edi, 1
+0:  test esi, esi; jg 10f; mov esi, 1
+10: mov rbx, r9                       # out_s
     mov r10d, edx                     # zoom
     mov eax, edi
     imul eax, r10d
@@ -136,16 +138,16 @@ vim_draw_zoom_badge:
 vim_kitty_pan:
     cmp esi, IMG_PROTO_KITTY; jne .Lkp_no
     cmp dword ptr [rdi + ViewerDialog.img_zoom], 0; jne 0f
-    push rdi; xor edi, edi; call img_overlay_kitty_mark; pop rdi
+    sub rsp, 8; xor edi, edi; call img_overlay_kitty_mark; add rsp, 8
 .Lkp_no:
     xor eax, eax; ret
 0:  mov eax, [rdi + ViewerDialog.img + Image.w]; imul eax, [rdi + ViewerDialog.img + Image.h]
     cmp eax, 16777216; ja .Lkp_no
-    push rbx; push r12; push r13; sub rsp, 32
+    push rbx; push r12; push r13; sub rsp, 48
     mov rbx, rdi; mov r12, rdx
     mov esi, [r12 + 48]; mov edx, [r12 + 52]; xor ecx, ecx
-    lea r8, [rsp + 16]; lea r9, [rsp + 20]; push rsp
-    call vim_zoom_rect; add rsp, 8
+    lea r8, [rsp + 32]; lea r9, [rsp + 36]; lea rax, [rsp + 16]; mov [rsp], rax
+    call vim_zoom_rect
     mov rdi, [rbx + ViewerDialog.img + Image.px]
     call img_overlay_kitty_ready; test eax, eax; jnz .Lkp_enc
     mov eax, [rbx + ViewerDialog.img + Image.w]; imul eax, [rbx + ViewerDialog.img + Image.h]
@@ -155,11 +157,11 @@ vim_kitty_pan:
     mov esi, [rbx + ViewerDialog.img + Image.w]; mov edx, [rbx + ViewerDialog.img + Image.h]
     mov ecx, -1; mov r8, r13; mov eax, [rbx + ViewerDialog.img + Image.w]
     imul eax, [rbx + ViewerDialog.img + Image.h]; lea r9, [rax * 8 + 65536]
-    call img_kitty_encode; push rax
+    call img_kitty_encode; mov [rsp + 40], rax
     test rax, rax; jz 1f
     mov edi, STDOUT_FD; mov rsi, r13; mov rdx, rax; call sys_write_all
     mov rdi, [rbx + ViewerDialog.img + Image.px]; call img_overlay_kitty_mark
-1:  mov rdi, r13; call mem_free; pop rax; test rax, rax; jz .Lkp_fail
+1:  mov rdi, r13; call mem_free; mov rax, [rsp + 40]; test rax, rax; jz .Lkp_fail
 .Lkp_enc:
     mov rax, 0x4B50414E
     cmp qword ptr [rbx + ViewerDialog.enc], 0; je 2f
@@ -168,16 +170,16 @@ vim_kitty_pan:
     mov edi, 128; call mem_alloc; mov [rbx + ViewerDialog.enc], rax
     test rax, rax; jz .Lkp_fail
     mov qword ptr [rbx + ViewerDialog.enc_key], 0x4B50414E
-3:  mov eax, [rsp + 16]; mov [rbx + ViewerDialog.thumb_w], eax
-    mov eax, [rsp + 20]; mov [rbx + ViewerDialog.thumb_h], eax
+3:  mov eax, [rsp + 32]; mov [rbx + ViewerDialog.thumb_w], eax
+    mov eax, [rsp + 36]; mov [rbx + ViewerDialog.thumb_h], eax
     mov eax, [rbx + ViewerDialog.img_zoom]; shl rax, 32
     mov ecx, [rbx + ViewerDialog.img_pan_y]; and ecx, 0xFFFF; shl rcx, 16; or rax, rcx
     mov ecx, [rbx + ViewerDialog.img_pan_x]; and ecx, 0xFFFF; or rax, rcx
     mov [rbx + ViewerDialog.img_cache_key], rax
     mov rdi, rbx; mov rsi, r12; call vim_place
-    mov rdi, [rbx + ViewerDialog.enc]; mov rsi, rsp
+    mov rdi, [rbx + ViewerDialog.enc]; lea rsi, [rsp + 16]
     mov edx, [r12 + ImgPlace.w]; mov ecx, [r12 + ImgPlace.h]; call img_kitty_place
     mov [rbx + ViewerDialog.enc_len], rax; mov [r12 + ImgPlace.len], rax
     mov rdi, r12; call img_overlay_show; mov eax, 1; jmp .Lkp_ret
 .Lkp_fail: xor eax, eax
-.Lkp_ret: add rsp, 32; pop r13; pop r12; pop rbx; ret
+.Lkp_ret: add rsp, 48; pop r13; pop r12; pop rbx; ret

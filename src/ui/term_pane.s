@@ -34,6 +34,8 @@ term_height:
     xor eax, eax
     cmp dword ptr [rip + g_term_visible], 0
     je .Lth_ret
+    cmp edi, 9                # main area too short (or negative) to host a bordered pane: hide it
+    jl .Lth_ret
     mov eax, edi
     xor edx, edx
     mov ecx, 3
@@ -199,6 +201,7 @@ term_toggle:
     mov dword ptr [rip + g_term_fd], -1
     mov edi, TERM_BUF_SZ
     call mem_alloc
+    test rax, rax; jz .Ltt_oom
     mov [rip + g_term_buf], rax
     mov rdi, rax; mov esi, ' '; mov edx, TERM_BUF_SZ
     call mem_set
@@ -206,8 +209,14 @@ term_toggle:
     mov eax, [rbx + App.term_h]; sub eax, 3
     mov edi, eax; call term_height
     sub eax, 2
+    cmp eax, 1; jge .Ltt_rows_ok
+    mov eax, 1                # tiny terminal: the shell still needs a sane (positive) window size
+.Ltt_rows_ok:
     mov r9d, eax              # rows
     mov r8d, [rbx + App.term_w]; sub r8d, 2  # cols
+    cmp r8d, 1; jge .Ltt_cols_ok
+    mov r8d, 1
+.Ltt_cols_ok:
     mov rax, [rbx + App.active_pane]
     mov rax, [rax + FilePane.model]
     lea rdx, [rax + DirModel.path]
@@ -223,6 +232,14 @@ term_toggle:
     mov edi, 3; mov esi, [rip + g_term_fd]
     call input_set_aux_fd
 
+    jmp .Ltt_layout
+.Ltt_oom:
+    mov dword ptr [rip + g_term_visible], 0       # no screen buffer: stay closed and say why
+    mov dword ptr [rip + g_term_inited], 0
+    mov edi, -ENOMEM
+    call fs_errno_message
+    mov rdi, rbx; mov rsi, rax; mov edx, MSG_ERR
+    call App_set_status
 .Ltt_layout:
     mov dword ptr [rbx + App.need_redraw], 1
     pop r12; pop rbx; ret
@@ -259,9 +276,11 @@ term_render:
     sub rsp, 32
     cmp dword ptr [rip + g_term_visible], 0; je .Ltr_done
     mov rbx, rdi; mov r12, rsi; mov r13, rdx
+    cmp dword ptr [rbx + App.term_w], 4; jl .Ltr_done     # no room for the border + one cell
     mov edi, [rbx + App.term_h]; sub edi, 3
     call term_height
     mov r14d, eax             # th
+    test r14d, r14d; jle .Ltr_done
     mov r15d, [rbx + App.term_h]; sub r15d, 2; sub r15d, r14d  # y0
 
     mov rdi, r12; mov esi, [r13 + Theme.text]; mov edx, [r13 + Theme.surface]; xor ecx, ecx

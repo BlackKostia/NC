@@ -46,7 +46,7 @@ fs_read_file_alloc__part2:
     lea rsp, [rsp - 8]
     mov edi, AT_FDCWD
     mov rsi, r12
-    mov edx, O_RDONLY | O_CLOEXEC
+    mov edx, O_RDONLY | O_NONBLOCK | O_CLOEXEC
     xor r10d, r10d
     OS_OPENAT
     test rax, rax
@@ -65,6 +65,13 @@ fs_read_file_alloc__cap_read:
     call os_fstat
     test rax, rax
     js .Lrfa_close_err
+    mov eax, [rsp + FileStat.mode + 16]
+    and eax, S_IFMT
+    cmp eax, S_IFREG
+    je .Lrfa_isreg
+    mov rax, -EINVAL
+    jmp .Lrfa_close_err
+.Lrfa_isreg:
 
     mov rax, [rsp + FileStat.size + 16]
     test rax, rax
@@ -95,7 +102,16 @@ fs_read_file_alloc__cap_read:
     call sys_read_retry
     pop rcx
     test rax, rax
-    jle .Lrfa_ok
+    jz .Lrfa_ok
+    jns .Lrfa_adv
+    push rax
+    mov rdi, [r14]
+    call mem_free
+    mov qword ptr [r14], 0
+    mov qword ptr [r15], 0
+    pop rax
+    jmp .Lrfa_close_err
+.Lrfa_adv:
     add rcx, rax
     jmp .Lrfa_loop
 

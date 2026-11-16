@@ -2,6 +2,7 @@
 .intel_syntax noprefix
 
 .include "classes.inc"
+.include "try_using.inc"
 
 .section .rodata
 elf_hdr_x64:   .asciz "ELF64 x86-64"
@@ -30,79 +31,100 @@ elf_sec_lbl:   .asciz "Sections:"
 # void elf_draw_sections(pv, scr, theme, buf, buf_len, int y)
 elf_draw_sections:
     push rbx; push r12; push r13; push r14; push r15
-    sub rsp, 32
+    sub rsp, 288
     mov rbx, rdi; mov r12, rsi; mov r13, rdx; mov r14, rcx; mov r15, r8
-    mov [rsp], r9d            # y
+    mov [rsp + 256], r9d      # y
+    cmp r15, 64; jb .Leds_done
     mov r8, [r14 + 40]        # e_shoff
     movzx r9d, word ptr [r14 + 60]  # e_shnum
     movzx r10d, word ptr [r14 + 62] # e_shstrndx
     test r8, r8; jz .Leds_done
+    test r9d, r9d; jz .Leds_done
     cmp r10d, r9d; jae .Leds_done
-    mov rax, r9; imul rax, 64; add rax, r8
-    cmp rax, r15; ja .Leds_done
+    cmp r8, r15; jae .Leds_done
+    mov rax, r15; sub rax, r8
+    imul rcx, r9, 64
+    cmp rcx, rax; ja .Leds_done
     mov rax, r10; imul rax, 64; add rax, r8; add rax, r14
     mov r11, [rax + 24]       # shstrtab sh_offset
-    mov rcx, [rax + 32]
-    add rcx, r11; cmp rcx, r15; ja .Leds_done
+    mov rcx, [rax + 32]       # shstrtab sh_size
+    cmp r11, r15; jae .Leds_done
+    mov rdx, r15; sub rdx, r11
+    cmp rcx, rdx; ja .Leds_done
 
-    mov [rsp + 8], r8
-    mov [rsp + 16], r9d
-    mov [rsp + 24], r11
+    mov [rsp + 264], r8
+    mov [rsp + 272], r9d
+    mov [rsp + 280], r11
     mov rdi, r12; mov esi, [r13 + Theme.muted]; mov edx, [r13 + Theme.surface]; xor ecx, ecx
     call ScreenBuffer_set_pen
     mov rdi, r12; mov esi, [rbx + Widget.x]; add esi, 2
-    mov edx, [rsp]; lea rcx, [rip + elf_sec_lbl]; mov r8d, [rbx + Widget.w]; sub r8d, 4
+    mov edx, [rsp + 256]; lea rcx, [rip + elf_sec_lbl]; mov r8d, [rbx + Widget.w]; sub r8d, 4
     call ScreenBuffer_draw_text
-    inc dword ptr [rsp]
+    inc dword ptr [rsp + 256]
 
     xor ecx, ecx
 .Leds_sloop:
-    cmp ecx, [rsp + 16]; jge .Leds_done
-    mov eax, [rsp]; sub eax, [rbx + Widget.y]
+    cmp ecx, [rsp + 272]; jge .Leds_done
+    mov eax, [rsp + 256]; sub eax, [rbx + Widget.y]
     cmp eax, [rbx + Widget.h]; jge .Leds_done
-    mov r8, [rsp + 8]
-    mov r11, [rsp + 24]
+    mov r8, [rsp + 264]
+    mov r11, [rsp + 280]
     imul rax, rcx, 64; add rax, r8; add rax, r14
-    mov edx, [rax]; add rdx, r11
-    cmp rdx, r15; jae .Leds_snext
+    mov edx, [rax]
+    mov r9, r15; sub r9, r11
+    cmp rdx, r9; jae .Leds_snext
+    add rdx, r11
     lea rax, [r14 + rdx]
     cmp byte ptr [rax], 0; je .Leds_snext
+    mov r10, r15; sub r10, rdx
+    cmp r10, 255; jbe 1f; mov r10d, 255
+1:  xor r9d, r9d
+2:  cmp r9, r10; jae 3f
+    mov sil, [rax + r9]; test sil, sil; jz 3f
+    mov [rsp + r9], sil; inc r9; jmp 2b
+3:  mov byte ptr [rsp + r9], 0
     push rcx; sub rsp, 8
     mov rdi, r12; mov esi, [rbx + Widget.x]; add esi, 3
-    mov edx, [rsp + 16]; mov rcx, rax; mov r8d, [rbx + Widget.w]; sub r8d, 5
+    mov edx, [rsp + 272]; lea rcx, [rsp + 16]; mov r8d, [rbx + Widget.w]; sub r8d, 5
     call ScreenBuffer_draw_text
     add rsp, 8; pop rcx
-    inc dword ptr [rsp]
+    inc dword ptr [rsp + 256]
 .Leds_snext:
     inc ecx; jmp .Leds_sloop
 .Leds_done:
-    add rsp, 32; pop r15; pop r14; pop r13; pop r12; pop rbx; ret
+    add rsp, 288; pop r15; pop r14; pop r13; pop r12; pop rbx; ret
+
+elf_maybe_load_full:
+    push rbx; push r12; push r13
+    mov rbx, rdi; mov r12, rsi; mov r13, rdx
+    mov qword ptr [r12], 0; mov [r13], r15
+    mov r8, [r14 + 40]; movzx r9d, word ptr [r14 + 60]; imul r9, 64
+    cmp r8, r15; ja 1f
+    mov rax, r15; sub rax, r8; cmp r9, rax; jbe 2f
+1:  lea rdi, [rbx + PreviewPane.target_path]; mov esi, 2097152
+    mov rdx, r12; mov rcx, r13; call fs_read_file_alloc
+    test rax, rax; js 2f
+    mov rax, [r12]; test rax, rax; jz 2f
+    cmp qword ptr [r13], 64; jb 2f
+    cmp dword ptr [rax], 0x464c457f; jne 2f
+    cmp byte ptr [rax + 4], 2; jne 2f
+    mov r14, rax; mov r15, [r13]
+2:  pop r13; pop r12; pop rbx; ret
 
 # int elf_preview_try_render(PreviewPane *pv, ScreenBuffer *scr, Theme *theme) -> 1 if rendered, 0 else
 elf_preview_try_render:
     push rbx; push r12; push r13; push r14; push r15
-    sub rsp, 320
+    sub rsp, 320 + TRY_FRAME_SIZE
     mov rbx, rdi; mov r12, rsi; mov r13, rdx
-    mov r14, [rbx + PreviewPane.buf]
-    mov r15, [rbx + PreviewPane.buf_len]
+    mov r14, [rbx + PreviewPane.buf]; mov r15, [rbx + PreviewPane.buf_len]
     cmp r15, 64; jb .Lept_no
     cmp dword ptr [r14], 0x464c457f; jne .Lept_no
     cmp byte ptr [r14 + 4], 2; jne .Lept_no
+    mov rdi, rbx; lea rsi, [rsp + 288]; lea rdx, [rsp + 296]; call elf_maybe_load_full
 
-    mov qword ptr [rsp + 288], 0
-    mov [rsp + 296], r15
-    mov rax, [r14 + 40]
-    movzx ecx, word ptr [r14 + 60]; imul rcx, 64; add rax, rcx
-    cmp rax, r15; jbe .Lept_draw
-    lea rdi, [rbx + PreviewPane.target_path]
-    mov esi, 2097152
-    lea rdx, [rsp + 288]; lea rcx, [rsp + 296]
-    call fs_read_file_alloc
-    test rax, rax; js .Lept_draw
-    mov rax, [rsp + 288]; test rax, rax; jz .Lept_draw
-    mov r14, rax; mov r15, [rsp + 296]
-
-.Lept_draw:
+.Lept_try:
+    lea r8, [rsp + 320]
+    TRY_BEGIN r8, .Lept_fault
     mov eax, [rbx + Widget.y]; add eax, 3; mov [rsp + 304], eax
     mov rdi, r12; mov esi, [r13 + Theme.accent]; mov edx, [r13 + Theme.surface]; mov ecx, ATTR_BOLD
     call ScreenBuffer_set_pen
@@ -146,9 +168,15 @@ elf_preview_try_render:
     mov rdi, rbx; mov rsi, r12; mov rdx, r13; mov rcx, r14; mov r8, r15; mov r9d, [rsp + 304]
     call elf_draw_sections
 
+    lea r8, [rsp + 320]; TRY_END r8
+    jmp .Lept_cleanup
+.Lept_fault:
+    mov rdi, [rsp + 288]; test rdi, rdi; jz .Lept_no
+    call mem_free; jmp .Lept_no
+.Lept_cleanup:
     mov rdi, [rsp + 288]; test rdi, rdi; jz .Lept_ret1
     call mem_free
 .Lept_ret1:
-    mov eax, 1; add rsp, 320; pop r15; pop r14; pop r13; pop r12; pop rbx; ret
+    mov eax, 1; add rsp, 320 + TRY_FRAME_SIZE; pop r15; pop r14; pop r13; pop r12; pop rbx; ret
 .Lept_no:
-    xor eax, eax; add rsp, 320; pop r15; pop r14; pop r13; pop r12; pop rbx; ret
+    xor eax, eax; add rsp, 320 + TRY_FRAME_SIZE; pop r15; pop r14; pop r13; pop r12; pop rbx; ret

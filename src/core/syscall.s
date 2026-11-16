@@ -305,6 +305,8 @@ sys_open_external:
     test rax, rax; jz .Loe_grandchild
     xor edi, edi; OS_EXIT
 .Loe_grandchild:
+    call os_sig_reset_pipe
+    call os_mark_child_forked
     sub rsp, 48
     lea rax, [rip + str_bin_sh]; mov [rsp], rax
     lea rcx, [rip + str_dash_c]; mov [rsp + 8], rcx
@@ -369,6 +371,8 @@ sys_exec_argv_bg:
     test rax, rax
     js .Lseab_ret
     jnz .Lseab_parent
+    call os_sig_reset_pipe
+    call os_mark_child_forked
     mov edi, AT_FDCWD; lea rsi, [rip + str_dev_null]; mov edx, O_RDWR; xor r10d, r10d
     OS_OPENAT
     test rax, rax; js .Lseab_exec

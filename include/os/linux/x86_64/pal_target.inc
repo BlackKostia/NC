@@ -377,7 +377,6 @@
     mov eax, OS_SYS_kill
     syscall
 .endm
-
 # Allocate anonymous pages shared with forked children: rdi=addr(0), rsi=length, rdx=prot
 .macro OS_MMAP_SHARED_ANON
     mov r10d, MAP_SHARED_ANON
@@ -386,7 +385,6 @@
     mov eax, OS_SYS_mmap
     syscall
 .endm
-
 .equ OS_SYS_setsid, 112
 .equ OS_TIOCSPTLCK, 0x40045431
 .equ OS_TIOCGPTN,   0x80045430
@@ -397,4 +395,5 @@
 .macro OS_GETUID; mov eax, OS_SYS_getuid; syscall; .endm
 .macro OS_EXIT; mov eax, OS_SYS_exit; syscall; .endm
 .macro OS_NO_NEW_PRIVS; mov edi, 38; mov esi, 1; xor edx, edx; xor r10d, r10d; xor r8d, r8d; mov eax, 157; syscall; .endm
+.include "os/linux/x86_64/pal_abi_ext.inc"
 .endif

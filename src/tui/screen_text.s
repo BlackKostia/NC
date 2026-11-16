@@ -310,33 +310,57 @@ ScreenBuffer_draw_text_pad:
     ret
 
 # --- Internal Output Buffer Helpers for ScreenBuffer_flush ---
-# void out_ensure(ScreenBuffer *this, size_t need)
+# int out_ensure(ScreenBuffer *this, size_t need) -> 0 ok, -ENOMEM on failure
 out_ensure:
     mov rax, [rdi + ScreenBuffer.out_len]
     add rax, rsi
+    jc .Loe_fail_early
     cmp rax, [rdi + ScreenBuffer.out_cap]
     jbe .Loe_ok
     push rbx
+    push r12
+    sub rsp, 8
     mov rbx, rdi
-    mov rsi, [rbx + ScreenBuffer.out_cap]
-    shl rsi, 1
-    add rsi, 4096
-    mov [rbx + ScreenBuffer.out_cap], rsi
+    mov r12, [rbx + ScreenBuffer.out_cap]
+    shl r12, 1
+    jc .Loe_fail
+    add r12, 4096
+    jc .Loe_fail
+    cmp r12, rax
+    jae .Loe_cap_ok
+    mov r12, rax
+.Loe_cap_ok:
     mov rdi, [rbx + ScreenBuffer.out_buf]
+    mov rsi, r12
     call mem_realloc
     test rax, rax
     jz .Loe_fail
     mov [rbx + ScreenBuffer.out_buf], rax
-.Loe_fail:
+    mov [rbx + ScreenBuffer.out_cap], r12
+    xor eax, eax
+    add rsp, 8
+    pop r12
     pop rbx
+    ret
+.Loe_fail:
+    add rsp, 8
+    pop r12
+    pop rbx
+.Loe_fail_early:
+    mov eax, -ENOMEM
+    ret
 .Loe_ok:
+    xor eax, eax
     ret
 
 # void out_byte(ScreenBuffer *this, uint8_t b)
 out_byte:
     mov rax, [rdi + ScreenBuffer.out_len]
+    cmp rax, [rdi + ScreenBuffer.out_cap]
+    jae .Lob_ret
     mov rcx, [rdi + ScreenBuffer.out_buf]
     mov byte ptr [rcx + rax], sil
     inc rax
     mov [rdi + ScreenBuffer.out_len], rax
+.Lob_ret:
     ret

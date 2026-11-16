@@ -86,13 +86,25 @@ fs_progress_item:
 1:  pop rax
     ret
 
-# int fs_progress_cancelled(void) -- eax = 1 when cancel was requested; clobbers only rax
+# int fs_progress_cancelled(void) -- eax = 1 when cancel requested or parent died; clobbers only rax
 fs_progress_cancelled:
     mov rax, [rip + g_fs_progress]
     test rax, rax
     jz 1f
     mov eax, [rax + TaskShared.cancel]
-    ret
+    test eax, eax
+    jnz 2f
+    mov eax, [rip + g_task_parent_pid]
+    test eax, eax
+    jz 1f
+    push rdi; push rcx; push r11
+    mov edi, eax
+    call os_parent_alive
+    pop r11; pop rcx; pop rdi
+    test eax, eax
+    jnz 1f
+    mov eax, 1
+2:  ret
 1:  xor eax, eax
     ret
 

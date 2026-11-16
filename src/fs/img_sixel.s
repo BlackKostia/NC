@@ -39,8 +39,13 @@ img_sixel_encode:
     mov r15, r8                       # out start
     lea rax, [r8 + r9]
     mov [rbx + SC_END], rax
-    mov edi, esi
-    imul edi, edx
+    test esi, esi; jle .Lse_fail
+    test edx, edx; jle .Lse_fail
+    cmp esi, IMG_MAX_DIM; ja .Lse_fail
+    cmp edx, IMG_MAX_DIM; ja .Lse_fail
+    mov eax, esi; movsxd rcx, edx; imul rax, rcx
+    cmp rax, IMG_MAX_PIXELS; ja .Lse_fail
+    mov rdi, rax
     call mem_alloc
     mov [rbx + SC_IDX], rax
     test rax, rax
@@ -57,7 +62,9 @@ img_sixel_encode:
     jz .Lse_free_fail
     mov rdi, rbx
     mov rsi, r12
-    call six_header                   # -> rax = cursor
+    call six_header                   # -> rax = cursor, 0 on overflow
+    test rax, rax
+    jz .Lse_free_fail
     mov r12, rax
     xor r13d, r13d                    # band top row
 .Lse_band:
@@ -101,6 +108,9 @@ six_header:
     push r13
     mov r12, rdi
     mov rbx, rsi
+    lea rax, [rbx + 64]
+    cmp rax, [r12 + SC_END]
+    ja .Lsh_ovf
     lea rsi, [rip + str_six_head]
 1:  movzx eax, byte ptr [rsi]
     test eax, eax
@@ -119,6 +129,9 @@ six_header:
 .Lsh_pal:
     cmp r13d, [r12 + SC_NCOL]
     jge .Lsh_done
+    lea rax, [rbx + 64]
+    cmp rax, [r12 + SC_END]
+    ja .Lsh_ovf
     mov byte ptr [rbx], '#'
     inc rbx
     mov edi, r13d
@@ -140,6 +153,12 @@ six_header:
     call six_pct
     inc r13d
     jmp .Lsh_pal
+.Lsh_ovf:
+    xor eax, eax
+    pop r13
+    pop r12
+    pop rbx
+    ret
 .Lsh_done:
     mov rax, rbx
     pop r13

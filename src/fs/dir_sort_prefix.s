@@ -288,9 +288,9 @@ DirModel_sort__two_pointer_partition:
     mov r13, [rbx + DirModel.entries]
     mov ecx, [rbx + DirModel.has_dotdot]
     mov rax, [rbx + DirModel.count]
-    sub rax, rcx
+    sub rax, rcx              # count - has_dotdot may be -1 (empty filtered view): compare signed
     cmp rax, 2
-    jb .Ldms_sorted_flag
+    jl .Ldms_sorted_flag
 
     lea r12, [r12 + rcx * 4]  # slice start after ".."
     mov r14, rax              # total_n

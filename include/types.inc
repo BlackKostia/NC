@@ -42,7 +42,6 @@ Event.mouse_btn:  .space 4   # MOUSE_*
 Event.mouse_kind: .space 4   # MACT_*
 Event.lat:        .space 4   # layout-independent hotkey: Latin key under `key` (*.layout files), else = key
 Event._size:
-
 # --- HitZone (8 bytes) for clickable/hoverable regions ---
 .struct 0
 HitZone.x1:    .space 2    # inclusive start col
@@ -50,7 +49,6 @@ HitZone.x2:    .space 2    # exclusive end col
 HitZone.y:     .space 2    # row
 HitZone.id:    .space 2    # action / button ID
 HitZone._size:
-
 # --- FileEntry (32 bytes, compact metadata + name_off into DirModel.name_pool) ---
 .struct 0
 FileEntry.size:       .space 8    # st_size (i64)
@@ -62,7 +60,6 @@ FileEntry.name_len:   .space 2    # bytes in name (without NUL)
 FileEntry.disp_width: .space 1    # terminal columns of name (clamped 0..255)
 FileEntry.ext_offset: .space 1    # offset of '.' after index 0, or 0
 FileEntry._size:
-
 # --- TaskShared (MAP_SHARED page written by the background worker, read by the UI) ---
 # Counters are naturally aligned qwords (atomic on all targets); cur_name uses a seqlock.
 .struct 0
@@ -396,5 +393,8 @@ LangStrings.pkg_err:            .space 8
 LangStrings.pkg_tab_inst:       .space 8
 LangStrings.pkg_tab_avail:      .space 8
 LangStrings.arc_truncated:      .space 8
+LangStrings.err_cmd_long:       .space 8
+LangStrings.cfg_truncated:      .space 8
+LangStrings.err_special:        .space 8
 LangStrings._size:
 .section .text

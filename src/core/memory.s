@@ -307,6 +307,9 @@ mem_realloc_raw:
     push r13
     mov rbx, rdi
     mov r12, rsi
+    mov rax, -16 - 4096
+    cmp r12, rax
+    ja .Lrealloc_fail
     mov rax, [rbx - 16]
     test eax, 4095
     jnz .Lrealloc_slab

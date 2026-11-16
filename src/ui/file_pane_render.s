@@ -268,14 +268,14 @@ FilePane_render__build:
     cmp eax, ecx
     jbe .Lfpr_path_full
     # Take tail of length (ecx - 1)
+    mov [rsp + 204 + 16], ecx # str_cat clobbers rcx: keep the width limit in the frame
     lea rdi, [rsp + 16]
     lea rsi, [rip + str_ellip_pfx]
     mov edx, 128
     call str_cat
-    mov rdx, rax              # wait, call str_len(r15) again cleanly
     mov rdi, r15
     call str_len
-    sub eax, ecx
+    sub eax, [rsp + 204 + 16]
     inc eax
     lea rsi, [r15 + rax]
     lea rdi, [rsp + 16]
@@ -980,7 +980,6 @@ FilePane_render__thumb_h:
     mov eax, 1
 .Lfpr_th_ok:
     mov r9d, eax              # thumb_h
-
     # thumb_pos = (scroll * (list_h - thumb_h)) / max(1, count - list_h)
     mov r10d, ecx
     sub r10d, r9d             # travel
@@ -994,9 +993,9 @@ FilePane_render__thumb_h:
 .Lfpr_ms_ok:
     xor edx, edx
     div r11d                  # eax = thumb_start
-    mov r10d, eax
-    lea r11d, [r10d + r9d]    # thumb_end
-
+    mov [rsp + 208 + 16], eax # thumb_start/end live in the frame: the draw calls clobber r8-r10
+    add eax, r9d
+    mov [rsp + 212 + 16], eax # thumb_end
     # Draw scrollbar rows
     xor r15d, r15d            # r = 0..list_h-1
 .Lfpr_sb_loop:
@@ -1004,19 +1003,19 @@ FilePane_render__thumb_h:
     jge .LFilePane_render__thumb_h_ret
     mov esi, [r13 + Theme.scroll_track]
     mov ecx, CH_SHADE_LIGHT
-    cmp r15d, r10d
+    cmp r15d, [rsp + 208 + 16]
     jl .Lfpr_sb_draw
-    cmp r15d, r11d
+    cmp r15d, [rsp + 212 + 16]
     jge .Lfpr_sb_draw
     mov esi, [r13 + Theme.scroll_thumb]
     mov ecx, CH_BLOCK_FULL
 .Lfpr_sb_draw:
-    push rcx
+    mov [rsp + 216 + 16], ecx # glyph survives the call (and the call site stays 16-byte aligned)
     mov rdi, r12
     mov edx, [r13 + Theme.surface]
     xor ecx, ecx
     call ScreenBuffer_set_pen
-    pop rcx
+    mov ecx, [rsp + 216 + 16]
 
     mov rdi, r12
     mov esi, [rbx + Widget.x]

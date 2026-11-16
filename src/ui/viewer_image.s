@@ -44,12 +44,24 @@ viewer_img_enter:
     mov ecx, eax
     test eax, eax
     jnz .Lie_state
+    cmp dword ptr [rbx + ViewerDialog.img + Image.w], 0
+    jle .Lie_bad
+    cmp dword ptr [rbx + ViewerDialog.img + Image.h], 0
+    jle .Lie_bad
+    cmp qword ptr [rbx + ViewerDialog.img + Image.px], 0
+    je .Lie_bad
     mov ecx, 1
+    jmp .Lie_state
+.Lie_bad:
+    mov ecx, IMG_E_CORRUPT
 .Lie_state:
     mov [rbx + ViewerDialog.img_state], ecx
 .Lie_dirty:
     mov rax, [rbx + Dialog.app]
+    test rax, rax
+    jz .Lie_ret
     mov dword ptr [rax + App.need_redraw], 1
+.Lie_ret:
     pop rbx
     ret
 

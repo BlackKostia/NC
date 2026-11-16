@@ -177,7 +177,9 @@ git_has_repo:
     mov byte ptr [rbx + 1], 0
     jmp .Lghr_loop
 .Lghr_yes:
-    mov eax, 1; jmp .Lghr_ret
+    mov rdi, r12                                      # "<worktree>/.git": only trusted repositories run git
+    call git_repo_trusted
+    jmp .Lghr_ret
 .Lghr_no:
     xor eax, eax
 .Lghr_ret:

@@ -18,10 +18,12 @@
 .equ TW_FRAME, PATH_MAX * 2 + 80
 
 .section .bss
+.global g_task_parent_pid
 g_task_start_ms:  .space 8
 g_task_pipe:      .space 8     # int[2] scratch for pipe2
 g_task_wake_fd:   .space 4
 g_task_op:        .space 4
+g_task_parent_pid:.space 4
 
 .section .text
 .global fs_task_start
@@ -40,6 +42,9 @@ task_worker_main:
     and rsp, -16
     sub rsp, TW_FRAME
     call task_worker_main__os_signals_worker_mode
+    call fs_progress_cancelled
+    test eax, eax
+    jnz .Ltw_canceled
     # Per-item cumulative (bytes, entries) after scan -> exact resync after each item
     mov eax, [r12 + TaskJob.count]
     shl rax, 4
@@ -94,18 +99,25 @@ task_worker_main:
 .Ltw_nomem:
     mov rax, -ENOMEM
 .Ltw_fail:
-    mov [rsp + TW_RES], rax
-    call fs_progress_cancelled        # failures after a cancel request (e.g. -EINTR) = cancel
-    test eax, eax
-    jz .Ltw_finish
+    mov rdi, r13; mov rsi, rax; call task_worker_exit
 .Ltw_canceled:
-    mov qword ptr [rsp + TW_RES], -ECANCELED
+    mov rdi, r13; mov rsi, -ECANCELED; call task_worker_exit
 .Ltw_finish:
-    mov rax, [rsp + TW_RES]
-    mov [r13 + TaskShared.result], rax
-    mov dword ptr [r13 + TaskShared.phase], TASK_PHASE_DONE
+    mov rdi, r13; mov rsi, [rsp + TW_RES]; call task_worker_exit
+
+# noreturn void task_worker_exit(TaskShared *shm, int64_t res)
+task_worker_exit:
+    cmp rsi, -ECANCELED
+    je 1f
+    call fs_progress_cancelled
+    test eax, eax
+    jz 1f
+    mov rsi, -ECANCELED
+1:
+    mov [rdi + TaskShared.result], rsi
+    mov dword ptr [rdi + TaskShared.phase], TASK_PHASE_DONE
     xor edi, edi
-    OS_EXIT
+    OS_EXIT                           # fault-checked: worker process exit
 
 # ==============================================================================
 # UI-process API
@@ -143,6 +155,8 @@ fs_task_start:
     mov [rip + g_task_cancel_at], rax
     call os_clock_ms
     mov [rip + g_task_start_ms], rax
+    OS_GETPID
+    mov [rip + g_task_parent_pid], eax
 
     OS_FORK
     test rax, rax
@@ -189,7 +203,14 @@ fs_task_start:
 task_worker_main__os_signals_worker_mode:
     lea rsp, [rsp - 8]
     mov [rip + g_fs_progress], r13
+    call os_mark_child_forked
+    call os_uring_atfork_reset
     call os_signals_worker_mode
+    mov edi, [rip + g_task_parent_pid]
+    mov esi, SIGTERM
+    call os_set_pdeathsig
+    mov edi, 4096
+    call os_raise_nofile
     mov qword ptr [rsp + TW_RES + 16], 0
     mov qword ptr [rsp + TW_DEV + 16], -1
     xor eax, eax

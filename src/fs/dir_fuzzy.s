@@ -123,31 +123,58 @@ fuzzy_score:
 dfc_join:
     push rbx
     push r12
+    push r13
     mov rbx, rdi
     mov r12, rdx
-    cmp byte ptr [rsi], 0
+    mov r13, rsi
+    cmp byte ptr [r13], 0
     jne .Ldj_pfx
+    mov rdi, r12
+    call str_len
+    cmp rax, PATH_MAX
+    jae .Ldj_err
+    mov rdi, rbx
     mov rsi, r12
     mov edx, PATH_MAX
     call str_copy
-    pop r12
-    pop rbx
-    ret
+    xor eax, eax
+    jmp .Ldj_ret
 .Ldj_pfx:
+    mov rdi, r13
+    call str_len
+    cmp rax, PATH_MAX - 2
+    jae .Ldj_err
+    mov rdi, rbx
+    mov rsi, r13
     mov edx, PATH_MAX
     call str_copy
-    cmp rax, PATH_MAX - 2
-    jae .Ldj_done
+    test rax, rax
+    jz .Ldj_need_sep
     cmp byte ptr [rbx + rax - 1], '/'
-    je .Ldj_app
+    je .Ldj_chk_rem
+.Ldj_need_sep:
+    cmp rax, PATH_MAX - 2
+    jae .Ldj_err
     mov byte ptr [rbx + rax], '/'
     inc rax
-.Ldj_app:
-    lea rdi, [rbx + rax]
+.Ldj_chk_rem:
+    mov r13, rax
+    mov rdi, r12
+    call str_len
+    mov ecx, PATH_MAX - 1
+    sub rcx, r13
+    cmp rax, rcx
+    ja .Ldj_err
+    lea rdi, [rbx + r13]
     mov rsi, r12
-    mov edx, PATH_MAX / 2
+    lea rdx, [rcx + 1]
     call str_copy
-.Ldj_done:
+    xor eax, eax
+    jmp .Ldj_ret
+.Ldj_err:
+    mov eax, -1
+.Ldj_ret:
+    pop r13
     pop r12
     pop rbx
     ret
@@ -253,7 +280,7 @@ dfc_walk__part1:
     lea rsp, [rsp - 8]
     mov edi, AT_FDCWD
     mov rsi, r12
-    mov edx, O_RDONLY | O_DIRECTORY | O_CLOEXEC
+    mov edx, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC
     xor r10d, r10d
     OS_OPENAT
     test rax, rax
@@ -269,8 +296,11 @@ dfc_walk__d_type_byte:
 
 .Ldw_read:
     mov edi, [rsp + PATH_MAX * 2 + 16]
+    mov eax, r14d
+    shl eax, 13
     mov rsi, [rbx + 32]
-    mov edx, 32768
+    add rsi, rax
+    mov edx, 8192
     call os_dir_read
     test rax, rax
     jle .Ldw_close
@@ -281,7 +311,10 @@ dfc_walk__d_type_byte:
     mov eax, [rbx + 24]
     cmp eax, [rbx + 28]
     jge .Ldw_close
+    mov eax, r14d
+    shl eax, 13
     mov rdi, [rbx + 32]
+    add rdi, rax
     mov rsi, [rsp + PATH_MAX * 2 + 8 + 16]
     lea rdx, [rsp + PATH_MAX * 2 + 16 + 16]
     lea rcx, [rsp + PATH_MAX * 2 + 24 + 16]
@@ -299,6 +332,8 @@ dfc_walk__d_type_byte:
     mov rsi, r13
     mov rdx, r15
     call dfc_join
+    test eax, eax
+    js .Ldw_ent
 
     mov rdi, rbx
     lea rsi, [rsp + PATH_MAX + 16]
@@ -311,6 +346,8 @@ dfc_walk__d_type_byte:
     mov rsi, r12
     mov rdx, r15
     call dfc_join
+    test eax, eax
+    js .Ldw_ent
     mov rdi, rbx
     lea rsi, [rsp + 16]
     lea rdx, [rsp + PATH_MAX + 16]

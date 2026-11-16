@@ -56,8 +56,11 @@ fs_errno_message:
     je .Lem_canceled
     cmp edi, EBUSY
     je .Lem_busy
+    cmp edi, EOPNOTSUPP
+    je .Lem_special
     mov rax, [rax + LangStrings.err_generic]
     ret
+.Lem_special:  mov rax, [rax + LangStrings.err_special]; ret
 .Lem_canceled: mov rax, [rax + LangStrings.err_canceled]; ret
 .Lem_busy:     mov rax, [rax + LangStrings.err_busy]; ret
 .Lem_perm:     mov rax, [rax + LangStrings.err_perm]; ret
@@ -101,14 +104,44 @@ fs_rename:
     test rax, rax
     ret
 
-# int fs_rename_noreplace(const char *old_path, const char *new_path)
+# int fs_rename_noreplace(const char *old_path, const char *new_path) -> 0, or -errno (-EEXIST: target exists)
+# Uses renameat2(RENAME_NOREPLACE); on a kernel/filesystem without it the target is looked at first.
 fs_rename_noreplace:
-    mov r10, rsi              # new_path
-    mov rsi, rdi              # old_path
+    push rbx; push r12
+    sub rsp, FileStat._size
+    mov rbx, rdi              # old_path
+    mov r12, rsi              # new_path
+    mov r10, rsi
+    mov rsi, rdi
     mov edi, AT_FDCWD
     mov edx, AT_FDCWD
     mov r8d, RENAME_NOREPLACE
     OS_RENAMEAT2
+    cmp rax, -EINVAL
+    je .Lfrn_probe
+    cmp rax, -ENOSYS
+    jne .Lfrn_ret
+.Lfrn_probe:
+    mov edi, AT_FDCWD
+    mov rsi, r12
+    mov rdx, rsp
+    xor ecx, ecx              # no-follow: a dangling symlink at the target counts as "exists"
+    call os_statat
+    test rax, rax
+    jns .Lfrn_exists
+    cmp rax, -ENOENT
+    jne .Lfrn_ret
+    mov r10, r12
+    mov rsi, rbx
+    mov edi, AT_FDCWD
+    mov edx, AT_FDCWD
+    OS_RENAMEAT               # safe-overwrite: the target was just verified absent
+    jmp .Lfrn_ret
+.Lfrn_exists:
+    mov rax, -EEXIST
+.Lfrn_ret:
+    add rsp, FileStat._size
+    pop r12; pop rbx
     test rax, rax
     ret
 

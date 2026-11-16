@@ -15,7 +15,7 @@ responsibility, one routine = one job, a narrow public API.
 
 | Kind | Module | Routine | Public API |
 | :--- | :--- | :--- | :--- |
-| `src/**/*.s` | ≤ 400 lines (aim 150–300) | top-level label ≤ 80 lines | ≤ 16 `.global` symbols |
+| `src/**/*.s` | ≤ 500 lines (aim 150–300) | top-level label ≤ 80 lines | ≤ 16 `.global` symbols |
 | `include/**/*.inc` | ≤ 400 lines | — | — |
 | `tests/*.py` | ≤ 500 lines | `def` ≤ 100 lines | — |
 

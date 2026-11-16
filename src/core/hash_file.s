@@ -47,13 +47,35 @@ hash_file__out_crc32:
 
     mov rsi, rdi
     mov edi, AT_FDCWD
-    mov edx, O_RDONLY | O_CLOEXEC
+    mov edx, O_RDONLY | O_NONBLOCK | O_CLOEXEC | O_NOFOLLOW
     xor r10d, r10d
     OS_OPENAT
     test rax, rax
+    js .Lhash_file__out_crc32_ret
+    mov r14d, eax
+    sub rsp, 64
+    mov edi, r14d
+    mov rsi, rsp
+    call os_fstat
+    test rax, rax
+    js .Lhfo_close_bad
+    mov eax, [rsp + FileStat.mode]
+    and eax, S_IFMT
+    cmp eax, S_IFREG
+    jne .Lhfo_close_bad
+    add rsp, 64
+    mov eax, r14d
+    test eax, eax
 .Lhash_file__out_crc32_ret:
     lea rsp, [rsp + 8]
     ret
+.Lhfo_close_bad:
+    add rsp, 64
+    mov edi, r14d
+    OS_CLOSE                  # fault-checked: reject non-regular/unstatable hash target
+    mov eax, -1
+    test eax, eax
+    jmp .Lhash_file__out_crc32_ret
 
 # hash_file step: buf (runs on the caller's frame)
 hash_file__buf:

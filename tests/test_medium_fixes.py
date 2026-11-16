@@ -100,7 +100,7 @@ def test_m4_atomic_state_and_trashinfo_writes() -> None:
     for rel in (
         "src/fs/nav_state_bookmarks.s",
         "src/fs/nav_state_frecency.s",
-        "src/fs/trash_undo.s",
+        "src/fs/trash_info.s",
     ):
         txt = open(os.path.join(REPO_ROOT, rel)).read()
         assert "O_TRUNC" not in txt, f"{rel} still uses O_TRUNC in place!"

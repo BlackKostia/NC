@@ -135,10 +135,13 @@ def test_aarch64_pal_backend() -> None:
     assert inc.is_file(), "Missing AArch64 pal_target.inc"
     pal_files = [
         "src/os/linux/aarch64/pal_os.s",
+        "src/os/linux/aarch64/pal_fault.s",
         "src/os/linux/aarch64/pal_simd.s",
         "src/os/linux/aarch64/pal_uring.s",
         "src/os/linux/aarch64/pal_pty.s",
+        "src/os/linux/aarch64/pal_thread.s",
         "src/os/linux/aarch64/pal_du.s",
+        "src/os/linux/aarch64/pal_time.s",
     ]
     for rel in pal_files:
         assert (ROOT / rel).is_file(), f"Missing AArch64 PAL file: {rel}"

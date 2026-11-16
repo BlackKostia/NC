@@ -49,6 +49,9 @@ if [[ -z "$DATA_BYTES" || "$DATA_BYTES" -ne 0 ]]; then
     exit 1
 fi
 python3 ./.agents/skills/duop-reliability-audit/scripts/audit_elf_hardening.py "$ROOT/duop"
+# Binary-level audit: caller-saved registers live across a call that clobbers them (needs the symbol table)
+make -s build/duop.sym
+python3 ./.agents/skills/duop-reliability-audit/scripts/audit_live_regs.py "$ROOT/build/duop.sym"
 
 VER_OUT="$("$ROOT/duop" --version)"
 if [[ "$VER_OUT" != *"v${VER}"* ]]; then

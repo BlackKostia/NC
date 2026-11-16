@@ -23,6 +23,7 @@ SearchCtx._size:
 .extern mem_alloc
 .extern mem_realloc
 .extern mem_free
+.extern mem_zero
 .extern str_len
 .extern str_copy
 .extern utf8_display_width
@@ -32,10 +33,12 @@ SearchCtx._size:
 
 .section .rodata
 .Ldsr_empty: .asciz ""
+ds_dotdot_name: .asciz ".."
 
 .section .text
 .global ds_ensure_model_cap
 .global ds_append_entry
+.global ds_append_parent
 .global ds_join_rel
 .global dir_search_run
 
@@ -188,7 +191,11 @@ ds_append_entry__part2:
 .Ldae_flags_ok:
     mov [r10 + FileEntry.flags], ecx
     mov rdi, r12
+    push r9                           # utf8_display_width -> utf8_decode/_char_width clobber r8-r10
+    push r10
     call utf8_display_width
+    pop r10
+    pop r9
     cmp eax, 255
     jbe .Ldae_dw_ok
     mov eax, 255
@@ -203,6 +210,36 @@ ds_append_entry__part2:
 .Ldae_ret:
 .Lds_append_entry__part2_ret:
     lea rsp, [rsp + 8]
+    ret
+
+# int ds_append_parent(DirModel *m) -> 0, or < 0 when the entry could not be added
+# Appends ".." as the newest entry the way the real directory loader does: FE_IS_PARENT (never
+# hidden by the live filter, never selectable), has_dotdot = 1 (sort keeps it first), not a dir.
+ds_append_parent:
+    push rbx
+    sub rsp, FileStat._size + 8
+    mov rbx, rdi
+    mov rdi, rsp
+    mov esi, FileStat._size
+    call mem_zero
+    mov dword ptr [rsp + FileStat.mode], S_IFDIR | 0755
+    mov rdi, rbx
+    lea rsi, [rip + ds_dotdot_name]
+    mov rdx, rsp
+    call ds_append_entry
+    test eax, eax
+    js .Ldsp_ret
+    mov rcx, [rbx + DirModel.raw_count]
+    dec rcx
+    imul rcx, FileEntry._size
+    add rcx, [rbx + DirModel.entries]
+    or dword ptr [rcx + FileEntry.flags], FE_IS_PARENT
+    mov dword ptr [rbx + DirModel.has_dotdot], 1
+    dec dword ptr [rbx + DirModel.dir_count]
+    xor eax, eax
+.Ldsp_ret:
+    add rsp, FileStat._size + 8
+    pop rbx
     ret
 
 # void ds_join_rel(char *dst, const char *prefix, const char *name)

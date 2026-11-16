@@ -24,6 +24,7 @@ g_uring_cq_tail:    .space 8
 g_uring_cqes:       .space 8
 g_uring_state:      .space 4    # 0 = uninitialized, 1 = active, -1 = unavailable
 g_uring_fd:         .space 4
+g_uring_owner_pid:  .space 4
 g_uring_sq_mask:    .space 4
 g_uring_cq_mask:    .space 4
 g_uring_free:       .space URING_DEPTH   # stack of free statx arena slots
@@ -31,6 +32,7 @@ g_uring_free:       .space URING_DEPTH   # stack of free statx arena slots
 .section .text
 .global os_batch_stat
 .global os_uring_shutdown
+.global os_uring_atfork_reset
 
 .extern os_statat
 
@@ -65,6 +67,12 @@ copy_statx_to_filestat:
     mov [rdi + FileStat.mode], eax
     mov eax, [rsi + KSTATX_MTIME + 8]
     mov [rdi + FileStat.mtime_nsec], eax
+    mov eax, [rsi + KSTATX_NLINK]
+    mov [rdi + FileStat.nlink], rax
+    mov eax, [rsi + KSTATX_UID]
+    mov [rdi + FileStat.uid], eax
+    mov eax, [rsi + KSTATX_GID]
+    mov [rdi + FileStat.gid], eax
     ret
 
 # void os_uring_shutdown(void)
@@ -116,33 +124,47 @@ os_uring_shutdown:
     mov dword ptr [g_uring_state], 0
     ret
 
+# void os_uring_atfork_reset(void) - drop inherited ring mappings/fd in a forked child
+os_uring_atfork_reset:
+    jmp os_uring_shutdown
+
+# Internal: mmap(NULL, rsi, RW, MAP_SHARED|MAP_POPULATE, ring fd r12d, offset r9) -> rax; "jae" = failed
+uring_map:
+    xor edi, edi
+    mov edx, PROT_READ | PROT_WRITE
+    mov r10d, MAP_SHARED | MAP_POPULATE
+    mov r8d, r12d
+    mov eax, OS_SYS_mmap
+    syscall
+    cmp rax, -4096
+    ret
+
+# Internal: free-slot stack g_uring_free[0..URING_DEPTH) = identity (every arena slot is free)
+uring_slots_init:
+    xor ecx, ecx
+    lea rdx, [g_uring_free]
+.Lusi_loop:
+    mov [rdx + rcx], cl
+    inc ecx
+    cmp ecx, URING_DEPTH
+    jb .Lusi_loop
+    ret
+
 # int os_uring_init(void) -> returns 0 on success, -1 on failure
 os_uring_init:
-    push rbx
-    push r12
-    push r13
-    push r14
-    sub rsp, 136
-
-    # Zero params (120 bytes)
-    xor eax, eax
-    mov ecx, 15
-    mov rdi, rsp
-.Loui_zero:
-    mov [rdi], rax
-    add rdi, 8
-    dec ecx
-    jnz .Loui_zero
-
-    mov edi, URING_DEPTH
-    mov rsi, rsp
-    mov eax, OS_SYS_io_uring_setup
-    syscall
-    test eax, eax
-    js .Loui_fail
-
-    mov r12d, eax
-    mov [g_uring_fd], eax
+    push rbx; push r12; push r13; push r14; sub rsp, 136
+    xor eax, eax; mov ecx, 15; mov rdi, rsp; rep stosq   # setup flags stay 0: io_uring fds are always O_CLOEXEC
+    mov edi, URING_DEPTH; mov rsi, rsp
+    mov eax, OS_SYS_io_uring_setup; syscall
+    test eax, eax; js .Loui_fail
+    mov r12d, eax; mov [g_uring_fd], eax
+    mov edi, r12d; mov esi, F_SETFD; mov edx, FD_CLOEXEC; mov eax, OS_SYS_fcntl; syscall
+    test eax, eax; js .Loui_fail_cleanup
+    OS_GETPID
+    mov [rip + g_uring_owner_pid], eax
+    # sq_off.array == 0 means the ring has no SQ index array (IORING_SETUP_NO_SQARRAY): unusable here
+    cmp dword ptr [rsp + KIOU_P_SQ_OFF + KIOU_SQO_ARRAY], 0
+    je .Loui_fail_cleanup
 
     # sring_sz = sq_off.array + sq_entries * 4
     mov r13d, [rsp + KIOU_P_SQ_OFF + KIOU_SQO_ARRAY]
@@ -165,15 +187,9 @@ os_uring_init:
     mov r14, r13
 
 .Loui_map_sq:
-    xor edi, edi
     mov rsi, r13
-    mov edx, PROT_READ | PROT_WRITE
-    mov r10d, MAP_SHARED | MAP_POPULATE
-    mov r8d, r12d
     mov r9, IORING_OFF_SQ_RING
-    mov eax, OS_SYS_mmap
-    syscall
-    cmp rax, -4096
+    call uring_map
     jae .Loui_fail_cleanup
     mov [g_uring_sq_ptr], rax
     mov [g_uring_sq_sz], r13
@@ -187,15 +203,9 @@ os_uring_init:
     jmp .Loui_setup_ptrs
 
 .Loui_map_cq:
-    xor edi, edi
     mov rsi, r14
-    mov edx, PROT_READ | PROT_WRITE
-    mov r10d, MAP_SHARED | MAP_POPULATE
-    mov r8d, r12d
     mov r9, IORING_OFF_CQ_RING
-    mov eax, OS_SYS_mmap
-    syscall
-    cmp rax, -4096
+    call uring_map
     jae .Loui_fail_cleanup
     mov [g_uring_cq_ptr], rax
     mov [g_uring_cq_sz], r14
@@ -234,14 +244,8 @@ os_uring_init:
     mov esi, [rsp + KIOU_P_SQ_ENT]
     imul rsi, rsi, KSQE_SIZE
     mov [g_uring_sqes_sz], rsi
-    xor edi, edi
-    mov edx, PROT_READ | PROT_WRITE
-    mov r10d, MAP_SHARED | MAP_POPULATE
-    mov r8d, r12d
     mov r9, IORING_OFF_SQES
-    mov eax, OS_SYS_mmap
-    syscall
-    cmp rax, -4096
+    call uring_map
     jae .Loui_fail_cleanup
     mov [g_uring_sqes_ptr], rax
 
@@ -290,14 +294,7 @@ os_uring_init:
 os_batch_stat:
     test r8, r8
     jz .Lobs_ret_zero
-
-    push rbx
-    push rbp
-    push r12
-    push r13
-    push r14
-    push r15
-    sub rsp, 72
+    push rbx; push rbp; push r12; push r13; push r14; push r15; sub rsp, 72
     # [rsp+0]=count [8]=next [16]=out_stats [24]=out_errs [32]=follow(d) [36]=statx_flags(d)
     # [40]=done [48]=dirfd(d) [52]=in_flight(d) [56]=unsubmitted [64]=free_top(d)
     mov [rsp + 0], r8
@@ -323,19 +320,18 @@ os_batch_stat:
     cmp eax, -1
     je .Lobs_fallback
     test eax, eax
-    jnz .Lobs_init_free
+    jz .Lobs_try_init
+    OS_GETPID
+    cmp eax, [rip + g_uring_owner_pid]
+    je .Lobs_init_free
+    call os_uring_shutdown
+.Lobs_try_init:
     call os_uring_init
     test eax, eax
     js .Lobs_fallback
 
 .Lobs_init_free:
-    xor ecx, ecx
-    lea rdx, [g_uring_free]
-.Lobs_free_init:
-    mov [rdx + rcx], cl
-    inc ecx
-    cmp ecx, URING_DEPTH
-    jb .Lobs_free_init
+    call uring_slots_init
     mov dword ptr [rsp + 64], URING_DEPTH
 
 .Lobs_roll:
@@ -364,15 +360,7 @@ os_batch_stat:
     shl rax, 6
     mov rdi, [g_uring_sqes_ptr]
     add rdi, rax
-    xor eax, eax
-    mov [rdi + 0], rax
-    mov [rdi + 8], rax
-    mov [rdi + 16], rax
-    mov [rdi + 24], rax
-    mov [rdi + 32], rax
-    mov [rdi + 40], rax
-    mov [rdi + 48], rax
-    mov [rdi + 56], rax
+    xor eax, eax; mov ecx, 8; rep stosq; sub rdi, KSQE_SIZE
     mov byte ptr [rdi + KSQE_OP], IORING_OP_STATX
     mov eax, [rsp + 48]
     mov [rdi + KSQE_FD], eax
@@ -442,6 +430,8 @@ os_batch_stat:
     mov r14, rbx
     shr r14, 8                        # item index
     and ebx, 0xFF                     # slot
+    cmp r14, [rsp + 0]                # foreign/corrupted CQE must never index outside the batch
+    jae .Lobs_uring_err
     mov rax, [rsp + 24]
     test rax, rax
     jz .Lobs_no_err

@@ -123,8 +123,13 @@ img_decode:
 .Ldec_chk:
     TRY_END rsp
     test eax, eax
-    jz .Ldec_ret
-    jmp .Ldec_free
+    jnz .Ldec_free
+    cmp dword ptr [rbx + Image.w], 0
+    jle .Ldec_fault
+    cmp dword ptr [rbx + Image.h], 0
+    jle .Ldec_fault
+    cmp qword ptr [rbx + Image.px], 0
+    jne .Ldec_ret
 .Ldec_fault:
     mov eax, IMG_E_CORRUPT
 .Ldec_free:
@@ -189,7 +194,11 @@ img_fit:
     mov r9d, esi                      # ih
     mov r10d, edx                     # bw
     mov r11d, ecx                     # bh
-    mov eax, r9d                      # width-bound: oh = ih * bw / iw
+    test r8d, r8d; jg 1f; mov r8d, 1
+1:  test r9d, r9d; jg 2f; mov r9d, 1
+2:  test r10d, r10d; jg 3f; mov r10d, 1
+3:  test r11d, r11d; jg 4f; mov r11d, 1
+4:  mov eax, r9d                      # width-bound: oh = ih * bw / iw
     imul rax, r10
     xor edx, edx
     div r8
@@ -345,6 +354,8 @@ isc_average:
     inc r8d
     jmp .Lisa_y
 .Lisa_div:
+    test rbx, rbx
+    jz .Lisa_zero
     xor r12d, r12d                    # packed result
     mov r13d, 3
 .Lisa_ch:
@@ -356,6 +367,10 @@ isc_average:
     dec r13d
     jns .Lisa_ch
     mov eax, r12d                     # A<<24 | B<<16 | G<<8 | R == bytes R,G,B,A in memory
+    jmp .Lisa_ret
+.Lisa_zero:
+    mov eax, 0xFF000000
+.Lisa_ret:
     add rsp, 32
     pop r13
     pop r12

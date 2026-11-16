@@ -98,15 +98,16 @@ pv_helper_thumb:
     jl .Lpht_ret
     cmp dword ptr [rsp + 8 + PV_TREQ], 0
     je .Lpht_ret                      # text-only request
-    call fs_preview_shm
+    mov edi, [rsp + 8]                 # helper request seq
+    call fs_preview_shm_slot
     test rax, rax
     jz .Lpht_ret
-    mov r8, rax                       # payload goes to the shared buffer
+    mov r8, rax                       # payload goes to ping-pong shared slot
     lea rdi, [rsp + 8 + 64]           # path
     lea rsi, [rsp + 8 + 64 + PATH_MAX]
     mov edx, [rsp + 8 + 8]            # head length
     lea rcx, [rsp + 8 + PV_TREQ]
-    mov r9d, PV_SHM_CAP
+    mov r9d, PV_SHM_SLOT_SZ
     sub rsp, 8
     call pv_make_thumb
     add rsp, 8

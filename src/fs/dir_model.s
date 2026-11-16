@@ -210,6 +210,14 @@ alloc_initial_arrays:
     pop rbx
     ret
 .Laia_fail:
+    mov rdi, [rbx + DirModel.entries]; call mem_free
+    mov rdi, [rbx + DirModel.order]; call mem_free
+    mov rdi, [rbx + DirModel.name_pool]; call mem_free
+    mov qword ptr [rbx + DirModel.entries], 0
+    mov qword ptr [rbx + DirModel.order], 0
+    mov qword ptr [rbx + DirModel.name_pool], 0
+    mov qword ptr [rbx + DirModel.raw_cap], 0
+    mov qword ptr [rbx + DirModel.name_cap], 0
     mov eax, -ENOMEM
     pop rbx
     ret

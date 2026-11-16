@@ -286,7 +286,7 @@ fs_read_file_head:
 .Lrfh_open:
     mov rsi, rdi
     mov edi, AT_FDCWD
-    mov edx, O_RDONLY | O_CLOEXEC
+    mov edx, O_RDONLY | O_NONBLOCK | O_CLOEXEC
     xor r10d, r10d
     OS_OPENAT
     test rax, rax

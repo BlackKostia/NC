@@ -39,6 +39,45 @@ g_undo_top:     .space 4
 .global undo_push
 .global undo_pop_and_apply
 
+# int tmf_copy_move(const char *src, const char *dst) -> 0, or -errno (edx = 1: dst complete, src left)
+# Cross-filesystem move onto a name that must still be free. Copy errors drop the partial copy and
+# leave the original untouched; special files (FIFO...) are refused by the copy engine.
+tmf_copy_move:
+    push rbx; push r12; push r13
+    sub rsp, FileStat._size + 8
+    mov rbx, rdi
+    mov r12, rsi
+    xor r13d, r13d
+    mov edi, AT_FDCWD
+    mov rsi, r12
+    mov rdx, rsp
+    xor ecx, ecx
+    call os_statat
+    test rax, rax
+    jns .Ltcm_exists
+    mov rdi, rbx
+    mov rsi, r12
+    call fs_copy_recursive
+    test eax, eax
+    js .Ltcm_failed
+    mov r13d, 1
+    mov rdi, rbx
+    call fs_delete_recursive
+    jmp .Ltcm_ret
+.Ltcm_exists:
+    mov eax, -EEXIST
+    jmp .Ltcm_ret
+.Ltcm_failed:
+    mov ebx, eax
+    mov rdi, r12
+    call fs_delete_recursive
+    mov eax, ebx
+.Ltcm_ret:
+    mov edx, r13d
+    add rsp, FileStat._size + 8
+    pop r13; pop r12; pop rbx
+    ret
+
 # int trash_move_file(const char *src_path, const char **envp, char *out_trash_path, char *out_info_path)
 trash_move_file:
     push rbx
@@ -66,6 +105,8 @@ trash_move_file:
     mov rdx, r13
     mov rcx, r14
     call tu_pick_unique
+    test eax, eax
+    js .Ltmf_ret              # no free trash name: nothing was touched
 
     mov rdi, r14
     mov rsi, rbx
@@ -73,24 +114,22 @@ trash_move_file:
     test eax, eax
     js .Ltmf_ret
 
-    mov edi, AT_FDCWD
-    mov rsi, rbx
-    mov edx, AT_FDCWD
-    mov r10, r13
-    OS_RENAMEAT
+    mov rdi, rbx
+    mov rsi, r13
+    call fs_rename_noreplace  # never replaces an item that is already in the trash
     test rax, rax
     jns .Ltmf_ok
     cmp eax, -EXDEV
     jne .Ltmf_unlink_info
-    mov rdi, rbx
+    mov rdi, rbx              # other filesystem: copy into the trash, then remove the original
     mov rsi, r13
-    call fs_copy_recursive
+    call tmf_copy_move
     test eax, eax
-    js .Ltmf_unlink_info
-    mov rdi, rbx
-    call fs_delete_recursive
-    test eax, eax
-    js .Ltmf_ret
+    jns .Ltmf_ok
+    test edx, edx
+    jnz .Ltmf_ret             # trash copy is complete, original not removable: keep the info file
+    movsxd rax, eax
+    jmp .Ltmf_unlink_info
 .Ltmf_ok:
     xor eax, eax
     jmp .Ltmf_ret
@@ -175,30 +214,37 @@ undo_pop_and_apply:
     test eax, eax
     jle .Lupa_empty
     dec eax
-    mov [rip + g_undo_top], eax
     imul rbx, rax, UndoSlot._size
     lea rcx, [rip + g_undo_slots]
     add rbx, rcx
 
-    mov edi, AT_FDCWD
-    lea rsi, [rbx + UndoSlot.cur]
-    mov edx, AT_FDCWD
-    lea r10, [rbx + UndoSlot.orig]
-    OS_RENAMEAT
-    test rax, rax
-    jns .Lupa_chk_trash
-    cmp eax, -EXDEV
-    jne .Lupa_ret
     lea rdi, [rbx + UndoSlot.cur]
     lea rsi, [rbx + UndoSlot.orig]
-    call fs_copy_recursive
-    test eax, eax
-    js .Lupa_ret
+    call fs_rename_noreplace  # never replaces a file that appeared at the original place meanwhile
+    test rax, rax
+    jns .Lupa_chk_trash
+    cmp eax, -EEXIST
+    je .Lupa_conflict
+    cmp eax, -EXDEV
+    jne .Lupa_drop
     lea rdi, [rbx + UndoSlot.cur]
-    call fs_delete_recursive
+    lea rsi, [rbx + UndoSlot.orig]
+    call tmf_copy_move        # other filesystem: copy back onto a free name, then remove the trash copy
     test eax, eax
-    js .Lupa_ret
+    jns .Lupa_chk_trash
+    cmp eax, -EEXIST
+    je .Lupa_conflict
+.Lupa_drop:
+    movsxd rax, eax
+    dec dword ptr [rip + g_undo_top]      # unrecoverable failure: the entry is dropped
+    pop rbx
+    ret
+.Lupa_conflict:
+    mov rax, -EEXIST          # something is in the way: keep the entry so Ctrl+Z can be retried
+    pop rbx
+    ret
 .Lupa_chk_trash:
+    dec dword ptr [rip + g_undo_top]
     cmp dword ptr [rbx + UndoSlot.kind], UNDO_TRASH
     jne .Lupa_ok
     cmp byte ptr [rbx + UndoSlot.info], 0
@@ -213,6 +259,5 @@ undo_pop_and_apply:
     ret
 .Lupa_empty:
     xor eax, eax
-.Lupa_ret:
     pop rbx
     ret

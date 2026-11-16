@@ -3,7 +3,7 @@
 
 Verifies via `size` and `readelf`:
   1. `.data` section == 0 bytes.
-  2. `PT_GNU_STACK` is non-executable (RWE forbidden; RW or absent-NX check).
+  2. `PT_GNU_STACK` is present and non-executable (an absent header means READ_IMPLIES_EXEC on kernels < 5.8).
   3. Zero `TEXTREL` / dynamic relocations in static ELF.
 """
 
@@ -38,6 +38,8 @@ def main() -> int:
     if re_ph.returncode != 0:
         failures.append(f"`readelf -lW` failed: {re_ph.stderr.strip()}")
     else:
+        if not any("GNU_STACK" in line for line in re_ph.stdout.splitlines()):
+            failures.append("missing `PT_GNU_STACK` (link with `-z noexecstack`): heap/.bss/stack become executable on kernels < 5.8")
         for line in re_ph.stdout.splitlines():
             if "GNU_STACK" in line and "RWE" in line:
                 failures.append(f"Executable stack detected (`GNU_STACK` has `RWE`): {line.strip()}")

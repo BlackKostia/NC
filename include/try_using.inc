@@ -48,11 +48,11 @@
     mov [rip + g_try_frame], rax
 .endm
 
-# --- TRY_END base ---
-# Unlinks TryFrame [base] from g_try_frame. Clobbers: rax.
-.macro TRY_END base
-    mov rax, [\base + TF_PREV]
-    mov [rip + g_try_frame], rax
+# --- TRY_END base [, scratch] ---
+# Unlinks TryFrame [base] from g_try_frame. Preserves rax and flags; clobbers scratch (default r11).
+.macro TRY_END base, scratch=r11
+    mov \scratch, [\base + TF_PREV]
+    mov [rip + g_try_frame], \scratch
 .endm
 
 # --- USING_FD_* : Scoped file descriptor cleanup (0% overhead) ---

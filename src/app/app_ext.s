@@ -120,9 +120,12 @@ app_close_fuzzy_dlg:
 .Lacfd_fuz:
     sub rsp, PATH_MAX
     mov rdi, rsp; lea rsi, [r12 + FuzzyDialog.base_path]; mov rdx, rax
+    mov ecx, PATH_MAX
     call path_join
+    test rax, rax; js .Lacfd_fuz_done
     mov rdi, rbx; mov rsi, r13; mov rdx, rsp
     call app_jump_virtual_entry
+.Lacfd_fuz_done:
     add rsp, PATH_MAX
 .Lacfd_done:
     pop r13; pop r12; pop rbx; ret
@@ -248,6 +251,7 @@ App_close_dialog_ext__dir_search_run:
     jle .Lacde_scur
     mov rdi, [r14 + FilePane.model]
     call DirModel_sort
+    xor ecx, ecx              # DirModel_sort clobbers rcx
     mov r8, [r14 + FilePane.model]
     cmp dword ptr [r8 + DirModel.has_dotdot], 0
     je .Lacde_scur

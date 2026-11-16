@@ -7,6 +7,10 @@
 .equ FUZZY_MAX_DEPTH, 8
 .extern sys_open
 .extern sys_close
+.extern sys_write_all
+.extern os_statat
+.extern tmp_open_atomic
+.extern tmp_commit_atomic
 .extern os_dir_read
 .extern os_dir_next_ex
 .extern mem_alloc
@@ -33,7 +37,7 @@ dir_fuzzy_collect:
     mov [rsp + 16], rcx
     mov dword ptr [rsp + 24], 0
     mov [rsp + 28], r8d
-    mov edi, 32768
+    mov edi, FUZZY_MAX_DEPTH * 8192
     call mem_alloc
     test rax, rax
     jz .Ldfc_fail
@@ -56,22 +60,46 @@ dir_fuzzy_collect:
 
 # int fs_write_file(const char *path, const void *buf, uint64_t len) -> 0 ok, -1 err
 fs_write_file:
-    push rbx; push r12; push r13
-    mov r12, rsi; mov r13, rdx
-    mov rsi, rdi; mov edi, AT_FDCWD
-    mov edx, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC
-    mov r10d, 0644; OS_OPENAT
+    push rbx; push r12; push r13; push r14; push r15
+    sub rsp, PATH_MAX + 64            # [0..55]=FileStat, [64..]=tmp_buf
+    mov r15, rdi; mov r12, rsi; mov r13, rdx
+    mov edi, AT_FDCWD; mov rsi, r15; mov rdx, rsp; xor ecx, ecx
+    call os_statat
+    mov r14d, 0644
+    test rax, rax
+    js .Lfwf_chk_enoent
+    mov eax, [rsp + FileStat.mode]
+    and eax, S_IFMT
+    cmp eax, S_IFREG
+    jne .Lfwf_err
+    mov r14d, [rsp + FileStat.mode]
+    and r14d, 0777
+    jmp .Lfwf_open
+.Lfwf_chk_enoent:
+    cmp rax, -2
+    jne .Lfwf_err
+.Lfwf_open:
+    mov rdi, r15; lea rsi, [rsp + 64]; mov edx, r14d
+    call tmp_open_atomic
     test rax, rax; js .Lfwf_err
     mov ebx, eax
-    mov rdi, rbx; mov rsi, r12; mov rdx, r13
-    OS_WRITE
-    push rax
-    mov edi, ebx; OS_CLOSE
-    pop rax
-    test rax, rax; js .Lfwf_err
+    mov edi, ebx; mov rsi, r12; mov rdx, r13
+    call sys_write_all
+    xor rcx, rcx
+    test rax, rax; js .Lfwf_wr_fail
+    cmp rax, r13; je .Lfwf_commit
+.Lfwf_wr_fail:
+    mov rcx, rax
+    test rcx, rcx; js .Lfwf_commit
+    mov rcx, -EIO
+.Lfwf_commit:
+    mov edi, ebx; lea rsi, [rsp + 64]; mov rdx, r15
+    call tmp_commit_atomic
+    test eax, eax; js .Lfwf_err
     xor eax, eax; jmp .Lfwf_ret
 .Lfwf_err:
     mov eax, -1
 .Lfwf_ret:
-    pop r13; pop r12; pop rbx
+    add rsp, PATH_MAX + 64
+    pop r15; pop r14; pop r13; pop r12; pop rbx
     ret

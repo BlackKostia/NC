@@ -135,8 +135,11 @@ App_open_selected_entry__check_duoprc_open_ext:
 
 .Laos_open_file:
     mov rcx, [r12 + FilePane.model]
-    cmp dword ptr [rcx + DirModel.virtual_mode], 0
-    je .Laos_open_normal
+    mov eax, [rcx + DirModel.virtual_mode]
+    test eax, eax
+    jz .Laos_open_normal
+    cmp eax, 1
+    jne .LApp_open_selected_entry__check_duoprc_open_ext_ret
     mov rdi, rbx
     mov rsi, r12
     lea rdx, [rsp + 16]

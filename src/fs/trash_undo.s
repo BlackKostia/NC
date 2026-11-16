@@ -35,15 +35,12 @@ str_local_shr:  .asciz "/.local/share"
 str_trash_dir:  .asciz "/Trash"
 str_files_dir:  .asciz "/Trash/files"
 str_info_dir:   .asciz "/Trash/info"
-str_trash_hdr:  .asciz "[Trash Info]\nPath="
-str_trash_dt:   .asciz "\nDeletionDate=2026-11-14T00:00:00\n"
 str_trash_ext:  .asciz ".trashinfo"
 str_tmp_fb:     .asciz "/tmp"
 
 .section .text
 .global tu_get_data_home
 .global tu_mkdir_p_base
-.global tu_write_info
 .global tu_pick_unique
 
 # Helper: const char *tu_find_env(const char **envp, const char *pfx, size_t pfx_len)
@@ -183,62 +180,6 @@ tu_mkdir_p_base:
     pop rbx
     ret
 
-# Helper: int tu_write_info(const char *info_path, const char *orig_path)
-tu_write_info:
-    push rbx
-    push r12
-    push r13
-    push r14
-    sub rsp, PATH_MAX + 8
-    mov r13, rdi              # info_path
-    mov r12, rsi              # orig_path
-    mov rsi, rsp
-    mov edx, 0600
-    call tmp_open_atomic
-    test rax, rax
-    js .Ltwi_err
-    mov ebx, eax
-
-    mov edi, ebx
-    lea rsi, [rip + str_trash_hdr]
-    mov edx, 18
-    call sys_write_all
-    test rax, rax
-    js .Ltwi_werr
-
-    mov rdi, r12
-    call str_len
-    mov edi, ebx
-    mov rsi, r12
-    mov rdx, rax
-    call sys_write_all
-    test rax, rax
-    js .Ltwi_werr
-
-    mov edi, ebx
-    lea rsi, [rip + str_trash_dt]
-    mov edx, 35
-    call sys_write_all
-    test rax, rax
-    js .Ltwi_werr
-    xor r14d, r14d
-    jmp .Ltwi_commit
-.Ltwi_werr:
-    mov r14, rax
-.Ltwi_commit:
-    mov edi, ebx
-    mov rsi, rsp
-    mov rdx, r13
-    mov rcx, r14
-    call tmp_commit_atomic
-.Ltwi_err:
-    add rsp, PATH_MAX + 8
-    pop r14
-    pop r13
-    pop r12
-    pop rbx
-    ret
-
 # Helper: void tu_pick_unique(const char *data_home, const char *base, char *out_files, char *out_info)
 tu_pick_unique:
     push rbx
@@ -256,7 +197,11 @@ tu_pick_unique:
     inc ebp
     cmp ebp, 999
     jb .Ltpu_try
+    mov eax, -EEXIST                  # every candidate name is taken: refuse instead of overwriting
+    jmp .Ltpu_ret
 .Ltpu_ok:
+    xor eax, eax
+.Ltpu_ret:
     add rsp, FileStat._size + 40
     pop r14
     pop r13
@@ -340,7 +285,7 @@ tu_pick_unique__os_statat:
     mov edi, AT_FDCWD
     mov rsi, r13
     lea rdx, [rsp + 32 + 16]
-    mov ecx, AT_SYMLINK_NOFOLLOW
+    xor ecx, ecx                      # OS_STAT_NOFOLLOW
     call os_statat
     test eax, eax
 .Ltu_pick_unique__os_statat_ret:

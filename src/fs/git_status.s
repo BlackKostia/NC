@@ -15,6 +15,8 @@
 .extern str_cat
 .extern str_len
 .extern os_statat
+.extern os_clock_ms
+.extern os_poll_in
 .extern env_getenv
 .extern g_envp
 
@@ -25,9 +27,12 @@ git_bin_bin:   .asciz "/bin/git"
 git_name:      .asciz "git"
 git_path_key:  .asciz "PATH"
 git_arg_nolck: .asciz "--no-optional-locks"
+git_arg_cflag: .asciz "-c"
+git_arg_nofsm: .asciz "core.fsmonitor=false"            # a repository's fsmonitor hook would run code
 git_arg_c:     .asciz "-C"
 git_arg_stat:  .asciz "status"
 git_arg_porc:  .asciz "--porcelain=v1"
+git_arg_nosub: .asciz "--ignore-submodules=all"         # nested repositories are never inspected
 git_arg_z:     .asciz "-z"
 git_arg_b:     .asciz "-b"
 git_devnull:   .asciz "/dev/null"
@@ -35,10 +40,15 @@ git_env_path:  .asciz "PATH=/usr/bin:/bin"
 git_env_lc:    .asciz "LC_ALL=C"
 git_no_comm:   .asciz "No commits yet on "
 
+.section .bss
+.align 4
+g_git_off: .space 4            # 1 after a git run exceeded its deadline: git integration stays off
+
 .section .text
 .global git_free_ctx
 .global git_spawn_status
 .global git_parse_branch
+.equ GIT_TIMEOUT_MS, 2500      # a stuck git (dead mount, huge repo) must never freeze the UI
 
 # void git_free_ctx(DirModel *dm)
 git_free_ctx:
@@ -63,7 +73,9 @@ git_free_ctx:
 # int git_spawn_status(const char *dir, char *out_buf, int buf_cap) -> bytes or -1
 git_spawn_status:
     push rbx; push r12; push r13; push r14; push r15
-    sub rsp, 128              # [0..7]=pipefd, [8..87]=argv, [88..111]=envp, [112]=status
+    sub rsp, 144              # [0..7]=pipefd, [8..103]=argv, [104..127]=envp, [128]=status, [136]=deadline
+    cmp dword ptr [rip + g_git_off], 0
+    jne .Lgss_err
     call git_spawn_status__dir
     js .Lgss_err
 
@@ -75,7 +87,7 @@ git_spawn_status:
 .Lgss_wait:
     call git_spawn_status__part4
     je .Lgss_wait
-    cmp dword ptr [rsp + 112], 0
+    cmp dword ptr [rsp + 128], 0
     jne .Lgss_err
     mov byte ptr [r13 + r15], 0
     mov eax, r15d
@@ -87,7 +99,7 @@ git_spawn_status:
 .Lgss_err:
     mov eax, -1
 .Lgss_ret:
-    add rsp, 128
+    add rsp, 144
     pop r15; pop r14; pop r13; pop r12; pop rbx
     ret
 
@@ -122,7 +134,7 @@ git_spawn_status__child_process:
 
     mov edi, AT_FDCWD
     lea rsi, [rip + git_devnull]
-    mov edx, O_WRONLY
+    mov edx, O_RDWR
     xor r10d, r10d
     OS_OPENAT
     test rax, rax
@@ -131,26 +143,34 @@ git_spawn_status__child_process:
     mov edi, eax
     mov esi, 2                # stderr
     OS_DUP2
+    mov edi, [rsp]
+    xor esi, esi              # stdin: the helper must never read the user's keystrokes
+    OS_DUP2
     pop rdi
     OS_CLOSE
 
 .Lgss_exec:
     lea rax, [rip + git_name]; mov [rsp + 8 + 16], rax
     lea rcx, [rip + git_arg_nolck]; mov [rsp + 16 + 16], rcx
-    lea rcx, [rip + git_arg_c]; mov [rsp + 24 + 16], rcx
-    mov [rsp + 32 + 16], r12
-    lea rcx, [rip + git_arg_stat]; mov [rsp + 40 + 16], rcx
-    lea rcx, [rip + git_arg_porc]; mov [rsp + 48 + 16], rcx
-    lea rcx, [rip + git_arg_z]; mov [rsp + 56 + 16], rcx
-    lea rcx, [rip + git_arg_b]; mov [rsp + 64 + 16], rcx
-    mov qword ptr [rsp + 72 + 16], 0
+    lea rcx, [rip + git_arg_cflag]; mov [rsp + 24 + 16], rcx
+    lea rcx, [rip + git_arg_nofsm]; mov [rsp + 32 + 16], rcx
+    lea rcx, [rip + git_arg_c]; mov [rsp + 40 + 16], rcx
+    mov [rsp + 48 + 16], r12
+    lea rcx, [rip + git_arg_stat]; mov [rsp + 56 + 16], rcx
+    lea rcx, [rip + git_arg_porc]; mov [rsp + 64 + 16], rcx
+    lea rcx, [rip + git_arg_nosub]; mov [rsp + 72 + 16], rcx
+    lea rcx, [rip + git_arg_z]; mov [rsp + 80 + 16], rcx
+    lea rcx, [rip + git_arg_b]; mov [rsp + 88 + 16], rcx
+    mov qword ptr [rsp + 96 + 16], 0
 
-    lea rcx, [rip + git_env_path]; mov [rsp + 88 + 16], rcx
-    lea rcx, [rip + git_env_lc]; mov [rsp + 96 + 16], rcx
-    mov qword ptr [rsp + 104 + 16], 0
+    lea rcx, [rip + git_env_path]; mov [rsp + 104 + 16], rcx
+    lea rcx, [rip + git_env_lc]; mov [rsp + 112 + 16], rcx
+    mov qword ptr [rsp + 120 + 16], 0
 
+    call os_sig_reset_pipe
+    call os_mark_child_forked
     lea rdi, [rsp + 8 + 16]
-    lea rsi, [rsp + 88 + 16]
+    lea rsi, [rsp + 104 + 16]
     call git_exec_from_path
     mov edi, 127
     OS_EXIT
@@ -206,9 +226,23 @@ git_spawn_status__total_read:
     lea rsp, [rsp - 8]
     xor r15d, r15d            # total read
     dec r14d                  # leave room for NUL
+    call os_clock_ms
+    add rax, GIT_TIMEOUT_MS
+    mov [rsp + 136 + 16], rax # deadline
 .Lgss_rd:
     cmp r15d, r14d
     jge .Lgss_rd_done
+    call os_clock_ms
+    mov rsi, [rsp + 136 + 16]
+    sub rsi, rax              # ms left
+    jle .Lgss_late
+    mov edi, [rsp + 0 + 16]
+    call os_poll_in
+    cmp rax, -EINTR
+    je .Lgss_rd
+    test rax, rax
+    jz .Lgss_late             # nothing readable before the deadline
+    js .Lgss_rd_done
     mov edi, [rsp + 0 + 16]
     lea rsi, [r13 + r15]
     mov edx, r14d
@@ -220,6 +254,12 @@ git_spawn_status__total_read:
     jle .Lgss_rd_done
     add r15d, eax
     jmp .Lgss_rd
+.Lgss_late:
+    mov dword ptr [rip + g_git_off], 1   # too slow once: leave git alone for the rest of the session
+    mov rdi, rbx
+    mov esi, SIGKILL
+    OS_KILL
+    xor r15d, r15d            # drop partial output
 .Lgss_rd_done:
     mov edi, [rsp + 0 + 16]
     OS_CLOSE
@@ -232,7 +272,7 @@ git_spawn_status__total_read:
 git_spawn_status__part4:
     lea rsp, [rsp - 8]
     mov rdi, rbx
-    lea rsi, [rsp + 112 + 16]
+    lea rsi, [rsp + 128 + 16]
     xor edx, edx
     xor r10d, r10d
     OS_WAIT4

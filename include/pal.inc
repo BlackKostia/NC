@@ -30,6 +30,10 @@ FileStat._size:
 .equ PAL_DT_LNK,     10
 .equ PAL_DT_SOCK,    12
 
+# --- os_statat follow_symlinks mode constants ---
+.equ OS_STAT_NOFOLLOW, 0
+.equ OS_STAT_FOLLOW,   1
+
 # --- Process / Event-Loop ABI helpers (implemented in src/os/<os>/<arch>/pal_os.s) ---
 #   int  os_poll_in2(int fd0, int fd1, int timeout_ms)
 #        Waits until fd0 and/or fd1 is readable or hung up (fd1 < 0 is ignored).

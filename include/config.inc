@@ -54,6 +54,8 @@
 .equ CFG_LANG_ID,     15008           # Config: duoprc `lang = <id>` (I18N_ID_LEN bytes)
 .equ KBD_FILE_MAX,    16384           # bytes read from one *.layout file
 .equ PV_SHM_CAP,      25165824        # helper -> UI shared payload buffer (24 MiB, lazily touched)
+.equ PV_SHM_SLOT_SZ,  12582912        # half of PV_SHM_CAP for seq&1 ping-pong slots
+.equ ARC_MAX_UNCOMP,  67108864        # 64 MiB max uncompressed ZIP entry size
 .equ PV_THUMB_OFF,  PREVIEW_BUF_SIZE + 16              # thumbnail inside PreviewPane.buf
 .equ PV_BUF_TOTAL,  PV_THUMB_OFF + IMG_THUMB_CAP
 .equ PV_MODE_AUTO,  0                # preview / viewer presentation of a file

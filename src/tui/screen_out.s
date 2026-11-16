@@ -279,6 +279,9 @@ out_u32:
     mov rsi, rsp
     call u64_to_dec           # rax = len
     mov rcx, [rbx + ScreenBuffer.out_len]
+    lea r9, [rcx + rax]
+    cmp r9, [rbx + ScreenBuffer.out_cap]
+    ja .Lou_ret_early
     mov rdx, [rbx + ScreenBuffer.out_buf]
     xor r8d, r8d
 .Lou_cp:
@@ -291,6 +294,7 @@ out_u32:
     jmp .Lou_cp
 .Lou_done:
     mov [rbx + ScreenBuffer.out_len], rcx
+.Lou_ret_early:
     add rsp, 24
     pop rbx
     ret
@@ -303,12 +307,18 @@ out_cstr:
     mov rbx, rdi
     mov r12, rsi
     mov r13, rdx
+    mov rax, [rbx + ScreenBuffer.out_len]
+    add rax, r13
+    jc .Loc_ret
+    cmp rax, [rbx + ScreenBuffer.out_cap]
+    ja .Loc_ret
     mov rdi, [rbx + ScreenBuffer.out_buf]
     add rdi, [rbx + ScreenBuffer.out_len]
     mov rsi, r12
     mov rdx, r13
     call mem_copy
     add [rbx + ScreenBuffer.out_len], r13
+.Loc_ret:
     pop r13
     pop r12
     pop rbx
@@ -319,6 +329,9 @@ out_cstr:
 # channel digits come from u8_dec_tbl (no division, no per-byte calls).
 out_rgb_sgr:
     mov rax, [rdi + ScreenBuffer.out_len]
+    lea r9, [rax + 24]
+    cmp r9, [rdi + ScreenBuffer.out_cap]
+    ja .Lors_ret
     mov rcx, [rdi + ScreenBuffer.out_buf]
     add rcx, rax                      # write cursor
     mov dword ptr [rcx], 0x38335B1B   # ESC [ 3 8
@@ -350,4 +363,5 @@ out_rgb_sgr:
     inc rcx
     sub rcx, [rdi + ScreenBuffer.out_buf]
     mov [rdi + ScreenBuffer.out_len], rcx
+.Lors_ret:
     ret

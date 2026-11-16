@@ -21,6 +21,7 @@
 .extern DirModel_chdir
 .extern DirModel_apply_filter
 .extern ds_append_entry
+.extern ds_append_parent
 .extern fs_read_file_head
 .extern inflate_raw
 .extern mem_alloc
@@ -137,26 +138,40 @@ arc_parse_tar:
 .Lapt_done:
     pop r14; pop r13; pop r12; pop rbx; ret
 
+arc_zip_validate_entry:
+    # rdi=ctx, rsi=raw, rdx=raw_len, rcx=entry -> 1 valid, 0 skip
+    push rbx; mov rbx, [rcx + 256]
+    cmp rbx, rdx; ja .Lazv_no
+    mov rax, rdx; sub rax, rbx; cmp rax, 30; jb .Lazv_no
+    movzx r8d, word ptr [rsi + rbx + 26]
+    movzx r9d, word ptr [rsi + rbx + 28]
+    lea r8, [r8 + r9 + 30]
+    cmp r8, rax; ja .Lazv_no
+    add rbx, r8; mov rax, rdx; sub rax, rbx
+    cmp [rcx + 272], rax; jbe 1f; mov [rcx + 272], rax
+1:  cmp dword ptr [rcx + 280], 0; jne 2f
+    mov rax, [rcx + 272]
+    cmp [rcx + 264], rax; jbe 2f; mov [rcx + 264], rax
+2:  inc dword ptr [rdi + 4]
+.Lazv_no:
+    pop rbx; ret
+
 # void arc_parse_zip(ArcCtx *ctx)
 arc_parse_zip:
     push rbx; push r12; push r13; push r14; push r15
     mov rbx, rdi; mov r12, [rbx + 8]; mov r13, [rbx + 16]
     cmp r13, 22; jb .Lapz_done
-    lea r14, [r13 - 22]
-    xor ecx, ecx
+    lea r14, [r13 - 22]; xor ecx, ecx
 .Lapz_eocd:
     cmp dword ptr [r12 + r14], 0x06054b50; je .Lapz_cd
     test r14, r14; jz .Lapz_done
     dec r14; inc ecx; cmp ecx, 65536; jge .Lapz_done; jmp .Lapz_eocd
 .Lapz_cd:
-    mov r15d, [r12 + r14 + 16]  # cd_off
-    movzx r8d, word ptr [r12 + r14 + 10]  # total_entries
-    cmp r15d, -1; je .Lapz_z64
-    cmp r8d, 0xFFFF; jne .Lapz_cd_ok
+    mov r15d, [r12 + r14 + 16]; movzx r8d, word ptr [r12 + r14 + 10]
+    cmp r15d, -1; je .Lapz_z64; cmp r8d, 0xFFFF; jne .Lapz_cd_ok
 .Lapz_z64:
     mov rdi, r12; mov rsi, r13; mov rdx, r14; mov rcx, r15
-    call arc_zip64_eocd
-    mov r15, rax; mov r8, rdx
+    call arc_zip64_eocd; mov r15, rax; mov r8, rdx
 .Lapz_cd_ok:
     xor r9d, r9d
 .Lapz_loop:
@@ -165,13 +180,13 @@ arc_parse_zip:
     cmp dword ptr [r12 + r15], 0x02014b50; jne .Lapz_done
     mov eax, [rbx + 4]; cmp eax, ARC_MAX_ENTRIES; jge .Lapz_done
     imul rax, AENT_SIZE; add rax, [rbx + 24]
-    movzx ecx, word ptr [r12 + r15 + 10]; mov [rax + 280], ecx  # method
-    mov ecx, [r12 + r15 + 20]; mov [rax + 272], rcx             # comp_size
-    mov ecx, [r12 + r15 + 24]; mov [rax + 264], rcx             # uncomp_size
-    mov ecx, [r12 + r15 + 42]; mov [rax + 256], rcx             # local_hdr_off
-    movzx ecx, word ptr [r12 + r15 + 28]                        # fname_len
-    movzx r10d, word ptr [r12 + r15 + 30]                       # extra_len
-    movzx r11d, word ptr [r12 + r15 + 32]                       # comment_len
+    movzx ecx, word ptr [r12 + r15 + 10]; mov [rax + 280], ecx
+    mov ecx, [r12 + r15 + 20]; mov [rax + 272], rcx
+    mov ecx, [r12 + r15 + 24]; mov [rax + 264], rcx
+    mov ecx, [r12 + r15 + 42]; mov [rax + 256], rcx
+    movzx ecx, word ptr [r12 + r15 + 28]
+    movzx r10d, word ptr [r12 + r15 + 30]
+    movzx r11d, word ptr [r12 + r15 + 32]
     lea rdx, [r15 + 46 + rcx]; cmp rdx, r13; ja .Lapz_done
     push r8; push r9; push r10; push r11; push rcx
     mov rdx, rcx; cmp rdx, 255; jbe .Lapz_nm; mov edx, 255
@@ -179,40 +194,17 @@ arc_parse_zip:
     mov rdi, rax; lea rsi, [r12 + r15 + 46]; inc rdx
     push rax; call str_copy; pop rax
     pop rcx; pop r11; pop r10; pop r9; pop r8
-    push rcx
-    mov rdi, rax; call str_len
-    pop rcx
-    xor edx, edx
-    test rax, rax; jz .Lapz_nd
-    cmp byte ptr [rdi + rax - 1], '/'; jne .Lapz_nd
-    mov edx, 1
+    push rcx; mov rdi, rax; call str_len; pop rcx
+    xor edx, edx; test rax, rax; jz .Lapz_nd
+    cmp byte ptr [rdi + rax - 1], '/'; jne .Lapz_nd; mov edx, 1
 .Lapz_nd:
     mov [rdi + 284], edx
     push rcx; push r8; push r9; push r10; push r11; call arc_zip64_extra
     pop r11; pop r10; pop r9; pop r8; pop rcx
-    # Validate local header + data bounds against raw_len (r13)
-    mov rdx, [rdi + 256]; lea r14, [rdx + 30]; cmp r14, r13; ja .Lapz_skip
-    movzx eax, word ptr [r12 + rdx + 26]
-    add r14, rax
-    movzx eax, word ptr [r12 + rdx + 28]
-    add r14, rax              # data_off = off + 30 + fname + extra
-    cmp r14, r13; ja .Lapz_skip
-    mov rax, r13; sub rax, r14  # avail = raw_len - data_off
-    cmp [rdi + 272], rax; jbe .Lapz_cs_ok
-    mov [rdi + 272], rax      # clamp comp_size to avail
-.Lapz_cs_ok:
-    cmp dword ptr [rdi + 280], 0; jne .Lapz_keep
-    mov rdx, [rdi + 272]
-    cmp [rdi + 264], rdx; jbe .Lapz_keep
-    mov [rdi + 264], rdx      # stored: clamp uncomp_size <= comp_size
-.Lapz_keep:
-    inc dword ptr [rbx + 4]
-.Lapz_skip:
-    add r15, 46
-    add r15, rcx
-    add r15, r10
-    add r15, r11
-    inc r9d; jmp .Lapz_loop
+    push r8; push r9; push r10; push r11; push rcx
+    mov rcx, rdi; mov rdi, rbx; mov rsi, r12; mov rdx, r13; call arc_zip_validate_entry
+    pop rcx; pop r11; pop r10; pop r9; pop r8
+    add r15, 46; add r15, rcx; add r15, r10; add r15, r11; inc r9d; jmp .Lapz_loop
 .Lapz_done:
     pop r15; pop r14; pop r13; pop r12; pop rbx; ret
 
@@ -281,11 +273,8 @@ arc_populate:
     lea rdi, [r12 + DirModel.path]; lea rsi, [r13 + ACTX_FILE]
     mov edx, PATH_MAX; call str_copy
 
-    # Add ".."
-    lea rdi, [rsp + PATH_MAX]; mov esi, FileStat._size; call mem_zero
-    mov dword ptr [rsp + PATH_MAX + FileStat.mode], S_IFDIR | 0755
-    mov rdi, r12; lea rsi, [rip + arc_dotdot]; lea rdx, [rsp + PATH_MAX]
-    call ds_append_entry
+    # Add ".." (FE_IS_PARENT + has_dotdot, like the real directory loader)
+    mov rdi, r12; call ds_append_parent
 
     lea rdi, [r13 + ACTX_SUB]; call str_len; mov [rsp + PATH_MAX + FileStat._size], rax
     xor r14d, r14d

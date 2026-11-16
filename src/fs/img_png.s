@@ -82,10 +82,18 @@ png_parse_ihdr:
     jne .Lpih_ret
     mov eax, [rsi + 16]
     bswap eax
+    test eax, eax; jz .Lpih_bad
+    cmp eax, IMG_MAX_DIM; ja .Lpih_bad
     mov [rdi + PngCtx.w], eax
+    mov ecx, eax
     mov eax, [rsi + 20]
     bswap eax
+    test eax, eax; jz .Lpih_bad
+    cmp eax, IMG_MAX_DIM; ja .Lpih_bad
     mov [rdi + PngCtx.h], eax
+    imul rax, rcx
+    cmp rax, IMG_MAX_PIXELS
+    ja .Lpih_unsup
     movzx ecx, byte ptr [rsi + 24]
     mov [rdi + PngCtx.depth], ecx
     movzx edx, byte ptr [rsi + 25]
@@ -113,6 +121,12 @@ png_parse_ihdr:
     mov r8d, 1
 1:  mov [rdi + PngCtx.fbpp], r8d
     xor eax, eax
+    ret
+.Lpih_bad:
+    mov eax, IMG_E_CORRUPT
+    ret
+.Lpih_unsup:
+    mov eax, IMG_E_UNSUP
 .Lpih_ret:
     ret
 
@@ -229,11 +243,13 @@ png_walk:
 
 # Internal: size_t png_pass_bytes(PngCtx *c, int pw, int ph) -> ph * (1 + rowbytes(pw))
 png_pass_bytes:
-    mov eax, esi
-    imul eax, [rdi + PngCtx.bits]
-    add eax, 7
-    shr eax, 3
-    inc eax
+    movsxd rax, esi
+    movsxd rcx, dword ptr [rdi + PngCtx.bits]
+    imul rax, rcx
+    add rax, 7
+    shr rax, 3
+    inc rax
+    movsxd rdx, edx
     imul rax, rdx
     ret
 

@@ -48,7 +48,10 @@ ensure_capacity:
     jb .Lec_check_pool
 
     mov r13, [rbx + DirModel.raw_cap]
-    shl r13, 1                # new_cap = raw_cap * 2
+    test r13, r13
+    jnz 1f
+    mov r13d, INITIAL_FILE_CAP / 2
+1:  shl r13, 1                # new_cap = raw_cap * 2
     mov rdi, [rbx + DirModel.entries]
     mov rsi, r13
     shl rsi, 5                # new_cap * 32
@@ -72,10 +75,16 @@ ensure_capacity:
     jbe .Lec_ok
 
     mov r13, [rbx + DirModel.name_cap]
+    test r13, r13
+    jnz .Lec_grow_pool
+    mov r13d, INITIAL_NAME_CAP
+    cmp r13, rax
+    jae .Lec_alloc_pool
 .Lec_grow_pool:
     shl r13, 1
     cmp r13, rax
     jb .Lec_grow_pool
+.Lec_alloc_pool:
 
     mov rdi, [rbx + DirModel.name_pool]
     mov rsi, r13

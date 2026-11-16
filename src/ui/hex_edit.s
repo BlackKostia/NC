@@ -121,8 +121,17 @@ hex_edit_on_key:
     mov rsi, [rbx + ViewerDialog.data]
     mov rdx, [rbx + ViewerDialog.data_len]
     call fs_write_file
-    test eax, eax; jnz .Lheok_redraw
+    test eax, eax; jnz .Lheok_save_err
     mov dword ptr [r12 + 8], 0
+    jmp .Lheok_redraw
+.Lheok_save_err:
+    mov edi, -EIO
+    call fs_errno_message
+    mov rdi, [rbx + Dialog.app]
+    test rdi, rdi; jz .Lheok_redraw
+    mov rsi, rax
+    mov edx, MSG_ERR
+    call App_set_status
     jmp .Lheok_redraw
 
 .Lheok_chk_nav:

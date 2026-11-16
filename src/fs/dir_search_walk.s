@@ -62,7 +62,7 @@ ds_handle_dir:
     mov edi, r12d
     mov rsi, r13
     mov rdx, rsp
-    mov ecx, AT_SYMLINK_NOFOLLOW
+    xor ecx, ecx                      # OS_STAT_NOFOLLOW
     call os_statat
     test eax, eax
     js .Ldhd_rec
@@ -116,7 +116,7 @@ ds_handle_reg:
     mov edi, r12d
     mov rsi, r13
     mov rdx, rsp
-    mov ecx, AT_SYMLINK_NOFOLLOW
+    xor ecx, ecx                      # OS_STAT_NOFOLLOW
     call os_statat
     test eax, eax
     js .Ldhr_done

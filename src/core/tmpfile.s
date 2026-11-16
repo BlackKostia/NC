@@ -102,7 +102,7 @@ tmp_ensure_dir:
     mov edi, AT_FDCWD
     lea rsi, [rip + g_tmp_dir]
     mov rdx, rsp
-    mov ecx, 1                        # AT_SYMLINK_NOFOLLOW
+    xor ecx, ecx                      # OS_STAT_NOFOLLOW
     call os_statat
     test eax, eax; js .Lted_next
     mov eax, [rsp + FileStat.mode]
@@ -139,6 +139,18 @@ tmp_open_unique:
 .Ltou_try:
     mov rdi, r14; lea rsi, [rip + g_tmp_dir]; mov edx, r15d; call str_copy
     mov rdi, r14; call str_len
+    mov [rsp], rax
+    xor ecx, ecx; test r12, r12; jz 1f; mov rdi, r12; call str_len; mov rcx, rax
+1:  mov [rsp + 8], rcx
+    xor edx, edx; test r13, r13; jz 2f; mov rdi, r13; call str_len; mov rdx, rax
+2:  mov rax, [rsp]
+    add rax, [rsp + 8]
+    add rax, rdx
+    add rax, 11
+    mov ecx, r15d
+    cmp rax, rcx
+    ja .Ltou_err
+    mov rax, [rsp]
     lea rcx, [r14 + rax]
     mov byte ptr [rcx], '/'; inc rcx
     mov rsi, r12
@@ -188,24 +200,72 @@ tmp_make_path:
 
 # int tmp_open_atomic(const char *final_path, char *tmp_buf, int mode)
 tmp_open_atomic:
-    push rbx; push r12; push r13
+    push rbx; push r12; push r13; push r14; sub rsp, 8
     mov rbx, rdi; mov r12, rsi; mov r13d, edx
     call str_len
-    cmp rax, PATH_MAX - 5
+    cmp rax, PATH_MAX - 14
     jae .Ltoa_too_long
+    xor r14d, r14d
+.Ltoa_try:
     mov rdi, r12; mov rsi, rbx; mov edx, PATH_MAX; call str_copy
     mov rdi, r12; lea rsi, [rip + tmp_dot_sfx]; mov edx, PATH_MAX; call str_cat
-    mov edi, AT_FDCWD; mov rsi, r12; xor edx, edx; OS_UNLINKAT # fault-checked: best-effort stale cleanup
+    mov rdi, r12; call str_len
+    lea rdi, [r12 + rax]
+    mov byte ptr [rdi], '.'; inc rdi
+    mov eax, 1; lock xadd [rip + g_tmp_seq], eax; inc eax
+    mov esi, eax; mov edx, 8; call tmp_append_hex
     mov edi, AT_FDCWD; mov rsi, r12
     mov edx, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC
     mov r10d, r13d
     OS_OPENAT
-    test rax, rax
+    test rax, rax; jns .Ltoa_ret
+    cmp rax, -17                      # -EEXIST
+    jne .Ltoa_ret
+    inc r14d; cmp r14d, 16; jl .Ltoa_try
     jmp .Ltoa_ret
 .Ltoa_too_long:
     mov rax, -ENAMETOOLONG
 .Ltoa_ret:
-    pop r13; pop r12; pop rbx
+    add rsp, 8; pop r14; pop r13; pop r12; pop rbx
+    ret
+
+# void tmp_fsync_parent_dir(const char *final_path)
+tmp_fsync_parent_dir:
+    push rbx; push r12; sub rsp, PATH_MAX + 8
+    mov r12, rdi
+    call str_len
+    mov rcx, rax
+.Ltfpd_scan:
+    test rcx, rcx; jz .Ltfpd_dot
+    dec rcx
+    cmp byte ptr [r12 + rcx], '/'; je .Ltfpd_slash
+    jmp .Ltfpd_scan
+.Ltfpd_dot:
+    mov word ptr [rsp], '.'; jmp .Ltfpd_open
+.Ltfpd_slash:
+    test rcx, rcx; jnz .Ltfpd_copy
+    mov word ptr [rsp], '/'; jmp .Ltfpd_open
+.Ltfpd_copy:
+    cmp rcx, PATH_MAX - 1; jae .Ltfpd_done
+    mov rdx, rcx
+.Ltfpd_cp:
+    dec rdx
+    mov al, [r12 + rdx]; mov [rsp + rdx], al
+    test rdx, rdx; jnz .Ltfpd_cp
+    mov byte ptr [rsp + rcx], 0
+.Ltfpd_open:
+    mov edi, AT_FDCWD; mov rsi, rsp
+    mov edx, O_RDONLY | O_DIRECTORY | O_CLOEXEC; xor r10d, r10d
+    OS_OPENAT
+    test rax, rax; js .Ltfpd_done
+    mov ebx, eax
+.Ltfpd_sync:
+    mov edi, ebx; OS_FSYNC
+    cmp rax, -EINTR; je .Ltfpd_sync
+    test rax, rax
+    mov edi, ebx; OS_CLOSE            # fault-checked: best-effort dir durability sync
+.Ltfpd_done:
+    add rsp, PATH_MAX + 8; pop r12; pop rbx
     ret
 
 # int tmp_commit_atomic(int fd, const char *tmp_buf, const char *final_path, int64_t write_rc)
@@ -239,6 +299,8 @@ tmp_commit_atomic:
     mov rax, r14
     jmp .Ltca_ret
 .Ltca_ok:
+    mov rdi, r13
+    call tmp_fsync_parent_dir
     xor eax, eax
 .Ltca_ret:
     pop r14; pop r13; pop r12; pop rbx

@@ -24,7 +24,6 @@ g_raw_active:
 .global os_get_winsize
 .global os_term_save_and_raw
 .global os_term_restore
-.global os_signals_install
 .global os_poll_in2
 .global os_pipe_cloexec
 .global os_signals_worker_mode
@@ -33,18 +32,17 @@ g_raw_active:
 .global os_set_nonblock
 .global os_watch_init
 
-// AArch64 struct stat offsets: st_dev=0(8), st_ino=8(8), st_mode=16(4), st_size=48(8), st_mtime=88(8)
+// AArch64 struct stat offsets: dev=0, ino=8, mode=16, nlink=20, uid=24, gid=28, size=48, mtime=88, nsec=96
 kstat_to_filestat:
-    ldr x9, [x0, #0]
-    str x9, [x1, #FileStat.dev]
-    ldr x9, [x0, #8]
-    str x9, [x1, #FileStat.ino]
-    ldr x9, [x0, #48]
-    str x9, [x1, #FileStat.size]
-    ldr x9, [x0, #88]
-    str x9, [x1, #FileStat.mtime]
-    ldr w9, [x0, #16]
-    str w9, [x1, #FileStat.mode]
+    ldr x9, [x0, #0];  str x9, [x1, #FileStat.dev]
+    ldr x9, [x0, #8];  str x9, [x1, #FileStat.ino]
+    ldr x9, [x0, #48]; str x9, [x1, #FileStat.size]
+    ldr x9, [x0, #88]; str x9, [x1, #FileStat.mtime]
+    ldr w9, [x0, #16]; str w9, [x1, #FileStat.mode]
+    ldr w9, [x0, #96]; str w9, [x1, #FileStat.mtime_nsec]
+    ldr w9, [x0, #20]; str x9, [x1, #FileStat.nlink]
+    ldr w9, [x0, #24]; str w9, [x1, #FileStat.uid]
+    ldr w9, [x0, #28]; str w9, [x1, #FileStat.gid]
     ret
 
 // int os_statat(int dirfd, const char *path, FileStat *out, int follow_symlinks)
@@ -168,7 +166,10 @@ os_poll_in2:
 os_poll_many:
     cmp w1, #0
     b.le 2f
-    sub sp, sp, #64
+    mov w9, #8
+    cmp w1, w9
+    csel w1, w1, w9, ls
+    sub sp, sp, #80                   // [0..63]=pollfds, [64..79]=timespec
     mov x9, #0
 1:
     cmp w9, w1
@@ -182,12 +183,44 @@ os_poll_many:
     add x9, x9, #1
     b 1b
 3:
-    mov x0, sp
+    mov x13, x2                       // timeout_ms
     mov x2, #0
+    cmp w13, #0
+    b.lt 4f
+    mov w9, #1000
+    sdiv w10, w13, w9
+    msub w11, w10, w9, w13
+    movz x12, #0x4240
+    movk x12, #0x000f, lsl #16
+    mul x11, x11, x12
+    str x10, [sp, #64]
+    str x11, [sp, #72]
+    add x2, sp, #64
+4:
+    mov w14, w1                       // save clamped count n
+    mov x0, sp
+    mov w1, w14
     mov x3, #0
     mov x4, #8
     OS_SYSCALL OS_SYS_ppoll
-    add sp, sp, #64
+    cmp x0, #0
+    b.le 6f
+    mov w0, #0
+    mov w9, #0
+5:
+    cmp w9, w14
+    b.ge 6f
+    add x11, sp, x9, lsl #3
+    ldrh w12, [x11, #6]
+    cbz w12, 7f
+    mov w13, #1
+    lsl w13, w13, w9
+    orr w0, w0, w13
+7:
+    add w9, w9, #1
+    b 5b
+6:
+    add sp, sp, #80
     ret
 2:
     mov w0, #0
@@ -229,17 +262,60 @@ os_get_winsize:
     ret
 
 os_term_save_and_raw:
-    mov w0, #0
-    mov x1, #0x5401           // TCGETS
-    adrp x2, orig_termios
-    add x2, x2, :lo12:orig_termios
+    adrp x9, g_raw_active
+    ldr w10, [x9, :lo12:g_raw_active]
+    cmp w10, #1
+    b.eq 9f
+1:
+    mov w0, #0; mov x1, #TCGETS
+    adrp x2, orig_termios; add x2, x2, :lo12:orig_termios
     OS_IOCTL
+    cmn x0, #4
+    b.eq 1b
     cmp x0, #0
-    b.lt 1f
+    b.lt 9f
+    adrp x10, orig_termios; add x10, x10, :lo12:orig_termios
+    adrp x11, raw_termios;  add x11, x11, :lo12:raw_termios
+    mov w12, #0
+2:
+    ldr w13, [x10, x12]
+    str w13, [x11, x12]
+    add w12, w12, #4
+    cmp w12, #KTERMIOS_SIZE
+    b.lt 2b
+
+    ldr w9, [x11, #KTERMIOS_IFLAG]
+    mov w12, #(IXON | ICRNL | BRKINT | INPCK | ISTRIP)
+    bic w9, w9, w12
+    str w9, [x11, #KTERMIOS_IFLAG]
+
+    ldr w9, [x11, #KTERMIOS_OFLAG]
+    bic w9, w9, #OPOST
+    str w9, [x11, #KTERMIOS_OFLAG]
+
+    ldr w9, [x11, #KTERMIOS_CFLAG]
+    orr w9, w9, #CS8
+    str w9, [x11, #KTERMIOS_CFLAG]
+
+    ldr w9, [x11, #KTERMIOS_LFLAG]
+    mov w12, #(ICANON | ECHO | ISIG | IEXTEN)
+    bic w9, w9, w12
+    str w9, [x11, #KTERMIOS_LFLAG]
+
+    mov w12, #1; strb w12, [x11, #KTERMIOS_VMIN]
+    strb wzr, [x11, #KTERMIOS_VTIME]
+3:
+    mov w0, #0; mov x1, #TCSETSW
+    adrp x2, raw_termios; add x2, x2, :lo12:raw_termios
+    OS_IOCTL
+    cmn x0, #4
+    b.eq 3b
+    cmp x0, #0
+    b.lt 9f
     adrp x9, g_raw_active
     mov w10, #1
     str w10, [x9, :lo12:g_raw_active]
-1:
+9:
     ret
 
 os_term_restore:
@@ -247,21 +323,42 @@ os_term_restore:
     ldr w10, [x9, :lo12:g_raw_active]
     cbz w10, 2f
 1:
-    mov w0, #0
-    mov x1, #0x5402           // TCSETS
-    adrp x2, orig_termios
-    add x2, x2, :lo12:orig_termios
+    mov w0, #0; mov x1, #TCSETSW
+    adrp x2, orig_termios; add x2, x2, :lo12:orig_termios
     OS_IOCTL
-    cmn x0, #4                // -EINTR
+    cmn x0, #4
     b.eq 1b
     adrp x9, g_raw_active
     str wzr, [x9, :lo12:g_raw_active]
+    mov w0, #1
+    ret
 2:
+    mov w0, #0
     ret
 
-os_signals_install:
+sig_noop:
+    ret
+
+sig_restorer:
+    OS_SYSCALL OS_SYS_rt_sigreturn
+
 os_signals_worker_mode:
-    mov w0, #0
+    stp x29, x30, [sp, #-48]!
+    mov x29, sp
+    adrp x9, g_raw_active
+    str wzr, [x9, :lo12:g_raw_active]
+    mov x9, #KSIG_IGN;  str x9, [sp, #16 + KSIG_HANDLER]
+    mov x9, #SA_RESTORER; str x9, [sp, #16 + KSIG_FLAGS]
+    adrp x9, sig_restorer; add x9, x9, :lo12:sig_restorer
+    str x9, [sp, #16 + KSIG_RESTORER]
+    str xzr, [sp, #16 + KSIG_MASK]
+    mov w0, #SIGWINCH; add x1, sp, #16; mov x2, #0; mov x3, #8; OS_SYSCALL OS_SYS_rt_sigaction /* # fault-checked */
+    mov w0, #SIGINT;   add x1, sp, #16; mov x2, #0; mov x3, #8; OS_SYSCALL OS_SYS_rt_sigaction /* # fault-checked */
+    mov w0, #SIGXFSZ;  add x1, sp, #16; mov x2, #0; mov x3, #8; OS_SYSCALL OS_SYS_rt_sigaction /* # fault-checked */
+    adrp x9, sig_noop; add x9, x9, :lo12:sig_noop
+    str x9, [sp, #16 + KSIG_HANDLER]
+    mov w0, #SIGTERM;  add x1, sp, #16; mov x2, #0; mov x3, #8; OS_SYSCALL OS_SYS_rt_sigaction
+    ldp x29, x30, [sp], #48
     ret
 
 os_pipe_cloexec:

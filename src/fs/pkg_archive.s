@@ -23,6 +23,7 @@ pka_k_desc: .asciz "description"
 .global pkg_load_archive_sha
 .global pkg_free_archive
 .global pkg_extract_entry_to
+.global pkg_ensure_exec
 
 .extern arc_is_archive
 .extern arc_parse_tar
@@ -33,6 +34,7 @@ pka_k_desc: .asciz "description"
 .extern mem_alloc
 .extern mem_free
 .extern mem_zero
+.extern os_statat
 .extern sha256_final_hex
 .extern sha256_init
 .extern sha256_update
@@ -75,6 +77,21 @@ pkg_write_file:
     xor eax, eax; pop r13; pop r12; pop rbx; ret
 .Lpwf_err:
     mov eax, -1; pop r13; pop r12; pop rbx; ret
+
+# int pkg_ensure_exec(const char *path) -> 0 ok (S_ISREG + 0755), -1 err/symlink
+pkg_ensure_exec:
+    push rbx; sub rsp, FileStat._size + 8
+    mov rbx, rdi
+    mov edi, AT_FDCWD; mov rsi, rbx; mov rdx, rsp; xor ecx, ecx
+    call os_statat
+    test rax, rax; js 1f
+    mov eax, [rsp + FileStat.mode]
+    mov ecx, eax; and ecx, S_IFMT; cmp ecx, S_IFREG; jne 1f
+    test eax, 0111; jnz 2f
+    mov edi, AT_FDCWD; mov rsi, rbx; mov edx, 0755; xor r10d, r10d; OS_FCHMODAT
+    test rax, rax; js 1f
+2:  xor eax, eax; add rsp, FileStat._size + 8; pop rbx; ret
+1:  mov eax, -1; add rsp, FileStat._size + 8; pop rbx; ret
 
 # void pka_copy_val(const char *p, const char *end, char *dst, int cap)
 pka_copy_val:
@@ -209,28 +226,48 @@ pkg_free_archive:
 
 # int pkg_extract_entry_to(ArcCtx *ctx, ArcEntry *ent, const char *dest_path) -> 0 ok, -1 err
 pkg_extract_entry_to:
-    push rbx; push r12; push r13; push r14; sub rsp, 8
+    push rbx; push r12; push r13; push r14; push r15
     mov rbx, rdi; mov r12, rsi; mov r13, rdx
-    mov eax, [r12 + 280]              # method
+    mov r14, [rbx + 8]; mov rdx, [r12 + 256]; mov rcx, [rbx + 16]
+    cmp rdx, rcx; ja .Lpe_err
+    add r14, rdx; sub rcx, rdx                # r14=ptr, rcx=avail
+    cmp dword ptr [rbx], 3; jne .Lpe_not_zip
+    cmp rcx, 30; jb .Lpe_err
+    movzx eax, word ptr [r14 + 26]; movzx edx, word ptr [r14 + 28]
+    lea rax, [rax + rdx + 30]
+    cmp rcx, rax; jb .Lpe_err
+    add r14, rax; sub rcx, rax
+    mov r15, [r12 + 272]                    # comp_size
+    cmp r15, rcx; jbe .Lpe_cs_ok
+    mov r15, rcx
+    jmp .Lpe_cs_ok
+.Lpe_not_zip:
+    mov r15, rcx
+.Lpe_cs_ok:
+    mov eax, [r12 + 280]
     cmp eax, 8; je .Lpe_deflate
-    mov rsi, [rbx + 8]; add rsi, [r12 + 256]
-    mov rdx, [r12 + 264]; mov rdi, r13; call pkg_write_file
+    test eax, eax; jnz .Lpe_err
+    mov rdx, [r12 + 264]
+    cmp rdx, r15; jbe 1f; mov rdx, r15
+1:  cmp rdx, rcx; jbe 2f; mov rdx, rcx
+2:  mov rdi, r13; mov rsi, r14; call pkg_write_file
     jmp .Lpe_ret
 .Lpe_deflate:
-    mov rdi, [r12 + 264]; test rdi, rdi; jz .Lpe_empty
+    mov rdi, [r12 + 264]
+    cmp rdi, ARC_MAX_UNCOMP; ja .Lpe_err
+    test rdi, rdi; jnz .Lpe_alloc; mov edi, 1
+.Lpe_alloc:
     call mem_alloc; test rax, rax; jz .Lpe_err
-    mov r14, rax
-    mov rdi, [rbx + 8]; add rdi, [r12 + 256]
-    mov rsi, [r12 + 272]; mov rdx, r14; mov rcx, [r12 + 264]
-    call inflate_raw
+    mov rcx, [r12 + 264]
+    push r14; mov r14, rax
+    mov rdi, [rsp]; mov rsi, r15; mov rdx, r14; call inflate_raw
+    add rsp, 8
     test rax, rax; js .Lpe_free_err
-    mov rdi, r13; mov rsi, r14; mov rdx, [r12 + 264]; call pkg_write_file
+    mov rdi, r13; mov rsi, r14; mov rdx, rax; call pkg_write_file
     push rax; mov rdi, r14; call mem_free; pop rax; jmp .Lpe_ret
-.Lpe_empty:
-    mov rdi, r13; mov rsi, rsp; xor edx, edx; call pkg_write_file; jmp .Lpe_ret
 .Lpe_free_err:
     mov rdi, r14; call mem_free
 .Lpe_err:
     mov eax, -1
 .Lpe_ret:
-    add rsp, 8; pop r14; pop r13; pop r12; pop rbx; ret
+    pop r15; pop r14; pop r13; pop r12; pop rbx; ret

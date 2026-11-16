@@ -16,9 +16,13 @@ pkpv_dotdot:   .asciz ".."
 .extern mem_zero
 .extern os_dir_next_ex
 .extern os_dir_read
+.extern os_mark_child_forked
 .extern os_poll_in
+.extern os_sig_reset_pipe
 .extern path_join
+.extern pkg_ensure_exec
 .extern pkg_get_root
+.extern pkm_safe_relpath
 .extern str_cmp
 .extern str_len
 
@@ -110,39 +114,48 @@ pkpv_match_ext_ci:
 pkpv_exec_pipe:
     push rbx; push r12; push r13; push r14; push r15; sub rsp, 48
     mov r12, rdi; mov r13, rsi; mov [rsp + 32], rdx; mov r14, rcx; mov r15d, r8d
-    mov edi, AT_FDCWD; mov rsi, r12; mov edx, 0755; xor r10d, r10d; OS_FCHMODAT
-    lea rdi, [rsp + 40]; xor esi, esi; OS_PIPE2
+    mov rdi, r12; call pkg_ensure_exec
+    test eax, eax; js .Lpve_err
+    lea rdi, [rsp + 40]; mov esi, O_CLOEXEC; OS_PIPE2
     test rax, rax; js .Lpve_err
     OS_FORK
     test rax, rax; js .Lpve_close_both; jnz .Lpve_parent
-    mov edi, [rsp + 40]; OS_CLOSE
+    mov edi, [rsp + 40]; OS_CLOSE # fault-checked
     mov edi, [rsp + 44]; mov esi, 1; OS_DUP2
-    mov edi, [rsp + 44]; OS_CLOSE
-    OS_NO_NEW_PRIVS
+    test rax, rax; js 1f
+    mov edi, [rsp + 44]; OS_CLOSE # fault-checked
+    call os_sig_reset_pipe
+    call os_mark_child_forked
+    OS_NO_NEW_PRIVS # fault-checked
     mov [rsp], r12; mov [rsp + 8], r13; mov qword ptr [rsp + 16], 0
     mov rdi, r12; mov rsi, rsp; mov rdx, [rsp + 32]; OS_EXECVE
-    mov edi, 127; OS_EXIT
+    test rax, rax; nop
+1:  mov edi, 127; OS_EXIT
 .Lpve_close_both:
-    mov edi, [rsp + 40]; OS_CLOSE; mov edi, [rsp + 44]; OS_CLOSE; jmp .Lpve_err
+    mov edi, [rsp + 40]; OS_CLOSE # fault-checked
+    mov edi, [rsp + 44]; OS_CLOSE # fault-checked
+    jmp .Lpve_err
 .Lpve_parent:
     mov ebx, eax
-    mov edi, [rsp + 44]; OS_CLOSE
+    mov edi, [rsp + 44]; OS_CLOSE # fault-checked
     xor r12d, r12d
 .Lpve_rd:
     cmp r12d, r15d; jge .Lpve_done
     mov edi, [rsp + 40]; mov esi, 350; call os_poll_in
+    cmp rax, -EINTR; je .Lpve_rd
     test rax, rax; jle .Lpve_kill
     mov edi, [rsp + 40]; lea rsi, [r14 + r12]; mov edx, r15d; sub edx, r12d; OS_READ
     cmp rax, -EINTR; je .Lpve_rd
     test rax, rax; jle .Lpve_done
     add r12d, eax; jmp .Lpve_rd
 .Lpve_kill:
-    mov edi, ebx; mov esi, 9; OS_KILL
+    mov edi, ebx; mov esi, 9; OS_KILL # fault-checked
 .Lpve_done:
-    mov edi, [rsp + 40]; OS_CLOSE
+    mov edi, [rsp + 40]; OS_CLOSE # fault-checked
 .Lpve_wait:
     mov edi, ebx; lea rsi, [rsp + 24]; xor edx, edx; xor r10d, r10d; OS_WAIT4
     cmp rax, -EINTR; je .Lpve_wait
+    test rax, rax; js .Lpve_err
     mov eax, r12d; jmp .Lpve_ret
 .Lpve_err:
     mov eax, -1
@@ -155,6 +168,7 @@ pkg_preview_try:
     sub rsp, PATH_MAX * 2 + 16384 + 4096 + 176
     mov [rsp + 160], rdi; mov [rsp + 168], rsi; mov r12, rdx; mov r13d, ecx
     lea rsi, [rsp + 176]; mov edx, PATH_MAX; call pkg_get_root
+    cmp byte ptr [rsp + 176], 0; je .Lppt_no
     mov edi, AT_FDCWD; lea rsi, [rsp + 176]
     mov edx, O_RDONLY | O_DIRECTORY | O_CLOEXEC; xor r10d, r10d; OS_OPENAT
     test rax, rax; js .Lppt_no
@@ -174,26 +188,30 @@ pkg_preview_try:
     cmp byte ptr [r15 + 1], '.'; jne .Lppt_ok_seg
     cmp byte ptr [r15 + 2], 0; je .Lppt_ent
 .Lppt_ok_seg:
-    lea rdi, [rsp + 176 + PATH_MAX]; lea rsi, [rsp + 176]; mov rdx, r15; mov ecx, PATH_MAX; call path_join
+    lea rdi, [rsp + 176 + PATH_MAX]; lea rsi, [rsp + 176]; mov rdx, r15; mov ecx, PATH_MAX; call path_join # path-checked
+    test rax, rax; js .Lppt_ent
     lea rdi, [rsp + 176 + PATH_MAX * 2 + 16384]
-    lea rsi, [rsp + 176 + PATH_MAX]; lea rdx, [rip + pkpv_manifest]; mov ecx, 4096; call path_join
+    lea rsi, [rsp + 176 + PATH_MAX]; lea rdx, [rip + pkpv_manifest]; mov ecx, 4096; call path_join # path-checked
+    test rax, rax; js .Lppt_ent
     lea rdi, [rsp + 176 + PATH_MAX * 2 + 16384]
     mov rsi, rdi; mov edx, 4096; lea rcx, [rsp + 24]; call fs_read_file_head
     test rax, rax; js .Lppt_ent
     lea rdi, [rsp + 176 + PATH_MAX * 2 + 16384]; mov esi, [rsp + 24]
     lea rdx, [rsp + 32]; lea rcx, [rsp + 96]; call pkpv_parse
     cmp byte ptr [rsp + 32], 0; je .Lppt_ent
-    cmp byte ptr [rsp + 96], 0; je .Lppt_ent
     lea rdi, [rsp + 32]; mov rsi, [rsp + 168]; call pkpv_match_ext_ci
     test eax, eax; jz .Lppt_ent
+    lea rdi, [rsp + 96]; call pkm_safe_relpath
+    test rax, rax; jz .Lppt_ent
     lea rdi, [rsp + 176 + PATH_MAX * 2 + 16384]
-    lea rsi, [rsp + 176 + PATH_MAX]; lea rdx, [rsp + 96]; mov ecx, 4096; call path_join
-    mov edi, ebx; OS_CLOSE
+    lea rsi, [rsp + 176 + PATH_MAX]; mov rdx, rax; mov ecx, 4096; call path_join # path-checked
+    test rax, rax; js .Lppt_ent
+    mov edi, ebx; OS_CLOSE # fault-checked
     lea rdi, [rsp + 176 + PATH_MAX * 2 + 16384]; mov rsi, [rsp + 168]
     mov rdx, [rsp + 160]; mov rcx, r12; mov r8d, r13d; call pkpv_exec_pipe
     jmp .Lppt_ret
 .Lppt_close_no:
-    mov edi, ebx; OS_CLOSE
+    mov edi, ebx; OS_CLOSE # fault-checked
 .Lppt_no:
     mov eax, -1
 .Lppt_ret:

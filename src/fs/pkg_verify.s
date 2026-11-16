@@ -6,6 +6,7 @@
 .section .rodata
 pkv_sha_file:    .asciz "sha256"
 pkv_hashes_file: .asciz "hashes.sha256"
+pkv_manifest_nm: .asciz "manifest.ini"
 
 .section .text
 .global pkg_hashes_append
@@ -16,11 +17,13 @@ pkv_hashes_file: .asciz "hashes.sha256"
 .extern hash_file
 .extern mem_alloc
 .extern mem_free
+.extern path_basename
 .extern path_join
 .extern pkg_get_root
 .extern pkg_write_file
 .extern pkm_safe_name
 .extern str_casecmp
+.extern str_cmp
 .extern str_len
 
 # void pkg_hashes_append(const char *file_path, char *buf, uint64_t *len_ptr)
@@ -60,11 +63,27 @@ pkg_hashes_write:
     mov rdi, rsp; mov rsi, rbx; mov rdx, r12; call pkg_write_file
     add rsp, PATH_MAX + 8; pop r12; pop rbx; ret
 
+# Helper: int pkv_is_hex64(const char *s) -> 1 valid 64 hex digits, 0 else
+pkv_is_hex64:
+    xor ecx, ecx
+.Lpih_loop:
+    movzx eax, byte ptr [rdi + rcx]
+    cmp eax, '0'; jb .Lpih_no
+    cmp eax, '9'; jbe .Lpih_ok
+    or eax, 0x20
+    cmp eax, 'a'; jb .Lpih_no
+    cmp eax, 'f'; ja .Lpih_no
+.Lpih_ok:
+    inc ecx; cmp ecx, 64; jl .Lpih_loop
+    mov eax, 1; ret
+.Lpih_no:
+    xor eax, eax; ret
+
 # Helper: int pkv_check_hashes_buf(char *buf, uint64_t len) -> 0 ok, -1 err
 pkv_check_hashes_buf:
-    push rbx; push r12; push r13; push r14
+    push rbx; push r12; push r13; push r14; push r15
     sub rsp, 88
-    mov r12, rdi; lea r13, [r12 + rsi]
+    mov r12, rdi; lea r13, [r12 + rsi]; xor r15d, r15d
 .Lpcb_line:
     cmp r12, r13; jae .Lpcb_ok
     mov r14, r12
@@ -76,19 +95,26 @@ pkv_check_hashes_buf:
     mov byte ptr [r14], 0
     mov rax, r14; sub rax, r12
     cmp rax, 66; jl .Lpcb_err
+    mov rdi, r12; call pkv_is_hex64; test eax, eax; jz .Lpcb_err
     cmp byte ptr [r12 + 64], ' '; jne .Lpcb_err
     mov byte ptr [r12 + 64], 0
+    lea rdi, [r12 + 65]; call path_basename
+    mov rdi, rax; lea rsi, [rip + pkv_manifest_nm]; call str_cmp
+    test eax, eax; jnz .Lpcb_hash
+    mov r15d, 1
+.Lpcb_hash:
     lea rdi, [r12 + 65]; lea rsi, [rsp]; lea rdx, [rsp + 8]; call hash_file
     test eax, eax; js .Lpcb_err
     mov rdi, r12; lea rsi, [rsp + 8]; call str_casecmp
     test eax, eax; jnz .Lpcb_err
     lea r12, [r14 + 1]; jmp .Lpcb_line
 .Lpcb_ok:
+    test r15d, r15d; jz .Lpcb_err
     xor eax, eax; jmp .Lpcb_ret
 .Lpcb_err:
     mov eax, -1
 .Lpcb_ret:
-    add rsp, 88; pop r14; pop r13; pop r12; pop rbx; ret
+    add rsp, 88; pop r15; pop r14; pop r13; pop r12; pop rbx; ret
 
 # int pkg_verify(char **envp, const char *name) -> 0 ok, -1 err
 pkg_verify:
@@ -97,12 +123,16 @@ pkg_verify:
     mov rdi, r12; call pkm_safe_name; test eax, eax; jz .Lpv_err
     mov rdi, rbx; mov rsi, rsp; mov edx, PATH_MAX; call pkg_get_root
     lea rdi, [rsp + PATH_MAX]; mov rsi, rsp; mov rdx, r12; mov ecx, PATH_MAX; call path_join
+    test rax, rax; js .Lpv_err
     mov rdi, rsp; lea rsi, [rsp + PATH_MAX]; lea rdx, [rip + pkv_sha_file]; mov ecx, PATH_MAX; call path_join
+    test rax, rax; js .Lpv_err
     mov rdi, rsp; lea rsi, [rsp + PATH_MAX * 2]; mov edx, 72; lea rcx, [rsp + PATH_MAX * 2 + 72]
     call fs_read_file_head
     test rax, rax; js .Lpv_err
     cmp qword ptr [rsp + PATH_MAX * 2 + 72], 64; jl .Lpv_err
+    lea rdi, [rsp + PATH_MAX * 2]; call pkv_is_hex64; test eax, eax; jz .Lpv_err
     mov rdi, rsp; lea rsi, [rsp + PATH_MAX]; lea rdx, [rip + pkv_hashes_file]; mov ecx, PATH_MAX; call path_join
+    test rax, rax; js .Lpv_err
     mov edi, 8192; call mem_alloc; test rax, rax; jz .Lpv_err
     mov r13, rax
     mov rdi, rsp; mov rsi, r13; mov edx, 8192; lea rcx, [rsp + PATH_MAX * 2 + 72]

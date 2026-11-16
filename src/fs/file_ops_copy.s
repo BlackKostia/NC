@@ -61,7 +61,7 @@ copy_subdir:
     call fs_progress_item
     mov edi, r14d
     mov rsi, r13
-    mov edx, O_RDONLY | O_DIRECTORY | O_CLOEXEC
+    mov edx, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC
     xor r10d, r10d
     OS_OPENAT
     test rax, rax
@@ -236,7 +236,7 @@ fs_copy_recursive__sfd:
     mov r14d, eax                     # sfd
     mov edi, AT_FDCWD
     mov rsi, r13
-    mov edx, O_RDONLY | O_DIRECTORY | O_CLOEXEC
+    mov edx, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC
     xor r10d, r10d
     OS_OPENAT
     test rax, rax

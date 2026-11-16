@@ -235,33 +235,13 @@ _start:
     jne .Lmain_license
 
 .Lmain_run:
-    call signals_install
-    call term_enter_raw
-
     mov rdi, r14
     mov rsi, r15
     mov rdx, r13
-    mov ecx, [rsp]            # lang_override
-    call App_new
-    test rax, rax
-    jz .Lmain_cleanup_err
-    mov rbx, rax
-
-    mov rdi, rbx
-    call App_run
-
-    mov rdi, rbx
-    mov rsi, [rsp + 24]
-    call App_write_choosedir
-
-    DELETE_OBJ rbx
-    call term_exit_raw
-    xor edi, edi
-    jmp main_exit
-
-.Lmain_cleanup_err:
-    call term_exit_raw
-    mov edi, 1
+    mov ecx, [rsp]
+    mov r8, [rsp + 24]
+    call main_run_tui
+    mov edi, eax
     jmp main_exit
 
 .Lmain_help:
@@ -304,3 +284,49 @@ main_exit:
 .endif
     pop rdi
     OS_EXIT
+
+# Helper: int main_run_tui(path1, path2, envp, lang_override, choosedir) -> exit code
+main_run_tui:
+    push rbx
+    push r12
+    push r13
+    push r14
+    push r15
+    mov r12, rdi
+    mov r13, rsi
+    mov r14, rdx
+    mov r15d, ecx
+    mov rbx, r8
+    call input_probe_eof
+    test eax, eax
+    jnz .Lmrt_ok
+    call signals_install
+    call term_enter_raw
+    mov rdi, r12
+    mov rsi, r13
+    mov rdx, r14
+    mov ecx, r15d
+    call App_new
+    test rax, rax
+    jz .Lmrt_err
+    mov r12, rax
+    mov rdi, r12
+    call App_run
+    mov rdi, r12
+    mov rsi, rbx
+    call App_write_choosedir
+    DELETE_OBJ r12
+    call term_exit_raw
+.Lmrt_ok:
+    xor eax, eax
+    jmp .Lmrt_ret
+.Lmrt_err:
+    call term_exit_raw
+    mov eax, 1
+.Lmrt_ret:
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbx
+    ret

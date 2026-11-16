@@ -47,6 +47,8 @@ ScreenBuffer_new:
     mov esi, r12d
     mov edx, r13d
     call ScreenBuffer_resize
+    test eax, eax
+    js .Lsbn_fail_destroy
 
     mov rax, rbx
     pop r13
@@ -54,6 +56,9 @@ ScreenBuffer_new:
     pop rbx
     ret
 
+.Lsbn_fail_destroy:
+    mov rdi, rbx
+    call ScreenBuffer_dtor
 .Lsbn_fail_free:
     mov rdi, rbx
     call mem_free
@@ -301,16 +306,17 @@ ScreenBuffer_flush:
 
 .Lfl_emit_char:
     mov edi, [r12 + Cell.ch]
-    cmp edi, 0x20
-    jae .Lfl_cp_ok
+    cmp edi, 0x20; jae .Lfl_cp_ok
     mov edi, ' '
 .Lfl_cp_ok:
+    mov rax, [rbx + ScreenBuffer.out_len]; add rax, 4
+    cmp rax, [rbx + ScreenBuffer.out_cap]; ja .Lfl_next_cell
     mov rsi, [rbx + ScreenBuffer.out_buf]
     add rsi, [rbx + ScreenBuffer.out_len]
-    push rdi
+    mov [rsp + 36], edi
     call utf8_encode          # rax = 1..4 bytes
     add [rbx + ScreenBuffer.out_len], rax
-    pop rdi
+    mov edi, [rsp + 36]
 
     call utf8_char_width
     test eax, eax
@@ -357,9 +363,5 @@ ScreenBuffer_flush:
     mov qword ptr [rbx + ScreenBuffer.out_len], 0
 .Lfl_done:
     add rsp, 48
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop rbx
+    pop r15; pop r14; pop r13; pop r12; pop rbx
     ret

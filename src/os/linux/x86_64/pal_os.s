@@ -490,13 +490,11 @@ os_term_save_and_raw:
     cmp dword ptr [rip + g_raw_active], 1
     je .Lotsr_done
 
-    mov edi, STDIN_FD
-    mov esi, TCGETS
-    lea rdx, [rip + orig_termios]
-    mov eax, OS_SYS_ioctl
-    syscall
-    test rax, rax
-    js .Lotsr_done
+.Lotsr_get:
+    mov edi, STDIN_FD; mov esi, TCGETS; lea rdx, [rip + orig_termios]
+    mov eax, OS_SYS_ioctl; syscall
+    cmp rax, -EINTR; je .Lotsr_get
+    test rax, rax; js .Lotsr_done
 
     lea rdi, [rip + raw_termios]
     lea rsi, [rip + orig_termios]
@@ -523,12 +521,11 @@ os_term_save_and_raw:
     mov byte ptr [rbx + KTERMIOS_VMIN], 1
     mov byte ptr [rbx + KTERMIOS_VTIME], 0
 
-    mov edi, STDIN_FD
-    mov esi, TCSETSW
-    mov rdx, rbx
-    mov eax, OS_SYS_ioctl
-    syscall
-
+.Lotsr_set:
+    mov edi, STDIN_FD; mov esi, TCSETSW; mov rdx, rbx
+    mov eax, OS_SYS_ioctl; syscall
+    cmp rax, -EINTR; je .Lotsr_set
+    test rax, rax; js .Lotsr_done
     mov dword ptr [rip + g_raw_active], 1
 .Lotsr_done:
     pop rbx
@@ -560,7 +557,7 @@ os_sigbus_guard_install:
     sub rsp, KSIGACTION_SIZE + 8
     lea rax, [rip + sig_bus_patch]
     mov [rsp + KSIG_HANDLER], rax
-    mov qword ptr [rsp + KSIG_FLAGS], SA_RESTORER | SA_SIGINFO
+    mov qword ptr [rsp + KSIG_FLAGS], SA_RESTORER | SA_SIGINFO | SA_ONSTACK
     lea rax, [rip + sig_restorer]
     mov [rsp + KSIG_RESTORER], rax
     mov qword ptr [rsp + KSIG_MASK], 0
@@ -589,28 +586,13 @@ os_signals_worker_mode:
     mov [rsp + KSIG_RESTORER], rax
     mov qword ptr [rsp + KSIG_MASK], 0
 
-    mov edi, SIGWINCH
-    mov rsi, rsp
-    xor edx, edx
-    mov r10d, 8
-    mov eax, OS_SYS_rt_sigaction
-    syscall
-
-    mov edi, SIGINT
-    mov rsi, rsp
-    xor edx, edx
-    mov r10d, 8
-    mov eax, OS_SYS_rt_sigaction
-    syscall
+    mov edi, SIGWINCH; mov rsi, rsp; xor edx, edx; mov r10d, 8; mov eax, OS_SYS_rt_sigaction; syscall # fault-checked: best-effort signal policy
+    mov edi, SIGINT;   mov rsi, rsp; xor edx, edx; mov r10d, 8; mov eax, OS_SYS_rt_sigaction; syscall # fault-checked: best-effort signal policy
+    mov edi, SIGXFSZ;  mov rsi, rsp; xor edx, edx; mov r10d, 8; mov eax, OS_SYS_rt_sigaction; syscall # fault-checked: return -EFBIG on write
 
     lea rax, [rip + sig_noop]
     mov [rsp + KSIG_HANDLER], rax
-    mov edi, SIGTERM
-    mov rsi, rsp
-    xor edx, edx
-    mov r10d, 8
-    mov eax, OS_SYS_rt_sigaction
-    syscall
+    mov edi, SIGTERM;  mov rsi, rsp; xor edx, edx; mov r10d, 8; mov eax, OS_SYS_rt_sigaction; syscall # fault-checked: EINTR cancel handler
 
     add rsp, KSIGACTION_SIZE + 8
     ret

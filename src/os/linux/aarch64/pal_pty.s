@@ -14,12 +14,8 @@ sh_path:   .asciz "/bin/sh"
 .global os_pty_write
 .global os_pty_close
 .global os_get_winsize_px
-.global os_sig_reset_pipe
 .global os_poll_out
-
-os_sig_reset_pipe:
-    mov w0, #0
-    ret
+.extern os_sig_reset_pipe
 
 pty_format_pts_path:
     mov w9, w0
@@ -82,6 +78,7 @@ pty_exec_child:
     mov x0, x20
     OS_SYSCALL OS_SYS_chdir
 3:
+    bl os_sig_reset_pipe
     adrp x0, sh_path
     add x0, x0, :lo12:sh_path
     str x0, [sp, #0]

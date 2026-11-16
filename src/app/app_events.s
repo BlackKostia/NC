@@ -235,7 +235,8 @@ App_events_tick__debounced_preview:
     jne .Leti_recv
     cmp dword ptr [r13 + PreviewPane.pending], 0
     je .Leti_recv
-    call fs_preview_shm
+    mov edi, [rsp + 16]
+    call fs_preview_shm_slot
     mov rcx, rax
     mov rdi, r13
     mov rsi, [rsp + 8 + 16]
@@ -245,6 +246,10 @@ App_events_tick__debounced_preview:
     jmp .Leti_recv
 
 .Leti_watch:
+    call fs_preview_fd
+    mov esi, eax
+    mov edi, 2
+    call input_set_aux_fd
 .LApp_events_tick__debounced_preview_ret:
     lea rsp, [rsp + 8]
     ret

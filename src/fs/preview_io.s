@@ -34,6 +34,7 @@ g_pv_shm:     .space 8        # MAP_SHARED buffer the helper writes image payloa
 .global fs_preview_stop
 .global pv_read_exact
 .global fs_preview_shm
+.global fs_preview_shm_slot
 
 # ssize_t pv_read_exact(int fd, void *buf, size_t n) -- blocking; 0 on EOF (also used by the helper)
 pv_read_exact:
@@ -66,6 +67,8 @@ pv_read_exact:
     mov edi, ebx
     mov esi, 200
     call os_poll_in
+    cmp rax, -EINTR
+    je .Lpre_wait
     test rax, rax
     jg .Lpre_loop
     mov rax, -EIO                     # writer stalled mid-message
@@ -103,31 +106,26 @@ pv_start:
     call os_pipe_cloexec
     test rax, rax
     js .Lps_close_req
+    OS_GETPID                         # fault-checked: getpid always succeeds
+    mov ebx, eax
     OS_FORK
     test rax, rax
     js .Lps_close_all
     jz .Lps_child
-    mov [rip + g_pv_pid], eax
-    mov edi, [rip + g_pv_pipes]       # helper's request read end
-    OS_CLOSE
-    mov edi, [rip + g_pv_pipes + 12]  # helper's reply write end
-    OS_CLOSE
-    mov edi, [rip + g_pv_pipes + 4]
-    call os_set_nonblock              # UI never blocks on a stuck helper
-    test rax, rax; js .Lps_nonblock_fail
-    mov edi, [rip + g_pv_pipes + 8]
-    call os_set_nonblock
-    test rax, rax; js .Lps_nonblock_fail
-    mov eax, [rip + g_pv_pipes + 4]
-    inc eax
-    mov [rip + g_pv_req1], eax
-    mov eax, [rip + g_pv_pipes + 8]
-    inc eax
-    mov [rip + g_pv_resp1], eax
-    mov dword ptr [rip + g_pv_busy], 0
-    xor eax, eax
+    mov edi, eax
+    call pv_setup_parent_pipes
     jmp .Lps_ret
 .Lps_child:
+    call os_mark_child_forked
+    call os_uring_atfork_reset
+    mov edi, ebx
+    mov esi, SIGKILL
+    call os_set_pdeathsig
+    test eax, eax
+    jnz 1f
+    xor edi, edi
+    OS_EXIT                           # fault-checked: exit if UI already died
+1:
     mov edi, [rip + g_pv_pipes + 4]
     OS_CLOSE
     mov edi, [rip + g_pv_pipes + 8]
@@ -135,10 +133,6 @@ pv_start:
     mov r12d, [rip + g_pv_pipes]
     mov r13d, [rip + g_pv_pipes + 12]
     jmp pv_helper_main
-.Lps_nonblock_fail:
-    mov rdi, rax
-    call pv_cleanup_nonblock
-    jmp .Lps_ret
 .Lps_close_all:
     mov rbx, rax
     mov edi, [rip + g_pv_pipes + 8]
@@ -156,6 +150,28 @@ pv_start:
 .Lps_ret:
     pop r13; pop r12; pop rbx
     ret
+
+# Internal: int pv_setup_parent_pipes(int child_pid) -> 0 or -errno
+pv_setup_parent_pipes:
+    sub rsp, 8
+    mov [rip + g_pv_pid], edi
+    mov edi, [rip + g_pv_pipes]; OS_CLOSE # fault-checked: unused pipe end in parent
+    mov edi, [rip + g_pv_pipes + 12]; OS_CLOSE # fault-checked: unused pipe end in parent
+    mov edi, [rip + g_pv_pipes + 4]
+    call os_set_nonblock
+    test rax, rax; js .Lpspp_fail
+    mov edi, [rip + g_pv_pipes + 8]
+    call os_set_nonblock
+    test rax, rax; js .Lpspp_fail
+    mov eax, [rip + g_pv_pipes + 4]; inc eax; mov [rip + g_pv_req1], eax
+    mov eax, [rip + g_pv_pipes + 8]; inc eax; mov [rip + g_pv_resp1], eax
+    mov dword ptr [rip + g_pv_busy], 0
+    xor eax, eax
+    add rsp, 8; ret
+.Lpspp_fail:
+    mov rdi, rax
+    call pv_cleanup_nonblock
+    add rsp, 8; ret
 
 pv_cleanup_nonblock:
     push rbx; mov rbx, rdi
@@ -205,6 +221,16 @@ fs_preview_stop:
 fs_preview_shm:
     mov rax, [rip + g_pv_shm]
     ret
+
+# uint8_t *fs_preview_shm_slot(uint32_t seq) -> ping-pong SHM slot for seq
+fs_preview_shm_slot:
+    and edi, 1
+    imul edi, edi, PV_SHM_SLOT_SZ
+    mov rax, [rip + g_pv_shm]
+    test rax, rax
+    jz 1f
+    add rax, rdi
+1:  ret
 
 # int fs_preview_fd(void) -> reply fd to poll, or -1
 fs_preview_fd:
@@ -305,8 +331,10 @@ fs_preview_receive:
     mov rsi, rsp
     mov edx, PV_HDR
     OS_READ
-    cmp rax, 0
-    jle .Lprv_none                    # -EAGAIN: nothing yet (or helper gone)
+    cmp rax, -EAGAIN; je .Lprv_none
+    cmp rax, -EINTR;  je .Lprv_none
+    test rax, rax
+    jle .Lprv_broken                  # 0 = EOF (helper dead) or fatal read error
     cmp rax, PV_HDR
     je .Lprv_hdr
     mov rdx, PV_HDR

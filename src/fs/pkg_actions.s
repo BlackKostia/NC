@@ -48,6 +48,7 @@ pka_menu_cnt:   .space 4
 .extern os_dir_next_ex
 .extern os_dir_read
 .extern path_join
+.extern pkm_safe_relpath
 .extern pkg_get_root
 .extern str_cmp
 .extern str_copy
@@ -170,8 +171,9 @@ pkg_action_find:
     mov rdi, rsp; lea rsi, [rsp + PATH_MAX * 2 + 16]; mov edx, 4096; lea rcx, [rsp + PATH_MAX * 2]
     call fs_read_file_head; test rax, rax; js .Lpaf_err
     lea rdi, [rsp + PATH_MAX * 2 + 16]; mov esi, [rsp + PATH_MAX * 2]; mov rdx, r13; call pkg_action_parse
+    lea rdi, [r13 + PKGA_EXEC]; call pkm_safe_relpath; test rax, rax; jz .Lpaf_err
+    lea rdi, [rsp + PATH_MAX]; call str_len; cmp rax, 160; jae .Lpaf_err
     lea rdi, [r13 + PKGA_DIR]; lea rsi, [rsp + PATH_MAX]; mov edx, 160; call str_copy
-    cmp byte ptr [r13 + PKGA_EXEC], 0; je .Lpaf_err
     xor eax, eax; jmp .Lpaf_ret
 .Lpaf_err:
     mov eax, -1
@@ -251,10 +253,16 @@ pkg_action_build_argv:
     sub rsp, 32
     mov rbx, rdi; mov [rsp], rsi; mov r12, rdx; mov r13d, ecx
     mov r14, r8; mov [rsp + 8], r9d
+    cmp r13d, 2; jl .Lpba_fail
+    cmp r9d, 2; jl .Lpba_fail
+    lea rdi, [rbx + PKGA_EXEC]; call pkm_safe_relpath
+    test rax, rax; jz .Lpba_fail
     lea rsi, [rbx + PKGA_DIR]; lea rdx, [rbx + PKGA_EXEC]; mov rdi, r12; mov ecx, r13d
-    call path_join
+    call path_join # path-checked
+    test rax, rax; js .Lpba_fail
     mov [r14], r12; mov r15d, 1
-    mov rdi, r12; call str_len; inc eax
+    inc eax
+    cmp eax, r13d; jge .Lpba_done
     add r12, rax; sub r13d, eax
     lea rbx, [rbx + PKGA_ARGS]
 .Lpba_skip:
@@ -264,6 +272,7 @@ pkg_action_build_argv:
 .Lpba_ws:
     inc rbx; jmp .Lpba_skip
 .Lpba_tok:
+    cmp r13d, 2; jl .Lpba_done
     mov eax, [rsp + 8]; dec eax
     cmp r15d, eax; jge .Lpba_done
     xor ecx, ecx; mov edx, r13d; dec edx
@@ -284,6 +293,11 @@ pkg_action_build_argv:
 .Lpba_done:
     mov qword ptr [r14 + r15 * 8], 0
     mov eax, r15d
+    jmp .Lpba_ret
+.Lpba_fail:
+    mov qword ptr [r14], 0
+    mov eax, -1
+.Lpba_ret:
     add rsp, 32; pop r15; pop r14; pop r13; pop r12; pop rbx; ret
 
 # int pkg_menu_refresh(char **envp) -> count of menu-enabled packages

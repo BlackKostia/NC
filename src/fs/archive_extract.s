@@ -44,6 +44,25 @@ arc_tmp_sfx:   .asciz ".tmp"
 .global arc_zip64_eocd
 .global arc_zip64_extra
 
+arc_load_raw_ctx:
+    push rbx; push r12; sub rsp, 24
+    mov rbx, rdi; mov r12, rsi
+    mov edi, ARC_MAX_ENTRIES * AENT_SIZE; call mem_alloc
+    mov [rbx + 24], rax; test rax, rax; jz 1f
+    mov edi, ARC_MAX_FILE; call mem_alloc
+    mov [rbx + 8], rax; test rax, rax; jz 1f
+    mov rdi, r12; mov rsi, rax; mov edx, ARC_MAX_FILE; lea rcx, [rbx + 16]
+    call fs_read_file_head
+    test rax, rax; js 1f; cmp qword ptr [rbx + 16], 0; jle 1f
+    cmp dword ptr [rbx], 2; jne 2f
+    mov rdi, [rbx + 8]; mov rsi, [rbx + 16]; mov rdx, rsp
+    call arc_ungzip; test rax, rax; jz 1f
+    push rax; mov rdi, [rbx + 8]; call mem_free; pop rax
+    mov [rbx + 8], rax; mov rax, [rsp]; mov [rbx + 16], rax
+2:  xor eax, eax; add rsp, 24; pop r12; pop rbx; ret
+1:  mov rdi, [rbx + 8]; call mem_free; mov rdi, [rbx + 24]; call mem_free
+    mov rdi, rbx; call mem_free; mov eax, -1; add rsp, 24; pop r12; pop rbx; ret
+
 # int arc_enter_model(DirModel *m, const FileEntry *ent) -> 1 if handled, 2 if '..' nav_up, 0 otherwise
 arc_enter_model:
     push rbx; push r12; push r13; push r14; sub rsp, PATH_MAX + 16 + TRY_FRAME_SIZE
@@ -57,31 +76,20 @@ arc_enter_model:
     cmp qword ptr [r14 + FileEntry.size], ARC_MAX_FILE
     seta r12b
     mov r14, rax
-    mov rdi, r14; call arc_is_archive
-    test eax, eax; jz .Lahe_no
+    mov rdi, r14; call arc_is_archive; test eax, eax; jz .Lahe_no
     mov [rsp + PATH_MAX], eax
     mov rdi, rsp; lea rsi, [r13 + DirModel.path]; mov rdx, r14; mov ecx, PATH_MAX
-    call path_join
+    call path_join # path-checked
+    test rax, rax; js .Lahe_no
     mov rdi, r13; call arc_free_ctx
     mov edi, ACTX_SIZE; call mem_alloc; test rax, rax; jz .Lahe_no
     mov r14, rax
     mov rdi, r14; mov esi, ACTX_SIZE; call mem_zero
     mov eax, [rsp + PATH_MAX]; mov [r14], eax
-    mov edi, ARC_MAX_ENTRIES * AENT_SIZE; call mem_alloc; mov [r14 + 24], rax
-    mov edi, ARC_MAX_FILE; call mem_alloc; mov [r14 + 8], rax
-    test rax, rax; jz .Lahe_no
-    mov rdi, rsp; mov rsi, rax; mov edx, ARC_MAX_FILE; lea rcx, [r14 + 16]
-    call fs_read_file_head
-    test rax, rax; js .Lahe_no
+    mov rdi, r14; mov rsi, rsp; call arc_load_raw_ctx
+    test eax, eax; js .Lahe_no
     lea rdi, [r14 + ACTX_ORIG]; lea rsi, [r13 + DirModel.path]; mov edx, PATH_MAX; call str_copy
     lea rdi, [r14 + ACTX_FILE]; mov rsi, rsp; mov edx, PATH_MAX; call str_copy
-    cmp dword ptr [r14], 2; jne .Lahe_p
-    mov rdi, [r14 + 8]; mov rsi, [r14 + 16]; lea rdx, [rsp + PATH_MAX + 8]
-    call arc_ungzip
-    test rax, rax; jz .Lahe_no
-    push rax; mov rdi, [r14 + 8]; call mem_free; pop rax
-    mov [r14 + 8], rax; mov rax, [rsp + PATH_MAX + 8]; mov [r14 + 16], rax
-.Lahe_p:
     mov [r13 + DirModel.arc_ctx], r14
     lea r8, [rsp + PATH_MAX + 16]
     TRY_BEGIN r8, .Lahe_fault
@@ -91,15 +99,11 @@ arc_enter_model:
 .Lahe_pz:
     call arc_parse_zip
 .Lahe_pop:
-    lea r8, [rsp + PATH_MAX + 16]
-    TRY_END r8
+    lea r8, [rsp + PATH_MAX + 16]; TRY_END r8
     mov rdi, r13; call arc_populate
-    mov eax, 1
-    test r12d, r12d; jz .Lahe_ret
-    mov eax, 3
-    jmp .Lahe_ret
+    mov eax, 1; test r12d, r12d; jz .Lahe_ret; mov eax, 3; jmp .Lahe_ret
 .Lahe_fault:
-    xor eax, eax; jmp .Lahe_ret
+    mov rdi, r13; call arc_free_ctx; xor eax, eax; jmp .Lahe_ret
 .Lahe_in_arc:
     test dword ptr [r14 + FileEntry.flags], FE_IS_PARENT; jz .Lahe_sub
     mov eax, 2; jmp .Lahe_ret
@@ -109,7 +113,9 @@ arc_enter_model:
     lea rdi, [rcx + ACTX_SUB]; mov rsi, rax; mov edx, PATH_MAX; call str_cat
     mov rcx, [r13 + DirModel.arc_ctx]
     lea rdi, [rcx + ACTX_SUB]; call str_len
+    cmp rax, PATH_MAX - 2; jae .Lahe_sub_ok
     mov byte ptr [rcx + ACTX_SUB + rax], '/'; mov byte ptr [rcx + ACTX_SUB + rax + 1], 0
+.Lahe_sub_ok:
     mov rdi, r13; call arc_populate
     mov eax, 1
     test r12d, r12d; jz .Lahe_ret
@@ -181,27 +187,27 @@ arc_extract_entry:
     cmp rsi, rcx; jbe .Laes_cs_ok; mov rsi, rcx
 .Laes_cs_ok:
     cmp dword ptr [r15 + 280], 8; je .Laes_deflate
-    cmp dword ptr [r15 + 280], 0; jne .Laes_tar_clamp
+    cmp dword ptr [r15 + 280], 0; jne .Laes_fault_end
     cmp r9, rsi; jbe .Laes_tar_clamp; mov r9, rsi
 .Laes_tar_clamp:
     cmp r9, rcx; jbe .Laes_wtmp; mov r9, rcx
     jmp .Laes_wtmp
 .Laes_deflate:
-    mov rdi, r9; test rdi, rdi; jnz .Laes_az; mov edi, 1
-.Laes_az:
-    push r8; push rsi; call mem_alloc; pop rsi; pop r8
+    cmp r9, ARC_MAX_UNCOMP; ja .Laes_fault_end
+    mov rdi, r9; test rdi, rdi; jnz 1f; mov edi, 1
+1:  push r8; push rsi; push r9; sub rsp, 8          # mem_alloc clobbers r9: it is inflate's output capacity
+    call mem_alloc
+    add rsp, 8; pop r9; pop rsi; pop r8
     test rax, rax; jz .Laes_fault_end
     SCOPED_MEM_SET [rsp + PATH_MAX + TRY_FRAME_SIZE], rax
-    mov rdi, r8; mov rdx, rax; mov rcx, r9
-    call inflate_raw
+    mov rdi, r8; mov rdx, rax; mov rcx, r9; call inflate_raw
     test rax, rax; js .Laes_fault_end
     mov r8, [rsp + PATH_MAX + TRY_FRAME_SIZE]; mov r9, rax
 .Laes_wtmp:
     push r8; push r9
     lea rdi, [rip + arc_tmp_pfx]; lea rsi, [rip + arc_tmp_sfx]
     mov rdx, r12; mov ecx, PATH_MAX; call tmp_open_unique
-    pop r9; pop r8
-    test rax, rax; js .Laes_fault_end
+    pop r9; pop r8; test rax, rax; js .Laes_fault_end
     USING_FD_SET [rsp + PATH_MAX + TRY_FRAME_SIZE + 8], eax
     mov edi, eax; mov rsi, r8; mov rdx, r9; call arc_write_all
     test eax, eax; js .Laes_fault_end
@@ -225,7 +231,8 @@ arc_zip64_eocd:
     cmp r10, 20; jb .Lz64e_ret
     cmp dword ptr [rdi + r10 - 20], 0x07064b50; jne .Lz64e_ret
     mov r9, [rdi + r10 - 12]       # z64_eocd_off
-    lea rcx, [r9 + 56]; cmp rcx, rsi; ja .Lz64e_ret
+    cmp r9, rsi; ja .Lz64e_ret
+    mov rcx, rsi; sub rcx, r9; cmp rcx, 56; jb .Lz64e_ret
     cmp dword ptr [rdi + r9], 0x06064b50; jne .Lz64e_ret
     mov rdx, [rdi + r9 + 32]        # total_entries
     cmp rdx, ARC_MAX_ENTRIES; jbe .Lz64e_off

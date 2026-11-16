@@ -110,6 +110,9 @@ bmp_header:
     jb .Lbh_ret
     cmp rdx, 54
     jb .Lbh_ret
+    lea rax, [r9 + 14]
+    cmp rax, rdx
+    ja .Lbh_ret
     mov eax, [rsi + 18];  mov [rdi + BC_W], eax
     mov eax, [rsi + 22]
     test eax, eax
@@ -149,7 +152,13 @@ bmp_formats:
     je 1f
     cmp ecx, 32
     jne .Lbf_ret
-1:  mov eax, [rsi + 54];  mov [rdi + BC_MASK], eax
+1:  cmp rdx, 66
+    jb .Lbf_ret
+    cmp r9d, 56
+    jb 10f
+    cmp rdx, 70
+    jb .Lbf_ret
+10: mov eax, [rsi + 54];  mov [rdi + BC_MASK], eax
     mov eax, [rsi + 58];  mov [rdi + BC_MASK + 4], eax
     mov eax, [rsi + 62];  mov [rdi + BC_MASK + 8], eax
     cmp r9d, 56
@@ -176,9 +185,25 @@ bmp_formats:
     cmp ecx, 8
     ja .Lbf_ok
     cmp dword ptr [rdi + BC_PALN], 0
-    jne .Lbf_ok
+    jne .Lbf_clamp
     mov eax, 1
     shl eax, cl
+    mov [rdi + BC_PALN], eax
+.Lbf_clamp:                                           # palette entries must lie inside the file:
+    lea r8, [rsi + rdx]                               # bmp_pixel trusts the count it is given
+    sub r8, [rdi + BC_PAL]                            # bytes of input behind the palette start
+    jae .Lbf_room
+    xor r8d, r8d
+.Lbf_room:
+    mov eax, [rdi + BC_PALE]
+    xchg rax, r8                                      # rax = bytes left, r8 = entry size (3 or 4)
+    xor edx, edx
+    div r8
+    mov r9d, 0xFFFFFFFF
+    cmp rax, r9                                       # more than 2^32 entries fit: keep the header's count
+    ja .Lbf_ok
+    cmp eax, [rdi + BC_PALN]
+    jae .Lbf_ok
     mov [rdi + BC_PALN], eax
 .Lbf_ok:
     xor eax, eax

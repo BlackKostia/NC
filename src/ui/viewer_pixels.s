@@ -151,16 +151,15 @@ vim_fit_thumb:
     push r12
     push r13
     push r14
-    sub rsp, 40                       # [0]=tw [4]=th [8..23]=rect[4]
+    sub rsp, 56                       # [0]=rect*, [16..31]=rect[4], [32]=tw, [36]=th
     mov rbx, rdi
-    lea r8, [rsp]
-    lea r9, [rsp + 4]
-    lea rax, [rsp + 8]
-    push rax
+    lea r8, [rsp + 32]
+    lea r9, [rsp + 36]
+    lea rax, [rsp + 16]
+    mov [rsp], rax
     call vim_zoom_rect
-    add rsp, 8
-    mov r12d, [rsp]
-    mov r13d, [rsp + 4]
+    mov r12d, [rsp + 32]
+    mov r13d, [rsp + 36]
     mov eax, [rbx + ViewerDialog.img_zoom]
     shl rax, 32
     mov ecx, [rbx + ViewerDialog.img_pan_y]
@@ -182,8 +181,16 @@ vim_fit_thumb:
 .Lft_new:
     mov rdi, [rbx + ViewerDialog.thumb]
     call mem_free
+    mov qword ptr [rbx + ViewerDialog.thumb], 0
+    mov dword ptr [rbx + ViewerDialog.thumb_w], 0
+    mov dword ptr [rbx + ViewerDialog.thumb_h], 0
+    test r12d, r12d; jle .Lft_fail
+    test r13d, r13d; jle .Lft_fail
     mov eax, r12d
-    imul eax, r13d
+    movsxd rcx, r13d
+    imul rax, rcx
+    cmp rax, IMG_MAX_PIXELS
+    ja .Lft_fail
     lea rdi, [rax * 4]
     call mem_alloc
     mov [rbx + ViewerDialog.thumb], rax
@@ -196,7 +203,7 @@ vim_fit_thumb:
     mov rsi, rax
     mov edx, r12d
     mov ecx, r13d
-    lea r8, [rsp + 8]
+    lea r8, [rsp + 16]
     call img_scale_rect
 .Lft_ok:
     mov eax, 1
@@ -204,7 +211,7 @@ vim_fit_thumb:
 .Lft_fail:
     xor eax, eax
 .Lft_ret:
-    add rsp, 40
+    add rsp, 56
     pop r14
     pop r13
     pop r12
@@ -285,6 +292,8 @@ vim_encode_into:
     mov ecx, [r11 + 56]               # box cols (0 = native pixel size)
     test ecx, ecx
     jz 1f
+    cmp dword ptr [r11 + 48], 0
+    jle .Lei_zero
     mov eax, esi                      # picture cols = ceil(w * cols / box px w)
     imul eax, ecx
     add eax, [r11 + 48]
@@ -295,6 +304,9 @@ vim_encode_into:
     pop rdx
     mov ecx, eax
 1:  jmp img_kitty_encode
+.Lei_zero:
+    xor eax, eax
+    ret
 
 # Internal: void vim_place(ViewerDialog *v, ImgPlace *p /*box px at [48]/[52]*/) -- centred cells
 vim_place:
@@ -304,7 +316,9 @@ vim_place:
     mov r12, rsi
     mov r8d, [r12 + 48]               # box px
     mov r9d, [r12 + 52]
-    mov [r12 + ImgPlace.owner], rbx
+    test r8d, r8d; jg 1f; mov r8d, 1
+1:  test r9d, r9d; jg 2f; mov r9d, 1
+2:  mov [r12 + ImgPlace.owner], rbx
     mov rax, [rbx + ViewerDialog.enc]
     mov [r12 + ImgPlace.data], rax
     mov rax, [rbx + ViewerDialog.enc_len]

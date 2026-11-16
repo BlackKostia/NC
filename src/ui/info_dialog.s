@@ -73,8 +73,10 @@ InfoDialog_new:
     mov edi, AT_FDCWD
     mov rsi, r13
     lea rdx, [rbx + InfoDialog.st]
-    mov ecx, AT_SYMLINK_NOFOLLOW
+    xor ecx, ecx                      # OS_STAT_NOFOLLOW
     call os_statat
+    test rax, rax
+    js .Lidn_lay
 
     mov eax, [rbx + InfoDialog.st + FileStat.mode]
     and eax, S_IFMT

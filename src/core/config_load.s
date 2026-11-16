@@ -4,9 +4,6 @@
 .include "pal.inc"
 .include "config.inc"
 .include "types.inc"
-.equ CFG_MAX_BINDS,   32
-.equ CFG_MAX_OPENS,   32
-.equ CFG_MAX_MENUS,   24
 .equ CFG_BIND_SZ,     16      # key(4), mods(4), action(4), pad(4)
 .equ CFG_OPEN_SZ,     256     # ext(16), cmd(240)
 .equ CFG_MENU_SZ,     256     # label(64), cmd(192)
@@ -14,18 +11,14 @@
 .equ CFG_LANG,        4
 .equ CFG_HIDDEN,      8
 .equ CFG_SORT,        12
-.equ CFG_COLOR_MASK,  16
 .equ CFG_BIND_CNT,    20
 .equ CFG_OPEN_CNT,    24
 .equ CFG_MENU_CNT,    28
-.equ CFG_COLORS,      32
 .equ CFG_BINDS,       160
 .equ CFG_OPENS,       672
 .equ CFG_MENUS,       8864
 .equ CFG_TOTAL_SZ,    15024         # + CFG_LANG_ID (config.inc)
-.equ CFG_FILE_MAX,    16384
-.equ COLOR_FIELD_COUNT, 29
-.equ ACTION_NAME_COUNT, 19
+.equ CFG_FILE_HARD,   1048576      # 1 MiB: bigger files keep their head and raise g_cfg_warn
 .equ DEFAULT_MENU_COUNT, 3
 .extern mem_alloc
 .extern mem_free
@@ -42,6 +35,7 @@
 
 .align 16
 g_config:          .space CFG_TOTAL_SZ
+g_cfg_warn:        .space 4       # 1 when duoprc exceeded the hard size limit
 
 .section .rodata
 env_duop_cfg:      .asciz "DUOP_CONFIG="
@@ -71,6 +65,7 @@ default_menu_table:
 .global config_menu_count
 .global config_menu_item
 .global g_config
+.global g_cfg_warn
 
 # void config_load(char **envp)
 config_load:
@@ -100,6 +95,9 @@ config_load:
     cmp byte ptr [rax], 0
     je .Lcl_try_home
     call config_load__path_join
+    test rax, rax
+    js .Lcl_try_home
+    lea rsi, [rsp]
     jmp .Lcl_open
 
 .Lcl_try_home:
@@ -111,9 +109,12 @@ config_load:
     cmp byte ptr [rax], 0
     je .Lcl_done
     call config_load__path_join_2
+    test rax, rax
+    js .Lcl_done
+    lea rsi, [rsp]
 .Lcl_open:
     mov edi, AT_FDCWD
-    mov edx, O_RDONLY | O_CLOEXEC
+    mov edx, O_RDONLY | O_NONBLOCK | O_CLOEXEC
     xor r10d, r10d
     call config_load__buf
 .Lcl_done:
@@ -170,6 +171,31 @@ config_load__path_join_2:
     lea rsp, [rsp + 8]
     ret
 
+# Helper: void config_load_parse_buf(char *buf)
+config_load_parse_buf:
+    push rbx; sub rsp, 16             # aligned: rbx + 16 = 0 mod 16
+.Lcl_line_loop:
+    cmp byte ptr [rdi], 0; je .Lcl_pb_ret
+    mov rbx, rdi
+.Lcl_find_nl:
+    movzx eax, byte ptr [rbx]; test al, al; jz .Lcl_end_line
+    cmp al, '\n'; je .Lcl_end_line
+    inc rbx; jmp .Lcl_find_nl
+.Lcl_end_line:
+    xor edx, edx
+    cmp byte ptr [rbx], '\n'; sete dl
+    mov byte ptr [rbx], 0
+    cmp rbx, rdi; jbe 1f
+    cmp byte ptr [rbx - 1], '\r'; jne 1f
+    mov byte ptr [rbx - 1], 0
+1:  add rbx, rdx
+    mov [rsp], rbx; mov [rsp + 8], edx
+    call parse_config_line
+    mov rdi, [rsp]
+    cmp dword ptr [rsp + 8], 0; jne .Lcl_line_loop
+.Lcl_pb_ret:
+    add rsp, 16; pop rbx; ret
+
 # config_load step: buf (runs on the caller's frame)
 config_load__buf:
     lea rsp, [rsp - 8]
@@ -178,64 +204,70 @@ config_load__buf:
     js .Lconfig_load__buf_ret
     mov r13d, eax             # fd
 
-    mov edi, CFG_FILE_MAX
+    sub rsp, 64
+    mov edi, r13d
+    mov rsi, rsp
+    call os_fstat
+    test rax, rax
+    js .Lcl_stat_bad
+    mov eax, [rsp + FileStat.mode]
+    and eax, S_IFMT
+    cmp eax, S_IFREG
+    jne .Lcl_stat_bad
+    mov r12, [rsp + FileStat.size]
+    add rsp, 64
+    cmp r12, CFG_FILE_HARD
+    jbe .Lcl_sized
+    mov dword ptr [rip + g_cfg_warn], 1       # beyond the hard limit: the head is used, the user is told
+    mov r12d, CFG_FILE_HARD
+.Lcl_sized:
+    lea rdi, [r12 + 1]
     call mem_alloc
     test rax, rax
     jz .Lcl_close
-    mov r14, rax              # buf
+    mov r14, rax              # buf (exactly the file size + NUL: no silent size cap below the hard limit)
 
     xor ebx, ebx              # total
 .Lcl_read:
-    cmp rbx, CFG_FILE_MAX - 1
+    cmp rbx, r12
     jae .Lcl_parse
     mov edi, r13d
     lea rsi, [r14 + rbx]
-    mov rdx, CFG_FILE_MAX - 1
+    mov rdx, r12
     sub rdx, rbx
     call sys_read_retry
     test rax, rax
-    jle .Lcl_parse
+    js .Lcl_free
+    jz .Lcl_parse
     add rbx, rax
     jmp .Lcl_read
 
 .Lcl_parse:
+    cmp dword ptr [rip + g_cfg_warn], 0
+    je .Lcl_nul
+.Lcl_trim:
+    test rbx, rbx
+    jz .Lcl_nul
+    cmp byte ptr [r14 + rbx - 1], 10      # a cut file ends at its last complete line
+    je .Lcl_nul
+    dec rbx
+    jmp .Lcl_trim
+.Lcl_nul:
     mov byte ptr [r14 + rbx], 0
     mov rdi, r14
-.Lcl_line_loop:
-    cmp byte ptr [rdi], 0
-    je .Lcl_free
-    mov rbx, rdi
-.Lcl_find_nl:
-    movzx eax, byte ptr [rbx]
-    test al, al
-    jz .Lcl_last_line
-    cmp al, '\n'
-    je .Lcl_got_nl
-    cmp al, '\r'
-    jne .Lcl_fn_next
-    mov byte ptr [rbx], 0
-.Lcl_fn_next:
-    inc rbx
-    jmp .Lcl_find_nl
-.Lcl_got_nl:
-    mov byte ptr [rbx], 0
-    inc rbx
-    push rbx
-    call parse_config_line
-    pop rdi
-    jmp .Lcl_line_loop
-.Lcl_last_line:
-    call parse_config_line
-
+    call config_load_parse_buf
 .Lcl_free:
     mov rdi, r14
     call mem_free
 .Lcl_close:
     mov edi, r13d
-    OS_CLOSE
+    OS_CLOSE                  # fault-checked: close opened config fd on exit/error
 .Lconfig_load__buf_ret:
     lea rsp, [rsp + 8]
     ret
+.Lcl_stat_bad:
+    add rsp, 64
+    jmp .Lcl_close
 
 # Config *config_get(void)
 config_get:

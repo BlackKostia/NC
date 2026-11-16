@@ -6,6 +6,7 @@
 
 .extern g_git_defer
 .extern git_refresh
+.extern task_status_errno
 
 .section .text
 .global App_run
@@ -88,12 +89,10 @@ handle_mouse__part1:
 # handle_mouse step (runs on the caller's frame)
 handle_mouse__part2:
     lea rsp, [rsp - 8]
-    mov r8d, [r12 + Event.mouse_x]
-    mov r9d, [r12 + Event.mouse_y]
-
+    # r8/r9 do not survive the vtable calls below: every hit test re-reads the event position
     mov rdi, [rbx + App.header_bar]
-    mov esi, r8d
-    mov edx, r9d
+    mov esi, [r12 + Event.mouse_x]
+    mov edx, [r12 + Event.mouse_y]
     VCALL WidgetVtbl.hit_test
     test eax, eax
     jz .Lhm_ht_func
@@ -105,8 +104,8 @@ handle_mouse__part2:
 
 .Lhm_ht_func:
     mov rdi, [rbx + App.func_bar]
-    mov esi, r8d
-    mov edx, r9d
+    mov esi, [r12 + Event.mouse_x]
+    mov edx, [r12 + Event.mouse_y]
     VCALL WidgetVtbl.hit_test
     test eax, eax
     jz .Lhm_ht_left
@@ -118,8 +117,8 @@ handle_mouse__part2:
 
 .Lhm_ht_left:
     mov rdi, [rbx + App.left_pane]
-    mov esi, r8d
-    mov edx, r9d
+    mov esi, [r12 + Event.mouse_x]
+    mov edx, [r12 + Event.mouse_y]
     VCALL WidgetVtbl.hit_test
     test eax, eax
     jz .Lhm_ht_right
@@ -135,8 +134,8 @@ handle_mouse__part2:
     mov rdi, [rbx + App.preview_pane]
 .Lhm_ht_rtest:
     push rdi
-    mov esi, r8d
-    mov edx, r9d
+    mov esi, [r12 + Event.mouse_x]
+    mov edx, [r12 + Event.mouse_y]
     VCALL WidgetVtbl.hit_test
     pop rdi
     test eax, eax
@@ -332,6 +331,12 @@ App_run__stream_both_panes_concurrently:
     call DirModel_step_load
     test rax, rax
     jz .Larun_stream_finished
+    jns 1f
+    mov rdi, rbx
+    mov rsi, rax
+    call task_status_errno
+    jmp .Larun_stream_finished
+1:
 
     # Throttle progress footer redraws (~30 FPS) to keep 1M scan at max speed
     call sys_clock_ms

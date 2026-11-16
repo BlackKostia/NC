@@ -242,6 +242,8 @@ js_block:
     lea rsi, [rbx + Jpeg.huff + rax]
     mov rdi, rbx
     call jb_huff
+    cmp eax, 15
+    ja .Lbk_done
     mov esi, eax
     mov rdi, rbx
     call jb_extend

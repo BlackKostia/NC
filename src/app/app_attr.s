@@ -60,6 +60,8 @@ aa_get_selected_path:
     mov rdi, r12
     mov ecx, PATH_MAX
     call path_join
+    test rax, rax
+    js .Laag_none
     mov eax, 1
     jmp .Laag_ret
 .Laag_none:
@@ -70,49 +72,29 @@ aa_get_selected_path:
     pop rbx
     ret
 
-# void App_cmd_info(App *this)
-App_cmd_info:
-    push rbx
-    sub rsp, PATH_MAX + 8
-    mov rbx, rdi
-    mov rsi, rsp
-    xor edx, edx
-    call aa_get_selected_path
-    test eax, eax
-    jz .Laci_done
-    mov rdi, rbx
-    mov rsi, rsp
-    call InfoDialog_new
-    test rax, rax
-    jz .Laci_done
+aa_err_status:
+    push rbx; mov rbx, rdi; mov edi, esi; call fs_errno_message
+    mov rdi, rbx; mov rsi, rax; mov edx, MSG_ERR; call App_set_status
+    pop rbx; ret
+
+aa_open_sel_dlg:
+    push rbx; push r12; sub rsp, PATH_MAX + 8
+    mov rbx, rdi; mov r12, rsi
+    mov rsi, rsp; xor edx, edx; call aa_get_selected_path
+    test eax, eax; jz 1f
+    mov rdi, rbx; mov rsi, rsp; call r12
+    test rax, rax; jz 1f
     mov [rbx + App.active_dialog], rax
     mov dword ptr [rbx + App.need_redraw], 1
-.Laci_done:
-    add rsp, PATH_MAX + 8
-    pop rbx
-    ret
+1:  add rsp, PATH_MAX + 8; pop r12; pop rbx; ret
+
+# void App_cmd_info(App *this)
+App_cmd_info:
+    lea rsi, [rip + InfoDialog_new]; jmp aa_open_sel_dlg
 
 # void App_cmd_chmod(App *this)
 App_cmd_chmod:
-    push rbx
-    sub rsp, PATH_MAX + 8
-    mov rbx, rdi
-    mov rsi, rsp
-    xor edx, edx
-    call aa_get_selected_path
-    test eax, eax
-    jz .Lacc_done
-    mov rdi, rbx
-    mov rsi, rsp
-    call ChmodDialog_new
-    test rax, rax
-    jz .Lacc_done
-    mov [rbx + App.active_dialog], rax
-    mov dword ptr [rbx + App.need_redraw], 1
-.Lacc_done:
-    add rsp, PATH_MAX + 8
-    pop rbx
-    ret
+    lea rsi, [rip + ChmodDialog_new]; jmp aa_open_sel_dlg
 
 # void App_cmd_link(App *this, int is_hard)
 App_cmd_link:
@@ -142,6 +124,8 @@ App_cmd_link:
     mov rdi, rsp
     mov ecx, PATH_MAX
     call path_join
+    test rax, rax
+    js .Lacl_done
 
     call i18n_get
     mov rsi, [rax + LangStrings.dlg_title_symlink]
@@ -205,12 +189,7 @@ App_cmd_trash:
     call App_set_status
     jmp .Lact_done
 .Lact_err:
-    mov edi, eax
-    call fs_errno_message
-    mov rdi, rbx
-    mov rsi, rax
-    mov edx, MSG_ERR
-    call App_set_status
+    mov rdi, rbx; mov esi, eax; call aa_err_status
 .Lact_done:
     add rsp, PATH_MAX * 3 + 8
     pop rbx
@@ -245,62 +224,65 @@ App_cmd_undo:
     pop rbx
     ret
 .Lacu_err:
-    mov edi, eax
-    call fs_errno_message
-    mov rdi, rbx
-    mov rsi, rax
-    mov edx, MSG_ERR
-    call App_set_status
+    mov rdi, rbx; mov esi, eax; call aa_err_status
     pop rbx
     ret
 
+# Helper: const char *aa_parse_u32(const char *s, int end_ch, uint32_t *out)
+aa_parse_u32:
+    xor r8d, r8d; xor r9d, r9d
+    mov r10d, 0xFFFFFFFF
+1:  movzx ecx, byte ptr [rdi]
+    cmp cl, sil; je 2f
+    sub ecx, '0'; cmp ecx, 9; ja 3f
+    imul r8, r8, 10; add r8, rcx
+    cmp r8, r10; ja 3f
+    inc r9d; inc rdi; jmp 1b
+2:  test r9d, r9d; jz 3f
+    mov [rdx], r8d; mov rax, rdi; ret
+3:  xor eax, eax; ret
+
 # Helper: int aa_parse_uid_gid(const char *s, int *uid, int *gid)
 aa_parse_uid_gid:
-    xor eax, eax
-.Lapu_u:
-    movzx ecx, byte ptr [rdi]
-    cmp cl, ':'
-    je .Lapu_colon
-    sub ecx, '0'
-    cmp ecx, 9
-    ja .Lapu_err
-    imul eax, eax, 10
-    add eax, ecx
-    inc rdi
-    jmp .Lapu_u
-.Lapu_colon:
-    mov [rsi], eax
-    inc rdi
-    xor eax, eax
-    cmp byte ptr [rdi], 0
-    je .Lapu_err
-.Lapu_g:
-    movzx ecx, byte ptr [rdi]
-    test cl, cl
-    jz .Lapu_ok
-    sub ecx, '0'
-    cmp ecx, 9
-    ja .Lapu_err
-    imul eax, eax, 10
-    add eax, ecx
-    inc rdi
-    jmp .Lapu_g
-.Lapu_ok:
-    mov [rdx], eax
-    xor eax, eax
-    ret
-.Lapu_err:
-    mov eax, -1
-    ret
+    push rdx
+    mov rdx, rsi; mov esi, ':'
+    call aa_parse_u32; pop rdx
+    test rax, rax; jz 1f
+    lea rdi, [rax + 1]; xor esi, esi
+    call aa_parse_u32
+    test rax, rax; jz 1f
+    xor eax, eax; ret
+1:  mov eax, -1; ret
 
 # void App_apply_chmod(App *this, ChmodDialog *dlg)
 App_apply_chmod:
     push rbx
     push r12
-    sub rsp, 24               # [rsp+0]=uid, [rsp+4]=gid
+    sub rsp, 88                       # [0]=uid, [4]=gid, [8]=is_lnk, [16..71]=FileStat
     mov rbx, rdi
     mov r12, rsi
 
+    mov edi, AT_FDCWD
+    lea rsi, [r12 + ChmodDialog.target_path]
+    lea rdx, [rsp + 16]
+    xor ecx, ecx
+    call os_statat
+    test rax, rax
+    js .Laac_err
+    mov eax, [rsp + 16 + FileStat.mode]
+    and eax, S_IFMT
+    cmp eax, S_IFLNK
+    sete byte ptr [rsp + 8]
+
+    lea rdi, [r12 + ChmodDialog.owner_buf]
+    lea rsi, [rsp + 0]
+    lea rdx, [rsp + 4]
+    call aa_parse_uid_gid
+    test eax, eax
+    js .Laac_bad_input
+
+    cmp byte ptr [rsp + 8], 0
+    jne .Laac_lnk_check
     mov edi, AT_FDCWD
     lea rsi, [r12 + ChmodDialog.target_path]
     mov edx, [r12 + ChmodDialog.mode]
@@ -309,18 +291,13 @@ App_apply_chmod:
     test rax, rax
     js .Laac_err
 
-    lea rdi, [r12 + ChmodDialog.owner_buf]
-    lea rsi, [rsp + 0]
-    lea rdx, [rsp + 4]
-    call aa_parse_uid_gid
-    test eax, eax
-    js .Laac_reload
+.Laac_lnk_check:
     mov eax, [rsp + 0]
     cmp eax, [r12 + ChmodDialog.uid]
     jne .Laac_chown
     mov eax, [rsp + 4]
     cmp eax, [r12 + ChmodDialog.gid]
-    je .Laac_reload
+    je .Laac_post_chown
 .Laac_chown:
     mov edi, AT_FDCWD
     lea rsi, [r12 + ChmodDialog.target_path]
@@ -328,20 +305,26 @@ App_apply_chmod:
     mov r10d, [rsp + 4]
     mov r8d, AT_SYMLINK_NOFOLLOW
     OS_FCHOWNAT
+    test rax, rax
+    js .Laac_err
+    jmp .Laac_reload
+.Laac_post_chown:
+    cmp byte ptr [rsp + 8], 0
+    je .Laac_reload
+    mov eax, -EOPNOTSUPP
+    jmp .Laac_err
+.Laac_bad_input:
+    mov eax, -EINVAL
+    jmp .Laac_err
 .Laac_reload:
     mov rdi, rbx
     xor esi, esi
     call App_reload_panes
     jmp .Laac_done
 .Laac_err:
-    mov edi, eax
-    call fs_errno_message
-    mov rdi, rbx
-    mov rsi, rax
-    mov edx, MSG_ERR
-    call App_set_status
+    mov rdi, rbx; mov esi, eax; call aa_err_status
 .Laac_done:
-    add rsp, 24
+    add rsp, 88
     pop r12
     pop rbx
     ret
@@ -385,12 +368,7 @@ App_apply_link:
     call App_reload_panes
     jmp .Laal_done
 .Laal_err:
-    mov edi, eax
-    call fs_errno_message
-    mov rdi, rbx
-    mov rsi, rax
-    mov edx, MSG_ERR
-    call App_set_status
+    mov rdi, rbx; mov esi, eax; call aa_err_status
 .Laal_done:
     add rsp, PATH_MAX + 8
     pop r13

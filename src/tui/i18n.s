@@ -309,6 +309,9 @@ en_pkg_err:            .asciz " Package operation failed "
 en_pkg_tab_inst:       .asciz " Installed "
 en_pkg_tab_avail:      .asciz " Available "
 en_arc_truncated:      .asciz "Archive truncated at 4 MiB limit"
+en_err_cmd_long:       .asciz "Command too long: not executed"
+en_cfg_truncated:      .asciz "Config file too large: the rest was ignored"
+en_err_special:        .asciz "Special file (pipe/socket/device) cannot be copied or moved this way"
 
 .align 8
 .global lang_en_table
@@ -359,6 +362,7 @@ lang_en_table:
     .quad en_pkg_title, en_pkg_hint, en_pkg_empty, en_pkg_install_prompt
     .quad en_pkg_installed, en_pkg_removed, en_pkg_verified, en_pkg_err
     .quad en_pkg_tab_inst, en_pkg_tab_avail, en_arc_truncated
+    .quad en_err_cmd_long, en_cfg_truncated, en_err_special
 .if (. - lang_en_table) != LangStrings._size
     .error "lang_en_table size does not match LangStrings._size"
 .endif

@@ -118,6 +118,8 @@ jpeg_markers:
     ja .Ljm_ok
     movzx r15d, word ptr [r12]
     rol r15w, 8                       # segment length (BE16, includes itself)
+    cmp r15d, 2
+    jb .Ljm_bad
     lea rax, [r12 + r15]
     cmp rax, r13
     ja .Ljm_bad
@@ -168,11 +170,17 @@ jpeg_segment:
     xor edx, edx
     ret
 .Lsg_dri:
+    cmp edx, 2
+    jb .Lsg_bad
     movzx eax, word ptr [rsi]
     rol ax, 8
     mov [rdi + Jpeg.rst], eax
 .Lsg_skip:
     xor eax, eax
+    xor edx, edx
+    ret
+.Lsg_bad:
+    mov eax, IMG_E_CORRUPT
     xor edx, edx
     ret
 
@@ -189,6 +197,14 @@ jpeg_dqt:
     shl ecx, 7
     lea r9, [rdi + Jpeg.qt + rcx]     # table base (64 x u16)
     shr eax, 4
+    mov edx, 64
+    test eax, eax
+    jz 2f
+    mov edx, 128
+2:  mov r10, r8
+    sub r10, rsi
+    cmp r10, rdx
+    jb .Ldq_bad
     xor ecx, ecx
 .Ldq_val:
     cmp ecx, 64
@@ -204,6 +220,10 @@ jpeg_dqt:
 1:  mov [r9 + rcx * 2], r10w
     inc ecx
     jmp .Ldq_val
+.Ldq_bad:
+    mov eax, IMG_E_CORRUPT
+    xor edx, edx
+    ret
 .Ldq_ok:
     xor eax, eax
     xor edx, edx
@@ -220,7 +240,20 @@ jpeg_dht:
 .Ldh_tab:
     lea rax, [r12 + 17]
     cmp rax, r13
-    ja .Ldh_ok
+    ja .Ldh_done_chk
+    xor r8d, r8d
+    xor ecx, ecx
+.Ldh_sum:
+    movzx eax, byte ptr [r12 + 1 + rcx]
+    add r8d, eax
+    inc ecx
+    cmp ecx, 16
+    jb .Ldh_sum
+    cmp r8d, 256
+    ja .Ldh_bad
+    lea r9, [r12 + r8 + 17]
+    cmp r9, r13
+    ja .Ldh_bad
     movzx eax, byte ptr [r12]         # Tc << 4 | Th
     mov ecx, eax
     and ecx, 3
@@ -230,11 +263,23 @@ jpeg_dht:
     imul rax, rax, HT._size
     lea rdi, [rbx + Jpeg.huff + rax]
     lea rsi, [r12 + 1]                # counts[16], then symbols
-    call jpeg_build_huff              # -> eax = symbol count
+    call jpeg_build_huff              # -> eax = symbol count or -1
+    test eax, eax
+    js .Ldh_bad
     lea r12, [r12 + rax + 17]
     jmp .Ldh_tab
+.Ldh_done_chk:
+    cmp r12, r13
+    jne .Ldh_bad
 .Ldh_ok:
     xor eax, eax
+    xor edx, edx
+    pop r13
+    pop r12
+    pop rbx
+    ret
+.Ldh_bad:
+    mov eax, IMG_E_CORRUPT
     xor edx, edx
     pop r13
     pop r12
@@ -278,6 +323,8 @@ jpeg_build_huff:
     cmp ecx, 8
     jg 2f
     call jbh_lookup                   # fill the 8-bit fast table for this code
+    test eax, eax
+    js .Lbh_bad
 2:  inc r13d
     inc r14d
     dec r9d
@@ -294,11 +341,22 @@ jpeg_build_huff:
     pop r12
     pop rbx
     ret
+.Lbh_bad:
+    mov eax, -1
+    pop r14
+    pop r13
+    pop r12
+    pop rbx
+    ret
 
 # Internal: look[code << (8 - l) .. +(1 << (8 - l))] = l << 8 | sym (eax), rbx = table
 jbh_lookup:
     push rcx
     mov r10d, ecx                     # l
+    cmp r10d, 1
+    jb .Ljbl_bad
+    cmp r10d, 8
+    ja .Ljbl_bad
     mov r11d, eax
     mov eax, r10d
     shl eax, 8
@@ -309,9 +367,17 @@ jbh_lookup:
     shl eax, cl
     mov edx, 1
     shl edx, cl                       # run length
+    lea r8, [rax + rdx]
+    cmp r8, 256
+    ja .Ljbl_bad
 3:  mov [rbx + HT.look + rax * 2], r11w
     inc eax
     dec edx
     jnz 3b
+    xor eax, eax
+    pop rcx
+    ret
+.Ljbl_bad:
+    mov eax, -1
     pop rcx
     ret

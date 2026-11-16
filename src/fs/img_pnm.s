@@ -245,77 +245,47 @@ qoi_stream:
 
 # Internal: decode one QOI op (tag byte in eax); r9d = pixel, r10d = run, r12 = cursor, rbx = index
 qoi_op:
-    cmp eax, 0xFE
-    je .Lqo_rgb
-    cmp eax, 0xFF
-    je .Lqo_rgba
-    mov ecx, eax
-    shr ecx, 6
-    and eax, 0x3F
-    cmp ecx, 0
-    je .Lqo_index
-    cmp ecx, 3
-    je .Lqo_run
-    cmp ecx, 1
-    je .Lqo_diff
-    movzx edx, byte ptr [r12]         # LUMA: dg = b - 32; dr = dg - 8 + hi; db = dg - 8 + lo
-    inc r12
+    cmp eax, 0xFE; je qoi_op_rgb
+    cmp eax, 0xFF; je qoi_op_rgba
+    mov ecx, eax; shr ecx, 6; and eax, 0x3F
+    cmp ecx, 0; je .Lqo_index
+    cmp ecx, 3; je .Lqo_run
+    cmp ecx, 1; je .Lqo_diff
+    cmp r12, r13; jae qoi_op_eof
+    movzx edx, byte ptr [r12]; inc r12
     sub eax, 32
-    mov ecx, edx
-    shr ecx, 4
-    lea ecx, [ecx + eax - 8]          # dr
-    and edx, 15
-    lea edx, [edx + eax - 8]          # db
-    mov r8d, eax                      # dg
-    jmp .Lqo_add
+    mov ecx, edx; shr ecx, 4; lea ecx, [ecx + eax - 8]
+    and edx, 15; lea edx, [edx + eax - 8]
+    mov r8d, eax; jmp .Lqo_add
 .Lqo_diff:
-    mov ecx, eax                      # dr = (b >> 4 & 3) - 2 ...
-    shr ecx, 4
-    and ecx, 3
-    sub ecx, 2
-    mov r8d, eax
-    shr r8d, 2
-    and r8d, 3
-    sub r8d, 2
-    mov edx, eax
-    and edx, 3
-    sub edx, 2
+    mov ecx, eax; shr ecx, 4; and ecx, 3; sub ecx, 2
+    mov r8d, eax; shr r8d, 2; and r8d, 3; sub r8d, 2
+    mov edx, eax; and edx, 3; sub edx, 2
 .Lqo_add:
-    add cl, r9b                       # r
-    mov r11d, r9d
-    shr r11d, 8
-    add r8b, r11b                     # g
-    shr r11d, 8
-    add dl, r11b                      # b
+    add cl, r9b
+    mov r11d, r9d; shr r11d, 8; add r8b, r11b
+    shr r11d, 8; add dl, r11b
     and r9d, 0xFF000000
-    movzx ecx, cl
-    or r9d, ecx
-    movzx r8d, r8b
-    shl r8d, 8
-    or r9d, r8d
-    movzx edx, dl
-    shl edx, 16
-    or r9d, edx
+    movzx ecx, cl; or r9d, ecx
+    movzx r8d, r8b; shl r8d, 8; or r9d, r8d
+    movzx edx, dl; shl edx, 16; or r9d, edx
     jmp qoi_remember
 .Lqo_index:
-    mov r9d, [rbx + rax * 4]
-    jmp qoi_remember
+    mov r9d, [rbx + rax * 4]; jmp qoi_remember
 .Lqo_run:
-    mov r10d, eax                     # this op emits one pixel, eax more follow
-    jmp qoi_remember
-.Lqo_rgb:
+    mov r10d, eax; jmp qoi_remember
+
+qoi_op_rgb:
+    mov rax, r13; sub rax, r12; cmp rax, 3; jb qoi_op_eof
     and r9d, 0xFF000000
-    movzx eax, word ptr [r12]
-    or r9d, eax
-    movzx eax, byte ptr [r12 + 2]
-    shl eax, 16
-    or r9d, eax
-    add r12, 3
-    jmp qoi_remember
-.Lqo_rgba:
-    mov r9d, [r12]
-    add r12, 4
-    jmp qoi_remember
+    movzx eax, word ptr [r12]; or r9d, eax
+    movzx eax, byte ptr [r12 + 2]; shl eax, 16; or r9d, eax
+    add r12, 3; jmp qoi_remember
+qoi_op_rgba:
+    mov rax, r13; sub rax, r12; cmp rax, 4; jb qoi_op_eof
+    mov r9d, [r12]; add r12, 4; jmp qoi_remember
+qoi_op_eof:
+    mov r12, r13; ret
 
 # Internal: index[(r*3 + g*5 + b*7 + a*11) % 64] = r9d
 qoi_remember:

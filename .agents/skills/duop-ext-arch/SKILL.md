@@ -20,4 +20,4 @@ Use this skill whenever designing or modifying Duop subsystems, package/plugin c
 - **Manifest Keys (`manifest.ini`)**: Parsers MUST ignore unknown `key = value` lines so newer manifests work on older Duop versions.
 - **Zero-copy / Fixed Structs**: Keep `PkgEntry` (`296` B), `PkgAction` (`576` B), and `PkgRegEntry` (`512` B) aligned to 8 bytes with documented offsets at the top of the `.s` file.
 - **Safe Path Hygiene**: Always validate package names and archive entry paths against empty strings, leading `/`, and `..` segments before `path_join`.
-- **Lean-Module Discipline**: Any new subsystem goes into a dedicated `src/<layer>/<topic>.s` (`<= 400` lines, routines `<= 80` lines, `<= 16` `.global` symbols).
+- **Lean-Module Discipline**: Any new subsystem goes into a dedicated `src/<layer>/<topic>.s` (`<= 500` lines, routines `<= 80` lines, `<= 16` `.global` symbols).

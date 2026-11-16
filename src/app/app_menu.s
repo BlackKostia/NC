@@ -7,7 +7,6 @@
 .section .text
 .global App_cmd_usermenu
 .global App_dispatch_action
-.global App_run_expanded_cmd
 .global App_exec_menu_tmpl
 .global App_run_pkg_action
 
@@ -34,7 +33,7 @@
 .extern DirModel_get_entry
 .extern DirModel_entry_name
 .extern FilePane_get_selected_entry
-.extern config_expand_cmd
+.extern App_run_expanded_cmd
 .extern sys_exec_sh_arg
 .extern sys_exec_argv
 .extern sys_exec_argv_bg
@@ -42,6 +41,7 @@
 .extern i18n_get
 .extern pkg_action_build_argv
 .extern pkg_action_has_marked
+.extern pkg_ensure_exec
 .extern pkg_write_marked_list
 .extern str_copy
 .extern path_join
@@ -83,301 +83,97 @@ App_dispatch_action:
     cmp esi, ACT_USERMENU; je App_cmd_usermenu
     ret
 
-# Helper: size_t am_append_quoted(char *buf, size_t pos, size_t cap, const char *s)
-am_append_quoted:
-    mov rax, rsi
-    dec rdx                   # reserve NUL
-    test rax, rax
-    jz .Laaq_q1
-    cmp rax, rdx
-    jae .Laaq_done
-    mov byte ptr [rdi + rax], ' '
-    inc rax
-.Laaq_q1:
-    cmp rax, rdx
-    jae .Laaq_done
-    mov byte ptr [rdi + rax], '\''
-    inc rax
-.Laaq_loop:
-    movzx r8d, byte ptr [rcx]
-    test r8d, r8d
-    jz .Laaq_q2
-    cmp r8d, '\''
-    je .Laaq_esc
-    cmp rax, rdx
-    jae .Laaq_done
-    mov [rdi + rax], r8b
-    inc rax
-    inc rcx
-    jmp .Laaq_loop
-.Laaq_esc:
-    lea r9, [rax + 4]
-    cmp r9, rdx
-    ja .Laaq_done
-    mov byte ptr [rdi + rax], '\''
-    mov byte ptr [rdi + rax + 1], '\\'
-    mov byte ptr [rdi + rax + 2], '\''
-    mov byte ptr [rdi + rax + 3], '\''
-    add rax, 4
-    inc rcx
-    jmp .Laaq_loop
-.Laaq_q2:
-    cmp rax, rdx
-    jae .Laaq_done
-    mov byte ptr [rdi + rax], '\''
-    inc rax
-.Laaq_done:
-    mov byte ptr [rdi + rax], 0
-    ret
-
-# Helper: void am_collect_selected(App *this, const char *cur_name, char *sel_buf)
-am_collect_selected:
-    push rbx
-    push r12
-    push r13
-    push r14
-    push r15
-    mov rbx, rdi
-    mov r13, rsi
-    mov r15, rdx
-    mov byte ptr [r15], 0
-    xor eax, eax
-    mov rcx, [rbx + App.active_pane]
-    mov r8, [rcx + FilePane.model]
-    xor r9d, r9d
-    mov r10d, [r8 + DirModel.count]
-    push rax
-.Lacs_loop:
-    cmp r9d, r10d
-    jge .Lacs_done
-    push r8; push r9; push r10
-    mov rdi, r8
-    mov esi, r9d
-    call DirModel_get_entry
-    pop r10; pop r9; pop r8
-    test rax, rax
-    jz .Lacs_next
-    test dword ptr [rax + FileEntry.flags], FE_SELECTED
-    jz .Lacs_next
-    push r8; push r9; push r10
-    mov rdi, r8
-    mov rsi, rax
-    call DirModel_entry_name
-    mov rcx, rax
-    mov rdi, r15
-    mov rsi, [rsp + 24]
-    mov edx, 2048
-    call am_append_quoted
-    pop r10; pop r9; pop r8
-    mov [rsp], rax
-.Lacs_next:
-    inc r9d
-    jmp .Lacs_loop
-.Lacs_done:
-    pop rax
-    test rax, rax
-    jnz .Lacs_ret
-    test r13, r13
-    jz .Lacs_ret
-    mov rdi, r15
-    xor esi, esi
-    mov edx, 2048
-    mov rcx, r13
-    call am_append_quoted
-.Lacs_ret:
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop rbx
-    ret
-
-# void App_run_expanded_cmd(App *this, const char *tmpl, const char *cur_name, const char *cur_path)
-App_run_expanded_cmd:
-    push rbx
-    push r12
-    push r13
-    push r14
-    push r15
-    sub rsp, 40 + 2048 + 2048 + PATH_MAX + 8
-    mov rbx, rdi
-    mov r12, rsi
-    mov r13, rdx
-    mov r14, rcx
-
-    lea r15, [rsp + 40]
-    mov rdi, rbx
-    mov rsi, r13
-    mov rdx, r15
-    call am_collect_selected
-
-    mov [rsp + 0], r13
-    mov [rsp + 8], r14
-    mov [rsp + 16], r15
-    mov rax, [rbx + App.active_pane]
-    mov rax, [rax + FilePane.model]
-    lea rax, [rax + DirModel.path]
-    mov [rsp + 24], rax
-    mov rdi, rbx
-    call get_inactive_pane
-    mov rax, [rax + FilePane.model]
-    lea rax, [rax + DirModel.path]
-    mov [rsp + 32], rax
-
-    mov rdi, r12
-    lea rsi, [rsp + 2088]
-    mov edx, 2048
-    mov rcx, rsp
-    call config_expand_cmd
-
-    lea rdi, [rsp + 4136]
-    mov esi, PATH_MAX
-    OS_GETCWD
-
-    mov rcx, [rbx + App.active_pane]
-    mov rcx, [rcx + FilePane.model]
-    lea rdi, [rcx + DirModel.path]
-    OS_CHDIR
-
-    lea rdi, [rsp + 2088]
-    mov rsi, r14
-    mov rdx, [rbx + App.envp]
-    call sys_exec_sh_arg
-
-    lea rdi, [rsp + 4136]
-    OS_CHDIR
-
-    mov rdi, [rbx + App.screen]
-    mov dword ptr [rdi + ScreenBuffer.force_full], 1
-    mov rdi, rbx
-    xor esi, esi
-    call App_reload_panes
-
-    add rsp, 40 + 2048 + 2048 + PATH_MAX + 8
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop rbx
-    ret
+am_err_status:
+    push rbx; mov rbx, rdi; mov edi, esi; call fs_errno_message
+    mov rdi, rbx; mov rsi, rax; mov edx, MSG_ERR; call App_set_status
+    pop rbx; ret
 
 # void App_exec_menu_tmpl(App *this, const char *tmpl)
 App_exec_menu_tmpl:
-    push rbx
-    push r12
-    push r13
-    sub rsp, PATH_MAX + 16
-    mov rbx, rdi
-    mov r12, rsi
-    xor r13d, r13d
-    mov byte ptr [rsp], 0
-
-    mov rdi, [rbx + App.active_pane]
-    call FilePane_get_selected_entry
-    test rax, rax
-    jz .Laemt_go
-    mov rcx, [rbx + App.active_pane]
-    mov rdi, [rcx + FilePane.model]
-    mov rsi, rax
-    call DirModel_entry_name
-    mov r13, rax
-
-    mov rcx, [rbx + App.active_pane]
-    mov rcx, [rcx + FilePane.model]
-    lea rsi, [rcx + DirModel.path]
-    mov rdi, rsp
-    mov rdx, r13
-    mov ecx, PATH_MAX
-    call path_join
-
+    push rbx; push r12; push r13; sub rsp, PATH_MAX + 16
+    mov rbx, rdi; mov r12, rsi; xor r13d, r13d; mov byte ptr [rsp], 0
+    mov rdi, [rbx + App.active_pane]; call FilePane_get_selected_entry
+    test rax, rax; jz .Laemt_go
+    mov rcx, [rbx + App.active_pane]; mov rdi, [rcx + FilePane.model]
+    mov rsi, rax; call DirModel_entry_name; mov r13, rax
+    mov rcx, [rbx + App.active_pane]; mov rcx, [rcx + FilePane.model]
+    lea rsi, [rcx + DirModel.path]; mov rdi, rsp; mov rdx, r13; mov ecx, PATH_MAX
+    call path_join # path-checked
+    test rax, rax; js .Laemt_ret
 .Laemt_go:
-    mov rdi, rbx
-    mov rsi, r12
-    mov rdx, r13
-    mov rcx, rsp
+    mov rdi, rbx; mov rsi, r12; mov rdx, r13; mov rcx, rsp
     call App_run_expanded_cmd
+.Laemt_ret:
+    add rsp, PATH_MAX + 16; pop r13; pop r12; pop rbx; ret
 
-    add rsp, PATH_MAX + 16
-    pop r13
-    pop r12
-    pop rbx
-    ret
+am_pkg_exec_cwd:
+    push rbx; push r12; push r13; push r14; sub rsp, PATH_MAX + 8
+    mov rbx, rdi; mov r12, rsi; mov r13, rdx; mov r14, rcx
+    mov rdi, [r14]; call pkg_ensure_exec
+    test eax, eax; js .Lapec_bg_err
+    mov rdi, rsp; mov esi, PATH_MAX; OS_GETCWD
+    test rax, rax; jns 1f; mov byte ptr [rsp], 0
+1:  mov rdi, r13; OS_CHDIR
+    test rax, rax; jns 2f
+    mov rdi, rbx; mov esi, eax; call am_err_status; jmp .Lapec_ret
+2:  mov rdi, [r14]; mov rsi, r14; mov rdx, [rbx + App.envp]
+    cmp word ptr [r12 + 336], 0x6762; jne .Lapec_fg
+    cmp byte ptr [r12 + 338], 0; jne .Lapec_fg
+    call sys_exec_argv_bg; push rax
+    cmp byte ptr [rsp + 8], 0; je 3f
+    lea rdi, [rsp + 8]; OS_CHDIR; test rax, rax; nop
+3:  pop rax; test eax, eax; jnz .Lapec_bg_err
+    mov rdi, rbx; lea rsi, [r12 + 128]
+    cmp byte ptr [rsi], 0; jne 4f; mov rsi, r12
+4:  mov edx, MSG_OK; call App_set_status; jmp .Lapec_ret
+.Lapec_bg_err:
+    call i18n_get; mov rsi, [rax + LangStrings.pkg_err]; mov edx, MSG_ERR
+    mov rdi, rbx; call App_set_status; jmp .Lapec_ret
+.Lapec_fg:
+    call sys_exec_argv
+    cmp byte ptr [rsp], 0; je .Lapec_ret
+    mov rdi, rsp; OS_CHDIR; test rax, rax; nop
+.Lapec_ret:
+    add rsp, PATH_MAX + 8; pop r14; pop r13; pop r12; pop rbx; ret
 
 # void App_run_pkg_action(App *this, PkgAction *act)
 App_run_pkg_action:
     push rbx; push r12; push r13
-    # Stack: [0..39]=ctx[5], [40..40+PATH_MAX-1]=path_buf,
-    # [40+PATH_MAX..1063+PATH_MAX]=str_buf[1024], [1064+PATH_MAX..1319+PATH_MAX]=argv[32*8],
-    # [1320+PATH_MAX..1320+2*PATH_MAX-1]=cwd_buf, [1320+2*PATH_MAX..1447+2*PATH_MAX]=marked_tmp[128]
     sub rsp, 40 + PATH_MAX * 2 + 1024 + 256 + 128 + 8
     mov rbx, rdi; mov r12, rsi
     mov rax, [rbx + App.active_pane]; mov rax, [rax + FilePane.model]
     lea rcx, [rax + DirModel.path]; mov [rsp + 0], rcx
     mov rdi, rbx; call get_inactive_pane
-    mov rax, [rax + FilePane.model]; lea rax, [rax + DirModel.path]
-    mov [rsp + 8], rax
-    mov qword ptr [rsp + 16], 0
-    mov byte ptr [rsp + 40], 0
-    lea rax, [rsp + 40]; mov [rsp + 24], rax
-    mov qword ptr [rsp + 32], 0
+    mov rax, [rax + FilePane.model]; lea rax, [rax + DirModel.path]; mov [rsp + 8], rax
+    mov qword ptr [rsp + 16], 0; mov byte ptr [rsp + 40], 0
+    lea rax, [rsp + 40]; mov [rsp + 24], rax; mov qword ptr [rsp + 32], 0
     lea rax, [rsp + 40 + PATH_MAX * 2 + 1024 + 256]; mov byte ptr [rax], 0
     mov rdi, [rbx + App.active_pane]; call FilePane_get_selected_entry
     test rax, rax; jz .Larpa_chk_mk
     mov rcx, [rbx + App.active_pane]; mov rdi, [rcx + FilePane.model]; mov rsi, rax
-    call DirModel_entry_name
-    mov [rsp + 16], rax
+    call DirModel_entry_name; mov [rsp + 16], rax
     lea rdi, [rsp + 40]; mov rsi, [rsp + 0]; mov rdx, rax; mov ecx, PATH_MAX
-    call path_join
+    call path_join # path-checked
+    test rax, rax; js .Larpa_done
 .Larpa_chk_mk:
-    mov rdi, r12; call pkg_action_has_marked
-    test eax, eax; jz .Larpa_build
-    mov rcx, [rbx + App.active_pane]; mov rdi, [rcx + FilePane.model]
-    mov rsi, [rsp + 24]
+    mov rdi, r12; call pkg_action_has_marked; test eax, eax; jz .Larpa_build
+    mov rcx, [rbx + App.active_pane]; mov rdi, [rcx + FilePane.model]; mov rsi, [rsp + 24]
     lea rdx, [rsp + 40 + PATH_MAX * 2 + 1024 + 256]; mov ecx, 128
-    call pkg_write_marked_list
-    test eax, eax; jnz .Larpa_build
+    call pkg_write_marked_list; test eax, eax; jnz .Larpa_build
     lea rax, [rsp + 40 + PATH_MAX * 2 + 1024 + 256]; mov [rsp + 32], rax
 .Larpa_build:
-    mov rdi, r12; mov rsi, rsp
-    lea rdx, [rsp + 40 + PATH_MAX]; mov ecx, 1024
+    mov rdi, r12; mov rsi, rsp; lea rdx, [rsp + 40 + PATH_MAX]; mov ecx, 1024
     lea r8, [rsp + 40 + PATH_MAX + 1024]; mov r9d, 32
-    call pkg_action_build_argv
-    lea r13, [rsp + 40 + PATH_MAX + 1024 + 256]
-    mov rdi, r13; mov esi, PATH_MAX; OS_GETCWD
-    mov rdi, [rsp + 0]; OS_CHDIR
-    lea rsi, [rsp + 40 + PATH_MAX + 1024]
-    mov rdi, [rsi]; push rdi; push rsi
-    mov rsi, rdi; mov edi, AT_FDCWD; mov edx, 0755; xor r10d, r10d; OS_FCHMODAT
-    pop rsi; pop rdi
-    mov rdx, [rbx + App.envp]
-    cmp word ptr [r12 + 336], 0x6762; jne .Larpa_fg
-    cmp byte ptr [r12 + 338], 0; jne .Larpa_fg
-    call sys_exec_argv_bg
-    push rax
-    mov rdi, r13; OS_CHDIR
-    pop rax
-    test eax, eax; jnz .Larpa_bg_err
-    mov rdi, [rbx + App.active_pane]; lea rsi, [r12 + 64]
-    mov rdi, rbx; lea rsi, [r12 + 128]
-    cmp byte ptr [rsi], 0; jne .Larpa_bg_ok
-    mov rsi, r12
-.Larpa_bg_ok:
-    mov edx, MSG_OK; call App_set_status
-    jmp .Larpa_unlink
-.Larpa_bg_err:
-    call i18n_get; mov rsi, [rax + LangStrings.pkg_err]; mov edx, MSG_ERR
-    mov rdi, rbx; call App_set_status
-    jmp .Larpa_unlink
-.Larpa_fg:
-    call sys_exec_argv
-    mov rdi, r13; OS_CHDIR
+    call pkg_action_build_argv; test eax, eax; jle .Larpa_unlink
+    mov rdi, rbx; mov rsi, r12; mov rdx, [rsp + 0]; lea rcx, [rsp + 40 + PATH_MAX + 1024]
+    call am_pkg_exec_cwd
 .Larpa_unlink:
     lea rsi, [rsp + 40 + PATH_MAX * 2 + 1024 + 256]
     cmp byte ptr [rsi], 0; je .Larpa_redraw
-    mov edi, AT_FDCWD; xor edx, edx; OS_UNLINKAT
+    mov edi, AT_FDCWD; xor edx, edx; OS_UNLINKAT # fault-checked: best-effort marked tmpfile cleanup
 .Larpa_redraw:
     mov rdi, [rbx + App.screen]; mov dword ptr [rdi + ScreenBuffer.force_full], 1
     mov rdi, rbx; xor esi, esi; call App_reload_panes
+.Larpa_done:
     add rsp, 40 + PATH_MAX * 2 + 1024 + 256 + 128 + 8
-    pop r13; pop r12; pop rbx
-    ret
+    pop r13; pop r12; pop rbx; ret

@@ -83,6 +83,7 @@ pty_exec_child:
     test r13, r13; jz .Lpec_exec
     mov rdi, r13; mov eax, OS_SYS_chdir; syscall
 .Lpec_exec:
+    call os_sig_reset_pipe
     lea rax, [rip + sh_path]
     mov [rsp], rax
     mov qword ptr [rsp + 8], 0

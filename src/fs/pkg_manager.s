@@ -31,8 +31,10 @@ pkm_dotdot:    .asciz ".."
 .global pkg_install_archive
 .global pkg_remove
 .global pkm_safe_name
+.global pkm_safe_relpath
 
 .extern cfg_getenv
+.extern fs_delete_recursive
 .extern fs_read_file_head
 .extern mem_alloc
 .extern mem_free
@@ -167,7 +169,9 @@ pkm_activate_file:
     mov rdi, rsp; push rsi; mov rsi, r12; mov edx, PATH_MAX; call str_copy
     pop rsi; mov rdi, rsp; mov edx, PATH_MAX; call str_cat
     mov rdi, rsp; call pkg_mkdir_p
-    lea rdi, [rsp + PATH_MAX]; mov rsi, rsp; mov rdx, rbx; mov ecx, PATH_MAX; call path_join
+    mov rdi, rbx; call pkm_safe_name; test eax, eax; jz .Lpaf_ret
+    lea rdi, [rsp + PATH_MAX]; mov rsi, rsp; mov rdx, rbx; mov ecx, PATH_MAX; call path_join # path-checked
+    test rax, rax; js .Lpaf_ret
     mov edi, 524288; call mem_alloc; test rax, rax; jz .Lpaf_ret
     mov [rsp + PATH_MAX * 2], rax
     mov rdi, r13; mov rsi, rax; mov edx, 524288; lea rcx, [rsp + PATH_MAX * 2 + 8]
@@ -176,7 +180,8 @@ pkm_activate_file:
     call pkg_write_file
     test eax, eax; jnz .Lpaf_free
     mov rdi, r14; lea rsi, [rsp + PATH_MAX]; mov edx, 8192; call str_cat
-    mov rdi, r14; call str_len; mov word ptr [r14 + rax], 0x000A
+    mov rdi, r14; call str_len; cmp rax, 8190; jae .Lpaf_free
+    mov word ptr [r14 + rax], 0x000A
     inc rax; mov [r15], rax
 .Lpaf_free:
     mov rdi, [rsp + PATH_MAX * 2]; call mem_free
@@ -333,6 +338,26 @@ pkg_install_archive:
 .Lpia_ret:
     add rsp, 360; pop r14; pop r13; pop r12; pop rbx; ret
 
+pkm_safe_unlink_entry:
+    push rbx; push r12
+    mov rbx, rdi; mov r12, rsi
+    test rbx, rbx; jz .Lpsu_no; cmp byte ptr [rbx], 0; je .Lpsu_no
+    mov rdi, r12; mov rsi, rbx; call str_starts_with; test eax, eax; jz .Lpsu_no
+    mov rdi, rbx; call str_len; add r12, rax
+    mov rdi, r12; lea rsi, [rip + pkm_dir_lang]; call str_starts_with
+    test eax, eax; jz .Lpsu_lay
+    add r12, 8; jmp .Lpsu_sl
+.Lpsu_lay:
+    mov rdi, r12; lea rsi, [rip + pkm_dir_lay]; call str_starts_with
+    test eax, eax; jz .Lpsu_no
+    add r12, 11
+.Lpsu_sl:
+    cmp byte ptr [r12], '/'; jne .Lpsu_no
+    inc r12; mov rdi, r12; call pkm_safe_name
+    pop r12; pop rbx; ret
+.Lpsu_no:
+    xor eax, eax; pop r12; pop rbx; ret
+
 # int pkg_remove(char **envp, const char *name) -> 0 ok, -1 err
 pkg_remove:
     push rbx; push r12; push r13; push r14
@@ -340,13 +365,14 @@ pkg_remove:
     mov rbx, rdi; mov r12, rsi
     mov rdi, r12; call pkm_safe_name; test eax, eax; jz .Lpr_err
     mov rdi, rbx; mov rsi, rsp; mov edx, PATH_MAX; call pkg_get_root
-    lea rdi, [rsp + PATH_MAX]; mov rsi, rsp; mov rdx, r12; mov ecx, PATH_MAX; call path_join
+    cmp byte ptr [rsp], 0; je .Lpr_err
+    lea rdi, [rsp + PATH_MAX]; mov rsi, rsp; mov rdx, r12; mov ecx, PATH_MAX; call path_join # path-checked
+    test rax, rax; js .Lpr_err
     sub rsp, PATH_MAX
-    mov rdi, rsp; lea rsi, [rsp + PATH_MAX * 2]; lea rdx, [rip + pkm_files_lst]; mov ecx, PATH_MAX; call path_join
-    mov rdi, rsp; lea rsi, [rsp + PATH_MAX * 3 + 32]; mov edx, 8192; lea rcx, [rsp + PATH_MAX * 3 + 8]
-    call fs_read_file_head
-    add rsp, PATH_MAX
-    test rax, rax; js .Lpr_dir
+    mov rdi, rsp; lea rsi, [rsp + PATH_MAX * 2]; lea rdx, [rip + pkm_files_lst]; mov ecx, PATH_MAX; call path_join # path-checked
+    test rax, rax; js 1f
+    mov rdi, rsp; lea rsi, [rsp + PATH_MAX * 3 + 32]; mov edx, 8192; lea rcx, [rsp + PATH_MAX * 3 + 8]; call fs_read_file_head
+1:  add rsp, PATH_MAX; test rax, rax; js .Lpr_dir
     lea r13, [rsp + PATH_MAX * 2 + 32]; mov r14, [rsp + PATH_MAX * 2 + 8]; add r14, r13
 .Lpr_fl:
     cmp r13, r14; jae .Lpr_dir
@@ -357,29 +383,12 @@ pkg_remove:
     inc rdi; jmp .Lpr_nl
 .Lpr_un:
     mov byte ptr [rdi], 0; push rdi
-    mov edi, AT_FDCWD; mov rsi, r13; xor edx, edx; OS_UNLINKAT
+    lea rdi, [rsp + 8]; mov rsi, r13; call pkm_safe_unlink_entry; test eax, eax; jz .Lpr_un_next
+    mov edi, AT_FDCWD; mov rsi, r13; xor edx, edx; OS_UNLINKAT; test rax, rax; nop
+.Lpr_un_next:
     pop rdi; lea r13, [rdi + 1]; jmp .Lpr_fl
 .Lpr_dir:
-    mov edi, AT_FDCWD; lea rsi, [rsp + PATH_MAX]; mov edx, O_RDONLY | O_DIRECTORY | O_CLOEXEC
-    xor r10d, r10d; OS_OPENAT; test rax, rax; js .Lpr_err
-    mov r13d, eax
-.Lpr_rd:
-    mov edi, r13d; lea rsi, [rsp + PATH_MAX * 2 + 32]; mov edx, 16384; call os_dir_read
-    test rax, rax; jle .Lpr_rmdir
-    mov [rsp + PATH_MAX * 2], rax; mov qword ptr [rsp + PATH_MAX * 2 + 8], 0
-.Lpr_ent:
-    lea rdi, [rsp + PATH_MAX * 2 + 32]; mov rsi, [rsp + PATH_MAX * 2]
-    lea rdx, [rsp + PATH_MAX * 2 + 8]; lea rcx, [rsp + PATH_MAX * 2 + 16]; lea r8, [rsp + PATH_MAX * 2 + 24]
-    call os_dir_next_ex
-    test rax, rax; jz .Lpr_rd
-    mov r14, rax
-    mov rdi, r14; call pkm_safe_name; test eax, eax; jz .Lpr_ent
-    mov edi, r13d; mov rsi, r14; xor edx, edx; OS_UNLINKAT
-    jmp .Lpr_ent
-.Lpr_rmdir:
-    mov edi, r13d; OS_CLOSE
-    mov edi, AT_FDCWD; lea rsi, [rsp + PATH_MAX]; mov edx, AT_REMOVEDIR; OS_UNLINKAT
-    test rax, rax; js .Lpr_err
+    lea rdi, [rsp + PATH_MAX]; call fs_delete_recursive; test eax, eax; js .Lpr_err
     xor eax, eax; jmp .Lpr_ret
 .Lpr_err:
     mov eax, -1

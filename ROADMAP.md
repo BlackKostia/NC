@@ -166,7 +166,7 @@
 ### 4.3 Безпека екосистеми, кросплатформність і техборг (не реалізовано)
 - [ ] **Криптографічний підпис реєстру пакетів (`registry.tsv`)**: перевірка Ed25519/minisign-підпису індексу розширень (на додачу до наявного SHA-256 архівів) та курировані VFS-пакети (`docker://`, `systemd://`, `s3://`).
 - [ ] **Повний порт на Linux AArch64 та FreeBSD**: перенесення прикладних шарів (`core/`, `tui/`, `fs/`, `ui/`, `app/`) на AArch64 (включно з нативним `io_uring` у PAL) та реалізація `src/os/freebsd/` (після підтвердження попиту від спільноти).
-- [ ] **Закриття техборгу в [`lean_baseline.json`](.agents/skills/duop-lean-modules/scripts/lean_baseline.json)**: декомпозиція 9 великих модулів (зокрема [file_pane_render.s](src/ui/file_pane_render.s) — 1224 рядки) і 39 функцій понад бюджет у 80 рядків (`StatusBar_render`, `ScreenBuffer_flush`, `DirModel_step_load` тощо).
+- [ ] **Закриття техборгу в [`lean_baseline.json`](.agents/skills/duop-lean-modules/scripts/lean_baseline.json)**: декомпозиція 9 великих модулів (зокрема [file_pane_render.s](src/ui/file_pane_render.s) — 1223 рядки) і 39 функцій понад бюджет у 80 рядків (`StatusBar_render`, `ScreenBuffer_flush`, `DirModel_step_load` тощо).
 
 ---
 
@@ -175,6 +175,16 @@
 - **`v1.3.0`**: slab-алокатор ([memory.s](src/core/memory.s)), SSE2-примітиви в PAL ([pal_simd.s](src/os/linux/x86_64/pal_simd.s)), FD-відносні copy/delete з `FICLONE` → `copy_file_range` → спільний буфер 256 КіБ, видалення за `d_type` без `stat`, prefix-key radix для `SORT_NAME`/`SORT_EXT`, звуження фільтра без пересортування.
 - **`v1.4.0`**: LRU-кеш тек ([dir_cache.s](src/fs/dir_cache.s)) і лексичний `chdir` без `chdir`/`getcwd`, `mmap`-переглядач будь-якого розміру із захистом від `SIGBUS` ([viewer_dialog.s](src/ui/viewer_dialog.s)), ковзне вікно `io_uring` на 256 запитів і пакетний `statx` для цілей симлінків, почергове завантаження обох панелей.
 - **`v1.5.0`**: мультиплексований цикл подій без холостих пробуджень, `inotify`-автооновлення, дебаунс прев'ю й асинхронне читання в окремому процесі ([preview_io.s](src/fs/preview_io.s)), DEC 2026 synchronized output, SIMD-пропуск незмінених рядків у `ScreenBuffer_flush`, табличні RGB-послідовності, кеш `format_datetime`.
+
+## Аудит відмовостійкості (`v2.6.x`, 2026-11-16) — виконано
+
+Критичний аудит «космічного» рівня надійності: усі знайдені дефекти закрито з регресійними тестами (TDD, спершу RED).
+
+- **Падіння та пошкодження пам'яті**: прапор `IORING_SETUP_CLOEXEC` збігався з `NO_SQARRAY` (`io_uring` не стартував) → прибрано, додано перевірку масиву SQ і меж CQ ([pal_uring.s](src/os/linux/x86_64/pal_uring.s)); переповнення купи в ZIP-розпаковці та живі caller-saved регістри через `call` (`ds_append_entry`, `arc_extract_entry`, `FilePane_render__build`, курсор пошуку, смуга прокрутки, `handle_mouse__part2`); `DirModel_sort` на 1 елементі; крихітні розміри терміналу (`term_pane`); вихід палітри BMP за межі файлу.
+- **Нові аудити-гейти**: [audit_live_regs.py](.agents/skills/duop-reliability-audit/scripts/audit_live_regs.py) (бінарний аналіз «caller-saved регістр живий через `call`», baseline із поясненнями, у `verify_build.sh`), вимога `PT_GNU_STACK` без виконуваного стека, fuzz-харнес зі сторожовими сторінками для декодерів зображень.
+- **Безпека виконання команд**: макроси `%f %p %d %D %F %s` екрануються за контекстом лапок і ніколи не виконуються усіченими ([config_expand.s](src/core/config_expand.s), [app_cmdline.s](src/app/app_cmdline.s)); `git status` лише для довірених репозиторіїв (без `[filter]`/`[include]`), `core.fsmonitor=false`, таймаут 2,5 с ([git_trust.s](src/fs/git_trust.s)).
+- **Цілісність даних**: перезапис через тимчасовий файл і `rename` ([file_ops_overwrite.s](src/fs/file_ops_overwrite.s)), `RENAME_NOREPLACE` для відновлення з кошика, кошик за freedesktop Trash 1.0 ([trash_info.s](src/fs/trash_info.s)), неблокуюче відкриття (FIFO у UI-потоці більше не вішає програму), `duoprc` до 1 МіБ із попередженням замість мовчазного ігнорування.
+- **Залишкові обмеження**: перенесення в кошик між файловими системами досі копіює в UI-потоці; атомарним є лише перезапис (нові файли пишуться напряму); `DeletionDate` — UTC.
 
 ## Рекомендований порядок реалізації
 

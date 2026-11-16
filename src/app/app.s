@@ -17,6 +17,7 @@ App_vtbl:
 .global App_vtbl
 
 .extern g_git_defer
+.extern g_cfg_warn
 
 # App *App_new(const char *left_path, const char *right_path, char **envp, int lang_override)
 App_new:
@@ -29,11 +30,25 @@ App_new:
     call App_new__left_path
     jz .Lan_fail
     call App_new__cfg_theme
+    jz .Lan_fail_free
     call App_new__apply_show_hidden_sort
+    jz .Lan_fail_free
     mov rdi, rbx
     call App_layout
-
+    cmp dword ptr [rip + g_cfg_warn], 0
+    je .Lan_cfg_ok
+    call i18n_get                         # duoprc was cut at the hard size limit: say so
+    mov rsi, [rax + LangStrings.cfg_truncated]
+    mov rdi, rbx
+    mov edx, MSG_WARN
+    call App_set_status
+.Lan_cfg_ok:
     mov rax, rbx
+    jmp .Lan_fail
+.Lan_fail_free:
+    mov rdi, rbx
+    DELETE_OBJ rdi
+    xor eax, eax
 .Lan_fail:
     pop r15
     pop r14
@@ -111,16 +126,24 @@ App_new__cfg_theme:
     mov edi, [rbx + App.term_w]
     mov esi, [rbx + App.term_h]
     call ScreenBuffer_new
+    test rax, rax; jz .Lan_cfg_oom
     mov [rbx + App.screen], rax
 
     mov rdi, rbx
     call HeaderBar_new
+    test rax, rax; jz .Lan_cfg_oom
     mov [rbx + App.header_bar], rax
 
     mov rdi, rbx
     call FunctionBar_new
+    test rax, rax; jz .Lan_cfg_oom
     mov [rbx + App.func_bar], rax
-
+    mov eax, 1
+    test eax, eax
+    lea rsp, [rsp + 8]
+    ret
+.Lan_cfg_oom:
+    xor eax, eax
 .LApp_new__cfg_theme_ret:
     lea rsp, [rsp + 8]
     ret
@@ -128,20 +151,24 @@ App_new__cfg_theme:
 # App_new step: Apply show_hidden sort_mode from duoprc if configured (runs on the caller's frame)
 App_new__apply_show_hidden_sort:
     lea rsp, [rsp - 8]
+    mov rbx, rbx
     mov rdi, rbx
     call StatusBar_new
+    test rax, rax; jz .Lan_ap_oom
     mov [rbx + App.status_bar], rax
 
     mov rdi, rbx
     mov rsi, r12
     mov edx, 1
     call FilePane_new
+    test rax, rax; jz .Lan_ap_oom
     mov [rbx + App.left_pane], rax
 
     mov rdi, rbx
     mov rsi, r13
     mov edx, 2
     call FilePane_new
+    test rax, rax; jz .Lan_ap_oom
     mov [rbx + App.right_pane], rax
 
     # Apply show_hidden / sort_mode from duoprc if configured
@@ -182,12 +209,18 @@ App_new__apply_show_hidden_sort:
 
     mov rdi, rbx
     call PreviewPane_new
+    test rax, rax; jz .Lan_ap_oom
     mov [rbx + App.preview_pane], rax
 
     mov rdi, rbx
     mov rsi, [rbx + App.left_pane]
     call App_set_active_pane
-
+    mov eax, 1
+    test eax, eax
+    lea rsp, [rsp + 8]
+    ret
+.Lan_ap_oom:
+    xor eax, eax
 .LApp_new__apply_show_hidden_sort_ret:
     lea rsp, [rsp + 8]
     ret

@@ -25,15 +25,20 @@ pkvp_tmp_sfx:  .asciz ""
 .extern DirModel_cancel_load
 .extern DirModel_sort
 .extern ds_append_entry
+.extern ds_append_parent
 .extern fs_read_file_head
 .extern mem_alloc
 .extern mem_free
 .extern mem_zero
 .extern os_dir_next_ex
 .extern os_dir_read
+.extern os_mark_child_forked
 .extern os_poll_in
+.extern os_sig_reset_pipe
 .extern path_join
+.extern pkg_ensure_exec
 .extern pkg_get_root
+.extern pkm_safe_relpath
 .extern str_cmp
 .extern str_copy
 .extern str_len
@@ -101,6 +106,7 @@ pkg_vfs_find_by_uri:
     sub rsp, PATH_MAX * 2 + 16384 + 4096 + 216
     mov [rsp + 192], rdi; mov [rsp + 200], rsi; mov r12, rdx
     lea rsi, [rsp + 216]; mov edx, PATH_MAX; call pkg_get_root
+    cmp byte ptr [rsp + 216], 0; je .Lpfu_no
     mov edi, AT_FDCWD; lea rsi, [rsp + 216]
     mov edx, O_RDONLY | O_DIRECTORY | O_CLOEXEC; xor r10d, r10d; OS_OPENAT
     test rax, rax; js .Lpfu_no
@@ -119,9 +125,11 @@ pkg_vfs_find_by_uri:
     cmp byte ptr [r15 + 1], '.'; jne .Lpfu_seg
     cmp byte ptr [r15 + 2], 0; je .Lpfu_ent
 .Lpfu_seg:
-    lea rdi, [rsp + 216 + PATH_MAX]; lea rsi, [rsp + 216]; mov rdx, r15; mov ecx, PATH_MAX; call path_join
+    lea rdi, [rsp + 216 + PATH_MAX]; lea rsi, [rsp + 216]; mov rdx, r15; mov ecx, PATH_MAX; call path_join # path-checked
+    test rax, rax; js .Lpfu_ent
     lea rdi, [rsp + 216 + PATH_MAX * 2 + 16384]
-    lea rsi, [rsp + 216 + PATH_MAX]; lea rdx, [rip + pkvp_manifest]; mov ecx, 4096; call path_join
+    lea rsi, [rsp + 216 + PATH_MAX]; lea rdx, [rip + pkvp_manifest]; mov ecx, 4096; call path_join # path-checked
+    test rax, rax; js .Lpfu_ent
     lea rdi, [rsp + 216 + PATH_MAX * 2 + 16384]
     mov rsi, rdi; mov edx, 4096; lea rcx, [rsp + 24]; call fs_read_file_head
     test rax, rax; js .Lpfu_ent
@@ -130,18 +138,20 @@ pkg_vfs_find_by_uri:
     lea rdi, [rsp + 32]; lea rsi, [rip + pkvp_v_vfs]; call str_cmp
     test eax, eax; jnz .Lpfu_ent
     cmp byte ptr [rsp + 64], 0; je .Lpfu_ent
-    cmp byte ptr [rsp + 128], 0; je .Lpfu_ent
     mov rdi, [rsp + 200]; lea rsi, [rsp + 64]; call str_starts_with
     test eax, eax; jz .Lpfu_ent
     lea rdi, [rsp + 64]; call str_len
     mov rcx, [rsp + 200]; add rcx, rax
     cmp byte ptr [rcx], ':'; jne .Lpfu_ent
     cmp word ptr [rcx + 1], 0x2F2F; jne .Lpfu_ent
-    mov edi, ebx; OS_CLOSE
-    mov rdi, r12; lea rsi, [rsp + 216 + PATH_MAX]; lea rdx, [rsp + 128]; mov ecx, PATH_MAX; call path_join
+    lea rdi, [rsp + 128]; call pkm_safe_relpath
+    test rax, rax; jz .Lpfu_ent
+    mov rdi, r12; lea rsi, [rsp + 216 + PATH_MAX]; mov rdx, rax; mov ecx, PATH_MAX; call path_join # path-checked
+    test rax, rax; js .Lpfu_ent
+    mov edi, ebx; OS_CLOSE # fault-checked
     xor eax, eax; jmp .Lpfu_ret
 .Lpfu_close_no:
-    mov edi, ebx; OS_CLOSE
+    mov edi, ebx; OS_CLOSE # fault-checked
 .Lpfu_no:
     mov eax, -1
 .Lpfu_ret:
@@ -153,38 +163,48 @@ pkvp_exec_capture:
     push rbx; push r12; push r13; push r14; push r15; sub rsp, 72
     mov r12, rdi; mov [rsp + 32], rsi; mov [rsp + 40], rdx; mov [rsp + 48], rcx
     mov [rsp + 56], r8; mov r14, r9; mov r15d, eax
-    mov edi, AT_FDCWD; mov rsi, r12; mov edx, 0755; xor r10d, r10d; OS_FCHMODAT
-    lea rdi, [rsp + 64]; xor esi, esi; OS_PIPE2
+    mov rdi, r12; call pkg_ensure_exec
+    test eax, eax; js .Lpvec_err
+    lea rdi, [rsp + 64]; mov esi, O_CLOEXEC; OS_PIPE2
     test rax, rax; js .Lpvec_err
     OS_FORK
     test rax, rax; js .Lpvec_cl; jnz .Lpvec_par
-    mov edi, [rsp + 64]; OS_CLOSE
+    mov edi, [rsp + 64]; OS_CLOSE # fault-checked
     mov edi, [rsp + 68]; mov esi, 1; OS_DUP2
-    mov edi, [rsp + 68]; OS_CLOSE
+    test rax, rax; js 1f
+    mov edi, [rsp + 68]; OS_CLOSE # fault-checked
+    call os_sig_reset_pipe
+    call os_mark_child_forked
     mov [rsp], r12
     mov rax, [rsp + 32]; mov [rsp + 8], rax
     mov rax, [rsp + 40]; mov [rsp + 16], rax
     mov rax, [rsp + 48]; mov [rsp + 24], rax
     mov qword ptr [rsp + 32], 0
     mov rdi, r12; mov rsi, rsp; mov rdx, [rsp + 56]; OS_EXECVE
-    mov edi, 127; OS_EXIT
+    test rax, rax; nop
+1:  mov edi, 127; OS_EXIT
 .Lpvec_cl:
-    mov edi, [rsp + 64]; OS_CLOSE; mov edi, [rsp + 68]; OS_CLOSE; jmp .Lpvec_err
+    mov edi, [rsp + 64]; OS_CLOSE # fault-checked
+    mov edi, [rsp + 68]; OS_CLOSE # fault-checked
+    jmp .Lpvec_err
 .Lpvec_par:
-    mov ebx, eax; mov edi, [rsp + 68]; OS_CLOSE; xor r12d, r12d
+    mov ebx, eax; mov edi, [rsp + 68]; OS_CLOSE # fault-checked
+    xor r12d, r12d
 .Lpvec_rd:
     cmp r12d, r15d; jge .Lpvec_done
     mov edi, [rsp + 64]; mov esi, 1500; call os_poll_in
+    cmp rax, -EINTR; je .Lpvec_rd
     test rax, rax; jle .Lpvec_done
     mov edi, [rsp + 64]; lea rsi, [r14 + r12]; mov edx, r15d; sub edx, r12d; OS_READ
     cmp rax, -EINTR; je .Lpvec_rd
     test rax, rax; jle .Lpvec_done
     add r12d, eax; jmp .Lpvec_rd
 .Lpvec_done:
-    mov edi, [rsp + 64]; OS_CLOSE
+    mov edi, [rsp + 64]; OS_CLOSE # fault-checked
 .Lpvec_wait:
     mov edi, ebx; lea rsi, [rsp + 60]; xor edx, edx; xor r10d, r10d; OS_WAIT4
     cmp rax, -EINTR; je .Lpvec_wait
+    test rax, rax; js .Lpvec_err
     mov eax, r12d; jmp .Lpvec_ret
 .Lpvec_err:
     mov eax, -1
@@ -215,7 +235,7 @@ pkg_vfs_load_dir:
     test eax, eax; js .Lpvld_free_err
     mov [rsp + PATH_MAX], eax
     cmp dword ptr [r12 + DirModel.virtual_mode], 3; je .Lpvld_reset
-    mov edi, PATH_MAX; call mem_alloc; test rax, rax; jz .Lpvld_reset
+    mov edi, PATH_MAX; call mem_alloc; test rax, rax; jz .Lpvld_free_err
     mov [r12 + DirModel.arc_ctx], rax
     mov rdi, rax; lea rsi, [r12 + DirModel.path]; mov edx, PATH_MAX; call str_copy
 .Lpvld_reset:
@@ -225,9 +245,8 @@ pkg_vfs_load_dir:
     mov dword ptr [r12 + DirModel.dir_count], 0; mov dword ptr [r12 + DirModel.file_count], 0
     mov dword ptr [r12 + DirModel.virtual_mode], 3; mov dword ptr [r12 + DirModel.stats_complete], 1
     lea rdi, [r12 + DirModel.path]; mov rsi, r13; mov edx, PATH_MAX; call str_copy
-    lea rdi, [rsp + PATH_MAX + 512]; mov esi, FileStat._size; call mem_zero
-    mov dword ptr [rsp + PATH_MAX + 512 + FileStat.mode], S_IFDIR | 0755
-    mov rdi, r12; lea rsi, [rip + pkvp_dotdot]; lea rdx, [rsp + PATH_MAX + 512]; call ds_append_entry
+    mov rdi, r12; call ds_append_parent
+    test eax, eax; js .Lpvld_free_err
     mov rbx, r14; mov eax, [rsp + PATH_MAX]; lea r15, [r14 + rax]
 .Lpvld_line:
     cmp rbx, r15; jae .Lpvld_sort
@@ -262,6 +281,7 @@ pkg_vfs_load_dir:
     mov dword ptr [rsp + PATH_MAX + 512 + 8 + FileStat.mode], S_IFDIR | 0755
 .Lpvld_add:
     mov rdi, r12; lea rsi, [rsp + PATH_MAX + 16]; lea rdx, [rsp + PATH_MAX + 512 + 8]; call ds_append_entry
+    test eax, eax; jns .Lpvld_pop_next; pop r8; jmp .Lpvld_free_err
 .Lpvld_pop_next:
     pop r8
 .Lpvld_next:

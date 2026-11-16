@@ -9,7 +9,6 @@
 
 .section .text
 .global copy_reg_at
-.global copy_link_at
 .global copy_dir_fd
 
 # Internal: int copy_reg_at(int sdir, const char *sname, int ddir, const char *dname)
@@ -31,6 +30,18 @@ copy_reg_at:
     call os_fstat
     test rax, rax
     js .Lcra_close_src
+    mov eax, [rsp + FileStat.mode]
+    and eax, S_IFMT
+    cmp eax, S_IFREG
+    je .Lcra_isreg
+    cmp eax, S_IFIFO
+    jne .Lcra_special
+    cmp qword ptr [rip + g_fs_progress], 0
+    jne .Lcra_isreg           # background worker: a FIFO is streamed (cancelable)
+.Lcra_special:
+    mov rax, -EOPNOTSUPP      # UI thread / device / socket: never read from it
+    jmp .Lcra_close_src
+.Lcra_isreg:
 
     call copy_reg_at__part2
     jne .Lcra_have_dst
@@ -43,16 +54,26 @@ copy_reg_at:
     test rax, rax
     js .Lcra_close_src
     call copy_reg_at__dfd
-    jne .Lcra_chk
-    mov edi, r14d
-    mov rsi, r15
-    xor edx, edx
-    OS_UNLINKAT
-    mov rax, -ECANCELED
-    jmp .Lcra_ret
-.Lcra_chk:
     test rax, rax
+    jns .Lcra_ok
+.Lcra_unlink:
+    cmp dword ptr [rsp + 116], 0
+    je .Lcra_ret
+    push rax
+    mov edi, r14d
+    lea rsi, [rsp + 128 + 8]
+    xor edx, edx
+    OS_UNLINKAT                       # fault-checked: clean newly created partial target / temp file
+    pop rax
+    jmp .Lcra_ret
+.Lcra_ok:
     jnz .Lcra_ret
+    cmp dword ptr [rsp + 116], 2
+    jne .Lcra_done
+    call copy_reg_at__commit          # temp overwrite: swap the finished copy in atomically
+    test rax, rax
+    js .Lcra_unlink
+.Lcra_done:
     call fs_progress_item
     xor eax, eax
     jmp .Lcra_ret
@@ -76,7 +97,10 @@ copy_reg_at__part1:
     mov edi, r12d
     mov rsi, r13
     mov edx, O_RDONLY | O_CLOEXEC | O_NOFOLLOW
-    xor r10d, r10d
+    cmp qword ptr [rip + g_fs_progress], 0
+    jne 1f
+    or edx, O_NONBLOCK        # UI thread: opening a FIFO/device must never block the interface
+1:  xor r10d, r10d
     OS_OPENAT
     test rax, rax
 .Lcopy_reg_at__part1_ret:
@@ -86,6 +110,11 @@ copy_reg_at__part1:
 # copy_reg_at step (runs on the caller's frame)
 copy_reg_at__part2:
     lea rsp, [rsp - 8]
+    lea rdi, [rsp + 128 + 16]
+    mov rsi, r15
+    mov edx, PATH_MAX
+    call str_copy
+    mov dword ptr [rsp + 116 + 16], 1
     mov edi, r14d
     mov rsi, r15
     mov edx, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC
@@ -101,13 +130,35 @@ copy_reg_at__part2:
 # copy_reg_at step: fo_resolve_eexist_open (runs on the caller's frame)
 copy_reg_at__fo_resolve_eexist_open:
     lea rsp, [rsp - 8]
+    mov dword ptr [rsp + 116 + 16], 0
+    mov byte ptr [rsp + 128 + 16], 0
     mov edi, r14d
     mov rsi, r15
     lea rdx, [rsp + 16]
     lea rcx, [rsp + 128 + 16]
     call fo_resolve_eexist_open
+    test rax, rax
+    js .Lcr_ee_done
+    cmp byte ptr [rsp + 128 + 16], 0
+    je .Lcr_ee_done
+    mov dword ptr [rsp + 116 + 16], 1
+    cmp edx, 1
+    jne .Lcr_ee_done
+    mov dword ptr [rsp + 116 + 16], 2     # 2 = the fd belongs to a temp file that must replace the target
+.Lcr_ee_done:
     cmp rax, -2
 .Lcopy_reg_at__fo_resolve_eexist_open_ret:
+    lea rsp, [rsp + 8]
+    ret
+
+# copy_reg_at step: commit (runs on the caller's frame) -- rename the finished temp file over the target
+copy_reg_at__commit:
+    lea rsp, [rsp - 8]
+    mov edi, r14d
+    lea rsi, [rsp + 128 + 16]
+    mov rdx, r15
+    call fo_overwrite_commit
+.Lcopy_reg_at__commit_ret:
     lea rsp, [rsp + 8]
     ret
 
@@ -167,52 +218,6 @@ copy_reg_at__part5:
 .Lcopy_reg_at__part5_ret:
     lea rsp, [rsp + 8]
     ret
-
-# Internal: int copy_link_at(int sdir, const char *sname, int ddir, const char *dname)
-copy_link_at:
-    push rbx
-    push r12
-    push r13
-    push r14
-    push r15
-    mov r12d, edi
-    mov r13, rsi
-    mov r14d, edx
-    mov r15, rcx
-    mov edi, PATH_MAX
-    call mem_alloc
-    test rax, rax
-    jz .Lcla_nomem
-    mov rbx, rax
-    mov edi, r12d
-    mov rsi, r13
-    mov rdx, rbx
-    mov r10d, PATH_MAX - 1
-    OS_READLINKAT
-    test rax, rax
-    js .Lcla_free
-    mov byte ptr [rbx + rax], 0
-    mov rdi, rbx
-    mov esi, r14d
-    mov rdx, r15
-    OS_SYMLINKAT
-.Lcla_free:
-    mov r12, rax
-    mov rdi, rbx
-    call mem_free
-    mov rax, r12
-    test rax, rax
-    js .Lcla_ret
-    call fs_progress_item
-    xor eax, eax
-    jmp .Lcla_ret
-.Lcla_nomem:
-    mov rax, -ENOMEM
-.Lcla_ret:
-    pop r15
-    pop r14
-    pop r13
-    pop r12; pop rbx; ret
 
 # Internal: int copy_dir_fd(int sfd, int dfd, int depth) -- copies every entry of sfd into dfd
 copy_dir_fd:
