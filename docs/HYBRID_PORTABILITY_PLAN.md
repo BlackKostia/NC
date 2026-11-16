@@ -191,3 +191,28 @@ flowchart TB
 | 18 | Верифікація: лише `check_*`, `audit-all` | asm-аудити (стек, FD/EINTR, vtables, symbols) не бачать `.c`; тести парсять `.s` | Етап 0.4: заміна/розширення аудитів |
 | 19 | «усі 50 PTY-тестів» | число не відповідає дійсності й застаріє | «усі тести `verify_build.sh`» |
 | 20 | Не згадано | політична зміна (AGENTS.md/skills/хуки), kernel floor, qemu-user обмеження, невирівняні читання/aliasing, 32-бітний адресний простір, `SRCS` x86-only в Makefile | Нові розділи й пункти |
+
+---
+
+## Журнал виконання (оновлюється разом з комітами)
+
+Стан на v2.6.7. Кожен рядок підтверджено тестами; середовище розробки: gcc 13.3, clang 18.1, binutils 2.42 (x86_64 + aarch64), `qemu-user` (aarch64/arm). **Немає** ARM32-лінкера (`arm-linux-gnueabi-ld`/`ld.lld`) і sudo — тому Етап 5 (ARM32) не виконано.
+
+| Етап | Стан | Що зроблено / доказ |
+|---|---|---|
+| 0.0 Спайк, Go/No-Go | ✅ GO | `docs/HYBRID_PORTABILITY_SPIKE.md`, `tools/spike/run_spike.sh`: C `-Os` менший за asm (−9…−29 %), контрольні суми asm = gcc = clang |
+| 0.1 `duop_abi.h` | ✅ | `include/duop_abi.h`: `FileStat` (56 Б, `_Static_assert`), прототипи PAL, `os_is_err`, `load_le*` |
+| 0.2 `gen_abi.py` (генерація структур) | ⏳ | Не виконано: поки в C лише `FileStat`/`ShaCtx` (ручні дзеркала з `_Static_assert`); генератор потрібен з міграцією `DirModel`/vtable-класів |
+| 0.3 Makefile | ✅ (частково) | `CC`/`AS`/`LD` по `ARCH`, прапорці плану, `C_SRCS`, `-MMD`, `--gc-sections`, окремі `build_<arch>/`, `make pal-selftest`, `check-toolchain`. Не виконано: ELF32/ARM, per-target `SRCS` (Етап 4) |
+| 0.4 Гейти для `.c` | ✅ (частково) | `check_lean.py` (.c/.h бюджети), `check_modularity.py` (libc-заголовки, inline-syscall, шари, `C_SRCS`), `gen_symbols_catalog.py`, `AGENTS.md`. Не виконано: C-аналоги `audit_stack_depth`/FD-EINTR (`-fstack-usage`, `[[nodiscard]]`) |
+| 0.5 CI-матриця | ⏳ | Немає CI-конфігурації в репозиторії; локально — `tests/test_pal_selftest.py` (x86_64 + qemu-aarch64) |
+| 1 `pal_start.s`, `os_*` обгортки | ✅ | `pal_start.s`, `pal_sys_{fd,path,proc,mem}.s` для x86_64 і aarch64; `main.s` лишається входом асм-збірки до Етапу 4 |
+| 1 `abi_verify` крос-перевірка | ✅ | `tools/abi_cross.py` + `tools/abi_entries.def`: 66 констант проти заголовків цілі (x86_64, aarch64); `arm` — «UNAVAILABLE» (немає заголовків) |
+| 1b aarch64 | ✅ (PAL) / ⏳ (TRY) | Виправлено `O_NOFOLLOW`, `os_dir_next_ex`, 4 SIMD-контракти; додано 9 відсутніх символів (`pal_file.s`); `pal_selftest` 63/63 на x86_64 і aarch64. **Лишається:** TRY/фолт-відновлення (`pf_fault_handler` на aarch64 — лише fatal-обробник), SIGBUS-тест на нативному arm64 (qemu його не відтворює) |
+| 2 `src/core` | ◐ | `utf8.c`, `hash.c`, `mem_prims.c` (диф-тести проти замороженого asm / zlib / hashlib). Лишилось: `string*`, `memory`, `config*`, `oop_rt`, `memcheck`, `tmpfile`, `syscall` |
+| 2 `src/tui` | ⏳ | не розпочато |
+| 3 `src/fs` | ◐ | `inflate.c` (2368 записів × 4 ліміти × raw/zlib, включно з пошкодженими потоками). Лишилось ~85 модулів |
+| 4 `src/ui`, `src/app`, повна збірка aarch64 | ⏳ | не розпочато; `make ARCH=aarch64` збирає лише PAL + selftest |
+| 5 ARM32 / FreeBSD | ⏳ | не виконано: бракує інструментів лінкування ARM32 у середовищі |
+
+**Метод міграції одного модуля** (повторюваний): заморозити старий `.s` як оракул у `tests/harness/`, написати `.c` з тим самим контрактом (пара в `rax:rdx` → struct з двох `uint64_t`), диференційний тест (хост-harness для x86_64 + `tests/c_harness.py` для aarch64), перевірити `audit_live_regs.py`, `make test`, `verify_build.sh`, закоммітити.
