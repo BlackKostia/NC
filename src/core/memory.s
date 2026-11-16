@@ -177,6 +177,9 @@ mem_arena_refill:
     ret
 
 mem_alloc_big:
+    mov rax, -4112
+    cmp rdi, rax
+    ja .Lalloc_fail
     # total = align_up_page(size + 16)
     lea rsi, [rdi + 16 + 4095]
     and rsi, -4096

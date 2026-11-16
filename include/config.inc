@@ -85,6 +85,7 @@
 # --- LRU Directory Cache ---
 .equ DC_SLOTS,            16
 .equ DC_BUDGET,           33554432  # 32 MiB of cached entries/order/name pools at most
+.equ MAX_DIR_DEPTH,       512       # bounded recursion depth for worker copy/delete/measure
 
 # --- Double-click threshold (milliseconds) ---
 .equ DBLCLICK_MS,         420

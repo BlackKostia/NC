@@ -13,16 +13,12 @@
 .extern g_copy_had_skip
 .global fs_read_file_head
 
-# Internal: int delete_dir_fd(int dfd) -- removes every entry below dfd (not dfd itself)
+# Internal: int delete_dir_fd(int dfd, int depth) -- removes every entry below dfd (not dfd itself)
 delete_dir_fd:
-    push rbx
-    push rbp
-    push r12
-    push r13
-    push r14
-    push r15
-    sub rsp, 80                       # [0]=cursor, [8]=d_type, [16..71]=FileStat, [72]=rc
-    mov r12d, edi
+    cmp esi, MAX_DIR_DEPTH; jae .Lddf_depth_err
+    push rbx; push rbp; push r12; push r13; push r14; push r15
+    sub rsp, 96                       # [0]=cursor, [8]=d_type, [16..71]=FileStat, [72]=rc, [80]=depth
+    mov r12d, edi; mov [rsp + 80], esi
     mov edi, DENTS_CAP
     call mem_alloc
     test rax, rax
@@ -104,14 +100,9 @@ delete_dir_fd:
 .Lddf_nomem:
     mov rax, -ENOMEM
 .Lddf_ret:
-    add rsp, 80
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop rbp
-    pop rbx
-    ret
+    add rsp, 96; pop r15; pop r14; pop r13; pop r12; pop rbp; pop rbx; ret
+.Lddf_depth_err:
+    mov rax, -ENAMETOOLONG; ret
 
 # delete_dir_fd step: os_dir_next_ex (runs on the caller's frame)
 delete_dir_fd__os_dir_next_ex:
@@ -157,6 +148,8 @@ delete_dir_fd__delete_dir_fd:
     lea rsp, [rsp - 8]
     mov ebp, eax
     mov edi, ebp
+    mov esi, [rsp + 80 + 16]
+    inc esi
     call delete_dir_fd
     mov [rsp + 72 + 16], rax
     mov edi, ebp
@@ -204,6 +197,7 @@ fs_delete_recursive:
     js .Lfdr_ret
     mov r13d, eax
     mov edi, r13d
+    xor esi, esi
     call delete_dir_fd
     mov rbx, rax
     mov edi, r13d

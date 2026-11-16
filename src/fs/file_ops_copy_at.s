@@ -214,17 +214,20 @@ copy_link_at:
     pop r13
     pop r12; pop rbx; ret
 
-# Internal: int copy_dir_fd(int sfd, int dfd) -- copies every entry of sfd into dfd
+# Internal: int copy_dir_fd(int sfd, int dfd, int depth) -- copies every entry of sfd into dfd
 copy_dir_fd:
+    cmp edx, MAX_DIR_DEPTH
+    jae .Lcdf_depth_err
     push rbx
     push rbp
     push r12
     push r13
     push r14
     push r15
-    sub rsp, 72                       # [0]=dirent cursor, [8]=d_type, [16..63]=FileStat
+    sub rsp, 88                       # [0]=dirent cursor, [8]=d_type, [16..71]=FileStat, [72]=depth
     mov r12d, edi
     mov r13d, esi
+    mov [rsp + 72], edx
     mov edi, DENTS_CAP
     call mem_alloc
     test rax, rax
@@ -276,13 +279,16 @@ copy_dir_fd:
 .Lcdf_nomem:
     mov rax, -ENOMEM
 .Lcdf_ret:
-    add rsp, 72
+    add rsp, 88
     pop r15
     pop r14
     pop r13
     pop r12
     pop rbp
     pop rbx
+    ret
+.Lcdf_depth_err:
+    mov rax, -ENAMETOOLONG
     ret
 
 # copy_dir_fd step: os_dir_next_ex (runs on the caller's frame)
@@ -341,6 +347,8 @@ copy_dir_fd__os_statat:
     mov edi, r12d
     mov rsi, r15
     mov edx, r13d
+    mov ecx, [rsp + 72 + 16]
+    inc ecx
     call copy_subdir
 .Lcdf_chk:
 .Lcopy_dir_fd__os_statat_ret:

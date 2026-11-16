@@ -245,15 +245,18 @@ os_term_save_and_raw:
 os_term_restore:
     adrp x9, g_raw_active
     ldr w10, [x9, :lo12:g_raw_active]
-    cbz w10, 1f
+    cbz w10, 2f
+1:
     mov w0, #0
     mov x1, #0x5402           // TCSETS
     adrp x2, orig_termios
     add x2, x2, :lo12:orig_termios
     OS_IOCTL
+    cmn x0, #4                // -EINTR
+    b.eq 1b
     adrp x9, g_raw_active
     str wzr, [x9, :lo12:g_raw_active]
-1:
+2:
     ret
 
 os_signals_install:

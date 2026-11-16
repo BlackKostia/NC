@@ -537,15 +537,12 @@ os_term_save_and_raw:
 # void os_term_restore(void)
 os_term_restore:
     xor eax, eax
-    cmp dword ptr [rip + g_raw_active], 0
-    je .Lotr_done
-    mov edi, STDIN_FD
-    mov esi, TCSETSW
-    lea rdx, [rip + orig_termios]
-    mov eax, OS_SYS_ioctl
-    syscall
-    mov dword ptr [rip + g_raw_active], 0
-    mov eax, 1
+    cmp dword ptr [rip + g_raw_active], 0; je .Lotr_done
+.Lotr_retry:
+    mov edi, STDIN_FD; mov esi, TCSETSW; lea rdx, [rip + orig_termios]
+    mov eax, OS_SYS_ioctl; syscall
+    cmp rax, -EINTR; je .Lotr_retry
+    mov dword ptr [rip + g_raw_active], 0; mov eax, 1
 .Lotr_done:
     ret
 

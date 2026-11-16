@@ -77,7 +77,8 @@ wait_and_read_fd:
     cmp rax, -EINTR
     je .Lwar_eintr
     test rax, rax
-    jle .Lwar_none
+    js .Lwar_fatal
+    jz .Lwar_none
     test eax, 1               # only the wake fd fired -> let the app loop run its tick
     jz .Lwar_none
 
@@ -108,6 +109,12 @@ wait_and_read_fd:
 
 .Lwar_eintr:
     mov eax, -1
+    add rsp, 40
+    pop r12
+    pop rbx
+    ret
+.Lwar_fatal:
+    mov eax, -2
     add rsp, 40
     pop r12
     pop rbx

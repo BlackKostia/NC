@@ -114,8 +114,10 @@ pv_start:
     OS_CLOSE
     mov edi, [rip + g_pv_pipes + 4]
     call os_set_nonblock              # UI never blocks on a stuck helper
+    test rax, rax; js .Lps_nonblock_fail
     mov edi, [rip + g_pv_pipes + 8]
     call os_set_nonblock
+    test rax, rax; js .Lps_nonblock_fail
     mov eax, [rip + g_pv_pipes + 4]
     inc eax
     mov [rip + g_pv_req1], eax
@@ -133,6 +135,10 @@ pv_start:
     mov r12d, [rip + g_pv_pipes]
     mov r13d, [rip + g_pv_pipes + 12]
     jmp pv_helper_main
+.Lps_nonblock_fail:
+    mov rdi, rax
+    call pv_cleanup_nonblock
+    jmp .Lps_ret
 .Lps_close_all:
     mov rbx, rax
     mov edi, [rip + g_pv_pipes + 8]
@@ -148,10 +154,19 @@ pv_start:
     OS_CLOSE
     mov rax, rbx
 .Lps_ret:
-    pop r13
-    pop r12
-    pop rbx
+    pop r13; pop r12; pop rbx
     ret
+
+pv_cleanup_nonblock:
+    push rbx; mov rbx, rdi
+    mov edi, [rip + g_pv_pipes + 4]; OS_CLOSE
+    mov edi, [rip + g_pv_pipes + 8]; OS_CLOSE
+    mov edi, [rip + g_pv_pid]; test edi, edi; jz 2f
+    mov esi, SIGKILL; OS_KILL
+1:  mov edi, [rip + g_pv_pid]; xor esi, esi; xor edx, edx; xor r10d, r10d; OS_WAIT4
+    cmp rax, -EINTR; je 1b
+    mov dword ptr [rip + g_pv_pid], 0
+2:  mov rax, rbx; pop rbx; ret
 
 # void fs_preview_stop(void) -- close the request pipe (helper exits) and reap it
 fs_preview_stop:

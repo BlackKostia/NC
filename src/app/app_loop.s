@@ -253,6 +253,7 @@ App_run__check_temporary_status_message:
 
 .Larun_chk_evt:
     test eax, eax
+    js .Larun_fatal_evt
     jz .Larun_stream_step
 
     mov eax, [rsp + Event.type + 16]
@@ -288,6 +289,10 @@ App_run__check_temporary_status_message:
     mov rdi, rbx
     lea rsi, [rsp + 16]
     call handle_mouse
+    jmp .Larun_stream_step
+
+.Larun_fatal_evt:
+    mov dword ptr [rbx + App.running], 0
 
 .Larun_stream_step:
 .LApp_run__check_temporary_status_message_ret:

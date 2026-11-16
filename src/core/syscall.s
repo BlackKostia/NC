@@ -55,10 +55,12 @@ sys_write_all:
     push r12
     push r13
     push r14
+    push r15
     mov ebx, edi              # fd
     mov r12, rsi              # buf
     mov r13, rdx              # remaining
     xor r14d, r14d            # written total
+    xor r15d, r15d            # EAGAIN retries
 .Lswa_loop:
     test r13, r13
     jz .Lswa_ok
@@ -68,21 +70,36 @@ sys_write_all:
     OS_WRITE
     cmp rax, -EINTR
     je .Lswa_loop
+    cmp rax, -EAGAIN
+    je .Lswa_eagain
     test rax, rax
     js .Lswa_err
     jz .Lswa_ok
+    xor r15d, r15d
     add r12, rax
     sub r13, rax
     add r14, rax
     jmp .Lswa_loop
+.Lswa_eagain:
+    cmp r15d, 20
+    jae .Lswa_err_eagain
+    inc r15d
+    mov edi, ebx
+    mov esi, 50
+    call os_poll_out
+    cmp rax, -EINTR
+    je .Lswa_eagain
+    test rax, rax
+    jg .Lswa_loop
+    mov rax, -EAGAIN
+    jmp .Lswa_err
+.Lswa_err_eagain:
+    mov rax, -EAGAIN
+    jmp .Lswa_err
 .Lswa_ok:
     mov rax, r14
-    pop r14
-    pop r13
-    pop r12
-    pop rbx
-    ret
 .Lswa_err:
+    pop r15
     pop r14
     pop r13
     pop r12

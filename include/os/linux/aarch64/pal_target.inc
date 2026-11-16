@@ -75,6 +75,7 @@
 .equ MAP_SHARED_ANON,         0x21
 .equ MREMAP_MAYMOVE,          1
 .equ POLLIN,                  1
+.equ POLLOUT,                 4
 .equ CLOCK_MONOTONIC,         1
 .equ TIOCGWINSZ,              0x5413
 .equ OS_TIOCSWINSZ,           0x5414

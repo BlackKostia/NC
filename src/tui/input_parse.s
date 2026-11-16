@@ -39,10 +39,9 @@ input_poll_event:
     mov edi, r12d
     mov esi, 1
     call wait_and_read_fd
-    cmp eax, -1
-    je .Lipe_check_sig_after_poll
-    test eax, eax
-    jle .Lipe_none
+    cmp eax, -1; je .Lipe_check_sig_after_poll
+    cmp eax, -2; je .Lipe_ret
+    test eax, eax; jle .Lipe_none
     jmp .Lipe_have_data
 
 .Lipe_check_sig_after_poll:

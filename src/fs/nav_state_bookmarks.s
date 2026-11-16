@@ -121,22 +121,25 @@ nav_bookmarks_save:
     je .Lnbs_ret
     push rbx
     push r12
-    sub rsp, PATH_MAX + 8
+    push r13
+    sub rsp, PATH_MAX * 2 + 16
     mov rdi, rsp
     lea rsi, [rip + g_data_dir]
     lea rdx, [rip + str_bm_file]
     mov ecx, PATH_MAX
     call path_join
+    test rax, rax
+    js .Lnbs_done
 
-    mov edi, AT_FDCWD
-    mov rsi, rsp
-    mov edx, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC
-    mov r10d, 0644
-    OS_OPENAT
+    mov rdi, rsp
+    lea rsi, [rsp + PATH_MAX]
+    mov edx, 0644
+    call tmp_open_atomic
     test rax, rax
     js .Lnbs_done
     mov ebx, eax
     xor r12d, r12d
+    xor r13d, r13d
 .Lnbs_loop:
     cmp r12d, [rip + g_bm_cnt]
     jge .Lnbs_close
@@ -150,19 +153,30 @@ nav_bookmarks_save:
     mov rdx, rax
     mov edi, ebx
     call sys_write_all
-    mov byte ptr [rsp + PATH_MAX], '\n'
+    test rax, rax
+    js .Lnbs_werr
+    mov byte ptr [rsp + PATH_MAX * 2], '\n'
     mov edi, ebx
-    lea rsi, [rsp + PATH_MAX]
+    lea rsi, [rsp + PATH_MAX * 2]
     mov edx, 1
     call sys_write_all
+    test rax, rax
+    jns .Lnbs_next
+.Lnbs_werr:
+    mov r13, rax
+    jmp .Lnbs_close
 .Lnbs_next:
     inc r12d
     jmp .Lnbs_loop
 .Lnbs_close:
     mov edi, ebx
-    OS_CLOSE
+    lea rsi, [rsp + PATH_MAX]
+    mov rdx, rsp
+    mov rcx, r13
+    call tmp_commit_atomic
 .Lnbs_done:
-    add rsp, PATH_MAX + 8
+    add rsp, PATH_MAX * 2 + 16
+    pop r13
     pop r12
     pop rbx
 .Lnbs_ret:

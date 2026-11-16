@@ -187,13 +187,14 @@ tu_mkdir_p_base:
 tu_write_info:
     push rbx
     push r12
-    sub rsp, 8
-    mov r12, rsi
-    mov rsi, rdi
-    mov edi, AT_FDCWD
-    mov edx, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC
-    mov r10d, 0600
-    OS_OPENAT
+    push r13
+    push r14
+    sub rsp, PATH_MAX + 8
+    mov r13, rdi              # info_path
+    mov r12, rsi              # orig_path
+    mov rsi, rsp
+    mov edx, 0600
+    call tmp_open_atomic
     test rax, rax
     js .Ltwi_err
     mov ebx, eax
@@ -202,6 +203,8 @@ tu_write_info:
     lea rsi, [rip + str_trash_hdr]
     mov edx, 18
     call sys_write_all
+    test rax, rax
+    js .Ltwi_werr
 
     mov rdi, r12
     call str_len
@@ -209,17 +212,29 @@ tu_write_info:
     mov rsi, r12
     mov rdx, rax
     call sys_write_all
+    test rax, rax
+    js .Ltwi_werr
 
     mov edi, ebx
     lea rsi, [rip + str_trash_dt]
     mov edx, 35
     call sys_write_all
-
+    test rax, rax
+    js .Ltwi_werr
+    xor r14d, r14d
+    jmp .Ltwi_commit
+.Ltwi_werr:
+    mov r14, rax
+.Ltwi_commit:
     mov edi, ebx
-    OS_CLOSE
-    xor eax, eax
+    mov rsi, rsp
+    mov rdx, r13
+    mov rcx, r14
+    call tmp_commit_atomic
 .Ltwi_err:
-    add rsp, 8
+    add rsp, PATH_MAX + 8
+    pop r14
+    pop r13
     pop r12
     pop rbx
     ret

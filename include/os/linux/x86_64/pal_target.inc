@@ -190,7 +190,7 @@
 .equ POLLFD_FD,             0
 .equ POLLFD_EVENTS,         4
 .equ POLLFD_REVENTS,        6
-.equ POLLIN,                0x0001
+.equ POLLIN,                0x0001; .equ POLLOUT, 0x0004
 .equ CLOCK_MONOTONIC,       1
 .equ TIMESPEC_SEC,          0
 .equ TIMESPEC_NSEC,         8

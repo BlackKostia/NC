@@ -2,9 +2,11 @@
 .intel_syntax noprefix
 
 .include "pal.inc"
+.include "config.inc"
 
 .section .rodata
 tmp_dir_pfx:    .asciz "/tmp/duop-"
+tmp_dot_sfx:    .asciz ".tmp"
 
 .section .bss
 .align 8
@@ -16,6 +18,8 @@ g_tmp_seq:      .space 4
 .global tmp_ensure_dir
 .global tmp_open_unique
 .global tmp_make_path
+.global tmp_open_atomic
+.global tmp_commit_atomic
 
 .extern os_statat
 .extern str_copy
@@ -181,3 +185,61 @@ tmp_make_path:
 .Ltmp_err:
     mov eax, -1
     add rsp, 8; ret
+
+# int tmp_open_atomic(const char *final_path, char *tmp_buf, int mode)
+tmp_open_atomic:
+    push rbx; push r12; push r13
+    mov rbx, rdi; mov r12, rsi; mov r13d, edx
+    call str_len
+    cmp rax, PATH_MAX - 5
+    jae .Ltoa_too_long
+    mov rdi, r12; mov rsi, rbx; mov edx, PATH_MAX; call str_copy
+    mov rdi, r12; lea rsi, [rip + tmp_dot_sfx]; mov edx, PATH_MAX; call str_cat
+    mov edi, AT_FDCWD; mov rsi, r12; xor edx, edx; OS_UNLINKAT # fault-checked: best-effort stale cleanup
+    mov edi, AT_FDCWD; mov rsi, r12
+    mov edx, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC
+    mov r10d, r13d
+    OS_OPENAT
+    test rax, rax
+    jmp .Ltoa_ret
+.Ltoa_too_long:
+    mov rax, -ENAMETOOLONG
+.Ltoa_ret:
+    pop r13; pop r12; pop rbx
+    ret
+
+# int tmp_commit_atomic(int fd, const char *tmp_buf, const char *final_path, int64_t write_rc)
+tmp_commit_atomic:
+    push rbx; push r12; push r13; push r14
+    mov ebx, edi; mov r12, rsi; mov r13, rdx; mov r14, rcx
+    test r14, r14
+    js .Ltca_close_fail
+.Ltca_fsync:
+    mov edi, ebx; OS_FSYNC
+    cmp rax, -EINTR; je .Ltca_fsync
+    test rax, rax; jns .Ltca_close
+    cmp rax, -EINVAL; je .Ltca_close
+    mov r14, rax
+    jmp .Ltca_close_fail
+.Ltca_close:
+    mov edi, ebx; OS_CLOSE
+    test rax, rax; jns .Ltca_rename
+    mov r14, rax
+    jmp .Ltca_unlink
+.Ltca_rename:
+    mov edi, AT_FDCWD; mov rsi, r12; mov edx, AT_FDCWD; mov r10, r13
+    OS_RENAMEAT               # atomic-replace
+    test rax, rax; jns .Ltca_ok
+    mov r14, rax
+    jmp .Ltca_unlink
+.Ltca_close_fail:
+    mov edi, ebx; OS_CLOSE    # fault-checked: cleanup after prior error
+.Ltca_unlink:
+    mov edi, AT_FDCWD; mov rsi, r12; xor edx, edx; OS_UNLINKAT # fault-checked: best-effort cleanup
+    mov rax, r14
+    jmp .Ltca_ret
+.Ltca_ok:
+    xor eax, eax
+.Ltca_ret:
+    pop r14; pop r13; pop r12; pop rbx
+    ret

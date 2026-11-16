@@ -348,11 +348,11 @@ ScreenBuffer_flush:
     call out_cstr
 
     mov edi, STDOUT_FD
-    mov rsi, [rbx + ScreenBuffer.out_buf]
-    mov rdx, [rbx + ScreenBuffer.out_len]
+    mov rsi, [rbx + ScreenBuffer.out_buf]; mov rdx, [rbx + ScreenBuffer.out_len]
     call sys_write_all
-    mov qword ptr [rbx + ScreenBuffer.out_len], 0
-
+    test rax, rax
+    jns .Lfl_nothing
+    mov dword ptr [rbx + ScreenBuffer.force_full], 1
 .Lfl_nothing:
     mov qword ptr [rbx + ScreenBuffer.out_len], 0
 .Lfl_done:

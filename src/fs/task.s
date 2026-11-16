@@ -142,6 +142,7 @@ task_measure:
     js .Ltm_ok
     mov ebx, eax
     mov edi, ebx
+    xor esi, esi
     call measure_dir_fd
     mov r12, rax
     mov edi, ebx
@@ -157,16 +158,12 @@ task_measure:
     add rsp, 56
     pop r12; pop rbx; ret
 
-# Internal: int measure_dir_fd(int dfd) -- fd-relative, d_type-driven tree measurement
+# Internal: int measure_dir_fd(int dfd, int depth) -- fd-relative, d_type-driven tree measurement
 measure_dir_fd:
-    push rbx
-    push rbp
-    push r12
-    push r13
-    push r14
-    push r15
-    sub rsp, 80                       # [0]=cursor, [8]=d_type, [16..71]=FileStat, [72]=rc
-    mov r12d, edi
+    cmp esi, MAX_DIR_DEPTH; jae .Lmd_depth_err
+    push rbx; push rbp; push r12; push r13; push r14; push r15
+    sub rsp, 96                       # [0]=cursor, [8]=d_type, [16..71]=FileStat, [72]=rc, [80]=depth
+    mov r12d, edi; mov [rsp + 80], esi
     mov r13, [rip + g_fs_progress]
     mov edi, 32752
     call mem_alloc
@@ -242,14 +239,9 @@ measure_dir_fd:
 .Lmd_ok_nofree:
     xor eax, eax
 .Lmd_ret:
-    add rsp, 80
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop rbp
-    pop rbx
-    ret
+    add rsp, 96; pop r15; pop r14; pop r13; pop r12; pop rbp; pop rbx; ret
+.Lmd_depth_err:
+    mov rax, -ENAMETOOLONG; ret
 
 # measure_dir_fd step: os_dir_next_ex (runs on the caller's frame)
 measure_dir_fd__os_dir_next_ex:
@@ -295,6 +287,8 @@ measure_dir_fd__measure_dir_fd:
     lea rsp, [rsp - 8]
     mov ebp, eax
     mov edi, ebp
+    mov esi, [rsp + 80 + 16]
+    inc esi
     call measure_dir_fd
     mov [rsp + 72 + 16], rax
     mov edi, ebp

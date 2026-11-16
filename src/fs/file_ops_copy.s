@@ -16,17 +16,12 @@ g_copy_root_ino: .space 8
 .global fs_copy_file
 .global fs_copy_recursive
 
-# Internal: int copy_subdir(int sdir, const char *name, int ddir)
+# Internal: int copy_subdir(int sdir, const char *name, int ddir, int depth)
 copy_subdir:
-    push rbx
-    push rbp
-    push r12
-    push r13
-    push r14
+    cmp ecx, MAX_DIR_DEPTH; jae .Lcsd_depth_err
+    push rbx; push rbp; push r12; push r13; push r14; push r15
     sub rsp, 64                       # [0..55]=FileStat, [56..63]=rc
-    mov r12d, edi
-    mov r13, rsi
-    mov r14d, edx
+    mov r12d, edi; mov r13, rsi; mov r14d, edx; mov r15d, ecx
     mov edi, r12d
     mov rsi, r13
     mov edx, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC
@@ -74,6 +69,7 @@ copy_subdir:
     mov ebp, eax                      # dfd
     mov edi, ebx
     mov esi, ebp
+    mov edx, r15d
     call copy_dir_fd
     mov [rsp + 56], rax
     mov edi, ebp
@@ -85,13 +81,9 @@ copy_subdir:
     OS_CLOSE
     mov rax, [rsp + 56]
 .Lcsd_ret:
-    add rsp, 64
-    pop r14
-    pop r13
-    pop r12
-    pop rbp
-    pop rbx
-    ret
+    add rsp, 64; pop r15; pop r14; pop r13; pop r12; pop rbp; pop rbx; ret
+.Lcsd_depth_err:
+    mov rax, -ENAMETOOLONG; ret
 
 # int fs_copy_file(const char *src_path, const char *dst_path)
 fs_copy_file:
@@ -264,6 +256,7 @@ fs_copy_recursive__sfd:
     mov [rip + g_copy_root_ino], rdx
     mov edi, r14d
     mov esi, r15d
+    xor edx, edx
     call copy_dir_fd
     mov rbx, rax
     mov edi, r15d

@@ -15,6 +15,7 @@ sh_path:   .asciz "/bin/sh"
 .global os_pty_close
 .global os_get_winsize_px
 .global os_sig_reset_pipe
+.global os_poll_out
 
 os_sig_reset_pipe:
     mov w0, #0
@@ -215,4 +216,8 @@ os_get_winsize_px:
     str w12, [x10]
 1:
     add sp, sp, #16
+    ret
+
+os_poll_out:
+    mov w0, #1
     ret

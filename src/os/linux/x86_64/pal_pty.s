@@ -7,6 +7,7 @@
 .equ OS_SYS_execve, 59
 .equ OS_SYS_chdir,  80
 .equ O_NOCTTY,      0x100
+.global os_poll_out
 
 .macro OS_IOCTL
     mov eax, OS_SYS_ioctl
@@ -173,4 +174,21 @@ os_get_winsize_px:
     movzx eax, word ptr [rsp + 6]     # ws_ypixel
     mov [r9], eax
 1:  add rsp, 16
+    ret
+
+# int os_poll_out(int fd, int timeout_ms)
+os_poll_out:
+    sub rsp, 40
+    mov dword ptr [rsp + POLLFD_FD], edi
+    mov word ptr [rsp + POLLFD_EVENTS], POLLOUT
+    mov word ptr [rsp + POLLFD_REVENTS], 0
+    xor edx, edx
+    test esi, esi; js .Lopo_call
+    movsxd rax, esi; cqo; mov ecx, 1000; idiv rcx; imul rdx, rdx, 1000000
+    mov [rsp + 16 + TIMESPEC_SEC], rax; mov [rsp + 16 + TIMESPEC_NSEC], rdx
+    lea rdx, [rsp + 16]
+.Lopo_call:
+    mov rdi, rsp; mov esi, 1; xor r10d, r10d; mov r8d, 8
+    mov eax, OS_SYS_ppoll; syscall
+    add rsp, 40
     ret

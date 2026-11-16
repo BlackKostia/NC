@@ -137,7 +137,12 @@ br_apply:
     # rsi = old_name
     mov edx, r13d
     mov r10, rsp              # new_name
-    OS_RENAMEAT
+    mov r8d, RENAME_NOREPLACE
+    OS_RENAMEAT2
+    test rax, rax
+    jns .Lbra_next
+    # On collision or error, keep existing files intact and record error
+    mov [rsp + 256], rax
 .Lbra_next:
     inc r14d; jmp .Lbra_loop
 .Lbra_close:

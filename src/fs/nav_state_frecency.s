@@ -174,35 +174,40 @@ nav_frecency_save:
     je .Lnfs_ret
     push rbx
     push r12
-    sub rsp, PATH_MAX + 32
+    push r13
+    sub rsp, PATH_MAX * 2 + 32
     mov rdi, rsp
     lea rsi, [rip + g_data_dir]
     lea rdx, [rip + str_fre_file]
     mov ecx, PATH_MAX
     call path_join
+    test rax, rax
+    js .Lnfs_done
 
-    mov edi, AT_FDCWD
-    mov rsi, rsp
-    mov edx, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC
-    mov r10d, 0644
-    OS_OPENAT
+    mov rdi, rsp
+    lea rsi, [rsp + PATH_MAX]
+    mov edx, 0644
+    call tmp_open_atomic
     test rax, rax
     js .Lnfs_done
     mov ebx, eax
     xor r12d, r12d
+    xor r13d, r13d
 .Lnfs_loop:
     cmp r12d, [rip + g_fre_cnt]
     jge .Lnfs_close
     lea rcx, [rip + g_fre_scores]
     mov edi, [rcx + r12*4]
-    lea rsi, [rsp + PATH_MAX]
+    lea rsi, [rsp + PATH_MAX * 2]
     call nav_u32_to_str
-    lea rsi, [rsp + PATH_MAX]
+    lea rsi, [rsp + PATH_MAX * 2]
     mov byte ptr [rsi + rax], ' '
     inc eax
     mov edi, ebx
     mov edx, eax
     call sys_write_all
+    test rax, rax
+    js .Lnfs_werr
 
     lea rcx, [rip + g_fre_ptrs]
     mov rdi, [rcx + r12*8]
@@ -212,21 +217,25 @@ nav_frecency_save:
     mov rdx, rax
     mov edi, ebx
     call sys_write_all
+    test rax, rax
+    js .Lnfs_werr
 
-    mov byte ptr [rsp + PATH_MAX], '\n'
+    mov byte ptr [rsp + PATH_MAX * 2], '\n'
     mov edi, ebx
-    lea rsi, [rsp + PATH_MAX]
+    lea rsi, [rsp + PATH_MAX * 2]
     mov edx, 1
     call sys_write_all
+    test rax, rax
+    js .Lnfs_werr
     inc r12d
     jmp .Lnfs_loop
+.Lnfs_werr:
+    mov r13, rax
 .Lnfs_close:
-    mov edi, ebx
-    OS_CLOSE
+    mov edi, ebx; lea rsi, [rsp + PATH_MAX]; mov rdx, rsp; mov rcx, r13
+    call tmp_commit_atomic
 .Lnfs_done:
-    add rsp, PATH_MAX + 32
-    pop r12
-    pop rbx
+    add rsp, PATH_MAX * 2 + 32; pop r13; pop r12; pop rbx
 .Lnfs_ret:
     ret
 

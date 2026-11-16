@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 21
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 775
+- **Exported `.global` Symbols**: 779
 
 ## Structs (`include/*.inc`)
 
@@ -109,6 +109,7 @@
   - `os_pty_close`
   - `os_get_winsize_px`
   - `os_sig_reset_pipe`
+  - `os_poll_out`
 - **`src/os/linux/aarch64/pal_simd.s`**
   - `os_mem_copy_fast`
   - `os_mem_move_fast`
@@ -164,6 +165,7 @@
   - `os_sigbus_guard_install` — void os_sigbus_guard_install(void)
   - `os_copy_file_range` — ssize_t os_copy_file_range(int src_fd, int dst_fd, size_t len) -- in-kernel copy at file offsets
 - **`src/os/linux/x86_64/pal_pty.s`**
+  - `os_poll_out` — int os_poll_out(int fd, int timeout_ms)
   - `os_pty_spawn` — int os_pty_spawn(int *out_master_fd, int *out_pid, const char *cwd, char **envp, int cols, int rows)
   - `os_pty_resize` — void os_pty_resize(int master_fd, int cols, int rows)
   - `os_pty_read` — long os_pty_read(int fd, void *buf, long len)
@@ -288,6 +290,8 @@
   - `tmp_ensure_dir` — Creates/validates a private 0700 directory /tmp/duop-<uid>-<pid>[-n].
   - `tmp_open_unique` — int tmp_open_unique(const char *prefix, const char *suffix, char *out_path, int cap) -> fd >= 0 or -1
   - `tmp_make_path` — int tmp_make_path(const char *prefix, const char *suffix, char *out_path, int cap) -> 0 ok, -1 err
+  - `tmp_open_atomic` — int tmp_open_atomic(const char *final_path, char *tmp_buf, int mode)
+  - `tmp_commit_atomic` — int tmp_commit_atomic(int fd, const char *tmp_buf, const char *final_path, int64_t write_rc)
 - **`src/core/try_rt.s`**
   - `g_try_frame`
   - `os_fault_guard_install` — Installs unified SA_SIGINFO handler for SIGSEGV, SIGBUS, SIGFPE once at startup.
@@ -499,13 +503,13 @@
   - `path_is_same_or_descendant` — Returns 1 if dst == src (ignoring trailing '/') or dst is strictly inside src/
   - `copy_data` — Returns 0, -errno, or -ECANCELED. Reports bytes through fs_progress_bytes.
 - **`src/fs/file_ops_copy.s`**
-  - `copy_subdir` — Internal: int copy_subdir(int sdir, const char *name, int ddir)
+  - `copy_subdir` — Internal: int copy_subdir(int sdir, const char *name, int ddir, int depth)
   - `fs_copy_file` — int fs_copy_file(const char *src_path, const char *dst_path)
   - `fs_copy_recursive` — int fs_copy_recursive(const char *src_path, const char *dst_path)
 - **`src/fs/file_ops_copy_at.s`**
   - `copy_reg_at` — being truncated. A canceled copy unlinks its partial destination.
   - `copy_link_at` — Internal: int copy_link_at(int sdir, const char *sname, int ddir, const char *dname)
-  - `copy_dir_fd` — Internal: int copy_dir_fd(int sfd, int dfd) -- copies every entry of sfd into dfd
+  - `copy_dir_fd` — Internal: int copy_dir_fd(int sfd, int dfd, int depth) -- copies every entry of sfd into dfd
 - **`src/fs/file_ops_delete.s`**
   - `fs_delete_recursive` — Symlinks are removed, never followed (O_NOFOLLOW on every directory open).
   - `fs_move_recursive` — int fs_move_recursive(const char *src_path, const char *dst_path)
