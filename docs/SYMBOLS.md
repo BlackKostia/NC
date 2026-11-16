@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 21
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 830
+- **Exported `.global` Symbols**: 825
 
 ## Structs (`include/*.inc`)
 
@@ -632,15 +632,9 @@
   - `img_sixel_encode` — uint8_t *out, size_t cap) -> bytes written, 0 on overflow / OOM
 - **`src/fs/img_tga.s`**
   - `img_tga_decode` — int img_tga_decode(const uint8_t *d, size_t n, Image *out)
-- **`src/fs/inflate.s`**
-  - `inf_bits` — uint32_t inf_bits(InfState *st, int nbits)
-  - `inf_block_stored` — int inf_block_stored(InfState *st)
-  - `inf_block_huff` — int inf_block_huff(InfState *st, void *lit_tree, void *dist_tree)
-  - `inf_build_fixed` — void inf_build_fixed(void *lit_tree, void *dist_tree)
-  - `inf_load_dyn` — int inf_load_dyn(InfState *st, void *lit_tree, void *dist_tree)
-- **`src/fs/inflate_api.s`**
-  - `inflate_raw` — int64_t inflate_raw(const void *src, uint64_t src_len, void *dst, uint64_t dst_cap)
-  - `inflate_zlib` — int64_t inflate_zlib(const void *src, uint64_t src_len, void *dst, uint64_t dst_cap)
+- **`src/fs/inflate.c`**
+  - `inflate_raw` — `int64_t inflate_raw(const void *src, uint64_t src_len, void *dst, uint64_t dst_cap)`
+  - `inflate_zlib` — `int64_t inflate_zlib(const void *src, uint64_t src_len, void *dst, uint64_t dst_cap)`
 - **`src/fs/nav_state.s`**
   - `nav_strdup` — Internal: char *nav_strdup(const char *s)
   - `nav_ci_contains` — Internal: ASCII case-insensitive substring match: int nav_ci_contains(const char *hay, const char *needle)

@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/inflate.c replaced (tests/test_c_inflate.py diffs against it)
 # src/fs/inflate.s - Compact RFC 1951 DEFLATE & zlib decompressor — inflate api (split from inflate.s)
 
 .intel_syntax noprefix

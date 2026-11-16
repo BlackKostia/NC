@@ -128,8 +128,6 @@ SRCS := \
 	src/fs/dir_fuzzy.s \
 	src/fs/dir_fuzzy_walk.s \
 	src/fs/dir_diff.s \
-	src/fs/inflate.s \
-	src/fs/inflate_api.s \
 	src/fs/disk_usage.s \
 	src/fs/du_cache.s \
 	src/fs/du_parallel.s \
@@ -243,7 +241,8 @@ SRCS := \
 C_SRCS := \
 	src/core/utf8.c \
 	src/core/hash.c \
-	src/core/mem_prims.c
+	src/core/mem_prims.c \
+	src/fs/inflate.c
 
 PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_os.s \
@@ -333,6 +332,7 @@ test: $(TARGET)
 	python3 tests/test_pal_selftest.py
 	python3 tests/test_c_utf8.py
 	python3 tests/test_c_hash.py
+	python3 tests/test_c_inflate.py
 	python3 tests/test_pty.py
 	python3 tests/test_fs_reliability.py
 	python3 tests/test_performance_dir.py
