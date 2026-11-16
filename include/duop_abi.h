@@ -104,6 +104,12 @@ intptr_t  os_watch_read(int fd, void *buf, size_t cap);
 int       os_watch_next(const void *buf, size_t len, size_t *pos, int *wd, uint32_t *mask);
 
 /* ---- SIMD/scalar primitives (pal_simd.s) ---- */
+void   os_mem_copy_fast(void *dst, const void *src, size_t n);   /* non-overlapping */
+void   os_mem_move_fast(void *dst, const void *src, size_t n);   /* overlap-safe */
+void   os_mem_set_fast(void *dst, int byte, size_t n);
+int    os_mem_cmp_fast(const void *a, const void *b, size_t n);  /* 0 when equal, else sign of first difference */
+size_t os_str_len_fast(const char *s);
+int    os_str_contains_ci_fast(const char *hay, const char *needle_lc, size_t nlen);
 size_t os_mem_mismatch16(const void *a, const void *b, size_t n16);
 size_t os_mem_find_byte(const void *p, size_t len, int byte);
 size_t os_mem_count_byte(const void *p, size_t len, int byte);

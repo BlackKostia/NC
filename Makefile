@@ -57,7 +57,6 @@ SRCS := \
 	src/core/config_parse.s \
 	src/core/config_load.s \
 	src/core/config_expand.s \
-	src/core/hash.s \
 	src/core/hash_file.s \
 	src/tui/theme.s \
 	src/tui/i18n.s \
@@ -242,7 +241,9 @@ SRCS := \
 
 # Freestanding C23 modules (docs/HYBRID_PORTABILITY_PLAN.md); migrated leaf-first from the .s list above
 C_SRCS := \
-	src/core/utf8.c
+	src/core/utf8.c \
+	src/core/hash.c \
+	src/core/mem_prims.c
 
 PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_os.s \
@@ -331,6 +332,7 @@ test: $(TARGET)
 	python3 tests/test_pal_parity.py
 	python3 tests/test_pal_selftest.py
 	python3 tests/test_c_utf8.py
+	python3 tests/test_c_hash.py
 	python3 tests/test_pty.py
 	python3 tests/test_fs_reliability.py
 	python3 tests/test_performance_dir.py

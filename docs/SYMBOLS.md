@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 21
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 825
+- **Exported `.global` Symbols**: 830
 
 ## Structs (`include/*.inc`)
 
@@ -253,13 +253,19 @@
   - `g_cfg_warn`
 - **`src/core/config_parse.s`**
   - `parse_config_line` — Helper: parse one NUL-terminated line (modified in place)
-- **`src/core/hash.s`**
-  - `crc32_update` — uint32_t crc32_update(uint32_t crc, const uint8_t *buf, size_t len)
-  - `sha256_init` — void sha256_init(ShaCtx *ctx)
-  - `sha256_update` — void sha256_update(ShaCtx *ctx, const uint8_t *buf, size_t len)
-  - `sha256_final_hex` — void sha256_final_hex(ShaCtx *ctx, char *out_hex65)
+- **`src/core/hash.c`**
+  - `crc32_update` — `uint32_t crc32_update(uint32_t crc, const uint8_t *buf, size_t len)`
+  - `sha256_init` — `void sha256_init(ShaCtx *c)`
+  - `sha256_update` — `void sha256_update(ShaCtx *c, const uint8_t *p, size_t n)`
+  - `sha256_final_hex` — `void sha256_final_hex(ShaCtx *c, char *out)`
 - **`src/core/hash_file.s`**
   - `hash_file` — int hash_file(const char *path, uint32_t *out_crc32, char *out_sha_hex65)
+- **`src/core/mem_prims.c`**
+  - `memcpy` — `void *memcpy(void *restrict dst, const void *restrict src, size_t n)`
+  - `memmove` — `void *memmove(void *dst, const void *src, size_t n)`
+  - `memset` — `void *memset(void *dst, int c, size_t n)`
+  - `memcmp` — `int memcmp(const void *a, const void *b, size_t n)`
+  - `bcmp` — `int bcmp(const void *a, const void *b, size_t n)`
 - **`src/core/memcheck.s`**
   - `mc_init` — void mc_init(char **envp)
   - `mc_on_alloc` — void mc_on_alloc(void *ptr, size_t size, uint64_t caller)
