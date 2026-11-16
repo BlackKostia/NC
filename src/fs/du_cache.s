@@ -134,6 +134,8 @@ du_cache_get:
 du_cache_put:
     test rdi, rdi
     jz .Ldcp_ret
+    cmp qword ptr [rip + g_du_tbl], 0
+    jz .Ldcp_ret
     push rbx
     push r12
     push r13
@@ -142,9 +144,6 @@ du_cache_put:
     mov r12, rsi
     mov r13, rdx
     mov r14, rcx
-    call du_cache_init
-    test rax, rax
-    jz .Ldcp_out
     call du_spin_lock
     mov r8, [rip + g_du_tbl]
     mov rdi, rbx

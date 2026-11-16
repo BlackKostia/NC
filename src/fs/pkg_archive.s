@@ -7,6 +7,7 @@
 .equ ARC_MAX_ENTRIES, 1024
 .equ AENT_SIZE,       288
 .equ ACTX_SIZE,       32 + PATH_MAX * 3
+.equ SHA_CTX_SZ,      112
 
 .section .rodata
 pka_k_name: .asciz "name"
@@ -19,6 +20,7 @@ pka_k_desc: .asciz "description"
 .global pkg_write_file
 .global pkg_parse_manifest
 .global pkg_load_archive
+.global pkg_load_archive_sha
 .global pkg_free_archive
 .global pkg_extract_entry_to
 
@@ -31,6 +33,9 @@ pka_k_desc: .asciz "description"
 .extern mem_alloc
 .extern mem_free
 .extern mem_zero
+.extern sha256_final_hex
+.extern sha256_init
+.extern sha256_update
 .extern str_copy
 .extern str_cmp
 .extern sys_write_all
@@ -148,8 +153,11 @@ pkg_parse_manifest:
 
 # ArcCtx *pkg_load_archive(const char *path)
 pkg_load_archive:
-    push rbx; push r12; push r13; sub rsp, 16
-    mov rbx, rdi; call arc_is_archive
+    xor esi, esi
+# ArcCtx *pkg_load_archive_sha(const char *path, char *out_sha_hex65)
+pkg_load_archive_sha:
+    push rbx; push r12; push r13; push r14; sub rsp, SHA_CTX_SZ + 16
+    mov rbx, rdi; mov r14, rsi; call arc_is_archive
     test eax, eax; jz .Lpla_err
     mov r12d, eax
     mov edi, ACTX_SIZE; call mem_alloc; test rax, rax; jz .Lpla_err
@@ -161,6 +169,11 @@ pkg_load_archive:
     test rax, rax; jz .Lpla_free
     mov rdi, rbx; mov rsi, rax; mov edx, ARC_MAX_FILE; lea rcx, [r13 + 16]
     call fs_read_file_head; test rax, rax; js .Lpla_free
+    test r14, r14; jz .Lpla_ungz
+    lea rdi, [rsp + 16]; call sha256_init
+    lea rdi, [rsp + 16]; mov rsi, [r13 + 8]; mov rdx, [r13 + 16]; call sha256_update
+    lea rdi, [rsp + 16]; mov rsi, r14; call sha256_final_hex
+.Lpla_ungz:
     cmp dword ptr [r13], 2; jne .Lpla_parse
     mov rdi, [r13 + 8]; mov rsi, [r13 + 16]; mov rdx, rsp; call arc_ungzip
     test rax, rax; jz .Lpla_free
@@ -173,11 +186,11 @@ pkg_load_archive:
 .Lpla_zip:
     call arc_parse_zip
 .Lpla_ok:
-    mov rax, r13; add rsp, 16; pop r13; pop r12; pop rbx; ret
+    mov rax, r13; add rsp, SHA_CTX_SZ + 16; pop r14; pop r13; pop r12; pop rbx; ret
 .Lpla_free:
     mov rdi, r13; call pkg_free_archive
 .Lpla_err:
-    xor eax, eax; add rsp, 16; pop r13; pop r12; pop rbx; ret
+    xor eax, eax; add rsp, SHA_CTX_SZ + 16; pop r14; pop r13; pop r12; pop rbx; ret
 
 # void pkg_free_archive(ArcCtx *ctx)
 pkg_free_archive:

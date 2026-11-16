@@ -9,6 +9,10 @@
 .align 4
 g_conflict_all_act: .space 4   # worker: cached CONFLICT_ACT_* when For all is set
 
+.section .bss
+.global g_copy_had_skip
+g_copy_had_skip: .space 4
+
 .section .text
 .global fs_task_resolve_conflict
 .global fs_task_check_conflict
@@ -304,6 +308,7 @@ fo_resolve_eexist_open:
     js .Lfro_ret
     cmp eax, CONFLICT_ACT_SKIP
     jne .Lfro_chk_ren
+    mov dword ptr [rip + g_copy_had_skip], 1
     mov rax, -2
     jmp .Lfro_ret
 .Lfro_chk_ren:

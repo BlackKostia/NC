@@ -1,11 +1,11 @@
 {
   "exports": {
     "src/os/linux/aarch64/pal_os.s": 19,
-    "src/os/linux/x86_64/pal_os.s": 27
+    "src/os/linux/x86_64/pal_os.s": 26
   },
   "files": {
     "src/core/config_parse.s": 485,
-    "src/os/linux/x86_64/pal_os.s": 645,
+    "src/os/linux/x86_64/pal_os.s": 620,
     "src/os/linux/x86_64/pal_simd.s": 426,
     "src/os/linux/x86_64/pal_uring.s": 512,
     "src/tui/input_parse.s": 608,
@@ -19,7 +19,7 @@
     "src/app/app_close_dialog.s:App_close_dialog": 126,
     "src/app/app_ext_keys.s:app_handle_ext_key": 95,
     "src/app/app_keys.s:handle_key": 186,
-    "src/core/config_expand.s:config_expand_cmd": 83,
+    "src/core/config_expand.s:config_expand_cmd": 81,
     "src/core/config_parse.s:parse_config_line": 236,
     "src/core/hash.s:sha256_transform": 102,
     "src/core/utf8.s:utf8_decode": 110,

@@ -41,6 +41,140 @@
 .section .text
 .global config_expand_cmd
 
+# Helper: size_t cec_emit_sq(char *out, size_t rax, size_t rdx, const char *rcx, int r8d)
+cec_emit_sq:
+    test r8d, r8d
+    jnz .Lces_loop
+    cmp rax, rdx
+    jae .Lces_ret
+    mov byte ptr [rdi + rax], '\''
+    inc rax
+.Lces_loop:
+    movzx r10d, byte ptr [rcx]
+    test r10d, r10d
+    jz .Lces_end
+    cmp r10d, '\''
+    je .Lces_esc
+    cmp rax, rdx
+    jae .Lces_ret
+    mov [rdi + rax], r10b
+    inc rax
+    inc rcx
+    jmp .Lces_loop
+.Lces_esc:
+    lea r11, [rax + 4]
+    cmp r11, rdx
+    ja .Lces_ret
+    mov byte ptr [rdi + rax], '\''
+    mov byte ptr [rdi + rax + 1], '\\'
+    mov byte ptr [rdi + rax + 2], '\''
+    mov byte ptr [rdi + rax + 3], '\''
+    add rax, 4
+    inc rcx
+    jmp .Lces_loop
+.Lces_end:
+    test r8d, r8d
+    jnz .Lces_ret
+    cmp rax, rdx
+    jae .Lces_ret
+    mov byte ptr [rdi + rax], '\''
+    inc rax
+.Lces_ret:
+    ret
+
+# Helper: size_t cec_emit_dq(char *out, size_t rax, size_t rdx, const char *rcx)
+cec_emit_dq:
+    movzx r10d, byte ptr [rcx]
+    test r10d, r10d
+    jz .Lced_ret
+    cmp r10d, '"';  je .Lced_esc
+    cmp r10d, '\\'; je .Lced_esc
+    cmp r10d, '$';  je .Lced_esc
+    cmp r10d, '`';  je .Lced_esc
+    cmp rax, rdx
+    jae .Lced_ret
+    mov [rdi + rax], r10b
+    inc rax
+    inc rcx
+    jmp cec_emit_dq
+.Lced_esc:
+    lea r11, [rax + 2]
+    cmp r11, rdx
+    ja .Lced_ret
+    mov byte ptr [rdi + rax], '\\'
+    mov [rdi + rax + 1], r10b
+    add rax, 2
+    inc rcx
+    jmp cec_emit_dq
+.Lced_ret:
+    ret
+
+# Helper: size_t cec_emit_escaped(char *out, size_t out_i, size_t max_i, const char *val, int qmode, int raw)
+cec_emit_escaped:
+    mov rax, rsi
+    test rcx, rcx
+    jz .Lcee_ret
+    test r9d, r9d
+    jnz .Lcee_raw
+    cmp r8d, 2
+    je cec_emit_dq
+    jmp cec_emit_sq
+.Lcee_raw:
+    movzx r10d, byte ptr [rcx]
+    test r10d, r10d
+    jz .Lcee_ret
+    cmp rax, rdx
+    jae .Lcee_ret
+    mov [rdi + rax], r10b
+    inc rax
+    inc rcx
+    jmp .Lcee_raw
+.Lcee_ret:
+    ret
+
+# Helper: int cec_update_quote(int qmode, uint8_t ch)
+cec_update_quote:
+    mov eax, edi
+    cmp sil, '\''
+    jne .Lcuq_dq
+    cmp eax, 2
+    je .Lcuq_ret
+    xor eax, 1
+    ret
+.Lcuq_dq:
+    cmp sil, '"'
+    jne .Lcuq_ret
+    cmp eax, 1
+    je .Lcuq_ret
+    xor eax, 2
+.Lcuq_ret:
+    ret
+
+# Helper: const char *cec_lookup_var(uint8_t ch, const ConfigExpandCtx *ctx, int *out_raw) -> val or NULL (r8d=1 if unknown)
+cec_lookup_var:
+    xor eax, eax
+    mov dword ptr [rdx], 0
+    xor r8d, r8d
+    cmp dil, 'f'; jne .Lclv_p
+    mov rax, [rsi + 0]; ret
+.Lclv_p:
+    cmp dil, 'p'; jne .Lclv_F
+    mov rax, [rsi + 8]; ret
+.Lclv_F:
+    cmp dil, 'F'; jne .Lclv_s
+    mov rax, [rsi + 16]; mov dword ptr [rdx], 1; ret
+.Lclv_s:
+    cmp dil, 's'; jne .Lclv_d
+    mov rax, [rsi + 16]; mov dword ptr [rdx], 1; ret
+.Lclv_d:
+    cmp dil, 'd'; jne .Lclv_D
+    mov rax, [rsi + 24]; ret
+.Lclv_D:
+    cmp dil, 'D'; jne .Lclv_unk
+    mov rax, [rsi + 32]; ret
+.Lclv_unk:
+    mov r8d, 1; ret
+
 # void config_expand_cmd(const char *tmpl, char *out, size_t cap, const ConfigExpandCtx *ctx)
 # ConfigExpandCtx: +0 cur_name, +8 cur_path, +16 sel_names, +24 active_dir, +32 inactive_dir
 config_expand_cmd:
@@ -48,10 +182,12 @@ config_expand_cmd:
     push r12
     push r13
     push r14
+    push r15
     mov rbx, rdi              # tmpl
     mov r12, rsi              # out
     mov r13, rdx              # cap
     mov r14, rcx              # ctx
+    xor r15d, r15d            # quote_mode: 0=none, 1=single, 2=double
     test r13, r13
     jz .Lcec_ret
     dec r13                   # reserve NUL
@@ -69,38 +205,29 @@ config_expand_cmd:
 
     cmp dl, '%'
     je .Lcec_pct
-    xor r8d, r8d
-    cmp dl, 'f'; jne .Lcec_p
-    mov r8, [r14 + 0]; jmp .Lcec_sub
-.Lcec_p:
-    cmp dl, 'p'; jne .Lcec_F
-    mov r8, [r14 + 8]; jmp .Lcec_sub
-.Lcec_F:
-    cmp dl, 'F'; jne .Lcec_s
-    mov r8, [r14 + 16]; jmp .Lcec_sub
-.Lcec_s:
-    cmp dl, 's'; jne .Lcec_d
-    mov r8, [r14 + 16]; jmp .Lcec_sub
-.Lcec_d:
-    cmp dl, 'd'; jne .Lcec_D
-    mov r8, [r14 + 24]; jmp .Lcec_sub
-.Lcec_D:
-    cmp dl, 'D'; jne .Lcec_lit
-    mov r8, [r14 + 32]
-.Lcec_sub:
+    sub rsp, 16
+    mov edi, edx
+    mov rsi, r14
+    mov rdx, rsp
+    mov r10, rcx
+    call cec_lookup_var
+    mov r9d, [rsp]
+    add rsp, 16
+    mov rcx, r10
+    test r8d, r8d
+    jnz .Lcec_lit_restore
     add rbx, 2
-    test r8, r8
-    jz .Lcec_loop
-.Lcec_cp:
-    movzx eax, byte ptr [r8]
-    test al, al
-    jz .Lcec_loop
-    cmp rcx, r13
-    jae .Lcec_done
-    mov [r12 + rcx], al
-    inc rcx
-    inc r8
-    jmp .Lcec_cp
+    mov rdi, r12
+    mov rsi, rcx
+    mov rdx, r13
+    mov rcx, rax
+    mov r8d, r15d
+    call cec_emit_escaped
+    mov rcx, rax
+    jmp .Lcec_loop
+.Lcec_lit_restore:
+    movzx eax, byte ptr [rbx]
+    jmp .Lcec_lit
 
 .Lcec_pct:
     add rbx, 2
@@ -111,9 +238,13 @@ config_expand_cmd:
     jmp .Lcec_loop
 
 .Lcec_lit:
+    mov edi, r15d
+    mov esi, eax
+    call cec_update_quote
+    mov r15d, eax
     cmp rcx, r13
     jae .Lcec_done
-    mov [r12 + rcx], al
+    mov [r12 + rcx], sil
     inc rcx
     inc rbx
     jmp .Lcec_loop
@@ -121,6 +252,7 @@ config_expand_cmd:
 .Lcec_done:
     mov byte ptr [r12 + rcx], 0
 .Lcec_ret:
+    pop r15
     pop r14
     pop r13
     pop r12

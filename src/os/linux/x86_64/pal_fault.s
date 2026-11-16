@@ -4,12 +4,20 @@
 .include "pal.inc"
 .include "try_using.inc"
 
+.section .rodata
+pf_tty_reset:
+    .ascii "\x1b[?1000l\x1b[?1002l\x1b[?1006l\x1b[?1049l\x1b[?25h"
+.equ pf_tty_reset_len, . - pf_tty_reset
+
 .section .bss
 .align 8
 g_pf_slot_ptr:  .space 8
 
 .section .text
 .global os_fault_guard_install_slot
+.global os_signals_install
+.global os_sig_reset_pipe
+.extern os_term_restore
 
 # SA_RESTORER trampoline (must invoke rt_sigreturn directly with untouched rsp)
 pf_sig_restorer:
@@ -68,19 +76,52 @@ pf_fault_handler:
 .Lpf_no_try:
     cmp edi, SIGBUS
     je pf_bus_patch
-    # Unhandled SIGSEGV/SIGFPE outside TRY: restore SIG_DFL and let faulting insn re-execute
-    sub rsp, KSIGACTION_SIZE + 8
+    jmp pf_fatal_default
+
+# Helper: restore terminal (if raw active), set SIG_DFL, unblock & re-raise fatal signal
+pf_fatal_default:
+    sub rsp, KSIGACTION_SIZE + 24
+    mov [rsp + KSIGACTION_SIZE + 16], rdi
+    call os_term_restore
+    test eax, eax
+    jz .Lpf_no_tty
+    mov edi, STDOUT_FD
+    lea rsi, [rip + pf_tty_reset]
+    mov edx, pf_tty_reset_len
+    OS_WRITE
+.Lpf_no_tty:
+
     mov qword ptr [rsp + KSIG_HANDLER], 0      # SIG_DFL
     mov qword ptr [rsp + KSIG_FLAGS], SA_RESTORER
     lea rax, [rip + pf_sig_restorer]
     mov [rsp + KSIG_RESTORER], rax
     mov qword ptr [rsp + KSIG_MASK], 0
+    mov rdi, [rsp + KSIGACTION_SIZE + 16]
     mov rsi, rsp
     xor edx, edx
     mov r10d, 8
     mov eax, OS_SYS_rt_sigaction
     syscall
-    add rsp, KSIGACTION_SIZE + 8
+
+    mov ecx, [rsp + KSIGACTION_SIZE + 16]
+    dec ecx
+    mov eax, 1
+    shl rax, cl
+    mov [rsp + KSIGACTION_SIZE], rax
+    mov edi, 1                                 # SIG_UNBLOCK
+    lea rsi, [rsp + KSIGACTION_SIZE]
+    xor edx, edx
+    mov r10d, 8
+    mov eax, OS_SYS_rt_sigprocmask
+    syscall
+
+    OS_GETPID
+    mov edi, eax
+    mov esi, [rsp + KSIGACTION_SIZE + 16]
+    mov eax, OS_SYS_kill
+    syscall
+
+    add rsp, KSIGACTION_SIZE + 24
     ret
 
 # void os_fault_guard_install_slot(TryFrame **slot_ptr)
@@ -115,5 +156,60 @@ os_fault_guard_install_slot:
     mov eax, OS_SYS_rt_sigaction
     syscall
 
+    mov edi, SIGABRT
+    mov rsi, rsp
+    xor edx, edx
+    mov r10d, 8
+    mov eax, OS_SYS_rt_sigaction
+    syscall
+
     add rsp, KSIGACTION_SIZE + 8
+    ret
+
+# Helper: void pf_sig_set(int sig, void *sa_buf)
+pf_sig_set:
+    mov rsi, rdx; xor edx, edx; mov r10d, 8; mov eax, OS_SYS_rt_sigaction; syscall; ret
+
+# void os_sig_reset_pipe(void) - restore SIG_DFL for SIGPIPE in forked children
+os_sig_reset_pipe:
+    sub rsp, KSIGACTION_SIZE + 8
+    mov qword ptr [rsp + KSIG_HANDLER], 0
+    mov qword ptr [rsp + KSIG_FLAGS], SA_RESTORER
+    lea rax, [rip + pf_sig_restorer]
+    mov [rsp + KSIG_RESTORER], rax
+    mov qword ptr [rsp + KSIG_MASK], 0
+    mov edi, SIGPIPE
+    mov rdx, rsp
+    call pf_sig_set
+    add rsp, KSIGACTION_SIZE + 8
+    ret
+
+# void os_signals_install(void (*on_winch)(void), void (*on_int)(void), void (*on_term)(void))
+os_signals_install:
+    sub rsp, KSIGACTION_SIZE + 16
+    mov [rsp + KSIGACTION_SIZE], rsi
+    mov [rsp + KSIGACTION_SIZE + 8], rdx
+    mov [rsp + KSIG_HANDLER], rdi
+    mov qword ptr [rsp + KSIG_FLAGS], SA_RESTORER
+    lea rax, [rip + pf_sig_restorer]
+    mov [rsp + KSIG_RESTORER], rax
+    mov qword ptr [rsp + KSIG_MASK], 0
+    mov edi, SIGWINCH
+    mov rdx, rsp
+    call pf_sig_set
+    mov rax, [rsp + KSIGACTION_SIZE]
+    mov [rsp + KSIG_HANDLER], rax
+    mov edi, SIGINT
+    mov rdx, rsp
+    call pf_sig_set
+    mov rax, [rsp + KSIGACTION_SIZE + 8]
+    mov [rsp + KSIG_HANDLER], rax
+    mov edi, SIGTERM
+    mov rdx, rsp
+    call pf_sig_set
+    mov qword ptr [rsp + KSIG_HANDLER], KSIG_IGN
+    mov edi, SIGPIPE
+    mov rdx, rsp
+    call pf_sig_set
+    add rsp, KSIGACTION_SIZE + 16
     ret

@@ -10,6 +10,7 @@
 .section .text
 .global fs_delete_recursive
 .global fs_move_recursive
+.extern g_copy_had_skip
 .global fs_read_file_head
 
 # Internal: int delete_dir_fd(int dfd) -- removes every entry below dfd (not dfd itself)
@@ -257,11 +258,14 @@ fs_move_recursive:
     jns .Lfmr_done
     cmp rax, -EXDEV
     jne .Lfmr_done
+    mov dword ptr [rip + g_copy_had_skip], 0
     mov rdi, rbx
     mov rsi, r12
     call fs_copy_recursive
     test rax, rax
     js .Lfmr_done
+    cmp dword ptr [rip + g_copy_had_skip], 0
+    jne .Lfmr_done
     # Copy is complete: finish removing the source atomically from the user's view
     # (no cancel, no double counting) so a move never ends half-deleted.
     push qword ptr [rip + g_fs_progress]

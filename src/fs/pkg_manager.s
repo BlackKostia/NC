@@ -30,11 +30,10 @@ pkm_dotdot:    .asciz ".."
 .global pkg_list
 .global pkg_install_archive
 .global pkg_remove
-.global pkg_verify
+.global pkm_safe_name
 
 .extern cfg_getenv
 .extern fs_read_file_head
-.extern hash_file
 .extern mem_alloc
 .extern mem_free
 .extern mem_zero
@@ -45,7 +44,9 @@ pkm_dotdot:    .asciz ".."
 .extern pkg_extract_entry_to
 .extern pkg_fetch_url
 .extern pkg_free_archive
-.extern pkg_load_archive
+.extern pkg_hashes_append
+.extern pkg_hashes_write
+.extern pkg_load_archive_sha
 .extern pkg_mkdir_p
 .extern pkg_parse_manifest
 .extern pkg_write_file
@@ -83,6 +84,7 @@ pkg_get_root:
 pkm_safe_name:
     test rdi, rdi; jz .Lpsn_no
     cmp byte ptr [rdi], 0; je .Lpsn_no
+    cmp word ptr [rdi], 0x002E; je .Lpsn_no
     lea rsi, [rip + pkm_dotdot]; call str_cmp
     test eax, eax; jz .Lpsn_no
 .Lpsn_loop:
@@ -231,6 +233,7 @@ pkm_extract_all:
     mov rdi, rsp; call pkm_ensure_parent
     mov rdi, r12; mov rsi, rbx; mov rdx, rsp; call pkg_extract_entry_to
     test eax, eax; jnz .Lpea_next
+    mov rdi, rsp; lea rsi, [r15 + 8192]; mov rdx, [rsp + PATH_MAX + 8]; add rdx, 8; call pkg_hashes_append
     mov rdi, [rsp + PATH_MAX + 16]; call path_basename
     mov rdi, [rsp + PATH_MAX]; mov rsi, rsp; mov rdx, rax
     mov rcx, r15; mov r8, [rsp + PATH_MAX + 8]; call pkm_activate_file
@@ -242,7 +245,7 @@ pkm_extract_all:
 # int pkm_install_from_ctx(char **envp, ArcCtx *ctx, const char *sha_hex) -> 0 ok, -1 err
 pkm_install_from_ctx:
     push rbx; push r12; push r13; push r14; push r15
-    sub rsp, PATH_MAX * 2 + 320
+    sub rsp, PATH_MAX * 2 + 336
     mov rbx, rdi; mov r12, rsi; mov r13, rdx
     xor r14d, r14d
 .Lpi_find:
@@ -271,23 +274,26 @@ pkm_install_from_ctx:
     lea rdi, [rsp + PATH_MAX]; mov rsi, rsp; lea rdx, [rsp + PATH_MAX * 2 + 16]
     mov ecx, PATH_MAX; call path_join
     lea rdi, [rsp + PATH_MAX]; call pkg_mkdir_p
-    mov edi, 8192; call mem_alloc; test rax, rax; jz .Lpi_err
-    mov r15, rax; mov byte ptr [r15], 0; mov qword ptr [rsp + PATH_MAX * 2 + 8], 0
+    mov edi, 16384; call mem_alloc; test rax, rax; jz .Lpi_err
+    mov r15, rax; mov byte ptr [r15], 0
+    mov qword ptr [rsp + PATH_MAX * 2 + 320], 0
+    mov qword ptr [rsp + PATH_MAX * 2 + 328], 0
     mov rdi, r12; lea rsi, [rsp + PATH_MAX]; mov rdx, rsp; mov rcx, r15
-    lea r8, [rsp + PATH_MAX * 2 + 8]; call pkm_extract_all
+    lea r8, [rsp + PATH_MAX * 2 + 320]; call pkm_extract_all
     sub rsp, PATH_MAX
     mov rdi, rsp; lea rsi, [rsp + PATH_MAX * 2]; lea rdx, [rip + pkm_sha_file]; mov ecx, PATH_MAX; call path_join
     mov rdi, rsp; mov rsi, r13; mov rdx, 64; call pkg_write_file
     mov rdi, rsp; lea rsi, [rsp + PATH_MAX * 2]; lea rdx, [rip + pkm_files_lst]; mov ecx, PATH_MAX; call path_join
     mov rdi, r15; call str_len; mov rdx, rax; mov rdi, rsp; mov rsi, r15; call pkg_write_file
     add rsp, PATH_MAX
+    lea rdi, [rsp + PATH_MAX]; lea rsi, [r15 + 8192]; mov rdx, [rsp + PATH_MAX * 2 + 328]; call pkg_hashes_write
     mov rdi, r15; call mem_free; xor eax, eax; jmp .Lpi_ret
 .Lpi_free_mf:
     mov rdi, r14; call mem_free
 .Lpi_err:
     mov eax, -1
 .Lpi_ret:
-    add rsp, PATH_MAX * 2 + 320; pop r15; pop r14; pop r13; pop r12; pop rbx; ret
+    add rsp, PATH_MAX * 2 + 336; pop r15; pop r14; pop r13; pop r12; pop rbx; ret
 
 # int pkg_install_archive(char **envp, const char *path_or_url, const char *expected_sha256) -> 0 ok, <0 err
 pkg_install_archive:
@@ -307,16 +313,15 @@ pkg_install_archive:
     test eax, eax; jnz .Lpia_err
     lea r12, [rsp + 104]; mov dword ptr [rsp + 96], 1
 .Lpia_hash:
-    mov rdi, r12; lea rsi, [rsp]; lea rdx, [rsp + 8]; call hash_file
-    test eax, eax; js .Lpia_err
-    test r13, r13; jz .Lpia_load
-    cmp byte ptr [r13], 0; je .Lpia_load
-    lea rdi, [rsp + 8]; mov rsi, r13; call str_casecmp
-    test eax, eax; jnz .Lpia_err
-.Lpia_load:
-    mov rdi, r12; call pkg_load_archive
+    mov rdi, r12; lea rsi, [rsp + 8]; call pkg_load_archive_sha
     test rax, rax; jz .Lpia_err
     mov r14, rax
+    test r13, r13; jz .Lpia_inst
+    cmp byte ptr [r13], 0; je .Lpia_inst
+    lea rdi, [rsp + 8]; mov rsi, r13; call str_casecmp
+    test eax, eax; jz .Lpia_inst
+    mov rdi, r14; call pkg_free_archive; jmp .Lpia_err
+.Lpia_inst:
     mov rdi, rbx; mov rsi, r14; lea rdx, [rsp + 8]; call pkm_install_from_ctx
     push rax; mov rdi, r14; call pkg_free_archive; pop rax
     jmp .Lpia_clean
@@ -327,24 +332,6 @@ pkg_install_archive:
     push rax; mov edi, AT_FDCWD; lea rsi, [rsp + 104 + 8]; xor edx, edx; OS_UNLINKAT; pop rax
 .Lpia_ret:
     add rsp, 360; pop r14; pop r13; pop r12; pop rbx; ret
-
-# int pkg_verify(char **envp, const char *name) -> 0 ok, -1 err
-pkg_verify:
-    push rbx; push r12; sub rsp, PATH_MAX * 2 + 80
-    mov rbx, rdi; mov r12, rsi
-    mov rdi, r12; call pkm_safe_name; test eax, eax; jz .Lpv_err
-    mov rdi, rbx; mov rsi, rsp; mov edx, PATH_MAX; call pkg_get_root
-    lea rdi, [rsp + PATH_MAX]; mov rsi, rsp; mov rdx, r12; mov ecx, PATH_MAX; call path_join
-    lea rdi, [rsp + PATH_MAX]; mov rsi, rdi; lea rdx, [rip + pkm_sha_file]; mov ecx, PATH_MAX; call path_join
-    lea rdi, [rsp + PATH_MAX]; lea rsi, [rsp + PATH_MAX * 2]; mov edx, 72; lea rcx, [rsp + PATH_MAX * 2 + 72]
-    call fs_read_file_head
-    test rax, rax; js .Lpv_err
-    cmp qword ptr [rsp + PATH_MAX * 2 + 72], 64; jl .Lpv_err
-    xor eax, eax; jmp .Lpv_ret
-.Lpv_err:
-    mov eax, -1
-.Lpv_ret:
-    add rsp, PATH_MAX * 2 + 80; pop r12; pop rbx; ret
 
 # int pkg_remove(char **envp, const char *name) -> 0 ok, -1 err
 pkg_remove:

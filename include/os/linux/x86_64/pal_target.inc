@@ -15,6 +15,7 @@
 .equ OS_SYS_mmap,           9
 .equ OS_SYS_munmap,         11
 .equ OS_SYS_rt_sigaction,   13
+.equ OS_SYS_rt_sigprocmask, 14
 .equ OS_SYS_rt_sigreturn,   15
 .equ OS_SYS_ioctl,          16
 .equ OS_SYS_mremap,         25
@@ -173,19 +174,19 @@
 .equ SA_RESTORER,           0x04000000
 .equ KSIG_IGN,              1
 .equ SA_SIGINFO,            0x00000004
+.equ SIGABRT,               6
 .equ SIGBUS,                7
 .equ SIGFPE,                8
 .equ SIGSEGV,               11
+.equ SIGPIPE,               13
 .equ KSIGINFO_ADDR,         16
 .equ SIGINT,                2
 .equ SIGTERM,               15
 .equ SIGWINCH,              28
-
 .equ POLLFD_FD,             0
 .equ POLLFD_EVENTS,         4
 .equ POLLFD_REVENTS,        6
 .equ POLLIN,                0x0001
-
 .equ CLOCK_MONOTONIC,       1
 .equ TIMESPEC_SEC,          0
 .equ TIMESPEC_NSEC,         8

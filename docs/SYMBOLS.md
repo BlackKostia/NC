@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 21
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 760
+- **Exported `.global` Symbols**: 767
 
 ## Structs (`include/*.inc`)
 
@@ -108,6 +108,7 @@
   - `os_pty_write`
   - `os_pty_close`
   - `os_get_winsize_px`
+  - `os_sig_reset_pipe`
 - **`src/os/linux/aarch64/pal_simd.s`**
   - `os_mem_copy_fast`
   - `os_mem_move_fast`
@@ -130,6 +131,8 @@
   - `os_fs_is_derived` — identified at all (the xdg document portal FUSE mount refuses fstatfs with EPERM)
 - **`src/os/linux/x86_64/pal_fault.s`**
   - `os_fault_guard_install_slot` — void os_fault_guard_install_slot(TryFrame **slot_ptr)
+  - `os_signals_install` — void os_signals_install(void (*on_winch)(void), void (*on_int)(void), void (*on_term)(void))
+  - `os_sig_reset_pipe` — void os_sig_reset_pipe(void) - restore SIG_DFL for SIGPIPE in forked children
 - **`src/os/linux/x86_64/pal_os.s`**
   - `os_statat` — Returns 0 on success or -errno on failure.
   - `os_fstat` — Returns 0 on success or -errno on failure.
@@ -142,7 +145,6 @@
   - `os_get_winsize` — void os_get_winsize(int *cols, int *rows)
   - `os_term_save_and_raw` — void os_term_save_and_raw(void)
   - `os_term_restore` — void os_term_restore(void)
-  - `os_signals_install` — void os_signals_install(void (*on_winch)(void), void (*on_term)(void))
   - `os_poll_in2` — Returns bitmask (bit0 = fd0, bit1 = fd1), 0 on timeout, or -errno.
   - `os_pipe_cloexec` — int os_pipe_cloexec(int fds[2])
   - `os_signals_worker_mode` — handler without SA_RESTART so a parent cancel request breaks blocking open()/read() with -EINTR.
@@ -608,6 +610,7 @@
   - `pkg_write_file` — int pkg_write_file(const char *path, const void *buf, uint64_t len) -> 0 ok, -1 err
   - `pkg_parse_manifest` — void pkg_parse_manifest(const char *buf, int len, PkgEntry *out)
   - `pkg_load_archive` — ArcCtx *pkg_load_archive(const char *path)
+  - `pkg_load_archive_sha` — ArcCtx *pkg_load_archive_sha(const char *path, char *out_sha_hex65)
   - `pkg_free_archive` — void pkg_free_archive(ArcCtx *ctx)
   - `pkg_extract_entry_to` — int pkg_extract_entry_to(ArcCtx *ctx, ArcEntry *ent, const char *dest_path) -> 0 ok, -1 err
 - **`src/fs/pkg_cli.s`**
@@ -619,7 +622,7 @@
   - `pkg_list` — int pkg_list(char **envp, PkgEntry *out, int max) -> count
   - `pkg_install_archive` — int pkg_install_archive(char **envp, const char *path_or_url, const char *expected_sha256) -> 0 ok, <0 err
   - `pkg_remove` — int pkg_remove(char **envp, const char *name) -> 0 ok, -1 err
-  - `pkg_verify` — int pkg_verify(char **envp, const char *name) -> 0 ok, -1 err
+  - `pkm_safe_name` — int pkm_safe_name(const char *s) -> 1 safe, 0 unsafe
 - **`src/fs/pkg_popup.s`**
   - `pkg_popup_refresh` — int pkg_popup_refresh(char **envp, int is_dir, const char *entry_name) -> count
   - `pkg_popup_count`
@@ -635,6 +638,10 @@
   - `pkg_registry_find` — int pkg_registry_find(char **envp, const char *name, PkgRegEntry *out) -> 0 ok, -1 err
   - `pkg_registry_upgrade` — int pkg_registry_upgrade(char **envp) -> 0 ok, -1 err
   - `pkg_semver_cmp` — int pkg_semver_cmp(const char *a, const char *b) -> -1 (a<b), 0 (a==b), 1 (a>b)
+- **`src/fs/pkg_verify.s`**
+  - `pkg_hashes_append` — void pkg_hashes_append(const char *file_path, char *buf, uint64_t *len_ptr)
+  - `pkg_hashes_write` — void pkg_hashes_write(const char *pkg_dir, const char *buf, uint64_t len)
+  - `pkg_verify` — int pkg_verify(char **envp, const char *name) -> 0 ok, -1 err
 - **`src/fs/pkg_vfs.s`**
   - `pkg_vfs_list_stdout` — int pkg_vfs_list_stdout(char **envp, const char *uri) -> 0 ok, -1 err
 - **`src/fs/pkg_vfs_pane.s`**
@@ -661,6 +668,7 @@
   - `g_fs_progress`
   - `g_measure_bytes`
 - **`src/fs/task_conflict.s`**
+  - `g_copy_had_skip`
   - `fs_task_resolve_conflict` — int fs_task_resolve_conflict(int dst_dfd, const char *dst_rel, uint64_t src_sz, uint64_t dst_sz, char *out_name)
   - `fs_task_check_conflict` — int fs_task_check_conflict(char *out_name, uint64_t *out_src_sz, uint64_t *out_dst_sz)
   - `fs_task_reply_conflict` — void fs_task_reply_conflict(int action, int for_all)

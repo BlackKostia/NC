@@ -14,6 +14,11 @@ sh_path:   .asciz "/bin/sh"
 .global os_pty_write
 .global os_pty_close
 .global os_get_winsize_px
+.global os_sig_reset_pipe
+
+os_sig_reset_pipe:
+    mov w0, #0
+    ret
 
 pty_format_pts_path:
     mov w9, w0

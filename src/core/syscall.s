@@ -32,6 +32,8 @@ g_sigwinch:
 .global g_sigterm
 g_sigterm:
     .space 4
+g_in_child:
+    .space 4
 
 .section .text
 .global sys_write_all
@@ -142,6 +144,13 @@ on_sigwinch:
     mov dword ptr [rip + g_sigwinch], 1
     ret
 
+on_sigint:
+    cmp dword ptr [rip + g_in_child], 0
+    jne .Losi_ret
+    mov dword ptr [rip + g_sigterm], 1
+.Losi_ret:
+    ret
+
 on_sigterm:
     mov dword ptr [rip + g_sigterm], 1
     ret
@@ -150,7 +159,8 @@ on_sigterm:
 signals_install:
     sub rsp, 8
     lea rdi, [rip + on_sigwinch]
-    lea rsi, [rip + on_sigterm]
+    lea rsi, [rip + on_sigint]
+    lea rdx, [rip + on_sigterm]
     call os_signals_install
     call os_fault_guard_install       # unified TRY/CATCH + mmap SIGBUS guard
     add rsp, 8
@@ -208,12 +218,14 @@ sys_exec_sh_arg:
     mov r14, rdx              # envp
 
     call term_exit_raw
+    mov dword ptr [rip + g_in_child], 1
 
     OS_FORK
     test rax, rax
     js .Lexec_parent_restore
     jnz .Lexec_parent
 
+    call os_sig_reset_pipe
     # Child process: build argv on stack
     # ["/bin/sh", "-c", sh_script, "sh", arg1, NULL]
     sub rsp, 48
@@ -250,6 +262,7 @@ sys_exec_sh_arg:
     add rsp, 16
 
 .Lexec_parent_restore:
+    mov dword ptr [rip + g_in_child], 0
     push rax
     call term_enter_raw
     pop rax
@@ -304,10 +317,12 @@ sys_exec_argv:
     push rbx; push r12; push r13; push r14
     mov r12, rdi; mov r13, rsi; mov r14, rdx
     call term_exit_raw
+    mov dword ptr [rip + g_in_child], 1
     OS_FORK
     test rax, rax
     js .Lsea_restore
     jnz .Lsea_parent
+    call os_sig_reset_pipe
     mov rdi, r12; mov rsi, r13; mov rdx, r14
     OS_EXECVE
     mov edi, 127; OS_EXIT
@@ -321,6 +336,7 @@ sys_exec_argv:
     mov eax, [rsp]
     add rsp, 16
 .Lsea_restore:
+    mov dword ptr [rip + g_in_child], 0
     push rax
     call term_enter_raw
     pop rax

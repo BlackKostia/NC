@@ -116,6 +116,7 @@ SRCS := \
 	src/fs/pkg_fetch.s \
 	src/fs/pkg_archive.s \
 	src/fs/pkg_manager.s \
+	src/fs/pkg_verify.s \
 	src/fs/pkg_actions.s \
 	src/fs/pkg_popup.s \
 	src/fs/pkg_preview.s \
@@ -264,6 +265,7 @@ test: $(TARGET)
 	python3 tests/test_img_preview.py
 	python3 tests/test_image_formats.py
 	python3 tests/test_image_quality.py
+	python3 tests/test_security_reliability.py
 	python3 tests/test_disk_usage.py
 	python3 tests/test_du_progress.py
 	python3 tests/test_du_sizes.py

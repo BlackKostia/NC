@@ -25,7 +25,6 @@ g_raw_active:
 .global os_get_winsize
 .global os_term_save_and_raw
 .global os_term_restore
-.global os_signals_install
 .global os_poll_in2
 .global os_pipe_cloexec
 .global os_signals_worker_mode
@@ -528,6 +527,7 @@ os_term_save_and_raw:
 
 # void os_term_restore(void)
 os_term_restore:
+    xor eax, eax
     cmp dword ptr [rip + g_raw_active], 0
     je .Lotr_done
     mov edi, STDIN_FD
@@ -536,6 +536,7 @@ os_term_restore:
     mov eax, OS_SYS_ioctl
     syscall
     mov dword ptr [rip + g_raw_active], 0
+    mov eax, 1
 .Lotr_done:
     ret
 
@@ -584,6 +585,7 @@ sig_noop:
 # Background worker policy: SIGWINCH/SIGINT ignored (never interrupt I/O), SIGTERM -> no-op
 # handler without SA_RESTART so a parent cancel request breaks blocking open()/read() with -EINTR.
 os_signals_worker_mode:
+    mov dword ptr [rip + g_raw_active], 0
     sub rsp, KSIGACTION_SIZE + 8
     mov qword ptr [rsp + KSIG_HANDLER], KSIG_IGN
     mov qword ptr [rsp + KSIG_FLAGS], SA_RESTORER
@@ -614,32 +616,5 @@ os_signals_worker_mode:
     mov eax, OS_SYS_rt_sigaction
     syscall
 
-    add rsp, KSIGACTION_SIZE + 8
-    ret
-
-# Helper: void os_sig_set(int sig, void *sa_buf)
-os_sig_set:
-    mov rsi, rdx; xor edx, edx; mov r10d, 8; mov eax, OS_SYS_rt_sigaction; syscall; ret
-
-# void os_signals_install(void (*on_winch)(void), void (*on_term)(void))
-os_signals_install:
-    sub rsp, KSIGACTION_SIZE + 8   # keep 16-byte alignment + spill slot for on_term
-    mov [rsp + KSIGACTION_SIZE], rsi
-    mov [rsp + KSIG_HANDLER], rdi
-    mov qword ptr [rsp + KSIG_FLAGS], SA_RESTORER
-    lea rax, [rip + sig_restorer]
-    mov [rsp + KSIG_RESTORER], rax
-    mov qword ptr [rsp + KSIG_MASK], 0
-    mov edi, SIGWINCH
-    mov rdx, rsp
-    call os_sig_set
-    mov rax, [rsp + KSIGACTION_SIZE]
-    mov [rsp + KSIG_HANDLER], rax
-    mov edi, SIGINT
-    mov rdx, rsp
-    call os_sig_set
-    mov edi, SIGTERM
-    mov rdx, rsp
-    call os_sig_set
     add rsp, KSIGACTION_SIZE + 8
     ret

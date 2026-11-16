@@ -83,6 +83,53 @@ App_dispatch_action:
     cmp esi, ACT_USERMENU; je App_cmd_usermenu
     ret
 
+# Helper: size_t am_append_quoted(char *buf, size_t pos, size_t cap, const char *s)
+am_append_quoted:
+    mov rax, rsi
+    dec rdx                   # reserve NUL
+    test rax, rax
+    jz .Laaq_q1
+    cmp rax, rdx
+    jae .Laaq_done
+    mov byte ptr [rdi + rax], ' '
+    inc rax
+.Laaq_q1:
+    cmp rax, rdx
+    jae .Laaq_done
+    mov byte ptr [rdi + rax], '\''
+    inc rax
+.Laaq_loop:
+    movzx r8d, byte ptr [rcx]
+    test r8d, r8d
+    jz .Laaq_q2
+    cmp r8d, '\''
+    je .Laaq_esc
+    cmp rax, rdx
+    jae .Laaq_done
+    mov [rdi + rax], r8b
+    inc rax
+    inc rcx
+    jmp .Laaq_loop
+.Laaq_esc:
+    lea r9, [rax + 4]
+    cmp r9, rdx
+    ja .Laaq_done
+    mov byte ptr [rdi + rax], '\''
+    mov byte ptr [rdi + rax + 1], '\\'
+    mov byte ptr [rdi + rax + 2], '\''
+    mov byte ptr [rdi + rax + 3], '\''
+    add rax, 4
+    inc rcx
+    jmp .Laaq_loop
+.Laaq_q2:
+    cmp rax, rdx
+    jae .Laaq_done
+    mov byte ptr [rdi + rax], '\''
+    inc rax
+.Laaq_done:
+    mov byte ptr [rdi + rax], 0
+    ret
+
 # Helper: void am_collect_selected(App *this, const char *cur_name, char *sel_buf)
 am_collect_selected:
     push rbx
@@ -116,29 +163,12 @@ am_collect_selected:
     mov rdi, r8
     mov rsi, rax
     call DirModel_entry_name
-    mov r11, rax
+    mov rcx, rax
+    mov rdi, r15
+    mov rsi, [rsp + 24]
+    mov edx, 2048
+    call am_append_quoted
     pop r10; pop r9; pop r8
-    mov rax, [rsp]
-    test rax, rax
-    jz .Lacs_nosp
-    cmp rax, 2040
-    jae .Lacs_done
-    mov byte ptr [r15 + rax], ' '
-    inc rax
-.Lacs_nosp:
-    xor ecx, ecx
-.Lacs_cpy:
-    mov dl, [r11 + rcx]
-    test dl, dl
-    jz .Lacs_cend
-    cmp rax, 2046
-    jae .Lacs_done
-    mov [r15 + rax], dl
-    inc rax
-    inc rcx
-    jmp .Lacs_cpy
-.Lacs_cend:
-    mov byte ptr [r15 + rax], 0
     mov [rsp], rax
 .Lacs_next:
     inc r9d
@@ -150,9 +180,10 @@ am_collect_selected:
     test r13, r13
     jz .Lacs_ret
     mov rdi, r15
-    mov rsi, r13
+    xor esi, esi
     mov edx, 2048
-    call str_copy
+    mov rcx, r13
+    call am_append_quoted
 .Lacs_ret:
     pop r15
     pop r14
