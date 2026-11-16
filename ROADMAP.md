@@ -166,7 +166,7 @@
 ### 4.3 Безпека екосистеми, кросплатформність і техборг (не реалізовано)
 - [ ] **Криптографічний підпис реєстру пакетів (`registry.tsv`)**: перевірка Ed25519/minisign-підпису індексу розширень (на додачу до наявного SHA-256 архівів) та курировані VFS-пакети (`docker://`, `systemd://`, `s3://`).
 - [ ] **Повний порт на Linux AArch64 та FreeBSD**: перенесення прикладних шарів (`core/`, `tui/`, `fs/`, `ui/`, `app/`) на AArch64 (включно з нативним `io_uring` у PAL) та реалізація `src/os/freebsd/` (після підтвердження попиту від спільноти).
-- [ ] **Закриття техборгу в [`lean_baseline.json`](.agents/skills/duop-lean-modules/scripts/lean_baseline.json)**: декомпозиція 9 великих модулів (зокрема [file_pane_render.s](src/ui/file_pane_render.s) — 1223 рядки) і 39 функцій понад бюджет у 80 рядків (`StatusBar_render`, `ScreenBuffer_flush`, `DirModel_step_load` тощо).
+- [ ] **Закриття техборгу в [`lean_baseline.json`](.agents/skills/duop-lean-modules/scripts/lean_baseline.json)**: декомпозиція 5 великих модулів (зокрема [file_pane_render.s](src/ui/file_pane_render.s) — 1223 рядки) і 39 функцій понад бюджет у 80 рядків (`StatusBar_render`, `ScreenBuffer_flush`, `DirModel_step_load` тощо).
 
 ---
 

@@ -4,13 +4,9 @@
     "src/os/linux/x86_64/pal_os.s": 26
   },
   "files": {
-    "src/core/config_parse.s": 485,
     "src/os/linux/x86_64/pal_os.s": 598,
-    "src/os/linux/x86_64/pal_simd.s": 426,
     "src/os/linux/x86_64/pal_uring.s": 502,
-    "src/ui/file_pane_mouse.s": 406,
     "src/ui/file_pane_render.s": 1223,
-    "src/ui/preview_pane_render.s": 475,
     "tests/test_fs_reliability.py": 710,
     "tests/test_pty.py": 628
   },
