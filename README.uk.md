@@ -1,6 +1,8 @@
 # Duop (`duop`)
 
-Сучасний двопанельний термінальний файловий менеджер, написаний **повністю на чистому x86-64 асемблері** (**GNU Assembler / GAS**, `.intel_syntax noprefix`) без жодних сторонніх залежностей (навіть без `libc` та `ncurses` — лише прямі системні виклики ядра Linux).
+Ультрашвидкий, компактний двопанельний CLI/TUI файловий менеджер для **Linux x86-64**, написаний **повністю на чистому x86-64 асемблері** (**GNU Assembler / GAS**, `.intel_syntax noprefix`) без жодних сторонніх бібліотечних залежностей (навіть без `libc` та `ncurses` — лише прямі системні виклики ядра Linux).
+
+> **Підтримувана цільова платформа:** **Linux x86-64** (`x86_64` ELF64). PAL-бекенд для AArch64 (`src/os/linux/aarch64/`) верифікується лише на рівні асемблювання об'єктних файлів; macOS, FreeBSD та ARM64-бінарники наразі не підтримуються.
 
 ## Чому обрано GNU Assembler (GAS)
 
@@ -44,7 +46,7 @@ Object
 duop/
 ├── AGENTS.md                 # Правила модульної архітектури, SemVer і комітів
 ├── LICENSE                   # Відкрита ліцензія MIT
-├── VERSION                   # Поточна SemVer-версія (1.5.0)
+├── VERSION                   # Поточна SemVer-версія (див. файл VERSION)
 ├── Makefile                  # Збірка (OS/ARCH compile-time PAL, all / release / run / test / verify / hooks / clean)
 ├── .agents/                  # Antigravity скіли (duop-*) та lifecycle-хуки (hooks.json)
 ├── .githooks/                # Git-хуки (pre-commit, commit-msg, post-commit)
@@ -60,9 +62,9 @@ duop/
 │   ├── os/linux/x86_64/      # pal_os.s, pal_uring.s (io_uring IORING_OP_STATX пакетний stat з fallback), pal_simd.s (SSE2 memcpy/memset/memcmp/strlen/ci-пошук)
 │   ├── core/                 # memory.s (slab-алокатор 64 Б–64 КіБ + mmap для великих), string.s, utf8.s, oop_rt.s, syscall.s
 │   ├── tui/                  # theme.s (3 TrueColor теми), i18n.s (UA/EN таблиці), screen.s, input.s (клавіатура + SGR 1006)
-│   ├── fs/                   # dir_model.s (32Б FileEntry + потокове читання), dir_sort.s (Introsort/Radix + prefix-key), dir_cache.s (LRU-кеш тек), file_ops.s, task.s (fork-воркер фонових операцій), dir_watch.s (inotify), preview_io.s (асинхронне читання прев'ю)
-│   ├── ui/                   # header_bar.s, function_bar.s, status_bar.s, file_pane.s, preview_pane.s, dialogs.s, viewer_dialog.s (mmap-переглядач будь-якого розміру), progress_dialog.s
-│   └── app/                  # app.s, app_task.s (контролер фонових операцій), app_events.s (таймаути, дебаунси, автооновлення)
+│   ├── fs/                   # dir_model*.s, dir_sort*.s, dir_cache*.s, file_ops*.s, task*.s, dir_watch.s, archive_vfs.s, inflate*.s, disk_usage.s, img_*.s, pkg_*.s, nav_state*.s
+│   ├── ui/                   # header_bar*.s, function_bar.s, status_bar*.s, file_pane*.s, preview_pane*.s, dialogs*.s, viewer_*.s, term_pane*.s, bulk_rename*.s, pkg_dialog.s, fuzzy_dialog.s, syntax.s, hex_edit.s
+│   └── app/                  # app*.s (головний цикл, команди, задачі, події, діалоги)
 └── tests/
     ├── test_pal_architecture.py # Перевірка compile-time PAL, ізоляції сисколів, макросів OS_* та ELF .data==0
     ├── test_pty.py           # Наскрізні тести в реальному PTY (клавіатура, миша, resize, ФС)
@@ -107,7 +109,7 @@ make hooks    # Активувати Git-хуки з .githooks/ та права 
 - `Alt+L` (або кнопка `Мова:UA`/`Lang:EN` у верхній панелі) — наступна встановлена мова інтерфейсу по колу, працює навіть при увімкненій українській розкладці (`Alt+д`)
 - **Мовні пакети інтерфейсу** — переклади не вшиті в код: англійська вбудована (основа й запасний варіант для кожного відсутнього ключа), решта мов — файли `*.lang`, що читаються під час запуску. Нова мова — новий файл без перекомпіляції: скопіюйте [`lang/uk.lang`](lang/uk.lang) у `~/.config/duop/lang/<id>.lang`, змініть `code`/`name` і перекладіть рядки `ключ = значення` (ключі — поля `LangStrings` з `include/types.inc`; `"..."` зберігає пробіли з країв, екранування `\n \t \" \\`, `{version}` — версія Duop). Мова обирається через `--lang <id|code>`, `lang = <id>` у `duoprc` або `LC_ALL`/`LC_MESSAGES`/`LANG` (`uk_UA.UTF-8` → `uk`). Пошук: `$DUOP_LANGS` (каталоги через `:`, замінює типові) або `~/.config/duop/lang`, далі `lang/` і `../share/duop/lang` поруч із бінарником, `/usr/local/share/duop/lang`, `/usr/share/duop/lang`
 - **Розкладки клавіатури** — це дані, а не код: гарячі клавіші (`Alt+…`, `Ctrl+…`, `j`/`k`, літери в діалогах і переглядачі) прив'язані до фізичної клавіші через файли `*.layout`, що читаються під час запуску. Нова розкладка — це новий файл, без перекомпіляції: кожен рядок `chars = …` перелічує, що друкує розкладка на клавішах попереднього рядка `keys = …` (ASCII-символи ігноруються, текст у полях введення не змінюється). Пошук: `$DUOP_LAYOUTS` (каталоги через `:`, замінює типові) або `~/.config/duop/layouts` (`$XDG_CONFIG_HOME`), далі `layouts/` і `../share/duop/layouts` поруч із бінарником, `/usr/local/share/duop/layouts`, `/usr/share/duop/layouts`. Українська постачається як [`layouts/uk.layout`](layouts/uk.layout)
-- `F1` — довідка, `F2` — перейменування, `F3` — перегляд (для зображень спершу питає: Зображення / HEX / Текст; `i`/`h`/`t` перемикають режим), `Alt+V` — режим прев'ю Зображення / HEX / Текст (PNG, JPEG, GIF, BMP, TGA, PNM, QOI; справжні пікселі через Kitty або Sixel — визначається автоматично, інакше блоки 2×2; примусово: `DUOP_IMG_MODE=kitty|sixel|blocks|halfblock`), `F4` — зовнішній `$EDITOR`, `F5` — копіювання, `F6` — переміщення, `F7` — створити каталог, `F8` / `Del` — видалення, `F9` / `Ctrl+P` — режим Live Preview, `Ctrl+N` — новий файл, `Ctrl+G` — перейти за шляхом, `Ctrl+O` — shell, `F10` / `q` — вихід
+- `F1` — довідка, `F2` — перейменування, `F3` — перегляд (для зображень спершу питає: Зображення / HEX / Текст; `i`/`h`/`t` перемикають режим), `Alt+V` — режим прев'ю Зображення / HEX / Текст (PNG, JPEG, GIF, BMP, TGA, PNM, QOI; справжні пікселі через Kitty або Sixel — визначається автоматично, інакше блоки 2×2; примусово: `DUOP_IMG_MODE=kitty|sixel|blocks|halfblock`), `F4` — зовнішній `$EDITOR`, `F5` — копіювання, `F6` — переміщення, `F7` — створити каталог, `F8` / `Del` — видалення, `F9` / `Ctrl+P` — режим Live Preview, `Ctrl+N` — новий файл, `Ctrl+G` — перейти за шляхом, `Ctrl+O` — shell, `Ctrl+\`` — вбудований термінал, `Ctrl+K` — палітра команд, `Alt+P` — нечіткий пошук (Fuzzy Finder), `Ctrl+F` — рекурсивний пошук/grep, `Alt+K` — менеджер пакетів, `Alt+U` — меню користувача, `Alt+D` — аналіз диска, `Alt+B` — масове перейменування, `Alt+=` — порівняння панелей, `Ctrl+Z` — Undo, `F10` / `q` — вихід (повний перелік у [`docs/HOTKEYS.md`](docs/HOTKEYS.md))
 - **Автооновлення панелей**: зміни на диску (створення, видалення, перейменування, зміна розміру) з'являються самі через `inotify`, без `Ctrl+R`; позначені файли ніколи не скидаються. У простої процес не прокидається взагалі (0 % CPU)
 - **Фонові операції** (`F5`/`F6`/`F8` виконуються в окремому `fork`-процесі, інтерфейс не блокується): `ProgressDialog` з'являється для операцій довших за 300 мс — поточний файл, прогрес-бар, байти/файли, швидкість, ETA; `P`/`Space` — пауза/продовження (`SIGSTOP`/`SIGCONT`), `Esc`/`B` — у фон (прогрес лишається у статус-рядку), `C` — скасувати (недописаний файл видаляється), `Alt+J` або клік по статус-рядку — повернути діалог. В українській розкладці працюють `з`/`и`/`с`/`Alt+о` (з `layouts/uk.layout`). Вихід під час операції просить підтвердження й коректно зупиняє воркер
 
@@ -121,7 +123,7 @@ make hooks    # Активувати Git-хуки з .githooks/ та права 
 
 ## План розвитку
 
-Детальну архітектурну дорожню карту (`v1.1` → `v2.0`) задокументовано у [`ROADMAP.md`](ROADMAP.md).
+Детальну архітектурну дорожню карту та статус реалізації задокументовано у [`ROADMAP.md`](ROADMAP.md), а посібник користувача та гарячі клавіші — у [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) та [`docs/HOTKEYS.md`](docs/HOTKEYS.md).
 
 ## Розробник
 

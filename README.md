@@ -2,19 +2,21 @@
 
 **English** | [Українська](README.uk.md)
 
-A modern, dual-pane TUI file manager written **100% in pure GNU Assembler** (`.intel_syntax noprefix` on x86-64, compile-time PAL for AArch64) with **zero external dependencies** — no `libc`, no `ncurses`, only direct Linux kernel syscalls and a vtable-based OOP runtime.
+An ultra-fast, compact dual-pane CLI/TUI file manager for **Linux x86-64**, written **100% in pure x86-64 GNU Assembler** (`.intel_syntax noprefix`) with **zero runtime library dependencies** — no `libc`, no `ncurses`, only direct Linux kernel syscalls and a vtable-based OOP runtime.
+
+> **Supported runtime target:** **Linux x86-64** (`x86_64` ELF64). The AArch64 PAL backend (`src/os/linux/aarch64/`) is compile-time object-verified only; macOS, FreeBSD, and ARM64 runtime binaries are not supported.
 
 ## Highlights
 
-- **Tiny Static ELF64**: ~134 KiB stripped binary, **0 bytes** in `.data`, ~0.32 ms cold start, ~112.5 ms first frame on a 100,000-file directory (via [`scripts/bench.sh`](scripts/bench.sh)).
+- **Tiny Static ELF64**: ~193 KB stripped binary (`.text` ~188 KiB, **0 bytes** in `.data`), ~0.32 ms cold start, ~112.5 ms first frame on a 100,000-file directory (via [`scripts/bench.sh`](scripts/bench.sh)).
 - **High-Throughput Core**:
   - Compact 32-byte `FileEntry` + contiguous `name_pool` + 4-byte `order[]` index sorting (Introsort + LSD Radix Sort).
   - Lazy `d_type` open + rolling `io_uring` (`IORING_OP_STATX`) batch statting + `copy_file_range` / `FICLONE` fast-path copy.
   - Non-blocking background tasks (`fork` + `MAP_SHARED` atomic progress, Pause/Resume/Background, Conflict resolution).
   - Event-driven main loop (`ppoll` with infinite idle timeout — 0 wake-ups when idle, `inotify` live refresh, debounced async preview, `DEC 2026` synchronized frames).
 - **Rich TUI & Productivity**:
-  - TrueColor RGB diff-renderer, 5 built-in themes, live EN/UA localization (`--lang en|ua`, `Alt+L`), SGR-1006 mouse & drag-and-drop.
-  - Command Palette (`Ctrl+K`), Recursive Fuzzy Finder (`Ctrl+P`), Recursive Name/Grep Virtual Panel (`Alt+F`), Bookmarks (`Ctrl+D`), Frecency (`z`), Tabs (`Ctrl+T`/`Ctrl+W`), History (`Alt+Left`/`Alt+Right`).
+  - TrueColor RGB diff-renderer, 3 built-in themes (`Tokyo Night`, `Catppuccin`, `Emerald`), live EN/UA localization (`--lang en|ua`, `Alt+L`), SGR-1006 mouse & drag-and-drop.
+  - Command Palette (`Ctrl+K`), Recursive Fuzzy Finder (`Alt+P`), Recursive Name/Grep Virtual Panel (`Ctrl+F`), Bookmarks (`Ctrl+D`), Frecency (`z`), Tabs (`Ctrl+T`/`Ctrl+W`), History (`Alt+Left`/`Alt+Right`), Package Manager (`Alt+K`) & User Menu (`Alt+U`).
   - Archive VFS (`.tar`, `.tar.gz`, `.zip`), Git branch/status badges, Disk Usage analyzer (`Alt+D`), Bulk Rename (`Alt+B`), Dir Diff (`Alt+=`), Right-click Context Menu + `OSC 52` clipboard.
   - Syntax highlighting (C, x86-64 asm, Python, shell, JSON, Makefile/Markdown), ELF64 inspector, In-place Hex editor (`e`, `Ctrl+Z`, `Ctrl+S`), Pixel-exact image preview — Kitty graphics (f=32) or Sixel (auto-detected via DA1, cell size from TIOCGWINSZ / CSI 16 t), 2×2 quadrant blocks elsewhere, `DUOP_IMG_MODE=kitty|sixel|blocks|halfblock` to force (PNG incl. palette/16-bit/Adam7, baseline JPEG, GIF, BMP, TGA, PNM, QOI; `Alt+V` and the F3 "Open as" dialog switch Image / Hex / Text), and Embedded PTY Terminal (`Ctrl+\``).
 - **Shell Integration**: `--choosedir=FILE` ([`scripts/duop-cd.sh`](scripts/duop-cd.sh)), `~/.config/duop/duoprc`, XDG Trash + `Ctrl+Z` Undo.
@@ -35,8 +37,8 @@ Or run the benchmark suite:
 ### Build Options (Compile-Time PAL)
 
 ```bash
-make OS=linux ARCH=x86_64 release   # Default x86-64 Linux static ELF
-make OS=linux ARCH=aarch64          # AArch64 PAL objects (with aarch64-linux-gnu-as)
+make OS=linux ARCH=x86_64 release   # Supported runtime target: Linux x86-64 static ELF
+make OS=linux ARCH=aarch64          # AArch64 PAL objects only (compile-time check with aarch64-linux-gnu-as; full binary is x86-64 only)
 make verify                         # Run modularity, lean-gate, and PTY test suites
 ```
 
@@ -45,11 +47,12 @@ make verify                         # Run modularity, lean-gate, and PTY test su
 | Key | Action | Key | Action |
 | --- | --- | --- | --- |
 | `Tab` | Switch active pane | `Space` | Mark / unmark entry |
-| `F1`–`F10` | Help, Rename, View, Edit, Copy, Move, Mkdir, Del, Preview, Quit | `Ctrl+P` | Recursive Fuzzy Finder |
-| `Ctrl+K` | Command Palette | `Ctrl+F` / `Alt+F` | Recursive Search / Grep |
+| `F1`–`F10` | Help, Rename, View, Edit, Copy, Move, Mkdir, Del, Preview, Quit | `Alt+P` | Recursive Fuzzy Finder |
+| `Ctrl+K` | Command Palette | `Ctrl+F` | Recursive Search / Grep |
 | `Ctrl+T` / `Ctrl+W` | New / Close Tab | `Ctrl+D` / `z` | Bookmarks / Frecency |
 | `Alt+D` | Disk Usage mode (progress window + `Esc` cancel on long scans) | `Alt+B` | Bulk Rename |
 | `Alt+=` | Dir Diff (mark differing/missing) | `Ctrl+\`` | Toggle Embedded PTY Terminal |
+| `Alt+K` / `Alt+U` | Package Manager / User Menu | `Ctrl+P` | Toggle Live Preview (`F9`) |
 | `Alt+T` / `Alt+L` | Cycle Theme / Next interface language | `Ctrl+Z` | Undo last Trash / Hex byte |
 
 ### Interface Languages
