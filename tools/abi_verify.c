@@ -18,78 +18,24 @@
 #include <sys/stat.h>
 #include <time.h>
 
+#ifdef ABI_EMIT
+/* Cross mode (tools/abi_cross.py): no libc and no execution. Every fact becomes an absolute
+ * assembler symbol abi__NAME that `nm` can read from the object for any --target. */
+#define ABI_ENTRY(name, expr) __asm__(".globl abi__" #name "\n.set abi__" #name ", %c0" :: "i"((long long)(expr)));
+void abi_emit(void);
+void abi_emit(void) {
+#include "abi_entries.def"
+}
+#else
 typedef struct {
     const char *name;
     long long expected;
 } AbiEntry;
 
 static const AbiEntry k_entries[] = {
-    {"AT_FDCWD", AT_FDCWD},
-    {"AT_SYMLINK_NOFOLLOW", AT_SYMLINK_NOFOLLOW},
-    {"AT_REMOVEDIR", AT_REMOVEDIR},
-    {"O_RDONLY", O_RDONLY},
-    {"O_WRONLY", O_WRONLY},
-    {"O_RDWR", O_RDWR},
-    {"O_CREAT", O_CREAT},
-    {"O_EXCL", O_EXCL},
-    {"O_TRUNC", O_TRUNC},
-    {"O_APPEND", O_APPEND},
-    {"O_NONBLOCK", O_NONBLOCK},
-    {"O_DIRECTORY", O_DIRECTORY},
-    {"O_NOFOLLOW", O_NOFOLLOW},
-    {"O_CLOEXEC", O_CLOEXEC},
-    {"PROT_READ", PROT_READ},
-    {"PROT_WRITE", PROT_WRITE},
-    {"MAP_SHARED", MAP_SHARED},
-    {"MAP_PRIVATE", MAP_PRIVATE},
-    {"MAP_ANONYMOUS", MAP_ANONYMOUS},
-    {"MAP_FIXED", MAP_FIXED},
-    {"MREMAP_MAYMOVE", MREMAP_MAYMOVE},
-    {"S_IFMT", S_IFMT},
-    {"S_IFDIR", S_IFDIR},
-    {"S_IFREG", S_IFREG},
-    {"S_IFLNK", S_IFLNK},
-    {"ENOENT", ENOENT},
-    {"ESRCH", ESRCH},
-    {"EINTR", EINTR},
-    {"EIO", EIO},
-    {"EBADF", EBADF},
-    {"TIOCGWINSZ", TIOCGWINSZ},
-    {"WINSIZE_ROW", (long long)offsetof(struct winsize, ws_row)},
-    {"WINSIZE_COL", (long long)offsetof(struct winsize, ws_col)},
-    {"POLLFD_FD", (long long)offsetof(struct pollfd, fd)},
-    {"POLLFD_EVENTS", (long long)offsetof(struct pollfd, events)},
-    {"POLLFD_REVENTS", (long long)offsetof(struct pollfd, revents)},
-    {"POLLIN", POLLIN},
-    {"CLOCK_MONOTONIC", CLOCK_MONOTONIC},
-    {"TIMESPEC_SEC", (long long)offsetof(struct timespec, tv_sec)},
-    {"TIMESPEC_NSEC", (long long)offsetof(struct timespec, tv_nsec)},
-    {"SIGINT", SIGINT},
-    {"SIGTERM", SIGTERM},
-    {"SIGBUS", SIGBUS},
-    {"SIGWINCH", SIGWINCH},
-    {"KSTAT_SIZE", (long long)sizeof(struct stat)},
-    {"KSTAT_DEV", (long long)offsetof(struct stat, st_dev)},
-    {"KSTAT_INO", (long long)offsetof(struct stat, st_ino)},
-    {"KSTAT_NLINK", (long long)offsetof(struct stat, st_nlink)},
-    {"KSTAT_MODE", (long long)offsetof(struct stat, st_mode)},
-    {"KSTAT_UID", (long long)offsetof(struct stat, st_uid)},
-    {"KSTAT_GID", (long long)offsetof(struct stat, st_gid)},
-    {"KSTAT_ST_SIZE", (long long)offsetof(struct stat, st_size)},
-    {"KSTAT_MTIME", (long long)offsetof(struct stat, st_mtim)},
-    {"KSTAT_MTIME_NSEC", (long long)offsetof(struct stat, st_mtim) + (long long)offsetof(struct timespec, tv_nsec)},
-    {"KSTATX_SIZE", (long long)sizeof(struct statx)},
-    {"KSTATX_MASK", (long long)offsetof(struct statx, stx_mask)},
-    {"KSTATX_MODE", (long long)offsetof(struct statx, stx_mode)},
-    {"KSTATX_INO", (long long)offsetof(struct statx, stx_ino)},
-    {"KSTATX_ST_SIZE", (long long)offsetof(struct statx, stx_size)},
-    {"KSTATX_MTIME", (long long)offsetof(struct statx, stx_mtime)},
-    {"KSTATX_DEV_MAJOR", (long long)offsetof(struct statx, stx_dev_major)},
-    {"KSTATX_DEV_MINOR", (long long)offsetof(struct statx, stx_dev_minor)},
-    {"KDIRENT_INO", (long long)offsetof(struct dirent64, d_ino)},
-    {"KDIRENT_RECLEN", (long long)offsetof(struct dirent64, d_reclen)},
-    {"KDIRENT_TYPE", (long long)offsetof(struct dirent64, d_type)},
-    {"KDIRENT_NAME", (long long)offsetof(struct dirent64, d_name)},
+#define ABI_ENTRY(name, expr) {#name, (long long)(expr)},
+#include "abi_entries.def"
+#undef ABI_ENTRY
 };
 
 static int lookup_pal_equ(const char *path, const char *sym, long long *out) {
@@ -138,3 +84,4 @@ int main(int argc, char **argv) {
     printf("C11 KERNEL ABI AUDIT PASSED (%d constants verified against Linux headers)\n", checked);
     return 0;
 }
+#endif /* ABI_EMIT */

@@ -1,0 +1,1 @@
+CFLAGS_COMMON = -std=gnu2x -Os -ffreestanding -nostdlib -fno-pic -fno-pie -fcf-protection=none -fno-stack-protector -fno-stack-clash-protection -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-ident -funsigned-char -fno-strict-aliasing -fno-common -Wall -Wextra -Werror

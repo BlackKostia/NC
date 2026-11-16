@@ -73,13 +73,101 @@
 .equ O_TRUNC,                 0x200
 .equ O_NONBLOCK,              0x800
 .equ O_DIRECTORY,             0x4000
-.equ O_NOFOLLOW,              0x10000
+.equ O_APPEND,                0x400
+.equ O_NOFOLLOW,              0x8000    // 0100000 on arm64/arm (0x10000 is O_DIRECT here)
 .equ O_CLOEXEC,               0x80000
 .equ EINTR,                   4
 .equ F_SETFD,                 2
 .equ FD_CLOEXEC,              1
 .equ RLIMIT_NOFILE,           7
 .equ S_IFIFO,                 0010000
+.equ S_IFMT,                  0170000
+.equ S_IFDIR,                 0040000
+.equ S_IFREG,                 0100000
+.equ S_IFLNK,                 0120000
+
+// --- Portable fds and common errno values (generic asm-generic/errno-base.h; PAL returns -errno) ---
+.equ STDIN_FD,                0
+.equ STDOUT_FD,               1
+.equ STDERR_FD,               2
+.equ ENOENT,                  2
+.equ ESRCH,                   3
+.equ EIO,                     5
+.equ EBADF,                   9
+.equ ECHILD,                  10
+.equ EAGAIN,                  11
+.equ ENOMEM,                  12
+.equ EACCES,                  13
+.equ EBUSY,                   16
+.equ EEXIST,                  17
+.equ EXDEV,                   18
+.equ ENOTDIR,                 20
+.equ EISDIR,                  21
+.equ EINVAL,                  22
+.equ ENOSYS,                  38
+.equ ENOTEMPTY,               39
+.equ EOPNOTSUPP,              95
+.equ ECANCELED,               125
+.equ F_GETFL,                 3
+.equ F_SETFL,                 4
+.equ FICLONE,                 0x40049409
+.equ SIGCONT,                 18
+.equ SIGSTOP,                 19
+.equ WNOHANG,                 1
+.equ SS_DISABLE,              2
+
+// --- Portable directory-watch event bits (Linux inotify values) ---
+.equ PAL_IN_MODIFY,           0x00000002
+.equ PAL_IN_ATTRIB,           0x00000004
+.equ PAL_IN_MOVED_FROM,       0x00000040
+.equ PAL_IN_MOVED_TO,         0x00000080
+.equ PAL_IN_CREATE,           0x00000100
+.equ PAL_IN_DELETE,           0x00000200
+.equ PAL_IN_DELETE_SELF,      0x00000400
+.equ PAL_IN_MOVE_SELF,        0x00000800
+.equ PAL_IN_Q_OVERFLOW,       0x00004000
+.equ KINOTIFY_HDR,            16
+
+// --- Kernel structs shared by all Linux ISAs (winsize, pollfd, timespec, dirent64, statx) ---
+.equ WINSIZE_ROW,             0
+.equ WINSIZE_COL,             2
+.equ POLLFD_FD,               0
+.equ POLLFD_EVENTS,           4
+.equ POLLFD_REVENTS,          6
+.equ TIMESPEC_SEC,            0
+.equ TIMESPEC_NSEC,           8
+.equ KSIGINFO_ADDR,           16
+.equ KDIRENT_INO,             0
+.equ KDIRENT_RECLEN,          16
+.equ KDIRENT_TYPE,            18
+.equ KDIRENT_NAME,            19
+.equ STATX_BASIC_STATS,       0x7ff
+.equ KSTATX_SIZE,             256
+.equ KSTATX_MASK,             0
+.equ KSTATX_MODE,             28
+.equ KSTATX_INO,              32
+.equ KSTATX_ST_SIZE,          40
+.equ KSTATX_MTIME,            112
+.equ KSTATX_DEV_MAJOR,        136
+.equ KSTATX_DEV_MINOR,        140
+.equ KSTATX_NLINK,            16
+.equ KSTATX_UID,              20
+.equ KSTATX_GID,              24
+
+// --- AArch64 generic struct stat (asm-generic/stat.h, 128 bytes; no legacy stat on this ISA) ---
+.equ KSTAT_DEV,               0
+.equ KSTAT_INO,               8
+.equ KSTAT_MODE,              16
+.equ KSTAT_NLINK,             20
+.equ KSTAT_UID,               24
+.equ KSTAT_GID,               28
+.equ KSTAT_ST_SIZE,           48
+.equ KSTAT_MTIME,             88
+.equ KSTAT_MTIME_NSEC,        96
+.equ PROT_RW,                 3
+.equ MAP_PRIVATE_ANON,        0x22
+.equ MAP_FIXED,               0x10
+.equ MAP_POPULATE,            0x8000
 
 .equ PROT_READ,               1
 .equ PROT_WRITE,              2
