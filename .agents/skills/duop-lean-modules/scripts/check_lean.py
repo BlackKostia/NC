@@ -3,7 +3,8 @@
 
 Budgets (lines incl. comments/blank lines):
   src/**/*.s        module <= 500, top-level routine <= 80, exported symbols <= 16
-  include/**/*.inc  header <= 400
+  src/**/*.c        module <= 500, top-level function <= 80, non-static functions <= 16
+  include/**/*.inc, include/**/*.h  header <= 400
   tests/*.py        suite  <= 500, def <= 100
 
 Legacy offenders are frozen in lean_baseline.json as a *ratchet*: a listed file / routine may
@@ -33,17 +34,21 @@ BASELINE = SKILL_DIR / "scripts" / "lean_baseline.json"
 
 BUDGET = {
     ".s": {"file": 500, "func": 80, "exports": 16},
+    ".c": {"file": 500, "func": 80, "exports": 16},
+    ".h": {"file": 400},
     ".inc": {"file": 400},
     ".py": {"file": 500, "func": 100},
 }
 
 ASM_LABEL_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*):")
 ASM_GLOBAL_RE = re.compile(r"^\s*\.global\s+(.+)$")
+C_FUNC_RE = re.compile(r"^(?!typedef\b|struct\b|union\b|enum\b|_Static_assert\b|extern\b)([A-Za-z_][\w\s\*\[\]]*?)\b([A-Za-z_]\w*)\s*\(")
 PY_DEF_RE = re.compile(r"^(?:def|class)\s+([A-Za-z_][A-Za-z0-9_]*)")
 
 
 def scanned_files(root: Path) -> list[Path]:
-    out = sorted((root / "src").rglob("*.s")) + sorted((root / "include").rglob("*.inc"))
+    out = sorted((root / "src").rglob("*.s")) + sorted((root / "src").rglob("*.c"))
+    out += sorted((root / "include").rglob("*.inc")) + sorted((root / "include").rglob("*.h"))
     out += sorted(p for p in (root / "tests").glob("*.py") if p.name != "__init__.py")
     return out
 
@@ -75,6 +80,30 @@ def asm_routines(lines: list[str]) -> list[tuple[str, int]]:
     return out
 
 
+def c_routines(lines: list[str]) -> tuple[list[tuple[str, int]], int]:
+    """Top-level C function definitions (header at column 0, body closed by a `}` at column 0).
+    Returns ([(name, length)], number of non-static definitions = exports)."""
+    out, exports, i = [], 0, 0
+    while i < len(lines):
+        ln = lines[i]
+        m = C_FUNC_RE.match(ln) if ln and not ln[0].isspace() and not ln.startswith(("#", "/", "*", "}")) else None
+        if m:
+            j = i
+            while j < len(lines) and "{" not in lines[j] and ";" not in lines[j]:
+                j += 1
+            if j < len(lines) and "{" in lines[j] and ";" not in lines[i:j + 1][0].split("{")[0]:
+                k = j
+                while k < len(lines) and lines[k] != "}":
+                    k += 1
+                out.append((m.group(2), k - i + 1))
+                if not ln.lstrip().startswith("static"):
+                    exports += 1
+                i = k + 1
+                continue
+        i += 1
+    return out, exports
+
+
 def py_routines(lines: list[str]) -> list[tuple[str, int]]:
     starts = [(m.group(1), i) for i, ln in enumerate(lines) if (m := PY_DEF_RE.match(ln))]
     out = []
@@ -93,6 +122,8 @@ def measure(path: Path, text: str | None = None) -> dict:
         m["funcs"] = asm_routines(lines)
         m["exports"] = sum(len([t for t in g.group(1).split(",") if t.strip()])
                            for ln in lines if (g := ASM_GLOBAL_RE.match(ln)))
+    elif path.suffix == ".c":
+        m["funcs"], m["exports"] = c_routines(lines)
     elif path.suffix == ".py":
         m["funcs"] = py_routines(lines)
     return m

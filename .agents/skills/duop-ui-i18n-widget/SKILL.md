@@ -20,7 +20,7 @@ Every user-visible string MUST be added/updated immediately in **both** default 
 
 ## 2. UTF-8 Column Width & Rendering
 
-- **Column width != byte count**: Cyrillic UTF-8 takes 2 bytes per terminal column, wide glyphs take 2 columns. Measure strings and truncate via `utf8_display_width` (`src/core/utf8.s`), never raw `str_len`.
+- **Column width != byte count**: Cyrillic UTF-8 takes 2 bytes per terminal column, wide glyphs take 2 columns. Measure strings and truncate via `utf8_display_width` (`src/core/utf8.c`), never raw `str_len`.
 - **Render through `ScreenBuffer`**: Draw only via `Screen_*` APIs (`Screen_put_str`, `Screen_put_glyph`, `Screen_fill_rect`, `Screen_draw_box`) so diff-rendering and `CELL_WIDE_TAIL` remain consistent.
 - **TrueColor tokens only**: Load colors from `call theme_get` -> `[rax + Theme.<token>]`; never embed raw RGB constants unless adding a named `Theme` field for all themes (`src/tui/theme.s`).
 

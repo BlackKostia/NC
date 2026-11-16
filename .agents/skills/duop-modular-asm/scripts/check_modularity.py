@@ -49,13 +49,13 @@ def strip_asm_comment_and_strings(line: str) -> str:
     return "".join(out)
 
 
-def parse_makefile_var(makefile_path: Path, var_name: str) -> list[str]:
+def parse_makefile_var(makefile_path: Path, var_name: str, suffix: str = ".s") -> list[str]:
     text = makefile_path.read_text(encoding="utf-8")
     m = re.search(rf"^{re.escape(var_name)}\s*:=\s*(.*?)(?:\n\n|\n[A-Z_]+\s*[:+]?=)", text, re.S | re.M)
     if not m:
         raise ValueError(f"Could not locate {var_name} := block in Makefile")
     block = m.group(1).replace("\\\n", " ")
-    return [tok.strip() for tok in block.split() if tok.strip().endswith(".s")]
+    return [tok.strip() for tok in block.split() if tok.strip().endswith(suffix)]
 
 
 def parse_makefile_srcs(makefile_path: Path) -> tuple[list[str], list[str]]:
@@ -67,6 +67,63 @@ def parse_makefile_srcs(makefile_path: Path) -> tuple[list[str], list[str]]:
         pass
     pal_default = [p.replace("$(OS)", "linux").replace("$(ARCH)", "x86_64") for p in pal_raw]
     return srcs, pal_default
+
+
+C_FORBIDDEN_INCLUDE_RE = re.compile(
+    r"^\s*#\s*include\s*<(?:stdio|stdlib|string|strings|unistd|errno|math|fcntl|signal|time|pthread|"
+    r"setjmp|locale|wchar|assert|ctype|dirent|poll|termios|dlfcn|sys/[a-z_]+|linux/[a-z_]+|asm/[a-z_]+)\.h>")
+C_ASM_SYSCALL_RE = re.compile(r"\b(?:asm|__asm__)\b[^;]*\"\s*(?:syscall|svc|swi|int\s+\$?0x80)\b")
+C_COMMENT_RE = re.compile(r"/\*.*?\*/|//[^\n]*", re.S)
+C_STRING_RE = re.compile(r'"(?:[^"\\\n]|\\.)*"')
+
+
+def strip_c(text: str) -> str:
+    """Remove comments and string literals but keep line structure (for per-line rule matching)."""
+    text = C_COMMENT_RE.sub(lambda m: "\n" * m.group(0).count("\n"), text)
+    return C_STRING_RE.sub('""', text)
+
+
+def check_c_sources(root: Path, errors: list[str]) -> int:
+    """Rules for src/**/*.c (freestanding C23 layers): no libc headers, no inline syscalls outside src/os,
+    same downward layering and PAL-boundary rules as the assembly modules."""
+    c_files = sorted(p.relative_to(root).as_posix() for p in (root / "src").rglob("*.c"))
+    for rel in c_files:
+        raw_text = (root / rel).read_text(encoding="utf-8")
+        raw_lines = raw_text.splitlines()
+        lines = strip_c(raw_text).splitlines()
+        in_os = rel.startswith("src/os/")
+        for idx, (raw, code) in enumerate(zip(raw_lines, lines), start=1):
+            if C_FORBIDDEN_INCLUDE_RE.match(raw):
+                errors.append(f"{rel}:{idx}: libc/OS header is forbidden in freestanding C; use duop_abi.h")
+            if not in_os and C_ASM_SYSCALL_RE.search(raw):
+                errors.append(f"{rel}:{idx}: inline-asm syscall outside src/os/; call an os_* PAL function")
+            if not in_os:
+                pm = RAW_PAL_VIOLATION_RE.search(code)
+                if pm:
+                    errors.append(f"{rel}:{idx}: direct kernel/PAL symbol '{pm.group(0)}' outside src/os/")
+            rules = {
+                "src/core/": ((UI_WIDGET_RE, "UI/App symbol"), (TUI_RE, "TUI symbol"), (I18N_RE, "i18n symbol"), (FS_RE, "FS symbol")),
+                "src/tui/": ((UI_WIDGET_RE, "UI/App symbol"), (FS_RE, "FS symbol")),
+                "src/fs/": ((UI_WIDGET_RE, "UI/App symbol"), (TUI_RE, "TUI rendering/input symbol")),
+            }
+            for prefix, pats in rules.items():
+                if rel.startswith(prefix):
+                    for pat, label in pats:
+                        m = pat.search(code)
+                        if m:
+                            errors.append(f"{rel}:{idx}: layer violation in {prefix.split('/')[1]} ({label}: {m.group(0)})")
+    mk = root / "Makefile"
+    try:
+        mk_c = parse_makefile_var(mk, "C_SRCS", ".c")
+    except ValueError:
+        mk_c = []
+    missing = sorted(set(c_files) - set(mk_c))
+    ghosts = sorted(set(mk_c) - set(c_files))
+    if missing:
+        errors.append(f"C modules missing from Makefile C_SRCS: {', '.join(missing)}")
+    if ghosts:
+        errors.append(f"Makefile C_SRCS reference missing files: {', '.join(ghosts)}")
+    return len(c_files)
 
 
 def check_version_file(root: Path, errors: list[str]) -> str | None:
@@ -270,6 +327,7 @@ def main() -> int:
                 warnings.append(msg)
 
     check_i18n_symmetry(root, errors)
+    n_c = check_c_sources(root, errors)
 
     for w in warnings:
         print(f"WARN: {w}")
@@ -279,7 +337,7 @@ def main() -> int:
         return 1
 
     print(
-        f"Modularity check passed: {len(all_disk_srcs)} assembly modules, VERSION={ver}, "
+        f"Modularity check passed: {len(all_disk_srcs)} assembly + {n_c} C modules, VERSION={ver}, "
         "PAL boundaries, layers & i18n symmetric, .data-free."
     )
     return 0

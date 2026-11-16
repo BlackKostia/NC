@@ -339,11 +339,11 @@
 - **`src/core/try_rt.s`**
   - `g_try_frame`
   - `os_fault_guard_install` — Installs unified SA_SIGINFO handler for SIGSEGV, SIGBUS, SIGFPE once at startup.
-- **`src/core/utf8.s`**
-  - `utf8_decode` — rdi = ptr -> rax = codepoint, rdx = bytes consumed (0 only if *p == 0)
-  - `utf8_encode` — rdi = cp, rsi = buf (needs >= 4 bytes) -> rax = byte count (1..4)
-  - `utf8_char_width` — Returns 0 (combining/ctrl), 1 (normal), or 2 (wide CJK/Emoji)
-  - `utf8_display_width` — int utf8_display_width(const char *s)
+- **`src/core/utf8.c`**
+  - `utf8_decode` — `Utf8Dec utf8_decode(const char *s)`
+  - `utf8_encode` — `int utf8_encode(uint32_t cp, char *out)`
+  - `utf8_char_width` — `int utf8_char_width(uint32_t cp)`
+  - `utf8_display_width` — `int utf8_display_width(const char *s)`
 
 ### TUI Engine (`src/tui/`)
 

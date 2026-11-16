@@ -1,6 +1,6 @@
 # Duop Engineering Rules
 
-Duop (`duop`) is a dual-pane TUI file manager in pure x86-64 GNU Assembler (`.intel_syntax noprefix`, zero `libc`, direct Linux syscalls, OOP via vtable macros). Preserve tiny static ELF size, instant startup, strict modularity, continuous SemVer versioning, and commit-after-verify discipline.
+Duop (`duop`) is a dual-pane TUI file manager with zero `libc`, direct Linux syscalls and OOP via vtable macros. It is migrating (docs/HYBRID_PORTABILITY_PLAN.md, spike result in docs/HYBRID_PORTABILITY_SPIKE.md) from pure x86-64 GNU Assembler (`.intel_syntax noprefix`) to a hybrid: **per-OS/ISA assembly PAL + SIMD** (`src/os/`) under **portable freestanding C23** (`src/core|tui|fs|ui|app/*.c`). Modules not yet migrated stay `.s`; both kinds follow the same layering below. Preserve tiny static ELF size, instant startup, strict modularity, continuous SemVer versioning, and commit-after-verify discipline.
 
 ## 1. Strict Modular Layering & Dependencies
 
@@ -8,11 +8,18 @@ Code flows downward only — never introduce upward or cyclic dependencies acros
 
 1. **`include/`** (`pal.inc`, `config.inc`, `types.inc`, `oop.inc`, `classes.inc`, and target `include/os/<os>/<arch>/pal_target.inc`): macros, constants, `.struct` layouts, and vtable contracts only; emit no instructions or writable data.
 2. **`src/os/<os>/<arch>/`** (`pal_os.s`): compile-time selected OS/ISA Platform Abstraction Layer (PAL) converting kernel `stat`/`dirent`/`termios`/`sigaction`/`ppoll`/`mremap` into portable `FileStat` and `os_*` ABI helpers; zero runtime OS branching. **Must never** depend on `src/tui/`, `src/fs/`, `src/ui/`, or `src/app/`.
-3. **`src/core/`** (`memory.s`, `string.s`, `utf8.s`, `oop_rt.s`, `syscall.s`, future `config.s`): runtime, allocator, strings, UTF-8 width, base `Object`/`Widget` vtables, PAL POSIX helpers (`OS_*` macros + `os_*`). **Must never** contain raw `syscall` instructions or depend on `src/tui/`, `src/fs/`, concrete `src/ui/` widgets, or `src/app/`.
+3. **`src/core/`** (`memory.s`, `string.s`, `utf8.c`, `oop_rt.s`, `syscall.s`, future `config.s`): runtime, allocator, strings, UTF-8 width, base `Object`/`Widget` vtables, PAL POSIX helpers (`OS_*` macros + `os_*`). **Must never** contain raw `syscall` instructions or depend on `src/tui/`, `src/fs/`, concrete `src/ui/` widgets, or `src/app/`.
 4. **`src/tui/`** (`theme.s`, `i18n.s`, `screen.s`, `input.s`): terminal TrueColor rendering, themes, built-in English table + runtime `lang/*.lang` packs and `layouts/*.layout` keyboard maps, SGR mouse/key parser. **Must never** depend on `src/fs/`, concrete `src/ui/` widgets, or `src/app/`.
 5. **`src/fs/`** (`dir_model.s`, `file_ops.s`, future `inflate.s`/`trash.s`): directory traversal, sorting, virtual panels, async file ops (may query `i18n_get` for error text). **Must never** depend on `Screen_*`, `Input_*`, `theme_*`, concrete UI widgets, or `src/app/`.
 6. **`src/ui/`** (`header_bar.s`, `function_bar.s`, `status_bar.s`, `file_pane.s`, `preview_pane.s`, `dialogs.s` and split widget modules): concrete `Widget`/`Dialog` subclasses rendering exclusively via `ScreenBuffer`, `theme_get`, and `i18n_get`.
 7. **`src/app/`** & **`src/main.s`**: application controller, event loop, command dispatch, CLI arguments.
+
+### Freestanding C23 modules (`src/**/*.c`, registered in Makefile `C_SRCS`)
+- Compiler: gcc >= 13 on `x86_64`, `clang --target=…` for `aarch64`/`arm` (Makefile `CFLAGS` is the single source of the ABI flags: `-ffreestanding`, no PIE/CET/unwind tables, `-funsigned-char`, `-fno-strict-aliasing`, `-fno-stack-clash-protection`, `-mno-outline-atomics` on aarch64). Only compiler headers (`<stdint.h>`, `<stddef.h>`, `<stdbool.h>`, `<stdarg.h>`) and `include/duop_abi.h`; **never** libc headers, `asm("syscall")`, VLA, `alloca`, `__int128` or floating point.
+- Same layering and PAL boundary as assembly (`check_modularity.py` enforces it for `.c`); kernel details only through `os_*` functions and `FileStat` from `duop_abi.h`; failures are `-errno` values (`os_is_err`), no `errno` global.
+- Keep `ELF .data == 0`: file-scope data is `const` (`.rodata`) or zero-initialised (`.bss`). Unaligned parser reads go through `load_le16/32/64`.
+- Replacing a `.s` module requires a differential test against a frozen reference of the old code (see `tests/test_c_utf8.py`), and a C symbol keeps the asm calling contract (a pair returned in `rax:rdx` is a 2×`uint64_t` struct). `audit_live_regs.py` must still pass: C clobbers every caller-saved register.
+- Budgets (`check_lean.py`): `.c` <= 500 lines, function <= 80 lines, <= 16 non-`static` functions; `.h` <= 400.
 
 ### Anti-Monolith Rule for New Features
 - Place cohesive new subsystems in dedicated files registered in `Makefile` `SRCS` (or `PAL_SRCS` for OS/arch backends) rather than growing `src/ui/dialogs.s`, `src/app/app.s`, or `src/ui/file_pane.s`.
@@ -26,7 +33,7 @@ Code flows downward only — never introduce upward or cyclic dependencies acros
 
 ## 2. Assembly, ABI & I18n Invariants
 
-- Use `.intel_syntax noprefix` at the top of every `.s`/`.inc` file.
+- Use `.intel_syntax noprefix` at the top of every x86-64 `.s`/`.inc` file (AArch64 `.s` use GNU ARM syntax).
 - Keep `ELF .data == 0`: immutable data in `.section .rodata`, mutable globals in `.section .bss` (or heap `mem_alloc`).
 - Follow System V AMD64 ABI (`rdi` = `this`, preserve `rbx`, `rbp`, `r12`–`r15`, 16-byte stack alignment across `call`).
 - Every user-visible string MUST be a `LangStrings` slot (`include/types.inc`) with its English text in `src/tui/i18n.s` (`lang_en_table`), its key in `src/tui/i18n_keys.s`, and its Ukrainian translation in `lang/uk.lang`; other interface languages are `lang/*.lang` packs and keyboard layouts are `layouts/*.layout` files — never compile translations or layout codepoints into code. Compute layout columns via `utf8_display_width`.

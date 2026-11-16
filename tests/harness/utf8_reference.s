@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written utf8.s that src/core/utf8.c replaced (tests/test_c_utf8.py diffs against it)
 # UTF-8 Codec & Display Width Helpers
 
 .intel_syntax noprefix

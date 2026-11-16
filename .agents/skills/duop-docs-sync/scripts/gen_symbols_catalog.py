@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Auto-generate docs/SYMBOLS.md from include/**/*.inc and src/**/*.s.
+"""Auto-generate docs/SYMBOLS.md from include/**/*.inc and src/**/*.s and freestanding src/**/*.c.
 Tracks all structs, OOP classes, vtable contracts, and exported .global APIs
 organized by Duop's strict downward architectural layers.
 
@@ -116,6 +116,21 @@ def parse_asm_module(path):
     return globals_list, vtables, sigs
 
 
+C_DEF_RE = re.compile(r"^(?!static\b|typedef\b|extern\b|struct\b|union\b|enum\b|_Static_assert\b)([A-Za-z_][\w\s\*]*?)\b([A-Za-z_]\w*)\s*\(([^;{]*)\)\s*$")
+
+
+def parse_c_module(path):
+    """Exported (non-static) function definitions of a freestanding C module; the header line is the signature."""
+    lines = open(path, encoding="utf-8", errors="replace").read().splitlines()
+    exported, sigs = [], {}
+    for i, ln in enumerate(lines):
+        m = C_DEF_RE.match(ln) if ln and not ln[0].isspace() and not ln.startswith(("#", "/", "*", "}")) else None
+        if m and i + 1 < len(lines) and lines[i + 1].startswith("{"):
+            exported.append(m.group(2))
+            sigs[m.group(2)] = f"`{ln.strip()}`"
+    return exported, [], sigs
+
+
 def classify_layer(rel):
     for title, prefix in LAYERS:
         if isinstance(prefix, tuple):
@@ -130,9 +145,9 @@ def build_markdown():
     structs, classes, vtables = parse_includes()
     modules = {title: [] for title, _ in LAYERS}
     total_globals = 0
-    for path in iter_files("src", ".s"):
+    for path in sorted(iter_files("src", ".s") + iter_files("src", ".c")):
         rel = os.path.relpath(path, ROOT)
-        g_list, v_list, sigs = parse_asm_module(path)
+        g_list, v_list, sigs = parse_c_module(path) if path.endswith(".c") else parse_asm_module(path)
         total_globals += len(g_list)
         layer = classify_layer(rel)
         modules.setdefault(layer, []).append((rel, g_list, v_list, sigs))

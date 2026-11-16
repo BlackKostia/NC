@@ -49,7 +49,6 @@ SRCS := \
 	src/core/string_format.s \
 	src/core/string_datetime.s \
 	src/core/string_path.s \
-	src/core/utf8.s \
 	src/core/oop_rt.s \
 	src/core/try_rt.s \
 	src/core/tmpfile.s \
@@ -241,6 +240,10 @@ SRCS := \
 	src/app/app_menu.s \
 	src/app/app_cmdline.s
 
+# Freestanding C23 modules (docs/HYBRID_PORTABILITY_PLAN.md); migrated leaf-first from the .s list above
+C_SRCS := \
+	src/core/utf8.c
+
 PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_os.s \
 	src/os/$(OS)/$(ARCH)/pal_fault.s \
@@ -260,7 +263,7 @@ PAL_SRCS := \
 PAL_START_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_start.s
 
-OBJS := $(patsubst src/%.s,$(BUILD)/%.o,$(SRCS) $(PAL_SRCS))
+OBJS := $(patsubst src/%.s,$(BUILD)/%.o,$(SRCS) $(PAL_SRCS)) $(patsubst src/%.c,$(BUILD)/%.o,$(C_SRCS))
 INCS := $(wildcard include/*.inc) $(wildcard $(PAL_INC)/*.inc)
 
 .PHONY: all release run test memcheck verify hooks symbols symbols-check clean pal-selftest check-toolchain
@@ -327,6 +330,7 @@ test: $(TARGET)
 	python3 tests/test_abi_cross.py
 	python3 tests/test_pal_parity.py
 	python3 tests/test_pal_selftest.py
+	python3 tests/test_c_utf8.py
 	python3 tests/test_pty.py
 	python3 tests/test_fs_reliability.py
 	python3 tests/test_performance_dir.py
