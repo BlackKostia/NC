@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "${DUOP_SKIP_PREPUSH:-0}" == "1" ]]; then
+    exit 0
+fi
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+echo "[pre-push] Building release binary and running faultlab sweeps + SEU + fuzzing..."
+make -s release
+
+for scen in copy delete move tree; do
+    echo "[pre-push] faultlab sweep: $scen"
+    python3 "$ROOT/tools/faultlab/campaign.py" sweep "$scen"
+done
+
+echo "[pre-push] faultlab SEU (2000+ flips): copy"
+python3 "$ROOT/tools/faultlab/campaign.py" seu copy --runs 2000
+
+echo "[pre-push] Parser & reliability fuzz tests"
+python3 "$ROOT/tests/test_fault_injection.py"
+python3 "$ROOT/tests/test_security_reliability.py"

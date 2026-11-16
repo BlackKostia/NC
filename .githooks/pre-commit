@@ -86,3 +86,20 @@ if [[ -n "$NEEDS_BUILD" && "${DUOP_SKIP_PTY_HOOK:-${NC_SKIP_PTY_HOOK:-0}}" != "1
     env -u GIT_DIR -u GIT_INDEX_FILE -u GIT_WORK_TREE -u GIT_PREFIX -u GIT_COMMON_DIR \
         DUOP_LEAN_STAGED=1 ./.agents/skills/duop-pty-verify/scripts/verify_build.sh "$HOOK_MODE"
 fi
+
+# 6. Faultlab probes, signal matrix & stack-depth/recursion audit on src/ or include/ changes
+if [[ -n "$BIN_CODE_STAGED" && "${DUOP_SKIP_FAULTLAB_HOOK:-0}" != "1" ]]; then
+    if [[ -f "$ROOT/tools/faultlab/audit_stack_depth.py" ]]; then
+        make -s >/dev/null 2>&1 || true
+        python3 "$ROOT/tools/faultlab/audit_stack_depth.py"
+    fi
+    if [[ -f "$ROOT/tools/faultlab/probes.py" ]]; then
+        echo "[pre-commit] Running faultlab probes..."
+        env -u GIT_DIR -u GIT_INDEX_FILE -u GIT_WORK_TREE -u GIT_PREFIX -u GIT_COMMON_DIR \
+            python3 "$ROOT/tools/faultlab/probes.py"
+    fi
+    if [[ -f "$ROOT/tools/faultlab/signal_matrix.py" ]]; then
+        env -u GIT_DIR -u GIT_INDEX_FILE -u GIT_WORK_TREE -u GIT_PREFIX -u GIT_COMMON_DIR \
+            python3 "$ROOT/tools/faultlab/signal_matrix.py"
+    fi
+fi

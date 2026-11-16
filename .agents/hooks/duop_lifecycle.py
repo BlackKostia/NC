@@ -11,6 +11,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from duop_safety_guards import check_pre_tool_asm_guards, run_post_tool_fault_audits  # noqa: E402
+
 SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+$")
 CODE_PATH_PREFIXES = ("src/", "include/")
 VERIFY_RELEVANT_FILES = ("Makefile", "VERSION", "tests/test_pty.py")
@@ -204,6 +207,10 @@ def handle_pre_tool_use(payload: dict, root: Path) -> dict:
                             "Write happy-path and fault/edge assertions first (or set DUOP_TDD_BYPASS=1 only for pure non-functional refactors)."
                         ),
                     }
+            asm_text = str(args.get("Content") or args.get("Replacement") or "")
+            guard_err = check_pre_tool_asm_guards(rel, asm_text)
+            if guard_err:
+                return {"decision": "deny", "reason": guard_err}
         return {"decision": "allow"}
 
     if name == "run_command":
@@ -271,6 +278,8 @@ def handle_post_tool_use(payload: dict, root: Path) -> dict:
             if is_verify_relevant(rel):
                 state["edited_code"] = True
                 state["needs_verify"] = True
+            if rel.startswith("src/"):
+                state["needs_faultlab"] = True
             if rel.startswith("docs/") or rel in ("README.md", "README.uk.md", "ROADMAP.md"):
                 state["docs_edited"] = True
             save_state(spath, state)
@@ -338,6 +347,9 @@ def handle_post_tool_use(payload: dict, root: Path) -> dict:
                                     + (rproc.stdout + rproc.stderr).strip()
                                 )
                             }
+                fault_note = run_post_tool_fault_audits(root, rel)
+                if fault_note:
+                    return {"feedback": fault_note}
             if (
                 rel.startswith(("src/app/", "src/ui/", "src/fs/pkg_", "src/main.s"))
                 and not state.get("docs_edited")
@@ -362,6 +374,10 @@ def handle_post_tool_use(payload: dict, root: Path) -> dict:
             cmd,
         ):
             state["needs_verify"] = False
+            state["stop_nudged_sig"] = ""
+            save_state(spath, state)
+        if re.search(r"(?:tools/faultlab/(?:probes|campaign|flab)\.py)", cmd):
+            state["needs_faultlab"] = False
             state["stop_nudged_sig"] = ""
             save_state(spath, state)
         if re.search(r"\bgit\b[^\n]*\bcommit\b", cmd):
@@ -412,13 +428,26 @@ def handle_stop(payload: dict, root: Path) -> dict:
     uncommitted_session = sorted(dirty_paths & session_files)
     dirty_code = sorted(p for p in dirty_paths if is_verify_relevant(p))
 
-    if uncommitted_session or (state.get("edited_code") and dirty_code) or state.get("needs_verify"):
+    if uncommitted_session or (state.get("edited_code") and dirty_code) or state.get("needs_verify") or state.get("needs_faultlab"):
         targets = uncommitted_session or dirty_code
-        sig = json.dumps({"targets": targets, "needs_verify": bool(state.get("needs_verify"))}, sort_keys=True)
+        sig = json.dumps({
+            "targets": targets,
+            "needs_verify": bool(state.get("needs_verify")),
+            "needs_faultlab": bool(state.get("needs_faultlab")),
+        }, sort_keys=True)
         if state.get("stop_nudged_sig") == sig:
             return {"decision": "allow"}
         state["stop_nudged_sig"] = sig
         save_state(spath, state)
+
+        if state.get("needs_faultlab"):
+            return {
+                "decision": "continue",
+                "reason": (
+                    "У цій сесії змінено src/, але ще не прогнано faultlab. "
+                    "Запусти python3 tools/faultlab/probes.py або python3 tools/faultlab/campaign.py short <scenario>."
+                ),
+            }
 
         if state.get("needs_verify"):
             return {
