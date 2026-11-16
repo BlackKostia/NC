@@ -2,7 +2,7 @@
 
 ## Мета
 
-Забезпечити повноцінну мультиархітектурну та мульти-ОС переносимість **Duop** (перший етап — **Linux x86-64** та **Linux AArch64**, далі — **FreeBSD**) **без порушення** ключових інваріантів проєкту:
+Забезпечити повноцінну мультиархітектурну та мульти-ОС переносимість **Duop** (**Linux x86-64**, **Linux AArch64 / ARM64**, **Linux ARMv7 / ARM32 (`armhf`)**, а далі — **FreeBSD**) **без порушення** ключових інваріантів проєкту:
 - **Zero external dependencies**: статичний ELF64 без `libc` та `ncurses` (`readelf -d` без `.dynamic`);
 - **`ELF .data == 0`**: усі мутабельні глобальні змінні лише в `.bss` або купі, константи в `.rodata`;
 - **Компактний бінарник і максимальна швидкодія**: ~190–250 KiB stripped, старт `< 1 ms`, `io_uring`, `FICLONE`/`copy_file_range`, SSE2/NEON SIMD;
@@ -24,7 +24,8 @@ flowchart TB
 
     subgraph ASM_PAL["100% Pure Assembly PAL + SIMD (per OS / ARCH)"]
         X86["src/os/linux/x86_64/ (Syscalls, io_uring, SSE2 SIMD, Faults, PTY)"]
-        ARM["src/os/linux/aarch64/ (Syscalls, NEON SIMD, Faults, PTY)"]
+        ARM64["src/os/linux/aarch64/ (Syscalls, NEON SIMD, Faults, PTY)"]
+        ARM32["src/os/linux/arm/ (ARMv7 EABI, stat64/mmap2, NEON/scalar, __aeabi_*)"]
         BSD["src/os/freebsd/x86_64/ (Future: kqueue, FreeBSD syscalls)"]
     end
 
@@ -33,7 +34,8 @@ flowchart TB
     FS --> BRIDGE
     TUI --> BRIDGE
     BRIDGE --> X86
-    BRIDGE --> ARM
+    BRIDGE --> ARM64
+    BRIDGE --> ARM32
     BRIDGE --> BSD
 ```
 
@@ -59,6 +61,7 @@ flowchart TB
    - Базові freestanding типи (`stdint.h` / `stddef.h` без `libc`), макроси секцій, прототипи PAL-функцій (`os_statat`, `os_poll_in2`, `os_pipe_cloexec`, `os_clone_file`, `os_copy_file_range`, `os_mem_*`, `os_du_usage`, `os_mmap_file_ro`, `os_watch_*`) і `_Static_assert(sizeof(FileStat) == 56)`.
 2. **`[NEW] tools/gen_c_headers.py`**:
    - Автоматична генерація `build/duop_types.h` із [include/types.inc](file:///home/chessplayer/DEV/NC/include/types.inc), [include/classes.inc](file:///home/chessplayer/DEV/NC/include/classes.inc) та [include/config.inc](file:///home/chessplayer/DEV/NC/include/config.inc) (структури `Rect`, `Event`, `FileEntry`, `Object`/`Widget`/`Dialog` та їх `vtable` + `_Static_assert` на розміри й зміщення).
+   - **Підтримка 32-бітного ARM (`ARCH=arm`):** усі вказівники й слоти `vtable` у структурах використовують `uintptr_t` / `void *` (`4` байти на `arm`, `8` байтів на `x86_64`/`aarch64`), тоді як файлові розміри, inode, пристрої та час (`FileStat.size`, `FileStat.mtime`, `FileEntry.size`) залишаються фіксованими **64-бітними** (`int64_t` / `uint64_t`) для підтримки файлів > 4 GiB на 32-бітному ARM.
 3. **`[MODIFY] Makefile`**:
    - Додати `CC` (`clang`/`gcc`), прапорці `-ffreestanding -nostdlib -fno-builtin -fno-asynchronous-unwind-tables -fno-stack-protector -fno-ident -fdata-sections -ffunction-sections -Os -Wall -Wextra -Werror`, `--gc-sections` у `release`, підтримку змішаної лінковки `SRCS` (`.s`) + `C_SRCS` (`.c`).
 4. **`[MODIFY] check_modularity.py` та `check_lean.py`**:
@@ -89,9 +92,14 @@ flowchart TB
 2. Перенести `src/app/*.c` (`duop_main`, цикл подій, диспетчеризацію команд).
 3. Увімкнути повну лінковку `make OS=linux ARCH=aarch64 release` та протестувати через `qemu-aarch64`.
 
-### Етап 5. Розширення на інші ОС (`src/os/freebsd/<arch>/`)
+### Етап 5. Розширення на 32-бітний ARM (`ARCH=arm` / ARMv7) та інші ОС (`FreeBSD`)
 
-- Реалізувати лише PAL (`pal_start.s`, `pal_os.s` із `kqueue` замість `inotify`, `pal_pty.s`, `pal_fault.s`) без жодних змін у шарах `.c`.
+1. **Linux ARM32 (`src/os/linux/arm/` + `include/os/linux/arm/pal_target.inc`)** *(корисно для роутерів MikroTik ARMv7, старіших Raspberry Pi, embedded Linux)*:
+   - `pal_start.s`, `pal_os.s` (EABI `svc #0` з `r7`, 64-бітні сисколи `statx` / `fstatat64`, `getdents64`, `mmap2`, `_llseek`), `pal_pty.s`, `pal_fault.s`, `pal_simd.s` (NEON / scalar fallback), `pal_du.s`, `pal_uring.s` (fallback).
+   - `pal_aeabi.s`: мінімальні 64-бітні ділення/зсуви (`__aeabi_uldivmod`, `__aeabi_ldivmod`) для повної роботи без `libgcc` і `libc`.
+   - Збірка через `clang --target=armv7a-linux-gnueabihf -ffreestanding -nostdlib` + тестування під `qemu-arm`.
+2. **FreeBSD (`src/os/freebsd/<arch>/`)**:
+   - Реалізувати лише PAL (`pal_start.s`, `pal_os.s` із `kqueue` замість `inotify`, `pal_pty.s`, `pal_fault.s`) без жодних змін у шарах `.c`.
 
 ---
 
