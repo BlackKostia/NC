@@ -5,7 +5,7 @@
   },
   "files": {
     "src/core/config_parse.s": 485,
-    "src/os/linux/x86_64/pal_os.s": 620,
+    "src/os/linux/x86_64/pal_os.s": 619,
     "src/os/linux/x86_64/pal_simd.s": 426,
     "src/os/linux/x86_64/pal_uring.s": 512,
     "src/tui/input_parse.s": 608,

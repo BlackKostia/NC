@@ -112,8 +112,15 @@ arc_parse_tar:
     mov rdi, rax; lea rsi, [r12 + r14]; mov edx, 100; call str_copy
     lea rdi, [r12 + r14 + 124]; mov esi, 12; call arc_octal
     pop rcx                   # entry
+    lea rdx, [r14 + 512]      # data_off
+    mov r8, r13
+    sub r8, rdx               # avail = raw_len - data_off
+    cmp rax, r8
+    jbe .Lapt_sz_ok
+    mov rax, r8               # clamp size to buffer
+.Lapt_sz_ok:
     mov [rcx + 264], rax      # size
-    lea rdx, [r14 + 512]; mov [rcx + 256], rdx  # data off
+    mov [rcx + 256], rdx      # data_off
     mov [rcx + 272], rax      # comp_size
     mov dword ptr [rcx + 280], 0
     movzx edx, byte ptr [r12 + r14 + 156]
@@ -170,7 +177,26 @@ arc_parse_zip:
     mov edx, 1
 .Lapz_nd:
     mov [rdi + 284], edx
+    # Validate local header + data bounds against raw_len (r13)
+    mov rdx, [rdi + 256]      # local_hdr_off
+    lea r14, [rdx + 30]
+    cmp r14, r13; ja .Lapz_skip
+    movzx eax, word ptr [r12 + rdx + 26]
+    add r14, rax
+    movzx eax, word ptr [r12 + rdx + 28]
+    add r14, rax              # data_off = off + 30 + fname + extra
+    cmp r14, r13; ja .Lapz_skip
+    mov rax, r13; sub rax, r14  # avail = raw_len - data_off
+    cmp [rdi + 272], rax; jbe .Lapz_cs_ok
+    mov [rdi + 272], rax      # clamp comp_size to avail
+.Lapz_cs_ok:
+    cmp dword ptr [rdi + 280], 0; jne .Lapz_keep
+    mov rdx, [rdi + 272]
+    cmp [rdi + 264], rdx; jbe .Lapz_keep
+    mov [rdi + 264], rdx      # stored: clamp uncomp_size <= comp_size
+.Lapz_keep:
     inc dword ptr [rbx + 4]
+.Lapz_skip:
     add r15, 46
     add r15, rcx
     add r15, r10

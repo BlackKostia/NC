@@ -12,17 +12,81 @@ pf_tty_reset:
 .section .bss
 .align 8
 g_pf_slot_ptr:  .space 8
+.equ PF_MMAP_SLOTS, 16
+g_pf_mmap_tab:  .space PF_MMAP_SLOTS * 16
 
 .section .text
 .global os_fault_guard_install_slot
 .global os_signals_install
 .global os_sig_reset_pipe
+.global pf_reg_mmap
+.global pf_unreg_mmap
+.global pf_sigbus_fallback
 .extern os_term_restore
 
 # SA_RESTORER trampoline (must invoke rt_sigreturn directly with untouched rsp)
 pf_sig_restorer:
     mov eax, OS_SYS_rt_sigreturn
     syscall
+
+# void pf_reg_mmap(void *base, size_t len)
+pf_reg_mmap:
+    test rdi, rdi; jz .Lprm_ret
+    test rsi, rsi; jz .Lprm_ret
+    lea rax, [rsi + 4095]; and rax, -4096
+    add rax, rdi
+    lea rcx, [rip + g_pf_mmap_tab]
+    xor edx, edx
+.Lprm_loop:
+    cmp edx, PF_MMAP_SLOTS; jae .Lprm_ret
+    cmp qword ptr [rcx], 0; je .Lprm_set
+    add rcx, 16; inc edx; jmp .Lprm_loop
+.Lprm_set:
+    mov [rcx], rdi; mov [rcx + 8], rax
+.Lprm_ret:
+    ret
+
+# void pf_unreg_mmap(void *base)
+pf_unreg_mmap:
+    test rdi, rdi; jz .Lpum_ret
+    lea rcx, [rip + g_pf_mmap_tab]
+    xor edx, edx
+.Lpum_loop:
+    cmp edx, PF_MMAP_SLOTS; jae .Lpum_ret
+    cmp [rcx], rdi; je .Lpum_clr
+    add rcx, 16; inc edx; jmp .Lpum_loop
+.Lpum_clr:
+    mov qword ptr [rcx], 0; mov qword ptr [rcx + 8], 0
+.Lpum_ret:
+    ret
+
+# int pf_is_mmap_addr(void *addr) -> 1 if in registered file mapping, 0 otherwise
+pf_is_mmap_addr:
+    test rdi, rdi; jz .Lpim_no
+    lea rcx, [rip + g_pf_mmap_tab]
+    xor edx, edx
+.Lpim_loop:
+    cmp edx, PF_MMAP_SLOTS; jae .Lpim_no
+    mov rax, [rcx]
+    test rax, rax; jz .Lpim_next
+    cmp rdi, rax; jb .Lpim_next
+    cmp rdi, [rcx + 8]; jae .Lpim_next
+    mov eax, 1; ret
+.Lpim_next:
+    add rcx, 16; inc edx; jmp .Lpim_loop
+.Lpim_no:
+    xor eax, eax; ret
+
+# SIGBUS fallback: patch only registered file mappings, else default action
+pf_sigbus_fallback:
+    push rsi
+    mov rdi, [rsi + KSIGINFO_ADDR]
+    call pf_is_mmap_addr
+    pop rsi
+    test eax, eax
+    jnz pf_bus_patch
+    mov edi, SIGBUS
+    jmp pf_fatal_default
 
 # Fallback SIGBUS patch for truncated mmap'ed files when no TRY frame is active
 pf_bus_patch:
@@ -75,7 +139,7 @@ pf_fault_handler:
 
 .Lpf_no_try:
     cmp edi, SIGBUS
-    je pf_bus_patch
+    je pf_sigbus_fallback
     jmp pf_fatal_default
 
 # Helper: restore terminal (if raw active), set SIG_DFL, unblock & re-raise fatal signal

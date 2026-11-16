@@ -77,7 +77,6 @@ arc_enter_model:
     push rax; mov rdi, [r14 + 8]; call mem_free; pop rax
     mov [r14 + 8], rax; mov rax, [rsp + PATH_MAX + 8]; mov [r14 + 16], rax
 .Lahe_p:
-    mov [r13 + DirModel.arc_ctx], rbx
     mov [r13 + DirModel.arc_ctx], r14
     lea r8, [rsp + PATH_MAX + 16]
     TRY_BEGIN r8, .Lahe_fault
@@ -110,11 +109,32 @@ arc_enter_model:
 .Lahe_ret:
     add rsp, PATH_MAX + 16 + TRY_FRAME_SIZE; pop r14; pop r13; pop r12; pop rbx; ret
 
+# int arc_write_all(int fd, const void *buf, size_t len) -> 0 on ok, -1 on err
+arc_write_all:
+    push rbx; push r12; push r13
+    mov ebx, edi; mov r12, rsi; mov r13, rdx
+.Lawa_loop:
+    test r13, r13; jz .Lawa_ok
+    mov edi, ebx; mov rsi, r12; mov rdx, r13
+    OS_WRITE
+    cmp rax, -4; je .Lawa_loop  # -EINTR
+    test rax, rax; jle .Lawa_err
+    add r12, rax; sub r13, rax
+    jmp .Lawa_loop
+.Lawa_ok:
+    xor eax, eax; jmp .Lawa_ret
+.Lawa_err:
+    mov eax, -1
+.Lawa_ret:
+    pop r13; pop r12; pop rbx; ret
+
 # int arc_extract_entry(DirModel *m, const FileEntry *ent, char *out_tmp_path) -> 0 on ok, -1 on err
 arc_extract_entry:
     push rbx; push r12; push r13; push r14; push r15
-    sub rsp, PATH_MAX
+    sub rsp, PATH_MAX + TRY_FRAME_SIZE + 24
     mov r13, rdi; mov rax, rsi; mov r12, rdx
+    SCOPED_MEM_INIT [rsp + PATH_MAX + TRY_FRAME_SIZE]
+    USING_FD_INIT [rsp + PATH_MAX + TRY_FRAME_SIZE + 8]
     cmp dword ptr [r13 + DirModel.virtual_mode], 2; jne .Laes_err
     test rax, rax; jz .Laes_err
     test dword ptr [rax + FileEntry.flags], FE_IS_DIR; jnz .Laes_err
@@ -133,45 +153,58 @@ arc_extract_entry:
     inc r15d; jmp .Laes_find
 .Laes_found:
     mov r15, rcx
-    mov r8, [r14 + 8]; add r8, [r15 + 256]  # src ptr
+    mov rcx, [r14 + 16]                      # raw_len
+    mov rdx, [r15 + 256]                     # offset
+    cmp rdx, rcx; ja .Laes_err
+    mov r8, [r14 + 8]; add r8, rdx           # src ptr
+    sub rcx, rdx                             # avail = raw_len - offset
     mov r9, [r15 + 264]                      # uncomp size
-    cmp dword ptr [r14], 3; jne .Laes_write
-    # ZIP local header: skip 30 + fname_len + extra_len
+    lea r10, [rsp + PATH_MAX]
+    TRY_BEGIN r10, .Laes_fault
+    cmp dword ptr [r14], 3; jne .Laes_tar_clamp
+    cmp rcx, 30; jb .Laes_fault_end
     movzx eax, word ptr [r8 + 26]; movzx edx, word ptr [r8 + 28]
-    lea r8, [r8 + 30 + rax]; add r8, rdx
-    cmp dword ptr [r15 + 280], 8; jne .Laes_write
+    lea rax, [rax + rdx + 30]
+    cmp rcx, rax; jb .Laes_fault_end
+    add r8, rax; sub rcx, rax                # avail -= local hdr
+    mov rsi, [r15 + 272]                     # comp_size
+    cmp rsi, rcx; jbe .Laes_cs_ok; mov rsi, rcx
+.Laes_cs_ok:
+    cmp dword ptr [r15 + 280], 8; je .Laes_deflate
+    cmp dword ptr [r15 + 280], 0; jne .Laes_tar_clamp
+    cmp r9, rsi; jbe .Laes_tar_clamp; mov r9, rsi
+.Laes_tar_clamp:
+    cmp r9, rcx; jbe .Laes_wtmp; mov r9, rcx
+    jmp .Laes_wtmp
+.Laes_deflate:
     mov rdi, r9; test rdi, rdi; jnz .Laes_az; mov edi, 1
 .Laes_az:
-    push r8; call mem_alloc; pop r8
-    test rax, rax; jz .Laes_err
-    push rax
-    mov rdi, r8; mov rsi, [r15 + 272]; mov rdx, rax; mov rcx, r9
+    push r8; push rsi; call mem_alloc; pop rsi; pop r8
+    test rax, rax; jz .Laes_fault_end
+    SCOPED_MEM_SET [rsp + PATH_MAX + TRY_FRAME_SIZE], rax
+    mov rdi, r8; mov rdx, rax; mov rcx, r9
     call inflate_raw
-    pop r8
-    test rax, rax; js .Laes_err_free
-    mov r9, rax; jmp .Laes_wtmp
-.Laes_err_free:
-    mov rdi, r8; call mem_free; jmp .Laes_err
-.Laes_write:
-    xor eax, eax              # flag: r8 not allocated
+    test rax, rax; js .Laes_fault_end
+    mov r8, [rsp + PATH_MAX + TRY_FRAME_SIZE]; mov r9, rax
 .Laes_wtmp:
-    push r8; push r9; push rax
+    push r8; push r9
     lea rdi, [rip + arc_tmp_pfx]; lea rsi, [rip + arc_tmp_sfx]
     mov rdx, r12; mov ecx, PATH_MAX; call tmp_open_unique
-    test rax, rax; js .Laes_wfail
-    mov rbx, rax
-    mov rdi, rbx; mov rsi, [rsp + 16]; mov rdx, [rsp + 8]; OS_WRITE
-    mov edi, ebx; OS_CLOSE
-    pop rax; pop r9; pop r8
-    test rax, rax; jz .Laes_ok
-    mov rdi, r8; call mem_free
-.Laes_ok:
+    pop r9; pop r8
+    test rax, rax; js .Laes_fault_end
+    USING_FD_SET [rsp + PATH_MAX + TRY_FRAME_SIZE + 8], eax
+    mov edi, eax; mov rsi, r8; mov rdx, r9; call arc_write_all
+    test eax, eax; js .Laes_fault_end
+    USING_FD_CLOSE [rsp + PATH_MAX + TRY_FRAME_SIZE + 8]
+    SCOPED_MEM_FREE [rsp + PATH_MAX + TRY_FRAME_SIZE]
+    lea r10, [rsp + PATH_MAX]; TRY_END r10
     xor eax, eax; jmp .Laes_ret
-.Laes_wfail:
-    pop rax; pop r9; pop r8
-    test rax, rax; jz .Laes_err
-    mov rdi, r8; call mem_free
+.Laes_fault_end:
+    lea r10, [rsp + PATH_MAX]; TRY_END r10
+.Laes_fault:
+    USING_FD_CLOSE [rsp + PATH_MAX + TRY_FRAME_SIZE + 8]
+    SCOPED_MEM_FREE [rsp + PATH_MAX + TRY_FRAME_SIZE]
 .Laes_err:
     mov eax, -1
 .Laes_ret:
-    add rsp, PATH_MAX; pop r15; pop r14; pop r13; pop r12; pop rbx; ret
+    add rsp, PATH_MAX + TRY_FRAME_SIZE + 24; pop r15; pop r14; pop r13; pop r12; pop rbx; ret

@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 21
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 767
+- **Exported `.global` Symbols**: 770
 
 ## Structs (`include/*.inc`)
 
@@ -133,6 +133,9 @@
   - `os_fault_guard_install_slot` — void os_fault_guard_install_slot(TryFrame **slot_ptr)
   - `os_signals_install` — void os_signals_install(void (*on_winch)(void), void (*on_int)(void), void (*on_term)(void))
   - `os_sig_reset_pipe` — void os_sig_reset_pipe(void) - restore SIG_DFL for SIGPIPE in forked children
+  - `pf_reg_mmap` — void pf_reg_mmap(void *base, size_t len)
+  - `pf_unreg_mmap` — void pf_unreg_mmap(void *base)
+  - `pf_sigbus_fallback` — SIGBUS fallback: patch only registered file mappings, else default action
 - **`src/os/linux/x86_64/pal_os.s`**
   - `os_statat` — Returns 0 on success or -errno on failure.
   - `os_fstat` — Returns 0 on success or -errno on failure.

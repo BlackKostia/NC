@@ -40,6 +40,9 @@ g_raw_active:
 .global os_munmap
 .global os_sigbus_guard_install
 .global os_copy_file_range
+.extern pf_reg_mmap
+.extern pf_unreg_mmap
+.extern pf_sigbus_fallback
 
 # Helper: void copy_kstat_to_filestat(const struct stat *kstat [rsi], FileStat *out [rdi])
 copy_kstat_to_filestat:
@@ -260,17 +263,20 @@ os_copy_file_range:
 
 # void *os_mmap_file_ro(int fd, size_t len) -> mapping or 0
 os_mmap_file_ro:
+    push rsi
     mov r8d, edi              # fd
-    mov rsi, rsi              # len
     xor edi, edi
     mov edx, PROT_READ
     mov r10d, MAP_PRIVATE
     xor r9d, r9d
     mov eax, OS_SYS_mmap
     syscall
+    pop rsi
     cmp rax, -4095
     jae .Lomf_fail
-    ret
+    push rax; mov rdi, rax
+    call pf_reg_mmap
+    pop rax; ret
 .Lomf_fail:
     xor eax, eax
     ret
@@ -279,6 +285,9 @@ os_mmap_file_ro:
 os_munmap:
     test rdi, rdi
     jz .Lomu_ret
+    push rdi; push rsi; sub rsp, 8
+    call pf_unreg_mmap
+    add rsp, 8; pop rsi; pop rdi
     mov eax, OS_SYS_munmap
     syscall
 .Lomu_ret:
@@ -545,19 +554,9 @@ sig_restorer:
     mov eax, OS_SYS_rt_sigreturn
     syscall
 
-# SIGBUS guard (SA_SIGINFO): replace the faulting page of a truncated file mapping with an
-# anonymous zero page, then return so the faulting load simply reads zeros.
+# SIGBUS guard (SA_SIGINFO): delegate to pf_sigbus_fallback (patches only registered file mappings).
 sig_bus_patch:
-    mov rdi, [rsi + KSIGINFO_ADDR]
-    and rdi, -4096
-    mov esi, 4096
-    mov edx, PROT_READ | PROT_WRITE
-    mov r10d, MAP_PRIVATE_ANON | MAP_FIXED
-    mov r8, -1
-    xor r9d, r9d
-    mov eax, OS_SYS_mmap
-    syscall
-    ret
+    jmp pf_sigbus_fallback
 
 # void os_sigbus_guard_install(void)
 os_sigbus_guard_install:

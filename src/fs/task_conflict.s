@@ -325,7 +325,7 @@ fo_resolve_eexist_open:
 .Lfro_trunc:
     mov edi, r12d
     mov rsi, r13
-    mov edx, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC
+    mov edx, O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW | O_CLOEXEC
     OS_OPENAT
 .Lfro_ret:
     add rsp, FileStat._size + 8

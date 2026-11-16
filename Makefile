@@ -288,6 +288,7 @@ test: $(TARGET)
 	python3 tests/test_fault_injection.py
 	python3 tests/test_smart_runner.py
 	python3 tests/test_try_using_and_security.py
+	python3 tests/test_security_fixes.py
 
 test-smart: $(TARGET)
 	python3 tests/run_smart_tests.py
