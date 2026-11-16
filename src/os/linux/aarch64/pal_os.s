@@ -30,7 +30,6 @@ g_raw_active:
 .global os_clone_file
 .global os_poll_many
 .global os_set_nonblock
-.global os_watch_init
 
 // AArch64 struct stat offsets: dev=0, ino=8, mode=16, nlink=20, uid=24, gid=28, size=48, mtime=88, nsec=96
 kstat_to_filestat:
@@ -86,29 +85,34 @@ os_dir_read:
     OS_SYSCALL OS_SYS_getdents64
     ret
 
-// linux_dirent64: d_ino(0,8), d_off(8,8), d_reclen(16,2), d_type(18,1), d_name(19)
-os_dir_next_ex:
-    ldr x9, [x1]
-    cmp x9, x2
-    b.hs 1f
-    add x10, x0, x9
-    ldrh w11, [x10, #16]
-    add x9, x9, x11
-    str x9, [x1]
-    ldrb w12, [x10, #18]
-    strb w12, [x3]
-    add x0, x10, #19
-    ret
-1:
-    mov x0, #0
-    ret
-
+// const char *os_dir_next(void *buf, size_t bytes, size_t *pos_ptr): d_name or NULL when the batch is exhausted
 os_dir_next:
-    stp x29, x30, [sp, #-32]!
-    mov x29, sp
-    add x3, sp, #16
-    bl os_dir_next_ex
-    ldp x29, x30, [sp], #32
+    mov x3, #0
+// const char *os_dir_next_ex(void *buf, size_t bytes, size_t *pos_ptr, uint8_t *out_type)
+// Skips d_ino == 0 entries, stops on d_reclen == 0 (corrupt batch); writes d_type (0 at the end) when out_type != NULL.
+os_dir_next_ex:
+1:
+    ldr x8, [x2]
+    cmp x8, x1
+    b.hs 8f
+    add x9, x0, x8
+    ldrh w11, [x9, #KDIRENT_RECLEN]
+    cbz w11, 8f
+    add x10, x8, x11
+    str x10, [x2]
+    ldr x12, [x9, #KDIRENT_INO]
+    cbz x12, 1b
+    cbz x3, 2f
+    ldrb w10, [x9, #KDIRENT_TYPE]
+    strb w10, [x3]
+2:
+    add x0, x9, #KDIRENT_NAME
+    ret
+8:
+    cbz x3, 9f
+    strb wzr, [x3]
+9:
+    mov x0, #0
     ret
 
 os_mem_remap:
@@ -387,10 +391,4 @@ os_set_nonblock:
     mov w1, #4                // F_SETFL
     OS_SYSCALL OS_SYS_fcntl
 1:
-    ret
-
-os_watch_init:
-    movz w0, #0x0800
-    movk w0, #0x0008, lsl #16 // IN_NONBLOCK | IN_CLOEXEC
-    OS_SYSCALL OS_SYS_inotify_init1
     ret

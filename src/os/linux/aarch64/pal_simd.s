@@ -93,67 +93,84 @@ os_str_len_fast:
     sub x0, x9, x0
     ret
 
+// int os_str_contains_ci_fast(const char *hay, const char *needle_lc, size_t nlen)
+// needle_lc is already ASCII-lowercased; hay is NUL-terminated and folded A-Z -> a-z while comparing.
 os_str_contains_ci_fast:
-    ldrb w9, [x1]
-    cbz w9, 4f
+    cbz x2, 8f
 1:
-    ldrb w10, [x0]
-    cbz w10, 5f
-    mov x11, x0
-    mov x12, x1
+    ldrb w9, [x0]
+    cbz w9, 9f                        // haystack exhausted before a full match
+    mov x10, #0                       // j
 2:
-    ldrb w13, [x12], #1
-    cbz w13, 4f
-    ldrb w14, [x11], #1
-    cbz w14, 5f
-    orr w13, w13, #0x20
-    orr w14, w14, #0x20
-    cmp w13, w14
-    b.eq 2b
+    cmp x10, x2
+    b.hs 8f                           // all nlen bytes matched
+    ldrb w11, [x0, x10]
+    cbz w11, 9f                       // no later start can fit either
+    sub w12, w11, #'A'
+    cmp w12, #25
+    b.hi 3f
+    add w11, w11, #32                 // fold A-Z
+3:
+    ldrb w12, [x1, x10]
+    cmp w11, w12
+    b.ne 4f
+    add x10, x10, #1
+    b 2b
+4:
     add x0, x0, #1
     b 1b
-4:
+8:
     mov w0, #1
     ret
-5:
+9:
     mov w0, #0
     ret
 
+// size_t os_mem_mismatch16(const void *a, const void *b, size_t n16): first differing 16-byte block, or n16
 os_mem_mismatch16:
-    ldr q0, [x0]
-    ldr q1, [x1]
+    mov x3, #0
+1:
+    cmp x3, x2
+    b.hs 2f
+    ldr q0, [x0, x3, lsl #4]
+    ldr q1, [x1, x3, lsl #4]
     cmeq v0.16b, v0.16b, v1.16b
-    uminv b2, v0.16b
-    umov w9, v2.b[0]
+    uminv b0, v0.16b
+    umov w9, v0.b[0]
     cmp w9, #0xff
-    cset w0, ne
+    b.ne 2f
+    add x3, x3, #1
+    b 1b
+2:
+    mov x0, x3
     ret
 
+// size_t os_mem_find_byte(const void *p, size_t len, int byte) -> index or len
 os_mem_find_byte:
     mov x9, #0
+    and w2, w2, #0xff
 1:
-    cmp x9, x2
+    cmp x9, x1
     b.hs 2f
     ldrb w10, [x0, x9]
-    cmp w10, w1
-    b.eq 3f
+    cmp w10, w2
+    b.eq 2f
     add x9, x9, #1
     b 1b
 2:
-    mov x0, #-1
-    ret
-3:
     mov x0, x9
     ret
 
+// size_t os_mem_count_byte(const void *p, size_t len, int byte)
 os_mem_count_byte:
     mov x9, #0
+    and w2, w2, #0xff
 1:
-    cbz x2, 2f
+    cbz x1, 2f
     ldrb w10, [x0], #1
-    cmp w10, w1
+    cmp w10, w2
     cinc x9, x9, eq
-    sub x2, x2, #1
+    sub x1, x1, #1
     b 1b
 2:
     mov x0, x9

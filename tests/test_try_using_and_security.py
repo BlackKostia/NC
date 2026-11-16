@@ -232,6 +232,7 @@ def test_try_catch_and_using_asm():
         subprocess.check_call([
             "ld", o_path,
             os.path.join(ROOT, "build/os/linux/x86_64/pal_os.o"),
+            os.path.join(ROOT, "build/os/linux/x86_64/pal_file.o"),
             os.path.join(ROOT, "build/os/linux/x86_64/pal_fault.o"),
             os.path.join(ROOT, "build/os/linux/x86_64/pal_simd.o"),
             os.path.join(ROOT, "build/core/try_rt.o"),

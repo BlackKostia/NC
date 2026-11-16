@@ -6,6 +6,10 @@
 .equ PAL_ABI_EXT_INCLUDED, 1
 
 .equ OS_SYS_getppid,         110
+.equ OS_SYS_lseek,           8
+.equ OS_SYS_ftruncate,       77
+.equ OS_SYS_exit_group,      231
+.equ SIGCHLD,                17
 .equ OS_SYS_sigaltstack,     131
 .equ OS_SYS_prctl,           157
 .equ OS_SYS_gettid,          186

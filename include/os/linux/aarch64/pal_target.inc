@@ -6,6 +6,10 @@
 
 // --- Linux AArch64 Syscall Numbers (x8) ---
 .equ OS_SYS_dup3,             24
+.equ OS_SYS_getcwd,           17
+.equ OS_SYS_ftruncate,        46
+.equ OS_SYS_getuid,           174
+.equ SIGCHLD,                 17
 .equ OS_SYS_fcntl,            25
 .equ OS_SYS_inotify_init1,    26
 .equ OS_SYS_inotify_add_watch,27

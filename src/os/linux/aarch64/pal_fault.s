@@ -17,12 +17,16 @@ g_pf_slot_ptr:   .space 8
 g_main_pid:      .space 4
 g_try_owner_pid: .space 4
 g_try_main_tid:  .space 4
+.equ PF_MMAP_SLOTS, 64
+.align 4
+g_pf_mmap_tab:   .space PF_MMAP_SLOTS * 16
 .align 4
 g_sig_altstack:  .space SIGSTKSZ_BUFSZ
 
 .section .text
 .global os_fault_guard_install_slot
 .global os_signals_install
+.global pf_sig_restorer
 .global os_sig_reset_pipe
 .global pf_reg_mmap
 .global pf_unreg_mmap
@@ -36,8 +40,81 @@ g_sig_altstack:  .space SIGSTKSZ_BUFSZ
 pf_sig_restorer:
     OS_SYSCALL OS_SYS_rt_sigreturn
 
+// void pf_reg_mmap(void *base, size_t len): remember a file mapping (SIGBUS recovery range)
 pf_reg_mmap:
+    cbz x0, 9f
+    cbz x1, 9f
+    add x1, x1, #4095
+    and x1, x1, #-4096
+    add x1, x1, x0                    // end
+    adrp x2, g_pf_mmap_tab
+    add x2, x2, :lo12:g_pf_mmap_tab
+    mov w3, #0
+    mov x4, #0                        // first free slot
+1:
+    cmp w3, #PF_MMAP_SLOTS
+    b.hs 4f
+    ldr x5, [x2]
+    cmp x5, x0
+    b.eq 5f
+    cbnz x5, 2f
+    cbnz x4, 2f
+    mov x4, x2
+2:
+    add x2, x2, #16
+    add w3, w3, #1
+    b 1b
+4:
+    cbz x4, 9f
+    mov x2, x4
+5:
+    stp x0, x1, [x2]
+9:
+    ret
+
+// void pf_unreg_mmap(void *base)
 pf_unreg_mmap:
+    cbz x0, 9f
+    adrp x2, g_pf_mmap_tab
+    add x2, x2, :lo12:g_pf_mmap_tab
+    mov w3, #0
+1:
+    cmp w3, #PF_MMAP_SLOTS
+    b.hs 9f
+    ldr x5, [x2]
+    cmp x5, x0
+    b.eq 2f
+    add x2, x2, #16
+    add w3, w3, #1
+    b 1b
+2:
+    stp xzr, xzr, [x2]
+9:
+    ret
+
+// int pf_is_mmap_addr(void *addr) -> 1 if inside a registered file mapping
+pf_is_mmap_addr:
+    cbz x0, 8f
+    adrp x2, g_pf_mmap_tab
+    add x2, x2, :lo12:g_pf_mmap_tab
+    mov w3, #0
+1:
+    cmp w3, #PF_MMAP_SLOTS
+    b.hs 8f
+    ldp x4, x5, [x2]
+    cbz x4, 2f
+    cmp x0, x4
+    b.lo 2f
+    cmp x0, x5
+    b.hs 2f
+    mov w0, #1
+    ret
+2:
+    add x2, x2, #16
+    add w3, w3, #1
+    b 1b
+8:
+    mov w0, #0
     ret
 
 pf_sig_set:
@@ -84,9 +161,32 @@ pf_fatal_default:
     ldp x29, x30, [sp], #64
     ret
 
+// SIGBUS (SA_SIGINFO: x1 = siginfo): map a zero page over a truncated registered file mapping
 pf_sigbus_fallback:
+    stp x29, x30, [sp, #-32]!
+    mov x29, sp
+    str x1, [sp, #16]
+    ldr x0, [x1, #KSIGINFO_ADDR]
+    bl pf_is_mmap_addr
+    cbz w0, 1f
+    ldr x1, [sp, #16]
+    ldr x0, [x1, #KSIGINFO_ADDR]
+    and x0, x0, #-4096
+    mov x1, #4096
+    mov x2, #(PROT_READ | PROT_WRITE)
+    mov x3, #(MAP_PRIVATE_ANON | MAP_FIXED)
+    mov x4, #-1
+    mov x5, #0
+    OS_MMAP
+    cmn x0, #4095
+    b.hs 1f
+    ldp x29, x30, [sp], #32
+    ret
+1:
     mov w0, #SIGBUS
-    b pf_fatal_default
+    bl pf_fatal_default
+    ldp x29, x30, [sp], #32
+    ret
 
 pf_term_handler:
 pf_fault_handler:

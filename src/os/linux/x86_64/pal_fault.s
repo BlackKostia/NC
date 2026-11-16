@@ -28,6 +28,7 @@ g_sig_altstack:  .space SIGSTKSZ_BUFSZ
 .section .text
 .global os_fault_guard_install_slot
 .global os_signals_install
+.global pf_sig_restorer
 .global os_sig_reset_pipe
 .global pf_reg_mmap
 .global pf_unreg_mmap

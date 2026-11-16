@@ -127,6 +127,7 @@ def test_slab_arena_reclamation():
             "ld", o_path,
             os.path.join(ROOT, "build/core/memory.o"),
             os.path.join(ROOT, "build/os/linux/x86_64/pal_os.o"),
+            os.path.join(ROOT, "build/os/linux/x86_64/pal_file.o"),
             os.path.join(ROOT, "build/os/linux/x86_64/pal_fault.o"),
             os.path.join(ROOT, "build/os/linux/x86_64/pal_simd.o"),
             os.path.join(ROOT, "build/core/try_rt.o"),

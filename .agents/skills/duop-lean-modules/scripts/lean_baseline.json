@@ -1,10 +1,9 @@
 {
   "exports": {
-    "src/os/linux/aarch64/pal_os.s": 18,
-    "src/os/linux/x86_64/pal_os.s": 26
+    "src/os/linux/aarch64/pal_os.s": 17,
+    "src/os/linux/x86_64/pal_os.s": 17
   },
   "files": {
-    "src/os/linux/x86_64/pal_os.s": 598,
     "src/os/linux/x86_64/pal_uring.s": 502,
     "src/ui/file_pane_render.s": 1223,
     "tests/test_fs_reliability.py": 710,

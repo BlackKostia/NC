@@ -61,6 +61,10 @@ def parse_makefile_var(makefile_path: Path, var_name: str) -> list[str]:
 def parse_makefile_srcs(makefile_path: Path) -> tuple[list[str], list[str]]:
     srcs = parse_makefile_var(makefile_path, "SRCS")
     pal_raw = parse_makefile_var(makefile_path, "PAL_SRCS")
+    try:
+        pal_raw += parse_makefile_var(makefile_path, "PAL_START_SRCS")  # C-main entry stubs (pal_start.s)
+    except ValueError:
+        pass
     pal_default = [p.replace("$(OS)", "linux").replace("$(ARCH)", "x86_64") for p in pal_raw]
     return srcs, pal_default
 

@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 21
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 809
+- **Exported `.global` Symbols**: 825
 
 ## Structs (`include/*.inc`)
 
@@ -84,6 +84,7 @@
 - **`src/os/linux/aarch64/pal_fault.s`**
   - `os_fault_guard_install_slot`
   - `os_signals_install`
+  - `pf_sig_restorer`
   - `os_sig_reset_pipe`
   - `pf_reg_mmap`
   - `pf_unreg_mmap`
@@ -92,6 +93,16 @@
   - `os_set_pdeathsig`
   - `os_raise_nofile`
   - `os_mark_child_forked`
+- **`src/os/linux/aarch64/pal_file.s`**
+  - `os_copy_file_range`
+  - `os_mmap_file_ro`
+  - `os_munmap`
+  - `os_sigbus_guard_install`
+  - `os_watch_init`
+  - `os_watch_add`
+  - `os_watch_rm`
+  - `os_watch_read`
+  - `os_watch_next`
 - **`src/os/linux/aarch64/pal_os.s`**
   - `os_statat`
   - `os_fstat`
@@ -110,7 +121,6 @@
   - `os_clone_file`
   - `os_poll_many`
   - `os_set_nonblock`
-  - `os_watch_init`
 - **`src/os/linux/aarch64/pal_pty.s`**
   - `os_pty_spawn`
   - `os_pty_resize`
@@ -129,6 +139,12 @@
   - `os_mem_mismatch16`
   - `os_mem_find_byte`
   - `os_mem_count_byte`
+- **`src/os/linux/aarch64/pal_start.s`**
+  - `_start`
+- **`src/os/linux/aarch64/pal_sys_fd.s`**
+  - `os_dup2`
+- **`src/os/linux/aarch64/pal_sys_proc.s`**
+  - `os_fork`
 - **`src/os/linux/aarch64/pal_thread.s`**
   - `os_thread_spawn`
   - `os_thread_join`
@@ -145,6 +161,7 @@
 - **`src/os/linux/x86_64/pal_fault.s`**
   - `os_fault_guard_install_slot` — void os_fault_guard_install_slot(TryFrame **slot_ptr)
   - `os_signals_install` — void os_signals_install(void (*on_winch)(void), void (*on_int)(void), void (*on_term)(void))
+  - `pf_sig_restorer` — SA_RESTORER trampoline (must invoke rt_sigreturn directly with untouched rsp)
   - `os_sig_reset_pipe` — void os_sig_reset_pipe(void) - restore SIG_DFL for SIGPIPE in forked children
   - `pf_reg_mmap` — void pf_reg_mmap(void *base, size_t len)
   - `pf_unreg_mmap` — void pf_unreg_mmap(void *base)
@@ -153,6 +170,16 @@
   - `os_set_pdeathsig` — int os_set_pdeathsig(int expected_ppid, int sig) -> 1 alive, 0 if parent died in race
   - `os_raise_nofile` — int os_raise_nofile(uint64_t want) -> 0 on success or -errno
   - `os_mark_child_forked` — void os_mark_child_forked(void) - reset child TRY owner and clear inherited slot
+- **`src/os/linux/x86_64/pal_file.s`**
+  - `os_copy_file_range` — ssize_t os_copy_file_range(int src_fd, int dst_fd, size_t len) -- in-kernel copy at file offsets
+  - `os_mmap_file_ro` — void *os_mmap_file_ro(int fd, size_t len) -> mapping or 0
+  - `os_munmap` — void os_munmap(void *addr, size_t len)
+  - `os_sigbus_guard_install` — void os_sigbus_guard_install(void)
+  - `os_watch_init` — int os_watch_init(void) -> inotify fd (IN_NONBLOCK | IN_CLOEXEC)
+  - `os_watch_add` — int os_watch_add(int fd, const char *path, uint32_t mask)
+  - `os_watch_rm` — int os_watch_rm(int fd, int wd)
+  - `os_watch_read` — ssize_t os_watch_read(int fd, void *buf, size_t cap)
+  - `os_watch_next` — int os_watch_next(const void *buf, size_t len, size_t *pos, int *wd, uint32_t *mask)
 - **`src/os/linux/x86_64/pal_os.s`**
   - `os_statat` — Returns 0 on success or -errno on failure.
   - `os_fstat` — Returns 0 on success or -errno on failure.
@@ -171,15 +198,6 @@
   - `os_clone_file` — int os_clone_file(int src_fd, int dst_fd) -- ioctl(dst, FICLONE, src): whole-file CoW reflink
   - `os_poll_many` — int os_poll_many(const int *fds, int n, int timeout_ms) -> ready bitmask / 0 / -errno
   - `os_set_nonblock` — int os_set_nonblock(int fd)
-  - `os_watch_init` — int os_watch_init(void) -> inotify fd (IN_NONBLOCK | IN_CLOEXEC)
-  - `os_watch_add` — int os_watch_add(int fd, const char *path, uint32_t mask)
-  - `os_watch_rm` — int os_watch_rm(int fd, int wd)
-  - `os_watch_read` — ssize_t os_watch_read(int fd, void *buf, size_t cap)
-  - `os_watch_next` — int os_watch_next(const void *buf, size_t len, size_t *pos, int *wd, uint32_t *mask)
-  - `os_mmap_file_ro` — void *os_mmap_file_ro(int fd, size_t len) -> mapping or 0
-  - `os_munmap` — void os_munmap(void *addr, size_t len)
-  - `os_sigbus_guard_install` — void os_sigbus_guard_install(void)
-  - `os_copy_file_range` — ssize_t os_copy_file_range(int src_fd, int dst_fd, size_t len) -- in-kernel copy at file offsets
 - **`src/os/linux/x86_64/pal_pty.s`**
   - `os_poll_out` — int os_poll_out(int fd, int timeout_ms)
   - `os_pty_spawn` — int os_pty_spawn(int *out_master_fd, int *out_pid, const char *cwd, char **envp, int cols, int rows)
@@ -198,6 +216,12 @@
   - `os_mem_mismatch16` — Index of the first 16-byte block that differs, or n16 when all blocks are equal.
   - `os_mem_find_byte` — Clobbers rax, rcx, r8, r9, xmm0-xmm1.
   - `os_mem_count_byte` — Clobbers rax, rcx, r8, r9, r10, xmm0-xmm1.
+- **`src/os/linux/x86_64/pal_start.s`**
+  - `_start`
+- **`src/os/linux/x86_64/pal_sys_fd.s`**
+  - `os_dup2`
+- **`src/os/linux/x86_64/pal_sys_proc.s`**
+  - `os_fork`
 - **`src/os/linux/x86_64/pal_thread.s`**
   - `os_thread_spawn` — rdi=fn, rsi=arg, rdx=stack_top, rcx=ctid_out
   - `os_thread_join` — void os_thread_join(int *ctid)

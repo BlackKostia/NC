@@ -10,8 +10,28 @@ PAL_INC := include/os/$(OS)/$(ARCH)
 
 AS      := as
 LD      := ld
+CC      := gcc
+CTARGET :=
+ifeq ($(ARCH),aarch64)
+AS      := aarch64-linux-gnu-as
+LD      := aarch64-linux-gnu-ld
+CC      := clang
+CTARGET := --target=aarch64-linux-gnu -mno-outline-atomics
+endif
 ASFLAGS := -I $(PAL_INC) -I include -I $(BUILD) -g --strip-local-absolute
-LDFLAGS := -z noexecstack
+LDFLAGS := -z noexecstack --gc-sections
+# Freestanding C23 (docs/HYBRID_PORTABILITY_PLAN.md "ABI-прапорці збірки"); no libc, no PIE/CET/unwind tables
+CFLAGS  := $(CTARGET) -std=gnu2x -Os -ffreestanding -fno-pic -fno-pie \
+	-fcf-protection=none -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-ident \
+	-funsigned-char -fno-strict-aliasing -fno-common -ffunction-sections -fdata-sections -Wno-unused-command-line-argument \
+	-Wall -Wextra -Werror -Wframe-larger-than=4096 -I include -I $(BUILD)
+ifneq ($(ARCH),aarch64)
+CFLAGS  += -fno-stack-clash-protection
+endif
+
+ifneq ($(ARCH),x86_64)
+BUILD   := build_$(ARCH)
+endif
 
 ifeq ($(MEMCHECK),1)
 TARGET  := duop_memcheck
@@ -229,17 +249,26 @@ PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_pty.s \
 	src/os/$(OS)/$(ARCH)/pal_thread.s \
 	src/os/$(OS)/$(ARCH)/pal_du.s \
-	src/os/$(OS)/$(ARCH)/pal_time.s
+	src/os/$(OS)/$(ARCH)/pal_time.s \
+	src/os/$(OS)/$(ARCH)/pal_file.s \
+	src/os/$(OS)/$(ARCH)/pal_sys_fd.s \
+	src/os/$(OS)/$(ARCH)/pal_sys_path.s \
+	src/os/$(OS)/$(ARCH)/pal_sys_proc.s \
+	src/os/$(OS)/$(ARCH)/pal_sys_mem.s
+
+# Process entry for C-main builds; the asm build still starts in src/main.s (_start) until Stage 4
+PAL_START_SRCS := \
+	src/os/$(OS)/$(ARCH)/pal_start.s
 
 OBJS := $(patsubst src/%.s,$(BUILD)/%.o,$(SRCS) $(PAL_SRCS))
 INCS := $(wildcard include/*.inc) $(wildcard $(PAL_INC)/*.inc)
 
-.PHONY: all release run test memcheck verify hooks symbols symbols-check clean
+.PHONY: all release run test memcheck verify hooks symbols symbols-check clean pal-selftest check-toolchain
 
 all: $(TARGET)
 
 release: ASFLAGS := -I $(PAL_INC) -I include -I $(BUILD)
-release: LDFLAGS := -s -z noexecstack
+release: LDFLAGS := -s -z noexecstack --gc-sections
 release: clean $(TARGET)
 
 $(TARGET): $(OBJS)
@@ -247,7 +276,7 @@ $(TARGET): $(OBJS)
 
 # Unstripped link of the same objects: the binary-level audits (audit_live_regs.py) need the symbol table
 $(BUILD)/duop.sym: $(OBJS)
-	$(LD) -z noexecstack $(OBJS) -o $@
+	$(LD) -z noexecstack --gc-sections $(OBJS) -o $@
 
 $(VER_INC): VERSION
 	@mkdir -p $(BUILD)
@@ -257,12 +286,47 @@ $(BUILD)/%.o: src/%.s $(INCS) $(VER_INC)
 	@mkdir -p $(dir $@)
 	$(AS) $(ASFLAGS) $< -o $@
 
+$(BUILD)/%.o: src/%.c $(wildcard include/*.h)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
+
+# PAL walking skeleton: C self-test linked with the PAL of the selected ARCH (qemu-aarch64 runs the arm64 one).
+# Objects live in build_selftest/<arch>/ so they never leak into the main build/ tree that tests glob.
+ST      := build_selftest/$(ARCH)
+ST_OBJS := $(patsubst src/%.s,$(ST)/%.o,$(PAL_SRCS) $(PAL_START_SRCS)) $(ST)/pal_selftest/pal_selftest.o $(ST)/pal_selftest/mem.o
+SELFTEST := $(ST)/selftest
+
+$(ST)/%.o: src/%.s $(INCS)
+	@mkdir -p $(dir $@)
+	$(AS) $(ASFLAGS) $< -o $@
+
+$(ST)/pal_selftest/%.o: tools/pal_selftest/%.c include/duop_abi.h
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
+
+$(SELFTEST): $(ST_OBJS)
+	$(LD) $(LDFLAGS) $(ST_OBJS) -o $@
+
+pal-selftest: $(SELFTEST)
+ifeq ($(ARCH),aarch64)
+	qemu-aarch64 $(SELFTEST)
+else
+	$(SELFTEST)
+endif
+
+check-toolchain:
+	@$(CC) --version | head -1
+	@$(AS) --version | head -1
+	@$(LD) --version | head -1
+
 run: $(TARGET)
 	./$(TARGET)
 
 test: $(TARGET)
 	python3 tests/test_pal_architecture.py
 	python3 tests/test_abi_cross.py
+	python3 tests/test_pal_parity.py
+	python3 tests/test_pal_selftest.py
 	python3 tests/test_pty.py
 	python3 tests/test_fs_reliability.py
 	python3 tests/test_performance_dir.py
@@ -352,5 +416,7 @@ hooks:
 	git config core.hooksPath .githooks
 	chmod +x .githooks/* .agents/hooks/*.py .agents/skills/*/scripts/*
 
+-include $(shell find $(BUILD) $(ST) -name '*.d' 2>/dev/null)
+
 clean:
-	rm -rf $(BUILD) $(TARGET) build_mc duop_memcheck
+	rm -rf $(BUILD) $(TARGET) build_mc build_aarch64 build_selftest duop_memcheck

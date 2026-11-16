@@ -17,3 +17,5 @@ __pycache__/
 *~
 .vscode/
 .idea/
+build_aarch64/
+build_selftest/
