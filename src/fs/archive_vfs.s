@@ -27,6 +27,8 @@
 .extern mem_free
 .extern mem_zero
 .extern path_basename
+.extern arc_zip64_eocd
+.extern arc_zip64_extra
 .extern str_len
 .extern str_copy
 .extern str_cat
@@ -35,6 +37,8 @@
 .extern str_starts_with
 .extern path_join
 .extern path_basename
+.extern arc_zip64_eocd
+.extern arc_zip64_extra
 
 .section .rodata
 arc_ext_tar:   .asciz ".tar"
@@ -147,6 +151,13 @@ arc_parse_zip:
 .Lapz_cd:
     mov r15d, [r12 + r14 + 16]  # cd_off
     movzx r8d, word ptr [r12 + r14 + 10]  # total_entries
+    cmp r15d, -1; je .Lapz_z64
+    cmp r8d, 0xFFFF; jne .Lapz_cd_ok
+.Lapz_z64:
+    mov rdi, r12; mov rsi, r13; mov rdx, r14; mov rcx, r15
+    call arc_zip64_eocd
+    mov r15, rax; mov r8, rdx
+.Lapz_cd_ok:
     xor r9d, r9d
 .Lapz_loop:
     cmp r9d, r8d; jge .Lapz_done
@@ -177,10 +188,10 @@ arc_parse_zip:
     mov edx, 1
 .Lapz_nd:
     mov [rdi + 284], edx
+    push rcx; push r8; push r9; push r10; push r11; call arc_zip64_extra
+    pop r11; pop r10; pop r9; pop r8; pop rcx
     # Validate local header + data bounds against raw_len (r13)
-    mov rdx, [rdi + 256]      # local_hdr_off
-    lea r14, [rdx + 30]
-    cmp r14, r13; ja .Lapz_skip
+    mov rdx, [rdi + 256]; lea r14, [rdx + 30]; cmp r14, r13; ja .Lapz_skip
     movzx eax, word ptr [r12 + rdx + 26]
     add r14, rax
     movzx eax, word ptr [r12 + rdx + 28]

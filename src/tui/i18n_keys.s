@@ -275,6 +275,7 @@ i18n_keys:
     LK pkg_err, LangStrings.pkg_err
     LK pkg_tab_inst, LangStrings.pkg_tab_inst
     LK pkg_tab_avail, LangStrings.pkg_tab_avail
+    LK arc_truncated, LangStrings.arc_truncated
     .short 0xFFFF
 .if lk_slots * 8 != LangStrings._size
     .error "i18n_keys: every LangStrings slot needs exactly one key"

@@ -16,12 +16,15 @@ App_vtbl:
 .global App_dtor
 .global App_vtbl
 
+.extern g_git_defer
+
 # App *App_new(const char *left_path, const char *right_path, char **envp, int lang_override)
 App_new:
     push rbx
     push r12
     push r13
     push r14
+    mov dword ptr [rip + g_git_defer], 1
     push r15
     call App_new__left_path
     jz .Lan_fail

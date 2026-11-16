@@ -395,6 +395,6 @@ LangStrings.pkg_verified:       .space 8
 LangStrings.pkg_err:            .space 8
 LangStrings.pkg_tab_inst:       .space 8
 LangStrings.pkg_tab_avail:      .space 8
+LangStrings.arc_truncated:      .space 8
 LangStrings._size:
-
 .section .text

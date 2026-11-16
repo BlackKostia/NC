@@ -19,12 +19,17 @@
 .equ SLAB_CLASSES,   SLAB_MAX_SHIFT - SLAB_MIN_SHIFT + 1
 .equ SLAB_ARENA,     262144          # refill granularity (256 KiB)
 .equ SLAB_MAX_REQ,   (1 << SLAB_MAX_SHIFT) - 16
+.equ MAX_SLAB_ARENAS, 256
 
 .section .bss
 .align 8
-slab_free: .space 8 * SLAB_CLASSES   # free-list heads (block header addresses)
-slab_bump: .space 8 * SLAB_CLASSES   # next uncarved block in the current arena
-slab_end:  .space 8 * SLAB_CLASSES   # end of the current arena
+slab_free:       .space 8 * SLAB_CLASSES   # free-list heads (block header addresses)
+slab_bump:       .space 8 * SLAB_CLASSES   # next uncarved block in the current arena
+slab_end:        .space 8 * SLAB_CLASSES   # end of the current arena
+slab_arena_base: .space 8 * MAX_SLAB_ARENAS
+slab_arena_live: .space 4 * MAX_SLAB_ARENAS
+slab_cur_arena:  .space 4 * SLAB_CLASSES
+slab_arena_cnt:  .space 4
 
 .section .text
 .global mem_alloc
@@ -35,6 +40,7 @@ slab_end:  .space 8 * SLAB_CLASSES   # end of the current arena
 .global mem_set
 .global mem_zero
 .global mem_cmp
+.global mem_slab_arena_count
 
 # void *mem_alloc(size_t size)
 # rdi = size -> returns rax = zeroed 16-byte aligned pointer, or 0 on error
@@ -52,12 +58,10 @@ mem_alloc:
 1:  pop r13; pop r12; pop rbx; ret
 mem_alloc_raw:
 .endif
-    test rdi, rdi
-    jnz .Lalloc_nz
+    test rdi, rdi; jnz .Lalloc_nz
     mov edi, 1
 .Lalloc_nz:
-    cmp rdi, SLAB_MAX_REQ
-    ja mem_alloc_big
+    cmp rdi, SLAB_MAX_REQ; ja mem_alloc_big
 
     # class k = max(6, bsr(size + 15) + 1); idx = k - 6
     lea rax, [rdi + 15]
@@ -74,6 +78,12 @@ mem_alloc_raw:
     jz .Lalloc_carve
     mov rdx, [rax + 8]                # pop free list
     mov [r8 + rcx * 8], rdx
+    mov rdx, [rax]; shr rdx, 12       # arena_idx + 1
+    test edx, edx; jz .Lalloc_pop_z
+    dec edx
+    lea r10, [rip + slab_arena_live]
+    inc dword ptr [r10 + rdx * 4]
+.Lalloc_pop_z:
     # Recycled block: zero header link + payload (block_size - 8 bytes from +8)
     mov r9, rax
     add ecx, SLAB_MIN_SHIFT
@@ -102,12 +112,30 @@ mem_alloc_raw:
     cmp rdx, [r10 + rcx * 8]
     ja .Lalloc_refill
     mov [r9 + rcx * 8], rdx
+    lea r10, [rip + slab_cur_arena]
+    mov r8d, [r10 + rcx * 4]          # arena_idx + 1
+    test r8d, r8d; jz .Lalloc_tag
+    lea r11d, [r8d - 1]
+    lea r10, [rip + slab_arena_live]
+    inc dword ptr [r10 + r11 * 4]
+.Lalloc_tag:
+    shl r8, 12
     lea edx, [ecx + 1]
+    or rdx, r8
     mov [rax], rdx                    # slab tag (fresh arena memory is already zero)
     add rax, 16
     ret
 
 .Lalloc_refill:
+    call mem_arena_refill
+    test rax, rax
+    jz .Lalloc_fail
+    lea r9, [rip + slab_bump]
+    lea r10, [rip + slab_end]
+    jmp .Lalloc_try
+
+# void *mem_arena_refill(int cls_idx in rcx) -> base or 0, preserves rcx
+mem_arena_refill:
     push rcx
     xor edi, edi
     mov esi, SLAB_ARENA
@@ -115,13 +143,34 @@ mem_alloc_raw:
     OS_MMAP_ANON
     pop rcx
     cmp rax, -4095
-    jae .Lalloc_fail
+    jae .Lmar_fail
     lea r9, [rip + slab_bump]
     lea r10, [rip + slab_end]
     mov [r9 + rcx * 8], rax
-    add rax, SLAB_ARENA
-    mov [r10 + rcx * 8], rax
-    jmp .Lalloc_try
+    lea rdx, [rax + SLAB_ARENA]
+    mov [r10 + rcx * 8], rdx
+    lea r8, [rip + slab_arena_base]
+    xor edx, edx
+.Lmar_slot:
+    cmp edx, MAX_SLAB_ARENAS; jae .Lmar_full
+    cmp qword ptr [r8 + rdx * 8], 0; je .Lmar_reg
+    inc edx; jmp .Lmar_slot
+.Lmar_reg:
+    mov [r8 + rdx * 8], rax
+    lea r8, [rip + slab_arena_live]
+    mov dword ptr [r8 + rdx * 4], 0
+    inc edx
+    lea r8, [rip + slab_cur_arena]
+    mov [r8 + rcx * 4], edx
+    inc dword ptr [rip + slab_arena_cnt]
+    ret
+.Lmar_full:
+    lea r8, [rip + slab_cur_arena]
+    mov dword ptr [r8 + rcx * 4], 0
+    ret
+.Lmar_fail:
+    xor eax, eax
+    ret
 
 .Lalloc_fail:
     xor eax, eax
@@ -164,11 +213,64 @@ mem_free_raw:
 .Lfree_done:
     ret
 .Lfree_slab:
+    mov r8, rax
+    shr r8, 12                        # arena_idx + 1
+    and eax, 0xF
     dec eax                           # idx
     lea rcx, [rip + slab_free]
     mov rdx, [rcx + rax * 8]
     mov [rdi + 8], rdx
     mov [rcx + rax * 8], rdi
+    test r8d, r8d
+    jz .Lfree_done
+    dec r8d
+    lea r9, [rip + slab_arena_live]
+    dec dword ptr [r9 + r8 * 4]
+    jnz .Lfree_done
+    cmp dword ptr [rip + slab_arena_cnt], 1
+    jle .Lfree_done
+    mov edi, r8d
+    mov esi, eax
+    jmp mem_reclaim_arena
+
+# void mem_reclaim_arena(int arena_idx, int cls_idx)
+mem_reclaim_arena:
+    lea r8, [rip + slab_arena_base]
+    mov r9, [r8 + rdi * 8]            # base
+    test r9, r9; jz .Lmra_ret
+    lea r10, [r9 + SLAB_ARENA]        # end
+    lea rcx, [rip + slab_free]
+    lea rcx, [rcx + rsi * 8]          # prev_ptr = &slab_free[cls]
+.Lmra_unlink:
+    mov rdx, [rcx]
+    test rdx, rdx; jz .Lmra_cur
+    cmp rdx, r9; jb .Lmra_keep
+    cmp rdx, r10; jae .Lmra_keep
+    mov r11, [rdx + 8]
+    mov [rcx], r11
+    jmp .Lmra_unlink
+.Lmra_keep:
+    lea rcx, [rdx + 8]
+    jmp .Lmra_unlink
+.Lmra_cur:
+    lea eax, [edi + 1]
+    lea rcx, [rip + slab_cur_arena]
+    cmp [rcx + rsi * 4], eax; jne .Lmra_unmap
+    mov dword ptr [rcx + rsi * 4], 0
+    lea rcx, [rip + slab_bump]; mov qword ptr [rcx + rsi * 8], 0
+    lea rcx, [rip + slab_end];  mov qword ptr [rcx + rsi * 8], 0
+.Lmra_unmap:
+    mov qword ptr [r8 + rdi * 8], 0
+    dec dword ptr [rip + slab_arena_cnt]
+    mov rdi, r9
+    mov esi, SLAB_ARENA
+    OS_MUNMAP
+.Lmra_ret:
+    ret
+
+# int mem_slab_arena_count(void)
+mem_slab_arena_count:
+    mov eax, [rip + slab_arena_cnt]
     ret
 
 # void *mem_realloc(void *ptr, size_t new_size)
@@ -221,6 +323,7 @@ mem_realloc_raw:
     jmp .Lrealloc_ret
 
 .Lrealloc_slab:
+    and eax, 0xF
     lea ecx, [eax - 1 + SLAB_MIN_SHIFT]
     mov r13d, 1
     shl r13, cl                       # block size

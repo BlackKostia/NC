@@ -41,16 +41,21 @@ arc_tmp_sfx:   .asciz ".tmp"
 .section .text
 .global arc_enter_model
 .global arc_extract_entry
+.global arc_zip64_eocd
+.global arc_zip64_extra
 
 # int arc_enter_model(DirModel *m, const FileEntry *ent) -> 1 if handled, 2 if '..' nav_up, 0 otherwise
 arc_enter_model:
     push rbx; push r12; push r13; push r14; sub rsp, PATH_MAX + 16 + TRY_FRAME_SIZE
     mov r13, rdi; mov r14, rsi
+    xor r12d, r12d
     test r14, r14; jz .Lahe_no
     call DirModel_entry_name
     cmp dword ptr [r13 + DirModel.virtual_mode], 2
     je .Lahe_in_arc
     test dword ptr [r14 + FileEntry.flags], FE_IS_DIR; jnz .Lahe_no
+    cmp qword ptr [r14 + FileEntry.size], ARC_MAX_FILE
+    seta r12b
     mov r14, rax
     mov rdi, r14; call arc_is_archive
     test eax, eax; jz .Lahe_no
@@ -89,7 +94,10 @@ arc_enter_model:
     lea r8, [rsp + PATH_MAX + 16]
     TRY_END r8
     mov rdi, r13; call arc_populate
-    mov eax, 1; jmp .Lahe_ret
+    mov eax, 1
+    test r12d, r12d; jz .Lahe_ret
+    mov eax, 3
+    jmp .Lahe_ret
 .Lahe_fault:
     xor eax, eax; jmp .Lahe_ret
 .Lahe_in_arc:
@@ -103,7 +111,10 @@ arc_enter_model:
     lea rdi, [rcx + ACTX_SUB]; call str_len
     mov byte ptr [rcx + ACTX_SUB + rax], '/'; mov byte ptr [rcx + ACTX_SUB + rax + 1], 0
     mov rdi, r13; call arc_populate
-    mov eax, 1; jmp .Lahe_ret
+    mov eax, 1
+    test r12d, r12d; jz .Lahe_ret
+    mov eax, 3
+    jmp .Lahe_ret
 .Lahe_no:
     xor eax, eax
 .Lahe_ret:
@@ -136,8 +147,7 @@ arc_extract_entry:
     SCOPED_MEM_INIT [rsp + PATH_MAX + TRY_FRAME_SIZE]
     USING_FD_INIT [rsp + PATH_MAX + TRY_FRAME_SIZE + 8]
     cmp dword ptr [r13 + DirModel.virtual_mode], 2; jne .Laes_err
-    test rax, rax; jz .Laes_err
-    test dword ptr [rax + FileEntry.flags], FE_IS_DIR; jnz .Laes_err
+    test rax, rax; jz .Laes_err; test dword ptr [rax + FileEntry.flags], FE_IS_DIR; jnz .Laes_err
     mov rdi, r13; mov rsi, rax; call DirModel_entry_name
     mov r14, [r13 + DirModel.arc_ctx]
     push rax
@@ -208,3 +218,53 @@ arc_extract_entry:
     mov eax, -1
 .Laes_ret:
     add rsp, PATH_MAX + TRY_FRAME_SIZE + 24; pop r15; pop r14; pop r13; pop r12; pop rbx; ret
+
+# (cd_off in rax, total_entries in rdx) arc_zip64_eocd(r12=rdi, r13=rsi, eocd_off=rdx, cd_off=rcx, total=r8)
+arc_zip64_eocd:
+    mov rax, rcx; mov r10, rdx; mov rdx, r8
+    cmp r10, 20; jb .Lz64e_ret
+    cmp dword ptr [rdi + r10 - 20], 0x07064b50; jne .Lz64e_ret
+    mov r9, [rdi + r10 - 12]       # z64_eocd_off
+    lea rcx, [r9 + 56]; cmp rcx, rsi; ja .Lz64e_ret
+    cmp dword ptr [rdi + r9], 0x06064b50; jne .Lz64e_ret
+    mov rdx, [rdi + r9 + 32]        # total_entries
+    cmp rdx, ARC_MAX_ENTRIES; jbe .Lz64e_off
+    mov edx, ARC_MAX_ENTRIES
+.Lz64e_off:
+    mov rax, [rdi + r9 + 48]        # cd_off
+.Lz64e_ret:
+    ret
+
+# Apply ZIP64 Extra Field (0x0001) to entry [rdi] using CD at r12+r15, fname=rcx, extra=r10
+arc_zip64_extra:
+    mov edx, 0xFFFFFFFF
+    cmp [rdi + 264], rdx; je .Lz64x_scan
+    cmp [rdi + 272], rdx; je .Lz64x_scan
+    cmp [rdi + 256], rdx; jne .Lz64x_ret
+.Lz64x_scan:
+    lea rsi, [r15 + 46 + rcx]
+    lea rax, [rsi + r10]; cmp rax, r13; ja .Lz64x_ret
+    add rsi, r12                    # extra ptr
+    mov r8, r10                     # extra rem
+.Lz64x_loop:
+    cmp r8, 4; jb .Lz64x_ret
+    movzx eax, word ptr [rsi]
+    movzx r9d, word ptr [rsi + 2]
+    add rsi, 4; sub r8, 4
+    cmp r9, r8; ja .Lz64x_ret
+    cmp ax, 1; je .Lz64x_hit
+    add rsi, r9; sub r8, r9; jmp .Lz64x_loop
+.Lz64x_hit:
+    cmp [rdi + 264], rdx; jne .Lz64x_cs
+    cmp r9, 8; jb .Lz64x_ret
+    mov rax, [rsi]; mov [rdi + 264], rax; add rsi, 8; sub r9, 8
+.Lz64x_cs:
+    cmp [rdi + 272], rdx; jne .Lz64x_off
+    cmp r9, 8; jb .Lz64x_ret
+    mov rax, [rsi]; mov [rdi + 272], rax; add rsi, 8; sub r9, 8
+.Lz64x_off:
+    cmp [rdi + 256], rdx; jne .Lz64x_ret
+    cmp r9, 8; jb .Lz64x_ret
+    mov rax, [rsi]; mov [rdi + 256], rax
+.Lz64x_ret:
+    ret

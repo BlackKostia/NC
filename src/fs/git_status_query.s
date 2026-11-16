@@ -20,10 +20,15 @@
 git_dot_git:   .asciz "/.git"
 git_empty:     .asciz ""
 
+.section .bss
+.align 4
+g_git_defer: .space 4
+
 .section .text
 .global git_refresh
 .global git_lookup
 .global git_branch
+.global g_git_defer
 
 # void git_parse_output(GitCtx *ctx, const char *buf, int len)
 git_parse_output:
@@ -182,6 +187,8 @@ git_has_repo:
 
 # void git_refresh(DirModel *dm)
 git_refresh:
+    cmp dword ptr [rip + g_git_defer], 0
+    jne .Lgr_skip
     push rbx; push r12; push r13
     mov rbx, rdi
     cmp dword ptr [rbx + DirModel.virtual_mode], 0
@@ -244,6 +251,7 @@ git_refresh:
 .Lgr_done:
     xor eax, eax
     pop r13; pop r12; pop rbx
+.Lgr_skip:
     ret
 
 # int git_lookup(DirModel *dm, const char *name) -> status char or 0

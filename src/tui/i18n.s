@@ -308,6 +308,7 @@ en_pkg_verified:       .asciz " Package verified (SHA-256 OK) "
 en_pkg_err:            .asciz " Package operation failed "
 en_pkg_tab_inst:       .asciz " Installed "
 en_pkg_tab_avail:      .asciz " Available "
+en_arc_truncated:      .asciz "Archive truncated at 4 MiB limit"
 
 .align 8
 .global lang_en_table
@@ -357,7 +358,7 @@ lang_en_table:
     .quad en_du_scan_title, en_du_lbl_folders, en_du_lbl_scanned, en_du_unit_dirs, en_du_unit_files, en_du_scan_hint, en_msg_du_canceled
     .quad en_pkg_title, en_pkg_hint, en_pkg_empty, en_pkg_install_prompt
     .quad en_pkg_installed, en_pkg_removed, en_pkg_verified, en_pkg_err
-    .quad en_pkg_tab_inst, en_pkg_tab_avail
+    .quad en_pkg_tab_inst, en_pkg_tab_avail, en_arc_truncated
 .if (. - lang_en_table) != LangStrings._size
     .error "lang_en_table size does not match LangStrings._size"
 .endif

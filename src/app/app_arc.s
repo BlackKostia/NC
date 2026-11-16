@@ -13,6 +13,8 @@
 .extern arc_extract_entry
 .extern FilePane_get_selected_entry
 .extern FilePane_ensure_visible
+.extern App_set_status
+.extern i18n_get
 
 # int arc_nav_up(FilePane *fp) -> 1 if handled
 arc_nav_up:
@@ -54,6 +56,10 @@ arc_handle_enter:
 .Lahe_reset:
     mov dword ptr [r12 + FilePane.cursor], 0
     mov dword ptr [r12 + FilePane.scroll], 0
+    cmp eax, 3; jne .Lahe_ok
+    call i18n_get
+    mov rsi, [rax + LangStrings.arc_truncated]
+    mov rdi, rbx; mov edx, 1; call App_set_status
 .Lahe_ok:
     mov dword ptr [rbx + App.need_redraw], 1
     mov eax, 1

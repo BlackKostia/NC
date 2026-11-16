@@ -15,9 +15,15 @@
 .extern str_cat
 .extern str_len
 .extern os_statat
+.extern env_getenv
+.extern g_envp
 
 .section .rodata
 git_bin:       .asciz "/usr/bin/git"
+git_bin_usr:   .asciz "/usr/local/bin/git"
+git_bin_bin:   .asciz "/bin/git"
+git_name:      .asciz "git"
+git_path_key:  .asciz "PATH"
 git_arg_nolck: .asciz "--no-optional-locks"
 git_arg_c:     .asciz "-C"
 git_arg_stat:  .asciz "status"
@@ -129,7 +135,7 @@ git_spawn_status__child_process:
     OS_CLOSE
 
 .Lgss_exec:
-    lea rax, [rip + git_bin]; mov [rsp + 8 + 16], rax
+    lea rax, [rip + git_name]; mov [rsp + 8 + 16], rax
     lea rcx, [rip + git_arg_nolck]; mov [rsp + 16 + 16], rcx
     lea rcx, [rip + git_arg_c]; mov [rsp + 24 + 16], rcx
     mov [rsp + 32 + 16], r12
@@ -143,10 +149,9 @@ git_spawn_status__child_process:
     lea rcx, [rip + git_env_lc]; mov [rsp + 96 + 16], rcx
     mov qword ptr [rsp + 104 + 16], 0
 
-    mov rdi, rax
-    lea rsi, [rsp + 8 + 16]
-    lea rdx, [rsp + 88 + 16]
-    OS_EXECVE
+    lea rdi, [rsp + 8 + 16]
+    lea rsi, [rsp + 88 + 16]
+    call git_exec_from_path
     mov edi, 127
     OS_EXIT
 
@@ -157,6 +162,43 @@ git_spawn_status__child_process:
 
 .Lgit_spawn_status__child_process_ret:
     lea rsp, [rsp + 8]
+    ret
+
+# void git_exec_from_path(char **argv, char **envp) -> tries PATH entries, then fallbacks
+git_exec_from_path:
+    sub rsp, PATH_MAX + 8
+    mov r12, rdi; mov r13, rsi
+    mov rdi, [rip + g_envp]
+    lea rsi, [rip + git_path_key]
+    call env_getenv
+    test rax, rax; jz .Lgep_fb
+    mov r14, rax
+.Lgep_next:
+    cmp byte ptr [r14], 0; je .Lgep_fb
+    xor ecx, ecx
+.Lgep_cp:
+    mov al, [r14]
+    test al, al; jz .Lgep_sep
+    cmp al, ':'; je .Lgep_sep
+    cmp ecx, PATH_MAX - 8; jge .Lgep_skip
+    mov [rsp + rcx], al; inc ecx
+.Lgep_skip:
+    inc r14; jmp .Lgep_cp
+.Lgep_sep:
+    cmp byte ptr [r14], ':'; jne .Lgep_sfx
+    inc r14
+.Lgep_sfx:
+    test ecx, ecx; jz .Lgep_next
+    mov byte ptr [rsp + rcx], '/'
+    mov dword ptr [rsp + rcx + 1], 0x00746967  # "git\0"
+    mov rdi, rsp; mov rsi, r12; mov rdx, r13
+    OS_EXECVE
+    jmp .Lgep_next
+.Lgep_fb:
+    lea rdi, [rip + git_bin]; mov rsi, r12; mov rdx, r13; OS_EXECVE
+    lea rdi, [rip + git_bin_usr]; mov rsi, r12; mov rdx, r13; OS_EXECVE
+    lea rdi, [rip + git_bin_bin]; mov rsi, r12; mov rdx, r13; OS_EXECVE
+    add rsp, PATH_MAX + 8
     ret
 
 # git_spawn_status step: total read (runs on the caller's frame)

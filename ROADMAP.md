@@ -8,7 +8,7 @@
 
 ## Поточна база (`v1.0` — реалізовано)
 
-- **Кодова база**: `13 356` рядків (`.inc` + `.s`), stripped release-бінарник `make release`: ~50 КБ (`text=45445, data=0, bss=680`).
+- **Кодова база**: `v1.0` починалася з `13 356` рядків і ~50 КБ (`text=45445, data=0, bss=680`); актуальний `v2.6+` із декодерами зображень (JPEG/PNG/GIF/BMP/PNM/TGA), Kitty/Sixel, Package Manager, `io_uring` та Archive VFS (ZIP64) — stripped static ELF ~193 КБ (`.data=0`, `bss` ~785 КБ, нуль `libc`).
 - **ООП-рантайм** ([oop.inc](include/oop.inc), [oop_rt.s](src/core/oop_rt.s), [classes.inc](include/classes.inc)): `Object`, `ScreenBuffer`, `DirModel`, `App`, `Widget` → `HeaderBar`, `FunctionBar`, `StatusBar`, `FilePane`, `PreviewPane`, `Dialog` → `ConfirmDialog`, `InputDialog`, `ViewerDialog`, `HelpDialog`.
 - **Графіка та ввід**: 24-біт TrueColor diff-рендер ([screen.s](src/tui/screen.s)), 3 теми ([theme.s](src/tui/theme.s)), повний декодер клавіатури (включно з `Alt + UTF-8`) і миші `SGR 1006` ([input.s](src/tui/input.s)).
 - **Двомовність (UA / EN)** ([i18n.s](src/tui/i18n.s)): `--lang ua|en`, автовизначення `LC_ALL`/`LC_MESSAGES`/`LANG`, миттєве перемикання `Alt+L` (`Alt+д`) або кнопкою у шапці, динамічні UTF-8 хіт-зони (`utf8_display_width`).
@@ -143,8 +143,8 @@
 3. **CI та дистрибуція ✅**:
    - GitHub Actions CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)); ✅
    - пакети для `AUR` ([packaging/aur/PKGBUILD](packaging/aur/PKGBUILD)), `.deb` ([packaging/deb/](packaging/deb/build-deb.sh)), `Nix` ([flake.nix](flake.nix)), `Homebrew` ([Formula/duop.rb](Formula/duop.rb)) та однорядковий [scripts/install.sh](scripts/install.sh). ✅
-4. **Порт на AArch64 (Raspberry Pi, ARM-сервери, Android/Termux) ✅**:
-   - повний compile-time PAL-бекенд у [include/os/linux/aarch64/pal_target.inc](include/os/linux/aarch64/pal_target.inc) та [src/os/linux/aarch64/](src/os/linux/aarch64/pal_os.s) (`pal_os.s`, `pal_simd.s` NEON, `pal_uring.s`, `pal_pty.s`), верифікований через `aarch64-linux-gnu-as` (`P4`). ✅
+4. **Порт на AArch64 (compile-time PAL, верифікація асемблюванням ✅)**:
+   - повний compile-time PAL-бекенд у [include/os/linux/aarch64/pal_target.inc](include/os/linux/aarch64/pal_target.inc) та [src/os/linux/aarch64/](src/os/linux/aarch64/pal_os.s) (`pal_os.s`, `pal_simd.s` NEON, `pal_uring.s`, `pal_pty.s`), верифікований через `aarch64-linux-gnu-as` (`P4`); основною runtime-тестованою платформою є `linux/x86_64`. ✅
 5. **Публічні анонси**: Hacker News, `r/linux`, `r/commandline`, `r/asm`, `lobste.rs` (зовнішня публікація).
 
 ---

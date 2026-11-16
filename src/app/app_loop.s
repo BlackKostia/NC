@@ -4,6 +4,9 @@
 .include "pal.inc"
 .include "classes.inc"
 
+.extern g_git_defer
+.extern git_refresh
+
 .section .text
 .global App_run
 
@@ -186,6 +189,22 @@ App_run__events_init:
     mov qword ptr [rsp + Event._size + 16], 0
 
     call App_events_init
+    mov rdi, rbx
+    call App_render
+    mov dword ptr [rip + g_git_defer], 0
+    mov rax, [rbx + App.left_pane]
+    mov rdi, [rax + FilePane.model]
+    call git_refresh
+    mov rax, [rbx + App.right_pane]
+    mov rdi, [rax + FilePane.model]
+    call git_refresh
+    mov rax, [rbx + App.left_pane]
+    mov rcx, [rax + FilePane.model]
+    mov rdx, [rcx + DirModel.git_ctx]
+    mov rax, [rbx + App.right_pane]
+    mov rcx, [rax + FilePane.model]
+    or rdx, [rcx + DirModel.git_ctx]
+    jz .LApp_run__events_init_ret
     mov rdi, rbx
     call App_render
 
