@@ -30,6 +30,7 @@
 .equ OS_SYS_readlinkat,       78
 .equ OS_SYS_newfstatat,       79
 .equ OS_SYS_fstat,            80
+.equ OS_SYS_fsync,            82
 .equ OS_SYS_exit,             93
 .equ OS_SYS_exit_group,       94
 .equ OS_SYS_clock_gettime,    113
@@ -52,6 +53,8 @@
 .equ AT_FDCWD,                -100
 .equ AT_SYMLINK_NOFOLLOW,     0x100
 .equ AT_REMOVEDIR,            0x200
+.equ RENAME_NOREPLACE,        1
+.equ ENAMETOOLONG,            36
 .equ OS_AT_EXECFN,            31      // auxv: path given to execve
 .equ O_RDONLY,                0
 .equ O_WRONLY,                1
@@ -100,6 +103,14 @@
 
 .macro OS_CLOSE
     OS_SYSCALL OS_SYS_close
+.endm
+
+.macro OS_FSYNC
+    OS_SYSCALL OS_SYS_fsync
+.endm
+
+.macro OS_RENAMEAT2
+    OS_SYSCALL OS_SYS_renameat2
 .endm
 
 .macro OS_IOCTL

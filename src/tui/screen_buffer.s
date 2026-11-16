@@ -29,15 +29,12 @@ ScreenBuffer_resize:
 .Lsbr_h_ok:
     mov r12d, esi
     mov r13d, edx
-    mov [rbx + ScreenBuffer.width], r12d
-    mov [rbx + ScreenBuffer.height], r13d
-    mov dword ptr [rbx + ScreenBuffer.force_full], 1
 
     movsxd rax, r12d
     movsxd rcx, r13d
     imul rax, rcx             # needed cell count
     cmp rax, [rbx + ScreenBuffer.cell_cap]
-    jbe .Lsbr_done
+    jbe .Lsbr_commit
 
     # Allocate front & back with a little slack (+256 cells)
     add rax, 256
@@ -61,10 +58,16 @@ ScreenBuffer_resize:
 
     pop rax
     mov [rbx + ScreenBuffer.cell_cap], rax
+.Lsbr_commit:
+    mov [rbx + ScreenBuffer.width], r12d
+    mov [rbx + ScreenBuffer.height], r13d
+    mov dword ptr [rbx + ScreenBuffer.force_full], 1
+    xor eax, eax
     jmp .Lsbr_done
 
 .Lsbr_pop_fail:
     pop rax
+    mov rax, -ENOMEM
 .Lsbr_done:
     pop r13
     pop r12

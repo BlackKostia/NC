@@ -55,6 +55,8 @@ task_worker_main:
     cmp r14d, [r12 + TaskJob.count]
     jae .Ltw_run
     call task_worker_main__path_join
+    test rax, rax
+    js .Ltw_fail
     cmp qword ptr [rsp + TW_DEV], -1
     je .Ltw_measure
     call task_worker_main__os_statat
@@ -281,14 +283,18 @@ task_worker_main__path_join_2:
     lea rsi, [r12 + TaskJob.src_dir]
     mov rdx, rbx
     mov ecx, PATH_MAX
-    call path_join
+    call path_join            # path-checked
+    test rax, rax
+    js .Ltask_worker_main__path_join_2_ret
     cmp dword ptr [r12 + TaskJob.join_dst], 0
     je .Ltw_dst_verbatim
     lea rdi, [rsp + TW_DST + 16]
     lea rsi, [r12 + TaskJob.dst]
     mov rdx, rbx
     mov ecx, PATH_MAX
-    call path_join
+    call path_join            # path-checked
+    test rax, rax
+    js .Ltask_worker_main__path_join_2_ret
     jmp .Ltw_exec
 .Ltw_dst_verbatim:
     lea rdi, [rsp + TW_DST + 16]

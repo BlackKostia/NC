@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 21
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 774
+- **Exported `.global` Symbols**: 775
 
 ## Structs (`include/*.inc`)
 
@@ -265,7 +265,7 @@
   - `format_perms` — Writes 10 chars + NUL (e.g. "drwxr-xr-x")
   - `format_datetime` — few distinct minutes), so redrawing a pane skips the calendar divisions per visible row.
 - **`src/core/string_path.s`**
-  - `path_join` — rdi=dst, rsi=dir, rdx=name, rcx=cap
+  - `path_join` — Returns resulting length (>= 0) on success, or -ENAMETOOLONG on truncation/overflow.
   - `path_dirname` — rdi=path, rsi=dst, rdx=cap
   - `path_basename` — const char *path_basename(const char *path)
   - `path_normalize` — Pure string work (no chdir/getcwd). Returns length, or 0 if it does not fit in `cap`.
@@ -495,6 +495,7 @@
   - `fs_mkdir` — int fs_mkdir(const char *path)
   - `fs_touch` — int fs_touch(const char *path)
   - `fs_rename` — int fs_rename(const char *old_path, const char *new_path)
+  - `fs_rename_noreplace` — int fs_rename_noreplace(const char *old_path, const char *new_path)
   - `path_is_same_or_descendant` — Returns 1 if dst == src (ignoring trailing '/') or dst is strictly inside src/
   - `copy_data` — Returns 0, -errno, or -ECANCELED. Reports bytes through fs_progress_bytes.
 - **`src/fs/file_ops_copy.s`**

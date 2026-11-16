@@ -30,6 +30,7 @@ g_copy_buf:      .space 8
 .global fs_mkdir
 .global fs_touch
 .global fs_rename
+.global fs_rename_noreplace
 .global path_is_same_or_descendant
 .global copy_data
 
@@ -96,7 +97,19 @@ fs_rename:
     mov rsi, rdi              # old_path
     mov edi, AT_FDCWD
     mov edx, AT_FDCWD
-    OS_RENAMEAT
+    OS_RENAMEAT               # safe-overwrite
+    test rax, rax
+    ret
+
+# int fs_rename_noreplace(const char *old_path, const char *new_path)
+fs_rename_noreplace:
+    mov r10, rsi              # new_path
+    mov rsi, rdi              # old_path
+    mov edi, AT_FDCWD
+    mov edx, AT_FDCWD
+    mov r8d, RENAME_NOREPLACE
+    OS_RENAMEAT2
+    test rax, rax
     ret
 
 # int path_is_same_or_descendant(const char *src, const char *dst)

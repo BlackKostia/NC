@@ -290,6 +290,7 @@ test: $(TARGET)
 	python3 tests/test_try_using_and_security.py
 	python3 tests/test_security_fixes.py
 	python3 tests/test_perf_and_arch_fixes.py
+	python3 tests/test_critical_fixes.py
 
 test-smart: $(TARGET)
 	python3 tests/run_smart_tests.py

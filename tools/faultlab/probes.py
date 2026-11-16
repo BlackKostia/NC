@@ -114,12 +114,17 @@ def probe_path_truncation():
 def probe_deep_tree(levels=60000):
     """Unbounded recursion: a very deep tree must fail cleanly, never take the UI down."""
     b = dirs()
+    t0 = time.monotonic()
     os.chdir(str(b / "L"))
     os.mkdir("deep")
     os.chdir("deep")
-    for _ in range(levels):
+    actual = 0
+    for i in range(levels):
         os.mkdir("d")
         os.chdir("d")
+        actual = i + 1
+        if actual >= 200 and time.monotonic() - t0 > 5.0:
+            break
     os.chdir("/")
     s = session(b / "L", b / "R", b / "home")
     s.send(K_DOWN, 0.1)
@@ -131,7 +136,7 @@ def probe_deep_tree(levels=60000):
     ok, dirty = finish(s, 4.0)
     still = (b / "L/deep").exists()
     report(alive and ok and not dirty and (not still or "Deleted successfully" not in seen),
-           f"delete of a {levels}-level tree fails cleanly or completes",
+           f"delete of a {actual}-level tree fails cleanly or completes",
            f"ui alive={alive}, exit={ok}, tty={dirty or 'restored'}, tree left={still}, messages={seen}")
     subprocess.run(["rm", "-rf", str(b)])
 

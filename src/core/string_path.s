@@ -10,8 +10,9 @@
 .global path_basename
 .global path_normalize
 
-# void path_join(char *dst, const char *dir, const char *name, size_t cap)
+# int64_t path_join(char *dst, const char *dir, const char *name, size_t cap)
 # rdi=dst, rsi=dir, rdx=name, rcx=cap
+# Returns resulting length (>= 0) on success, or -ENAMETOOLONG on truncation/overflow.
 path_join:
     push rbx
     push r12
@@ -21,6 +22,13 @@ path_join:
     mov r12, rsi              # dir
     mov r13, rdx              # name
     mov r14, rcx              # cap
+    test r14, r14
+    jz .Lpj_overflow
+
+    mov rdi, r12
+    call str_len
+    cmp rax, r14
+    jae .Lpj_overflow
 
     mov rdi, rbx
     mov rsi, r12
@@ -35,9 +43,10 @@ path_join:
     # Append '/'
     lea rcx, [rax + 1]
     cmp rcx, r14
-    jae .Lpj_done
+    jae .Lpj_overflow
     mov byte ptr [rbx + rax], '/'
     mov byte ptr [rbx + rax + 1], 0
+    mov rax, rcx
 
 .Lpj_append_name:
     mov rsi, r13
@@ -48,9 +57,32 @@ path_join:
     inc rsi
     jmp .Lpj_skip_slash
 .Lpj_cat:
-    mov rdi, rbx
+    mov r13, rsi
+    mov rdi, r13
+    push rax
+    call str_len              # rax = len(name)
+    pop rcx                   # rcx = cur_len (< r14)
     mov rdx, r14
-    call str_cat
+    sub rdx, rcx              # remaining cap (>= 1)
+    cmp rax, rdx
+    jae .Lpj_overflow
+
+    lea rdi, [rbx + rcx]
+    mov rsi, r13
+    push rcx
+    push rax
+    call str_copy
+    pop rax
+    pop rcx
+    add rax, rcx              # total length (>= 0)
+    jmp .Lpj_done
+
+.Lpj_overflow:
+    test r14, r14
+    jz .Lpj_err
+    mov byte ptr [rbx], 0
+.Lpj_err:
+    mov rax, -ENAMETOOLONG
 .Lpj_done:
     pop r14
     pop r13

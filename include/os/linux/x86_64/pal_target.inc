@@ -29,6 +29,7 @@
 .equ OS_SYS_wait4,          61
 .equ OS_SYS_kill,           62
 .equ OS_SYS_fcntl,          72
+.equ OS_SYS_fsync,          74
 .equ OS_SYS_getcwd,         79
 .equ OS_SYS_chdir,          80
 .equ OS_SYS_getuid,         102
@@ -41,6 +42,8 @@
 .equ OS_SYS_newfstatat,     262
 .equ OS_SYS_unlinkat,       263
 .equ OS_SYS_renameat,       264
+.equ OS_SYS_renameat2,      316
+.equ RENAME_NOREPLACE,      1
 .equ OS_SYS_linkat,         265
 .equ OS_SYS_symlinkat,      266
 .equ OS_SYS_readlinkat,     267
@@ -111,6 +114,7 @@
 .equ ENOTDIR,               20
 .equ EISDIR,                21
 .equ EINVAL,                22
+.equ ENAMETOOLONG,          36
 .equ ENOSYS,                38
 .equ ENOTEMPTY,             39
 .equ EOPNOTSUPP,            95
@@ -278,10 +282,8 @@
     syscall
 .endm
 
-.macro OS_CLOSE
-    mov eax, OS_SYS_close
-    syscall
-.endm
+.macro OS_CLOSE; mov eax, OS_SYS_close; syscall; .endm
+.macro OS_FSYNC; mov eax, OS_SYS_fsync; syscall; .endm
 
 .macro OS_MKDIRAT
     mov eax, OS_SYS_mkdirat
@@ -293,10 +295,8 @@
     syscall
 .endm
 
-.macro OS_RENAMEAT
-    mov eax, OS_SYS_renameat
-    syscall
-.endm
+.macro OS_RENAMEAT; mov eax, OS_SYS_renameat; syscall; .endm
+.macro OS_RENAMEAT2; mov eax, OS_SYS_renameat2; syscall; .endm
 
 .macro OS_SYMLINKAT
     mov eax, OS_SYS_symlinkat

@@ -126,10 +126,29 @@ copy_reg_at__dfd:
     sete dl
     call copy_data
     mov [rsp + 120 + 16], rax
+    test rax, rax
+    js .Ldfd_close_dst
+.Ldfd_fsync:
+    mov edi, [rsp + 112 + 16]
+    OS_FSYNC
+    cmp rax, -EINTR
+    je .Ldfd_fsync
+    test rax, rax
+    jns .Ldfd_close_dst
+    cmp rax, -EINVAL
+    je .Ldfd_close_dst
+    mov [rsp + 120 + 16], rax
+.Ldfd_close_dst:
     mov edi, [rsp + 112 + 16]
     OS_CLOSE
+    test rax, rax
+    jns .Ldfd_close_src
+    cmp qword ptr [rsp + 120 + 16], 0
+    jl .Ldfd_close_src
+    mov [rsp + 120 + 16], rax
+.Ldfd_close_src:
     mov edi, ebx
-    OS_CLOSE
+    OS_CLOSE                  # fault-checked: source fd read-only cleanup
     mov rax, [rsp + 120 + 16]
     cmp rax, -ECANCELED
 .Lcopy_reg_at__dfd_ret:

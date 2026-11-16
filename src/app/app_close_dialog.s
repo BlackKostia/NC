@@ -78,10 +78,6 @@ App_close_dialog:
     test rax, rax
     jz .Lacd_free
     call App_close_dialog__path_join_3
-    mov rdi, rsp
-    lea rsi, [rsp + PATH_MAX]
-    call fs_rename
-    test rax, rax
     js .Lacd_fs_err
     call App_close_dialog__undo_rename
     jmp .Lacd_free
@@ -156,7 +152,9 @@ App_close_dialog__path_join:
     lea rsi, [r8 + DirModel.path]
     lea rdx, [r13 + InputDialog.buf]
     mov ecx, PATH_MAX
-    call path_join
+    call path_join            # path-checked
+    test rax, rax
+    js .LApp_close_dialog__path_join_ret
     lea rdi, [rsp + 16]
     call fs_mkdir
     test rax, rax
@@ -186,7 +184,9 @@ App_close_dialog__path_join_2:
     lea rsi, [r8 + DirModel.path]
     lea rdx, [r13 + InputDialog.buf]
     mov ecx, PATH_MAX
-    call path_join
+    call path_join            # path-checked
+    test rax, rax
+    js .LApp_close_dialog__path_join_2_ret
     lea rdi, [rsp + 16]
     call fs_touch
     test rax, rax
@@ -222,6 +222,8 @@ App_close_dialog__path_join_3:
     lea rsi, [r8 + DirModel.path]
     mov ecx, PATH_MAX
     call path_join
+    test rax, rax
+    js .LApp_close_dialog__path_join_3_ret
 
     cmp byte ptr [r13 + InputDialog.buf], '/'
     je .Lacd_ren_abs
@@ -231,6 +233,8 @@ App_close_dialog__path_join_3:
     lea rdx, [r13 + InputDialog.buf]
     mov ecx, PATH_MAX
     call path_join
+    test rax, rax
+    js .LApp_close_dialog__path_join_3_ret
     jmp .Lacd_ren_go
 .Lacd_ren_abs:
     lea rdi, [rsp + PATH_MAX + 16]
@@ -238,6 +242,10 @@ App_close_dialog__path_join_3:
     mov edx, PATH_MAX
     call str_copy
 .Lacd_ren_go:
+    lea rdi, [rsp + 16]
+    lea rsi, [rsp + PATH_MAX + 16]
+    call fs_rename_noreplace
+    test rax, rax
 .LApp_close_dialog__path_join_3_ret:
     lea rsp, [rsp + 8]
     ret

@@ -80,6 +80,8 @@ App_task_start:
     test rax, rax
     jz .Lats_nomem
     call App_task_start__single_cursor_item_join
+    test rax, rax
+    js .Lats_ret
     call App_task_start__write_cursor
     call App_task_start__worker_owns_private_copy
     jns .Lats_started
@@ -219,7 +221,18 @@ App_task_start__single_cursor_item_join:
     call os_statat
     xor ecx, ecx
     test rax, rax
-    js .Lats_join_set
+    jns .Lats_stat_ok
+    cmp rax, -ENOENT
+    je .Lats_join_set
+    mov [rsp + 24 + 16], rax
+    mov rdi, r14
+    call mem_free
+    mov rdi, rbx
+    mov rsi, [rsp + 24 + 16]
+    call task_status_errno
+    mov rax, -1
+    jmp .LApp_task_start__single_cursor_item_join_ret
+.Lats_stat_ok:
     mov eax, [rsp + 32 + FileStat.mode + 16]
     and eax, S_IFMT
     cmp eax, S_IFDIR
@@ -228,6 +241,7 @@ App_task_start__single_cursor_item_join:
     mov [r14 + TaskJob.join_dst], ecx
 
 .Lats_names:
+    xor eax, eax
 .LApp_task_start__single_cursor_item_join_ret:
     lea rsp, [rsp + 8]
     ret
