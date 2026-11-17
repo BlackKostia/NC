@@ -408,6 +408,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py
 	python3 tests/test_gen_abi.py
+	python3 tests/test_c_ui_oop.py
 	python3 tests/test_pty.py
 	python3 tests/test_fs_reliability.py
 	python3 tests/test_performance_dir.py

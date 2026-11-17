@@ -22,6 +22,10 @@ LAYOUTS = [  # (C header, C expression, assembler symbol)
     ("duop_oop.h", "WF_FOCUSED", "WF_FOCUSED"),
     ("duop_oop.h", "WF_DIRTY", "WF_DIRTY"),
     ("duop_oop.h", "WF_ENABLED", "WF_ENABLED"),
+    ("duop_ui.h", "sizeof(DialogVtbl)", "DialogVtbl._size"),
+    ("duop_ui.h", "offsetof(DialogVtbl, on_confirm)", "DialogVtbl.on_confirm"),
+    ("duop_ui.h", "offsetof(DialogVtbl, on_cancel)", "DialogVtbl.on_cancel"),
+    *[("duop_ui.h", k, k) for k in ("DLG_OPEN", "DLG_OK", "DLG_CANCEL")],
     ("duop_config.h", "PATH_MAX", "PATH_MAX"),
     ("duop_config.h", "sizeof(Config)", "15024"),                       # CFG_TOTAL_SZ (private to the old config*.s)
     ("duop_config.h", "offsetof(Config, color_mask)", "16"),
