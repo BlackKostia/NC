@@ -68,7 +68,6 @@ SRCS := \
 	src/fs/preview_io.s \
 	src/fs/preview_helper.s \
 	src/fs/img_core.s \
-	src/fs/pkg_fetch.s \
 	src/fs/pkg_archive.s \
 	src/fs/pkg_manager.s \
 	src/fs/pkg_verify.s \
@@ -232,6 +231,7 @@ C_SRCS := \
 	src/fs/git_trust.c \
 	src/fs/dir_watch.c \
 	src/fs/file_ops_overwrite.c \
+	src/fs/pkg_fetch.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -405,6 +405,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_dir_watch.py
 	python3 tests/test_c_fops_small.py
 	python3 tests/test_c_fops_overwrite.py
+	python3 tests/test_c_pkg_fetch.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

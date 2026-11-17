@@ -580,8 +580,8 @@
   - `pkg_ensure_exec` — int pkg_ensure_exec(const char *path) -> 0 ok (S_ISREG + 0755), -1 err/symlink
 - **`src/fs/pkg_cli.s`**
   - `pkg_cli_dispatch` — int pkg_cli_dispatch(int argc, char **argv, char **envp) -> exit code
-- **`src/fs/pkg_fetch.s`**
-  - `pkg_fetch_url` — int pkg_fetch_url(char **envp, const char *url, const char *dest_path) -> 0 ok, -1 err
+- **`src/fs/pkg_fetch.c`**
+  - `pkg_fetch_url` — `int pkg_fetch_url(char **envp, const char *url, const char *dest_path)`
 - **`src/fs/pkg_manager.s`**
   - `pkg_get_root` — void pkg_get_root(char **envp, char *out, int cap)
   - `pkg_list` — int pkg_list(char **envp, PkgEntry *out, int max) -> count

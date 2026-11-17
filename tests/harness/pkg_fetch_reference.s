@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/pkg_fetch.c replaced (tests/test_c_pkg_fetch.py diffs against it)
 # src/fs/pkg_fetch.s - Fork+exec curl/wget helper for Duop Package Manager
 .intel_syntax noprefix
 .include "pal.inc"

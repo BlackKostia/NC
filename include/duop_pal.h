@@ -77,6 +77,10 @@
 #define PAL_IN_MOVE_SELF 0x00000800
 #define PAL_IN_Q_OVERFLOW 0x00004000
 
+#define SIGKILL 9                             /* process control: pkg_fetch_url kills a timed-out helper */
+#define SIGTERM 15
+#define WNOHANG 1
+
 #define OS_AT_EXECFN 31                       /* auxv: path given to execve */
 
 #define PAL_DT_UNKNOWN 0                      /* d_type of a directory entry (generic Linux values) */
