@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/du_parallel.c and disk_usage.c replaced (tests/test_c_du_walk.py and test_c_du_populate.py diff against it)
 # src/fs/disk_usage.s - ncdu-style Disk Usage: allocated space like `du` (st_blocks, directories
 # included, derived mounts skipped -- see du_parallel.s), io_uring batch statx + subtree cache
 .intel_syntax noprefix

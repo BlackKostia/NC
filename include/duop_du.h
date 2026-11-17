@@ -2,6 +2,7 @@
  * hard-link set and the subtree size cache. DuProgress mirrors include/types.inc; tests/test_abi_layouts.py compares it. */
 #pragma once
 #include "duop_abi.h"
+#include "duop_fs.h"
 
 #define DU_PHASE_RUN 0                 /* DuProgress.phase: walk running */
 #define DU_PHASE_DONE 1                /* final progress callback after the walk */
@@ -31,3 +32,17 @@ void *du_cache_init(void);                                   /* subtree size cac
 int du_cache_get(uint64_t ino, uint64_t dev, int64_t mtime_sig, uint64_t *out_size);   /* 1 hit, 0 miss / stale */
 void du_cache_put(uint64_t ino, uint64_t dev, int64_t mtime_sig, uint64_t size);
 void du_cache_cleanup(void);
+
+typedef struct DuWorkItem {            /* one top-level folder handed to du_parallel_walk */
+    FileEntry *fe;                     /* listing entry that receives the size */
+    const char *name;                  /* folder name below the scanned directory */
+    uint64_t size;                     /* result: allocated bytes of the subtree */
+} DuWorkItem;
+_Static_assert(sizeof(DuWorkItem) == 24 || sizeof(void *) != 8, "DuWorkItem is 24 bytes on 64-bit targets");
+
+int64_t du_mtime_sig(const FileStat *st);                    /* mtime and nanoseconds folded into one cache signature */
+void du_parallel_walk(int dfd, DuWorkItem *items, int count);   /* sizes of the folders below dfd, up to four worker threads */
+void du_set_progress(int (*cb)(void *ctx, DuProgress *p), void *ctx);   /* cb returns non-zero to cancel; NULL: no progress UI */
+DuProgress *du_progress(void);
+int dir_du_populate(DirModel *m);                            /* 1 size-sorted Disk Usage view, 0 canceled / not listable */
+void du_leave(DirModel *m);                                  /* back to the name-sorted listing */

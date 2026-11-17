@@ -111,6 +111,12 @@ void     *os_mmap_file_ro(int fd, size_t len);
 void      os_munmap(void *addr, size_t len);
 void      os_sigbus_guard_install(void);
 int64_t   os_clock_ms(void);
+int       os_thread_spawn(void (*fn)(void *), void *arg, void *stack_top, int *ctid_out);   /* >= 0, or -errno; *ctid_out is cleared by the kernel at thread exit */
+void      os_thread_join(int *ctid);                          /* futex-waits until *ctid becomes 0 */
+int64_t   os_du_usage(int dirfd, const char *name, FileStat *out);   /* allocated bytes (lstat semantics) or -errno */
+int       os_fstat_du(int fd, FileStat *out, int64_t *alloc_out);    /* 0 or -errno; alloc_out = the directory's own allocated bytes */
+int       os_fs_is_derived(int fd);                           /* 1: proc / sysfs / FUSE / squashfs / overlay / network (or unidentifiable) */
+int       os_batch_stat(int dirfd, const char *const *names, FileStat *out_stats, int32_t *out_errs, size_t count, int follow_symlinks);
 void      os_get_winsize(int *cols, int *rows);
 void      os_get_winsize_px(int *xpix, int *ypix);   /* terminal size in pixels (0, 0 when not reported) */
 void      os_term_save_and_raw(void);

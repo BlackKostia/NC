@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 765
+- **Exported `.global` Symbols**: 762
 
 ## Structs (`include/*.inc`)
 
@@ -471,10 +471,8 @@
   - `dirwatch_set` — void dirwatch_set(int slot, const char *path) -- (re)targets a slot; no-op if unchanged
   - `dirwatch_poll` — 4 = slot1 structural, 8 = slot1 content.
   - `dirwatch_cleanup` — void dirwatch_cleanup(void) -- closes watch fd and frees g_dw_state
-- **`src/fs/disk_usage.s`**
-  - `dir_du_populate` — model is then back in the normal listing
-  - `du_toggle` — void du_toggle(App *app)
-  - `du_mtime_sig` — int64_t du_mtime_sig(const FileStat *st)
+- **`src/fs/disk_usage.c`**
+  - `dir_du_populate` — `int dir_du_populate(DirModel *m)`
 - **`src/fs/du_cache.c`**
   - `du_cache_init` — `void *du_cache_init(void)`
   - `du_cache_get` — `int du_cache_get(uint64_t ino, uint64_t dev, int64_t mtime_sig, uint64_t *out_size)`
@@ -484,10 +482,8 @@
   - `du_links_reset` — `void du_links_reset(void)`
   - `du_link_first` — `int du_link_first(uint64_t dev, uint64_t ino)`
   - `du_links_cleanup` — `void du_links_cleanup(void)`
-- **`src/fs/du_parallel.s`**
-  - `du_parallel_walk` — void du_parallel_walk(int dfd, DuWorkItem *items, int count)
-  - `du_set_progress` — void du_set_progress(int (*cb)(void *ctx, DuProgress *p), void *ctx) -- cb = 0: no progress UI
-  - `du_progress` — DuProgress *du_progress(void) -- counters of the current / last walk (cancel is caller-reset)
+- **`src/fs/du_parallel.c`**
+  - `du_parallel_walk` — `void du_parallel_walk(int dfd, DuWorkItem *items, int count)`
 - **`src/fs/file_ops.s`**
   - `fs_errno_message` — const char *fs_errno_message(int neg_errno)
   - `fs_mkdir` — int fs_mkdir(const char *path)
@@ -1007,6 +1003,7 @@
   - `App_cmd_delete`
 - **`src/app/app_du.s`**
   - `App_du_init` — void App_du_init(App *app) -- register the progress callback (read DUOP_DU_PROGRESS_MS)
+  - `du_toggle` — void du_toggle(App *app) -- Disk Usage on/off for the active pane: measure the listing, or back to the plain one
 - **`src/app/app_events.s`**
   - `App_events_init` — void App_events_init(App *app)
   - `App_events_timeout` — int App_events_timeout(App *app) -> poll timeout in ms (-1 = sleep until an event)

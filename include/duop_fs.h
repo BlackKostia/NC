@@ -79,3 +79,9 @@ typedef struct FuzzyItem {
 int fuzzy_score(const char *query, const char *cand, uint64_t *out_mask);   /* <0 no match, else score >= 1 (0: empty query); out_mask = matched candidate positions < 64 */
 int dir_fuzzy_collect(const char *root, char *pool, int pool_cap, FuzzyItem *items, int max_items);   /* names collected (depth <= 8, no .git) */
 int fs_write_file(const char *path, const void *buf, uint64_t len);        /* atomic write (tmp + fsync + rename) keeping the mode of a regular target: 0 / -1 */
+
+/* ---- directory model methods still in assembly (dir_model*.s, dir_sort*.s) ---- */
+int DirModel_step_load(DirModel *m, size_t max_entries);        /* 1 more may follow, 0 done, -errno */
+const char *DirModel_entry_name(const DirModel *m, const FileEntry *e);
+void DirModel_sort(DirModel *m);
+int DirModel_reload(DirModel *m);

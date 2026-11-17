@@ -73,6 +73,10 @@ LAYOUTS = [  # (C header, C expression, assembler symbol)
                                      "IMG_FMT_WEBP", "IMG_MAX_DIM", "IMG_MAX_PIXELS", "IMG_E_FORMAT", "IMG_E_UNSUP", "IMG_E_CORRUPT", "IMG_E_NOMEM")],
     ("duop_fs.h", "sizeof(FileEntry)", "FileEntry._size"),
     *[("duop_fs.h", f"offsetof(FileEntry, {f})", f"FileEntry.{f}") for f in ("size", "mtime", "mode", "flags", "name_off", "name_len", "disp_width", "ext_offset")],
+    ("duop_du.h", "sizeof(DuProgress)", "DuProgress._size"),
+    *[("duop_du.h", f"offsetof(DuProgress, {f})", f"DuProgress.{f}") for f in ("start_ms", "dirs", "files", "bytes", "done", "total", "cancel", "phase")],
+    ("duop_du.h", "DU_PHASE_RUN", "DU_PHASE_RUN"),
+    ("duop_du.h", "DU_PHASE_DONE", "DU_PHASE_DONE"),
     ("duop_fs.h", "DIRMODEL_SIZE", "DirModel._size"),
     *[("duop_fs.h", f"offsetof(DirModel, {f})", f"DirModel.{f}")
       for f in ("entries", "order", "name_pool", "count", "raw_count", "raw_cap", "name_used", "name_cap", "total_bytes", "load_buf", "load_pos", "load_bytes",

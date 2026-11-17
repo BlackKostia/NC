@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/du_parallel.c and disk_usage.c replaced (tests/test_c_du_walk.py and test_c_du_populate.py diff against it)
 # src/fs/du_parallel.s - Multi-threaded Disk Usage subtree walker (PAL clone + futex).
 # Walkers publish live DuProgress counters; with a progress callback registered (du_set_progress)
 # every folder is walked by worker threads while the main thread runs the callback about every

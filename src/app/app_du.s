@@ -17,6 +17,7 @@ g_du_delay:     .space 8              # ms before the window appears
 
 .section .text
 .global App_du_init
+.global du_toggle
 
 # void App_du_init(App *app) -- register the progress callback (read DUOP_DU_PROGRESS_MS)
 App_du_init:
@@ -157,5 +158,28 @@ adu_close:
     DELETE_OBJ rdi
     mov dword ptr [rbx + App.need_redraw], 1
 .Lac_ret:
+    pop rbx
+    ret
+
+# void du_toggle(App *app) -- Disk Usage on/off for the active pane: measure the listing, or back to the plain one
+du_toggle:
+    push rbx
+    push r12
+    sub rsp, 8                        # 16-byte aligned calls: the C callees may use aligned stack stores
+    mov rbx, rdi
+    mov rax, [rbx + App.active_pane]
+    mov r12, [rax + FilePane.model]
+    cmp dword ptr [r12 + DirModel.du_mode], 0
+    jne .Ldut_off
+    mov rdi, r12
+    call dir_du_populate
+    jmp .Ldut_done
+.Ldut_off:
+    mov rdi, r12
+    call du_leave
+.Ldut_done:
+    mov dword ptr [rbx + App.need_redraw], 1
+    add rsp, 8
+    pop r12
     pop rbx
     ret
