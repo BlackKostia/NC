@@ -22,3 +22,5 @@ When adding or changing:
 3. **New architectural phase or milestone** -> update `ROADMAP.md` (and `docs/EXTENSIONS_AUDIT_AND_PLAN.md` if extension-related).
 4. **Keep EN/UA parity** when editing localized user-facing docs (`README.md` / `README.uk.md`).
 5. **Any new struct, OOP class, vtable slot, or `.global` symbol** -> regenerate `docs/SYMBOLS.md` via `make symbols` (verified automatically by `make symbols-check` and `.githooks/pre-commit`).
+
+6. **Hybrid migration** (`docs/HYBRID_PORTABILITY_PLAN.md`): after every migrated module update the execution log table (stage rows, module and file counts, defects found) and `docs/SYMBOLS.md` (`make symbols`; the pre-commit hook checks it).

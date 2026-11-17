@@ -42,13 +42,23 @@ python3 ./.agents/skills/duop-reliability-audit/scripts/audit_fd_eintr.py
 # 3b. Lean-module budgets (duop-lean-modules ratchet: legacy files may only shrink)
 python3 ./.agents/skills/duop-lean-modules/scripts/check_lean.py --root "$ROOT" --staged
 
+# 3c. Portability gate for staged freestanding C modules: project CFLAGS, x86_64 (gcc) + aarch64 (clang), ~0.2 s per file
+STAGED_C="$(printf '%s\n' "$STAGED" | grep -E '^src/.*\.c$' || true)"
+if [[ -n "$STAGED_C" ]]; then
+    # shellcheck disable=SC2086
+    python3 "$ROOT/tools/check_c_syntax.py" $STAGED_C
+    # allocation results must be tested before use (C counterpart of audit_null_alloc.py)
+    # shellcheck disable=SC2086
+    python3 "$ROOT/tools/faultlab/audit_null_alloc_c.py" $STAGED_C
+fi
+
 VER="$(tr -d '[:space:]' < "$ROOT/VERSION")"
 
 # 4. Enforce continuous SemVer progression whenever src/ or include/ changes
 BIN_CODE_STAGED="$(printf '%s\n' "$STAGED" | grep -E '^(src/|include/)' || true)"
 if [[ -n "$BIN_CODE_STAGED" ]]; then
     if git rev-parse -q --verify "refs/tags/v${VER}" >/dev/null 2>&1; then
-        if [[ "${DUOP_ALLOW_SAME_VERSION:-${NC_ALLOW_SAME_VERSION:-0}}" != "1" ]]; then
+        if [[ "${DUOP_ALLOW_SAME_VERSION:-0}" != "1" ]]; then
             echo "ERROR [pre-commit]: Git tag v${VER} already exists, but src/ or include/ modified!" >&2
             echo "Bump VERSION before committing code changes:" >&2
             echo "  python3 ./.agents/skills/duop-version-release/scripts/bump_version.py --bump patch  # bugfix/refactor" >&2
@@ -75,7 +85,7 @@ fi
 
 # 5. Build stripped release binary, verify ELF .data==0 & --version, and run PTY suite
 NEEDS_BUILD="$(printf '%s\n' "$STAGED" | grep -E '^(src/|include/|Makefile$|VERSION$|tests/.*\.py$)' || true)"
-if [[ -n "$NEEDS_BUILD" && "${DUOP_SKIP_PTY_HOOK:-${NC_SKIP_PTY_HOOK:-0}}" != "1" ]]; then
+if [[ -n "$NEEDS_BUILD" && "${DUOP_SKIP_PTY_HOOK:-0}" != "1" ]]; then
     echo "[pre-commit] Running release build + ELF audit + PTY test suite..."
     # Git exports GIT_DIR/GIT_INDEX_FILE to hooks: tests that build scratch repos (and duop's own
     # `git status`) must not inherit them, or they would write into this repository's config/index.
@@ -87,8 +97,10 @@ if [[ -n "$NEEDS_BUILD" && "${DUOP_SKIP_PTY_HOOK:-${NC_SKIP_PTY_HOOK:-0}}" != "1
         DUOP_LEAN_STAGED=1 ./.agents/skills/duop-pty-verify/scripts/verify_build.sh "$HOOK_MODE"
 fi
 
-# 6. Faultlab probes, signal matrix & stack-depth/recursion audit on src/ or include/ changes
-if [[ -n "$BIN_CODE_STAGED" && "${DUOP_SKIP_FAULTLAB_HOOK:-0}" != "1" ]]; then
+# 6. Faultlab probes, signal matrix & stack-depth/recursion audit -- only where I/O, memory, signals or the PAL can be affected
+#    (src/fs, src/core, src/os, the assembly headers, the entry point); UI / app / docs-only commits skip it (pre-push still runs the sweeps)
+FAULT_RELEVANT_STAGED="$(printf '%s\n' "$STAGED" | grep -E '^(src/(fs|core|os)/|include/.*\.inc$|src/main\.s$|src/app/main\.c$)' || true)"
+if [[ -n "$FAULT_RELEVANT_STAGED" && "${DUOP_SKIP_FAULTLAB_HOOK:-0}" != "1" ]]; then
     if [[ -f "$ROOT/tools/faultlab/audit_stack_depth.py" ]]; then
         make -s clean >/dev/null 2>&1 && make -s >/dev/null 2>&1 || true
         python3 "$ROOT/tools/faultlab/audit_stack_depth.py"

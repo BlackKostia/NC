@@ -2,7 +2,7 @@
 name: duop-lean-modules
 description: >-
   Keeps Duop modules short, single-purpose and well structured. Use before creating or
-  growing any src/*.s, include/*.inc or tests/*.py file, when a lean-gate (LEAN:) error or
+  growing any src/*.s, src/*.c, include/*.{inc,h} or tests/*.py file, when a lean-gate (LEAN:) error or
   hook denial appears, or when splitting/refactoring large modules and long routines.
 ---
 
@@ -16,7 +16,8 @@ responsibility, one routine = one job, a narrow public API.
 | Kind | Module | Routine | Public API |
 | :--- | :--- | :--- | :--- |
 | `src/**/*.s` | ≤ 500 lines (aim 150–300) | top-level label ≤ 80 lines | ≤ 16 `.global` symbols |
-| `include/**/*.inc` | ≤ 400 lines | — | — |
+| `src/**/*.c` | ≤ 500 lines | function ≤ 80 lines | ≤ 16 non-`static` functions |
+| `include/**/*.inc`, `include/**/*.h` | ≤ 400 lines | — | — |
 | `tests/*.py` | ≤ 500 lines | `def` ≤ 100 lines | — |
 
 Legacy offenders are frozen in `scripts/lean_baseline.json` as a **ratchet**: they may only
@@ -26,7 +27,7 @@ the ratchet tightens immediately (it never loosens).
 
 ## 2. Where it is enforced
 
-- **Agent hooks** (`.agents/hooks/duop_lifecycle.py`, Claude adapter): a `Write` that would
+- **Agent hooks** (`.agents/hooks/duop_lifecycle.py`, Claude adapter; `.s`, `.c`, `.h`, `.inc`, `.py`): a `Write` that would
   exceed a budget is denied; after an `Edit` the file is re-checked and violations are fed
   back immediately.
 - **`verify_build.sh`** step 1 runs the full gate on the working tree; **`.githooks/pre-commit`**
@@ -42,8 +43,8 @@ python3 .agents/skills/duop-lean-modules/scripts/check_lean.py --update   # tigh
 ## 3. How to stay lean
 
 1. **Before adding code, pick the home**: if the target module is above ~450 lines or the
-   feature is a separate concern, create `src/<layer>/<topic>.s` (register in `Makefile`
-   `SRCS`/`PAL_SRCS`, keep layer rules from `duop-modular-asm`).
+   feature is a separate concern, create `src/<layer>/<topic>.c` (register in `Makefile`
+   `C_SRCS`; assembly only for the PAL via `PAL_SRCS`; layer rules in `duop-modular-asm`).
 2. **Split by responsibility, not by size**: widget rendering vs. input handling vs. layout
    (`file_pane_render.s`, `file_pane_input.s`), model loading vs. sorting vs. caching
    (`dir_model.s`, `dir_sort.s`, `dir_cache.s`), parser vs. applier.
@@ -56,7 +57,11 @@ python3 .agents/skills/duop-lean-modules/scripts/check_lean.py --update   # tigh
    shared helpers imported from `test_pty.py`.
 7. After a split: `verify_build.sh`, then `check_lean.py --update`, commit as `refactor(...)`.
 
-## 4. Mechanical splitters (semantics-preserving)
+C code is split by hand into sibling modules (`dir_search.c` + `dir_search_match.c`, `trash_info.c` + `trash_dirs.c` +
+`trash_undo.c`, `du_parallel.c` + `disk_usage.c`): one concern per file, shared declarations in `include/duop_<layer>.h`,
+a frame above 4608 B moves its buffers to `mem_alloc`, and a long function becomes `static` helpers.
+
+## 4. Mechanical splitters for assembly (semantics-preserving)
 
 ```bash
 S=.agents/skills/duop-lean-modules/scripts

@@ -351,6 +351,7 @@ test: $(TARGET)
 	python3 tests/test_c_dir_watch.py
 	python3 tests/test_c_fops_small.py
 	python3 tests/test_c_stack_align.py
+	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py
 	python3 tests/test_pty.py
 	python3 tests/test_fs_reliability.py

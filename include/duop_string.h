@@ -16,7 +16,7 @@ int         str_starts_with(const char *s, const char *prefix);
 size_t      u64_to_dec(uint64_t v, char *buf);                        /* buf >= 21 bytes; returns length */
 size_t      u64_to_hex(uint64_t v, char *buf, int min_digits);        /* lower-case, zero-padded to min_digits (<= 32) */
 
-int64_t     path_join(char *dst, const char *dir, const char *name, size_t cap);   /* length or -ENAMETOOLONG */
+DUOP_NODISCARD int64_t path_join(char *dst, const char *dir, const char *name, size_t cap);   /* length or -ENAMETOOLONG */
 void        path_dirname(const char *path, char *dst, size_t cap);
 const char *path_basename(const char *path);
 size_t      path_normalize(const char *base, const char *target, char *out, size_t cap);  /* length, 0 if it does not fit */

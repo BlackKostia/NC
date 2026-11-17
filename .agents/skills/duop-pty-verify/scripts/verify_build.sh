@@ -29,6 +29,9 @@ if command -v gcc >/dev/null 2>&1; then
     gcc -O2 -Wall -Wextra "$ROOT/tools/abi_verify.c" -o "$ROOT/build/abi_verify"
     "$ROOT/build/abi_verify" "$ROOT/include/os/linux/x86_64/pal_target.inc"
 fi
+# Portability gate for every freestanding C module (project CFLAGS, x86_64 gcc + aarch64 clang when installed)
+python3 ./tools/check_c_syntax.py $(git ls-files 'src/*.c')
+python3 ./tools/faultlab/audit_null_alloc_c.py
 # Lean gate: whole working tree, or only the staged commit content when run from pre-commit
 python3 ./.agents/skills/duop-lean-modules/scripts/check_lean.py --root "$ROOT" ${DUOP_LEAN_STAGED:+--staged}
 python3 ./tests/test_lean_gate.py

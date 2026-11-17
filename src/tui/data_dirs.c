@@ -110,8 +110,7 @@ static void ds_exe_dir(const char *path, char *out)
         real = g_dd_file;
         if (g_dd_file[0] != '/') {                    /* relative target: <link dir>/<target> */
             path_dirname(path, out, PATH_MAX);
-            path_join(out, out, g_dd_file, PATH_MAX);
-            real = out;
+            if (path_join(out, out, g_dd_file, PATH_MAX) >= 0) real = out;   /* too long to join: judge the link itself */
         }
     }
     path_dirname(real, out, PATH_MAX);

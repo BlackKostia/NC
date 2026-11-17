@@ -77,6 +77,75 @@ def check_pre_tool_asm_guards(rel_path: str, added_text: str) -> str | None:
     return None
 
 
+C_DESTRUCTIVE_RE = re.compile(r"\bO_TRUNC\b|\bos_renameat2\s*\([^;]*,\s*0\s*\)")
+C_SAFE_OVERWRITE_RE = re.compile(r"\b(?:RENAME_NOREPLACE|O_EXCL|O_NOFOLLOW)\b|/[*/]\s*(?:safe-overwrite|atomic-replace)")
+
+
+def _c_audit_module(root: Path):
+    """tools/faultlab/audit_null_alloc_c.py loaded by path (it is a script, not a package)."""
+    import importlib.util
+
+    path = root / "tools/faultlab/audit_null_alloc_c.py"
+    if not path.is_file():
+        return None
+    spec = importlib.util.spec_from_file_location("audit_null_alloc_c", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)  # type: ignore[union-attr]
+    return mod
+
+
+def check_pre_tool_c_guards(root: Path, rel_path: str, added_text: str) -> str | None:
+    """Same guarantees as the asm guards for freestanding C: unchecked allocations, destructive overwrites.
+
+    Unchecked os_* / mem_alloc results and ignored path_join results are compile errors ([[nodiscard]] + -Werror), so the
+    hook only adds what the compiler cannot see: a pointer from mem_alloc/*_new used before a NULL test, and O_TRUNC /
+    renameat2 without a no-clobber flag."""
+    if os.environ.get("DUOP_SAFETY_BYPASS") == "1":
+        return None
+    if not (rel_path.startswith("src/") and rel_path.endswith(".c")):
+        return None
+    mod = _c_audit_module(root)
+    if mod is not None:
+        found = mod.audit_text(added_text, rel_path)
+        if found:
+            return (
+                f"Error-path guard (duop-error-path-contract / duop-oom-safety) in {rel_path}: {found[0]}. "
+                "Test the pointer (`if (!p) return -ENOMEM;`) before the first use, or mark `/* null-ok */`."
+            )
+    lines = added_text.splitlines()
+    for i, line in enumerate(lines):
+        code = re.sub(r"/\*.*?\*/", "", line).split("//", 1)[0]
+        if C_DESTRUCTIVE_RE.search(code):
+            window = "\n".join(lines[max(0, i - 4) : i + 5])
+            if not C_SAFE_OVERWRITE_RE.search(window):
+                return (
+                    f"Destructive-op guard (duop-destructive-ops-guard) in {rel_path}: '{code.strip()}' needs "
+                    "RENAME_NOREPLACE, O_EXCL or O_NOFOLLOW nearby, or a `/* safe-overwrite */` / `/* atomic-replace */` comment."
+                )
+    return None
+
+
+def run_post_tool_c_audits(root: Path, rel_path: str) -> str | None:
+    """After an Edit of src/**/*.c: portability syntax gate (x86_64 + aarch64, real CFLAGS) and the null-alloc audit."""
+    if not (rel_path.startswith("src/") and rel_path.endswith(".c")):
+        return None
+    notes: list[str] = []
+    syntax = root / "tools/check_c_syntax.py"
+    if syntax.is_file():
+        try:
+            res = subprocess.run([sys.executable, str(syntax), rel_path], cwd=root, capture_output=True, text=True, timeout=8, check=False)
+            if res.returncode != 0:
+                notes.append(f"[check_c_syntax]\n{(res.stderr or res.stdout).strip()[-900:]}")
+        except subprocess.TimeoutExpired:
+            notes.append("[check_c_syntax] timed out (>8s); run tools/check_c_syntax.py explicitly")
+    audit = root / "tools/faultlab/audit_null_alloc_c.py"
+    if audit.is_file():
+        res = subprocess.run([sys.executable, str(audit), rel_path], cwd=root, capture_output=True, text=True, timeout=5, check=False)
+        if res.returncode != 0:
+            notes.append(f"[audit_null_alloc_c]\n{res.stdout.strip()}")
+    return "\n".join(notes) if notes else None
+
+
 def _scenario_for_path(rel_path: str) -> str | None:
     if not rel_path.startswith(("src/fs/", "src/core/", "src/os/")):
         return None

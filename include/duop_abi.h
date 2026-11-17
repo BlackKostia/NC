@@ -48,28 +48,28 @@ static inline uint32_t load_le32(const void *p) { uint32_t v; __builtin_memcpy(&
 static inline uint64_t load_le64(const void *p) { uint64_t v; __builtin_memcpy(&v, p, 8); return __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__ ? v : __builtin_bswap64(v); }
 
 /* ---- Raw syscall wrappers (src/os/<os>/<arch>/pal_sys_*.s) ---- */
-intptr_t os_read(int fd, void *buf, size_t n);
-intptr_t os_write(int fd, const void *buf, size_t n);
+DUOP_NODISCARD intptr_t os_read(int fd, void *buf, size_t n);
+DUOP_NODISCARD intptr_t os_write(int fd, const void *buf, size_t n);
 intptr_t os_close(int fd);
-intptr_t os_fsync(int fd);
-intptr_t os_ftruncate(int fd, int64_t len);
+DUOP_NODISCARD intptr_t os_fsync(int fd);
+DUOP_NODISCARD intptr_t os_ftruncate(int fd, int64_t len);
 intptr_t os_lseek(int fd, int64_t off, int whence);
 intptr_t os_ioctl(int fd, uintptr_t req, void *arg);
 intptr_t os_fcntl(int fd, int cmd, uintptr_t arg);
-intptr_t os_pipe2(int fds[2], int flags);
-intptr_t os_openat(int dirfd, const char *path, int flags, unsigned mode);
+DUOP_NODISCARD intptr_t os_pipe2(int fds[2], int flags);
+DUOP_NODISCARD intptr_t os_openat(int dirfd, const char *path, int flags, unsigned mode);
 intptr_t os_dup2(int oldfd, int newfd);
-intptr_t os_mkdirat(int dirfd, const char *path, unsigned mode);
+DUOP_NODISCARD intptr_t os_mkdirat(int dirfd, const char *path, unsigned mode);
 intptr_t os_unlinkat(int dirfd, const char *path, int flags);
-intptr_t os_renameat2(int olddir, const char *old, int newdir, const char *new_, unsigned flags);
-intptr_t os_symlinkat(const char *target, int newdirfd, const char *linkpath);
-intptr_t os_readlinkat(int dirfd, const char *path, char *buf, size_t n);
-intptr_t os_linkat(int olddir, const char *old, int newdir, const char *new_, int flags);
-intptr_t os_fchmodat(int dirfd, const char *path, unsigned mode);
-intptr_t os_fchownat(int dirfd, const char *path, unsigned uid, unsigned gid, int flags);
+DUOP_NODISCARD intptr_t os_renameat2(int olddir, const char *old, int newdir, const char *new_, unsigned flags);
+DUOP_NODISCARD intptr_t os_symlinkat(const char *target, int newdirfd, const char *linkpath);
+DUOP_NODISCARD intptr_t os_readlinkat(int dirfd, const char *path, char *buf, size_t n);
+DUOP_NODISCARD intptr_t os_linkat(int olddir, const char *old, int newdir, const char *new_, int flags);
+DUOP_NODISCARD intptr_t os_fchmodat(int dirfd, const char *path, unsigned mode);
+DUOP_NODISCARD intptr_t os_fchownat(int dirfd, const char *path, unsigned uid, unsigned gid, int flags);
 intptr_t os_getcwd(char *buf, size_t n);
 intptr_t os_chdir(const char *path);
-intptr_t os_fork(void);
+DUOP_NODISCARD intptr_t os_fork(void);
 intptr_t os_execve(const char *path, char *const argv[], char *const envp[]);
 intptr_t os_wait4(int pid, int *status, int options, void *rusage);
 intptr_t os_kill(int pid, int sig);
@@ -94,8 +94,8 @@ void mc_on_free(void *p, void *caller);
 void mc_on_realloc(void *old_p, void *new_p, size_t size, void *caller);
 
 /* ---- Normalised PAL (src/os/<os>/<arch>/pal_os.s and siblings) ---- */
-int       os_statat(int dirfd, const char *path, FileStat *out, int follow_symlinks);
-int       os_fstat(int fd, FileStat *out);
+DUOP_NODISCARD int       os_statat(int dirfd, const char *path, FileStat *out, int follow_symlinks);
+DUOP_NODISCARD int       os_fstat(int fd, FileStat *out);
 intptr_t  os_dir_read(int dirfd, void *buf, size_t cap);
 const char *os_dir_next(void *buf, size_t bytes, size_t *pos);
 const char *os_dir_next_ex(void *buf, size_t bytes, size_t *pos, uint8_t *out_type);

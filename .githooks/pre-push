@@ -8,8 +8,10 @@ fi
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
 
-echo "[pre-push] Building release binary and running faultlab sweeps + SEU + fuzzing..."
+echo "[pre-push] Building release binary, running the FULL test suite, faultlab sweeps + SEU + fuzzing..."
 make -s release
+# pre-commit is tiered (smart tests for module-local commits); the complete suite is the gate before anything leaves the machine
+make -s test
 
 for scen in copy delete move tree; do
     echo "[pre-push] faultlab sweep: $scen"

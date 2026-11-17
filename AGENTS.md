@@ -20,6 +20,9 @@ Code flows downward only — never introduce upward or cyclic dependencies acros
 - Keep `ELF .data == 0`: file-scope data is `const` (`.rodata`) or zero-initialised (`.bss`). Unaligned parser reads go through `load_le16/32/64`.
 - Replacing a `.s` module requires a differential test against a frozen reference of the old code (see `tests/test_c_utf8.py`), and a C symbol keeps the asm calling contract (a pair returned in `rax:rdx` is a 2×`uint64_t` struct). `audit_live_regs.py` must still pass: C clobbers every caller-saved register.
 - Budgets (`check_lean.py`): `.c` <= 500 lines, function <= 80 lines, <= 16 non-`static` functions; `.h` <= 400.
+- Asm callers do not keep the 16-byte call alignment and test `rax` **or** `eax`: no aligned SSE stack access in C (`tests/test_c_stack_align.py`), `-errno` results are `intptr_t`, a frame above 4608 B (`-Wframe-larger-than`) moves its buffers to `mem_alloc`, file-scope data is `const` or zero-initialised (an initialiser such as `= {-1, -1}` lands in `.data` and fails `audit_elf_hardening`).
+- Results of `os_*`, `mem_alloc/realloc`, `path_join`, `sys_write_all`, `sys_read_retry` and `tmp_*` are `[[nodiscard]]` under `-Werror`; a discard is a visible `(void)`. A pointer from `mem_alloc` / `*_new` is tested before use (`tools/faultlab/audit_null_alloc_c.py`, PreToolUse C guard). Every `.c` passes `tools/check_c_syntax.py` (project CFLAGS, x86_64 gcc + aarch64 clang).
+- New code is C by default; assembly only for the PAL / SIMD (`src/os/`). Migration method, oracle policy (`tests/harness/*_reference.s` stay frozen and keep assembling) and checklist: skill `duop-asm-to-c-migration`; roadmap and execution log: `docs/HYBRID_PORTABILITY_PLAN.md`.
 
 ### Anti-Monolith Rule for New Features
 - Place cohesive new subsystems in dedicated files registered in `Makefile` `SRCS` (or `PAL_SRCS` for OS/arch backends) rather than growing `src/ui/dialogs.s`, `src/app/app.s`, or `src/ui/file_pane.s`.
@@ -42,11 +45,13 @@ Code flows downward only — never introduce upward or cyclic dependencies acros
 
 - Use workspace skills in `.agents/skills/`:
   - `duop-tdd-first` to design and write failing tests in `tests/` (happy-path + edge/fault cases) **before** implementing changes in `src/` or `include/`
-  - `duop-modular-asm` when adding/splitting modules, OOP classes, or registering targets
+  - `duop-asm-to-c-migration` when replacing a `.s` module by C (oracle, differential harness, mutation checks, gates)
+  - `duop-modular-asm` when adding/splitting modules, OOP classes, or registering targets (C by default)
   - `duop-lean-modules` before creating/growing any module, on `LEAN:` errors, and when refactoring large files/routines
   - `duop-multiplatform-pal` when touching OS syscalls, `pal.inc`, `FileStat`, `src/os/`, `Makefile` (`OS`/`ARCH`), or SIMD code
   - `duop-ui-i18n-widget` when building UI widgets, themes, mouse zones, or translations
   - `duop-pty-verify` to validate modularity, ELF footprint, release/debug builds, and PTY tests
   - `duop-version-release` to manage `VERSION`, `ROADMAP.md`, Conventional Commits, and Git tags
 - Never consider code changes complete until `.agents/skills/duop-pty-verify/scripts/verify_build.sh` passes cleanly.
+- Hooks are tiered: `pre-commit` runs lint/audit/C gates and, for module-local commits (Makefile registration lines, additive `include/duop_*.h` declarations, one module + its tests), only the smart tests of `tests/run_smart_tests.py`; changes to `src/core`, `src/os`, `include/*.inc`, existing declarations, `src/main.s`/`app_loop` run the full `make test`. `pre-push` always runs the complete `make test` plus faultlab sweeps, SEU and fuzzing. Do not edit tracked files while a commit hook is running.
 - Whenever modifying `src/` or `include/`, ensure `VERSION` is ahead of any existing release tag `vX.Y.Z` (bump via `bump_version.py`), rebuild so `build/version.inc` matches, verify with PTY tests, and commit with a Conventional Commit (`feat|fix|refactor|perf|build|docs|test|chore`).

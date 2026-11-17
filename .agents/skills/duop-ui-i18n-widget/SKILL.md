@@ -12,25 +12,26 @@ description: >-
 
 Every user-visible string MUST be added/updated immediately in **both** default project languages (`en` + `uk`) in the same change — never hardcode display text inside `src/ui/` or `src/app/`, and never leave one language behind:
 
-1. Add a `.space 8` pointer slot (or `.space N*8` array) to `LangStrings` in `include/types.inc`.
-2. Add the English `en_<name>` UTF-8 `.asciz` literal in `src/tui/i18n.s` and its pointer at the same slot position in `lang_en_table` (keep the `.if (. - lang_en_table) != LangStrings._size` guard). English is the built-in base and the fallback for any key a pack omits.
+1. Add a `.space 8` pointer slot (or `.space N*8` array) to `LangStrings` in `include/types.inc` (the C view `LangStrings` in `include/duop_tui.h` is checked against it by `tests/test_abi_layouts.py`).
+2. Add the English `en_<name>` UTF-8 `.asciz` literal in `src/tui/i18n.s` and its pointer at the same slot position in `lang_en_table` (keep the `.if (. - lang_en_table) != LangStrings._size` guard). English is the built-in base and the fallback for any key a pack omits. *(The English table is still assembly data, so it exists only on x86_64; moving it to a generated C table is roadmap item E2 of `docs/HYBRID_PORTABILITY_PLAN.md`.)*
 3. Add the pack key `LK <name>, LangStrings.<name>` (arrays: `<name>.1 .. <name>.N`) at the same position in `src/tui/i18n_keys.s`, and the Ukrainian `<name> = <text>` line to `lang/uk.lang` (quote values with outer spaces; escapes `\n \t \" \\`, `{version}`).
 4. **Automatic Hook & Gate**: `.agents/hooks/duop_lifecycle.py` (`PostToolUse`) automatically checks EN+UA i18n symmetry via `check_modularity.py` whenever `src/ui/`, `src/tui/`, `src/app/`, `include/types.inc`, or `lang/uk.lang` is edited, and reminds to synchronize `en` + `uk` translations on UI edits. Other languages are extra `lang/<id>.lang` files — no code change.
-5. Access the active language via `call i18n_get` (note: preserves all registers except `rax`) and load `[rax + LangStrings.<field>]`.
+5. Access the active language via `i18n_get()` (C: returns `const LangStrings *`; asm: `call i18n_get`, preserves every register except `rax`) and use `->field` / `[rax + LangStrings.<field>]`.
 
 ## 2. UTF-8 Column Width & Rendering
 
 - **Column width != byte count**: Cyrillic UTF-8 takes 2 bytes per terminal column, wide glyphs take 2 columns. Measure strings and truncate via `utf8_display_width` (`src/core/utf8.c`), never raw `str_len`.
-- **Render through `ScreenBuffer`**: Draw only via `Screen_*` APIs (`Screen_put_str`, `Screen_put_glyph`, `Screen_fill_rect`, `Screen_draw_box`) so diff-rendering and `CELL_WIDE_TAIL` remain consistent.
-- **TrueColor tokens only**: Load colors from `call theme_get` -> `[rax + Theme.<token>]`; never embed raw RGB constants unless adding a named `Theme` field for all themes (`src/tui/theme.s`).
+- **Render through `ScreenBuffer`**: draw only via the `ScreenBuffer_*` API of `include/duop_tui.h` (`ScreenBuffer_set_cell`, `_draw_text`, `_fill_rect`, `_draw_box`, `_draw_hline`, pen setters) so diff-rendering and `CELL_WIDE_TAIL` remain consistent.
+- **TrueColor tokens only**: Load colors from `call theme_get` -> `[rax + Theme.<token>]`; never embed raw RGB constants unless adding a named `Theme` field for all themes (`src/tui/theme.c`, layout `include/duop_tui.h`).
 
 ## 3. OOP Widget / Dialog Contract & Mouse Zones
 
-- New modal dialogs (`ProgressDialog`, `FuzzyDialog`, `ChmodDialog`, etc.) go into dedicated `src/ui/<dialog>.s` files inheriting `Dialog_vtbl` via `DIALOG_VTBL_SLOTS` in `include/classes.inc`.
+- New modal dialogs (`ProgressDialog`, `FuzzyDialog`, `ChmodDialog`, etc.) go into dedicated `src/ui/<dialog>.c` files (assembly dialogs that are not migrated yet: `<dialog>.s`) inheriting `Dialog_vtbl` (`DIALOG_VTBL_SLOTS` in `include/classes.inc`; C view `include/duop_oop.h`, vtable in `.rodata`, slot order from the header). A UI module reaches the application only through the `App_*` service interface (`include/duop_app.h` once it exists).
 - Register clickable controls in `HitZone` arrays with `[x1, x2)` exclusive-right column intervals calculated dynamically from `utf8_display_width` (so translated EN/UA labels remain clickable without clipping).
 - Handle both EN and UA layouts when adding `Alt+<char>` shortcuts (matching how `Alt+L` / `Alt+д` works in `src/app/app.s`).
 
 ## 4. Verification
 
+- For a migrated widget, a render-diff test renders the asm oracle and the C widget into a `ScreenBuffer` on fixed theme / strings / models and compares the `Cell` arrays, key / mouse reactions and hit zones (harness pattern: `tests/harness/*_cli.c`).
 - Add or extend a scenario in `tests/test_pty.py` testing BOTH English and Ukrainian modes (`--lang en` and `--lang ua` or `Alt+L` switch) plus mouse clicks (`\x1b[<btn;x;yM`) when applicable.
 - Run `./.agents/skills/duop-pty-verify/scripts/verify_build.sh`.

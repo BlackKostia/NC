@@ -1,32 +1,27 @@
 ---
 name: duop-pty-verify
 description: >-
-  Runs Duop verification checks: static modularity lint, zero-.data ELF check,
-  VERSION consistency, release and debug builds, and real PTY end-to-end tests. Use
-  after editing any .s, .inc, Makefile, VERSION, or tests/*.py file.
+  Runs Duop verification checks: modularity/lean/C-syntax gates, zero-.data ELF check, VERSION consistency, release and debug
+  builds, memcheck and real PTY end-to-end tests (smart / release-only / full modes). Use after editing any .s, .c, .h, .inc,
+  Makefile, VERSION or tests/*.py file.
 ---
 
 # Duop Build, Modularity & PTY Verification
 
-Always verify changes in real builds and real PTY sessions before considering any task finished or ready to commit.
-
-## Standard Verification Gate
-
-Run the shared verification runner from the repository root:
-
 ```bash
-./.agents/skills/duop-pty-verify/scripts/verify_build.sh
+./.agents/skills/duop-pty-verify/scripts/verify_build.sh [--smart|--release-only|--full]
 ```
 
-What this verifies:
-1. `python3 .agents/skills/duop-modular-asm/scripts/check_modularity.py` — `SRCS`/`PAL_SRCS` sync, PAL boundary isolation (no raw `syscall`/OS structs outside `os/`), `.intel_syntax noprefix` (x86-64), zero `.data` directives, strict layer boundaries, `LangStrings` parity, valid SemVer `VERSION`.
-2. `make release` — compiles stripped release ELF `duop` with generated `build/version.inc`.
-3. `size duop` — fails if ELF `.data != 0` (mutable state belongs in `.bss` or heap).
-4. `./duop --version` — verifies binary output embeds exact `VERSION`.
-5. `make test` — runs `tests/test_pal_architecture.py`, `tests/test_pty.py`, and `tests/test_fs_reliability.py` (all registered tests) against release build.
-6. `make memcheck` — builds `duop_memcheck` (`MEMCHECK=1`, `-g`) and runs `tests/test_memcheck.py` (CLI + interactive PTY smoke leak/bad-free check + `addr2line` symbol resolution). For ad-hoc runs use `python3 scripts/memcheck.py --smoke` or `python3 scripts/memcheck.py -- ./duop_memcheck ...`.
-7. `make clean && make && make test` — verifies DWARF debug build also compiles cleanly and passes all PTY/PAL tests (skipped if `--release-only` is passed for fast pre-commit checks).
+| Step | What |
+|---|---|
+| 1 | `check_modularity.py` (SRCS/C_SRCS/PAL_SRCS sync, PAL boundary, layers, i18n parity, `.data`-free, SemVer), asm audits (`audit_stack_abi/cfg_stack/syscall_clobber/abi_regs/oop_vtables/fd_eintr`), `tools/abi_verify.c`, **`tools/check_c_syntax.py`** (every `src/**/*.c`, project CFLAGS, x86_64 gcc + aarch64 clang) and **`tools/faultlab/audit_null_alloc_c.py`**, lean gate, hook self-tests |
+| 2 | `make release` (stripped ELF with `build/version.inc`) |
+| 3 | `size` (`.data == 0`), `audit_elf_hardening.py`, `audit_live_regs.py`, `./duop --version` equals `VERSION` |
+| 4 | `--smart`: `tests/run_smart_tests.py` (only suites mapped to the changed files; module registration in `Makefile` / additive `duop_*.h` stays local) — `--full`/default: `make test` (~90 suites incl. all `test_c_*` differential tests) |
+| 5 | `make memcheck` (`MEMCHECK=1`, `tests/test_memcheck.py`); `--full` also rebuilds the DWARF debug binary and re-runs `make test` |
 
-## When Adding Features or Bugfixes
+Hooks: `.githooks/pre-commit` runs this in `--smart` mode (full for `src/core`, `src/os`, `include/*.inc`, edits of existing
+declarations, `src/main.s`, `app_loop`); `.githooks/pre-push` runs the **complete** `make test` plus faultlab sweeps, SEU
+and fuzzing. `DUOP_FULL_PTY_HOOK=1` forces `--release-only`-style full runs in pre-commit.
 
-Follow `duop-tdd-first`: add deterministic PTY / fault-injection test cases under `tests/` (`tests/test_pal_architecture.py`, `tests/test_pty.py`, `tests/test_fs_reliability.py`, `tests/test_fault_injection.py`, or a new module registered in `Makefile`) covering new flags, keys, dialogs, UI text (both EN and UA), PAL contracts, or filesystem behavior before editing `src/`/`include/` and running `verify_build.sh` (which also executes `duop-reliability-audit` checks and `audit_elf_hardening.py`).
+New features/bugfixes: follow `duop-tdd-first` (tests registered in `Makefile`, mapped in `PATH_TEST_RULES`).

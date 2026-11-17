@@ -12,12 +12,18 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from duop_safety_guards import check_pre_tool_asm_guards, run_post_tool_fault_audits  # noqa: E402
+from duop_safety_guards import (  # noqa: E402
+    check_pre_tool_asm_guards,
+    check_pre_tool_c_guards,
+    run_post_tool_c_audits,
+    run_post_tool_fault_audits,
+)
 
 SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+$")
 CODE_PATH_PREFIXES = ("src/", "include/")
 VERIFY_RELEVANT_FILES = ("Makefile", "VERSION", "tests/test_pty.py")
-LEAN_SUFFIXES = (".s", ".inc", ".py")
+LEAN_SUFFIXES = (".s", ".c", ".h", ".inc", ".py")
+FAULT_RELEVANT_PREFIXES = ("src/fs/", "src/core/", "src/os/", "src/main.s", "src/app/main.c")   # I/O, memory, signals, PAL
 LEAN_SCRIPT = Path(".agents/skills/duop-lean-modules/scripts/check_lean.py")
 MODULARITY_SCRIPT = Path(".agents/skills/duop-modular-asm/scripts/check_modularity.py")
 RELIABILITY_SCRIPT = Path(".agents/skills/duop-reliability-audit/scripts/audit_stack_abi.py")
@@ -148,10 +154,13 @@ def handle_session_start(payload: dict, root: Path) -> dict:
     msg = (
         f"[Duop Workspace] VERSION={ver} | branch={branch or 'detached'} ({head or 'unborn'}) "
         f"| latest_tag={tag or 'none'} | dirty_files={dirty_count} | git_hooks={hooks_path or 'default'}.\n"
+        "Hybrid codebase: portable freestanding C23 (src/**/*.c, registered in Makefile C_SRCS, headers include/duop_*.h) over a per-OS/ISA "
+        "assembly PAL (src/os/<os>/<arch>/); remaining src/**/*.s modules are being migrated to C (skill duop-asm-to-c-migration). "
         "Use workspace rules in AGENTS.md and skills in .agents/skills/: "
-        "duop-tdd-first, duop-modular-asm, duop-lean-modules, duop-multiplatform-pal, duop-ui-i18n-widget, duop-pty-verify, duop-version-release. "
-        "Keep modules lean: .s <= 500 lines, routines <= 80 lines, exports <= 16 (duop-lean-modules gate). "
-        "Always design & write tests under tests/ before editing src/ or include/. "
+        "duop-tdd-first, duop-asm-to-c-migration, duop-modular-asm, duop-lean-modules, duop-multiplatform-pal, duop-ui-i18n-widget, duop-pty-verify, duop-version-release. "
+        "Keep modules lean: .s/.c <= 500 lines, routine/function <= 80 lines, exports <= 16 (duop-lean-modules gate); C: .data == 0, frame <= 4608 B, no libc. "
+        "Always design & write tests under tests/ before editing src/ or include/ (a differential test against a frozen asm oracle counts). "
+        "Pre-commit is tiered: module-local commits run the smart tests (tests/run_smart_tests.py); the full `make test` runs in pre-push and CI. "
         "Verify with ./.agents/skills/duop-pty-verify/scripts/verify_build.sh, maintain SemVer in VERSION, "
         "and commit after verified changes."
     )
@@ -170,7 +179,7 @@ def handle_pre_tool_use(payload: dict, root: Path) -> dict:
         rel = to_rel_repo_path(raw_path, root)
         if rel:
             if (
-                rel in ("duop", "nc")
+                rel == "duop"
                 or rel.startswith("build/")
                 or rel.startswith(".git/")
                 or rel.endswith(".o")
@@ -207,8 +216,8 @@ def handle_pre_tool_use(payload: dict, root: Path) -> dict:
                             "Write happy-path and fault/edge assertions first (or set DUOP_TDD_BYPASS=1 only for pure non-functional refactors)."
                         ),
                     }
-            asm_text = str(args.get("Content") or args.get("Replacement") or "")
-            guard_err = check_pre_tool_asm_guards(rel, asm_text)
+            code_text = str(args.get("Content") or args.get("Replacement") or args.get("NewString") or "")
+            guard_err = check_pre_tool_asm_guards(rel, code_text) or check_pre_tool_c_guards(root, rel, code_text)
             if guard_err:
                 return {"decision": "deny", "reason": guard_err}
         return {"decision": "allow"}
@@ -240,7 +249,7 @@ def handle_pre_tool_use(payload: dict, root: Path) -> dict:
                         "decision": "deny",
                         "reason": "Bypassing Git pre-commit/commit-msg hooks (--no-verify) violates Duop quality rules.",
                     }
-                if os.environ.get("DUOP_ALLOW_UNCONFIGURED_HOOKS", os.environ.get("NC_ALLOW_UNCONFIGURED_HOOKS")) != "1":
+                if os.environ.get("DUOP_ALLOW_UNCONFIGURED_HOOKS") != "1":
                     _, hooks_path = run_git(root, "config", "core.hooksPath")
                     if (root / ".githooks/pre-commit").is_file() and hooks_path != ".githooks":
                         return {
@@ -278,7 +287,7 @@ def handle_post_tool_use(payload: dict, root: Path) -> dict:
             if is_verify_relevant(rel):
                 state["edited_code"] = True
                 state["needs_verify"] = True
-            if rel.startswith("src/"):
+            if rel.startswith(FAULT_RELEVANT_PREFIXES):
                 state["needs_faultlab"] = True
             if rel.startswith("docs/") or rel in ("README.md", "README.uk.md", "ROADMAP.md"):
                 state["docs_edited"] = True
@@ -329,6 +338,10 @@ def handle_post_tool_use(payload: dict, root: Path) -> dict:
                         stderr=subprocess.DEVNULL,
                         check=False,
                     )
+            if rel.startswith("src/") and rel.endswith(".c") and (root / rel).is_file():
+                c_note = run_post_tool_c_audits(root, rel)
+                if c_note:
+                    return {"feedback": "C gates failed after editing " + rel + ":\n" + c_note}
             if rel.startswith(("src/", "include/")) and rel.endswith((".s", ".inc")):
                 for rscript_name in ("audit_stack_abi.py", "audit_cfg_stack.py", "audit_syscall_clobber.py", "audit_oop_vtables.py", "audit_fd_eintr.py"):
                     rel_script = root / ".agents/skills/duop-reliability-audit/scripts" / rscript_name
@@ -408,7 +421,7 @@ def parse_porcelain_paths(status_out: str) -> set[str]:
 
 
 def handle_stop(payload: dict, root: Path) -> dict:
-    if os.environ.get("DUOP_SKIP_STOP_HOOK", os.environ.get("NC_SKIP_STOP_HOOK")) == "1":
+    if os.environ.get("DUOP_SKIP_STOP_HOOK") == "1":
         return {"decision": "allow"}
     if payload.get("terminationReason") != "NO_TOOL_CALL":
         return {"decision": "allow"}

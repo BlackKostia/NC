@@ -22,3 +22,5 @@ Every change to `src/fs/`, `src/core/`, or `src/os/` must be exercised under rea
    python3 tools/faultlab/campaign.py short <scenario>
    ```
 4. For release/pre-push verification, run full sweeps (`campaign.py sweep <scenario>`) and enforce the **0 `CRASH_UI` / `HANG` / `DATA_LOSS` / `SILENT_CORRUPTION`** budget.
+
+Applies equally to C modules in those directories (and to `src/app/main.c`); UI-only changes do not need a campaign (the hooks only demand it for `src/fs`, `src/core`, `src/os`). After migrating a module the frozen-oracle differential test (`duop-asm-to-c-migration`) is the first line of defence; faultlab confirms behaviour under injected failures.

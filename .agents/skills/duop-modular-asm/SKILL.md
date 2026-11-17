@@ -1,51 +1,46 @@
 ---
 name: duop-modular-asm
 description: >-
-  Guides modular x86-64 GNU Assembler development in Duop. Use when creating,
-  splitting, or refactoring .s modules, adding OOP classes/vtables in include/classes.inc,
-  adding Linux syscalls, extending structs in include/types.inc, or registering objects in Makefile.
+  Guides modular Duop development under the hybrid architecture: new code is freestanding C23 (src/**/*.c, C_SRCS,
+  include/duop_*.h); assembly is for the per-OS/ISA PAL, SIMD and not-yet-migrated modules (src/**/*.s, SRCS). Use when
+  creating, splitting or refactoring modules, adding OOP classes/vtables, syscalls, structs, or registering objects in Makefile.
 ---
 
-# Duop Modular Assembly Workflow
+# Duop Modular Workflow (C23 + assembly PAL)
 
-Keep every Duop subsystem small, decoupled, zero-libc, and single-purpose.
+Keep every Duop subsystem small, decoupled, zero-libc, single-purpose. **New modules are C**; assembly is written only for
+`src/os/<os>/<arch>/` (syscalls, signals, SIMD, thread/pty/uring) and for modules that have not been migrated yet
+(`docs/HYBRID_PORTABILITY_PLAN.md`). Migrating a module: see `duop-asm-to-c-migration`.
 
 ## Layer Ownership & Dependency Matrix
 
-| Layer | Directory | Allowed Dependencies | Forbidden Dependencies |
+| Layer | Directory | Allowed dependencies | Forbidden |
 | :--- | :--- | :--- | :--- |
-| Contracts | `include/` | Other `include/*.inc` only | Code/data emission; raw OS structs outside `include/os/` |
+| Contracts | `include/` | other headers | code / writable data; kernel structs outside `include/os/` |
 | OS PAL | `src/os/<os>/<arch>/` | `include/pal.inc`, `include/os/<os>/<arch>/*` | `tui/*`, `fs/*`, `ui/*`, `app/*` |
-| Core | `src/core/` | `include/*`, `src/os/*` PAL, other `core/*` | Raw `syscall`, kernel structs, `tui/*`, `fs/*`, `ui/*`, `app/*` |
-| TUI | `src/tui/` | `include/*`, `core/*`, `src/os/*` PAL, other `tui/*` | Raw `syscall`, kernel structs, `fs/*`, `ui/*`, `app/*` |
-| FS | `src/fs/` | `include/*`, `core/*`, `src/os/*` PAL, `i18n_get` | Raw `syscall`, `KSTAT_*`/`KDIRENT_*`, `Screen_*`, `Input_*`, `ui/*`, `app/*` |
-| UI | `src/ui/` | `include/*`, `core/*`, `tui/*`, `fs/*` (`DirModel`/`FileEntry`) | Raw `syscall`, `app.s` internals |
-| App | `src/app/`, `src/main.s` | All layers below | Raw `syscall`, kernel structs, unbounded god-functions |
+| Core | `src/core/` | headers, PAL (`os_*`), other `core/*` | raw `syscall`, kernel structs, upper layers |
+| TUI | `src/tui/` | + `core/*` | `fs/*`, `ui/*`, `app/*` |
+| FS | `src/fs/` | + `core/*`, `i18n_get` | `ScreenBuffer_*`, `Input_*`, `theme_*`, `ui/*`, `app/*` |
+| UI | `src/ui/` | + `tui/*`, `fs/*`, the `App_*` service interface (`include/duop_app.h`) | raw `syscall`, app internals |
+| App | `src/app/`, `src/main.s` | all layers below | raw `syscall`, god-functions |
 
-## Adding a New Module (or Splitting an Existing Large Module)
+## Adding a module (C, the default)
 
-1. **Choose the narrowest layer** matching the responsibility:
-   - Config parser (`duoprc`), checksum/crypto, timers -> `src/core/`
-   - Kitty graphics / Sixel encoder -> `src/tui/`
-   - Inflate/VFS, `Trash` + Undo log, async worker `TaskQueue`, `ncdu` scanner -> `src/fs/`
-   - Dedicated dialog/widget (`FuzzyDialog`, `ProgressDialog`, `ChmodDialog`, `Tabs`) -> separate file `src/ui/<widget>.s` instead of appending to `src/ui/dialogs.s` or `src/ui/file_pane.s`!
-2. **Define binary contracts cleanly in `include/`**:
-   - Kernel constants/syscall numbers -> `include/linux_sys.inc`
-   - Feature constants/keys/flags -> `include/config.inc`
-   - POD structs (`Rect`, `Event`, `FileEntry`, `Config`, `TaskItem`) -> `include/types.inc`
-   - OOP structs & VTable layouts (`CLASS_BEGIN`, `EXTENDS`, `FIELD`, `VTBL_SLOT`, `WIDGET_VTBL_SLOTS`/`DIALOG_VTBL_SLOTS`) -> `include/classes.inc`
-   - Keep natural alignment (8-byte pointers/qwords first, then 4-byte dwords, then 2-byte/bytes, explicit padding fields if needed).
-3. **Follow the module template**:
-   - Start with `.intel_syntax noprefix` and `.include "classes.inc"` (or narrower `.inc` for `core/`).
-   - Place immutable metadata (class name string, vtable via `OBJECT_VTBL_SLOTS` / `WIDGET_VTBL_SLOTS` / `DIALOG_VTBL_SLOTS`) in `.section .rodata`.
-   - Keep `.data` empty (`data == 0`); use `mem_alloc` (`NEW_OBJ`) for per-instance state and `.section .bss` only if truly singleton-global.
-   - Export only the public API via `.global Class_method`; keep helper labels local (`camel_helper:` / `.Lprefix_label:`).
-   - Preserve System V AMD64 ABI callee-saved registers (`rbx, rbp, r12-r15`) and 16-byte stack alignment across `call`.
-4. **Register in `Makefile`**:
-   - Add `src/<layer>/<name>.s` to `SRCS` in dependency-logical order.
-5. **Validate modularity automatically**:
-   ```bash
-   python3 ./.agents/skills/duop-modular-asm/scripts/check_modularity.py
-   ```
-   Confirm zero errors and check any file-size warnings before continuing.
-   Also run `audit_oop_vtables.py`, `audit_stack_abi.py`, `audit_cfg_stack.py`, and `audit_syscall_clobber.py` (or `make audit-all`) after editing OOP vtables, syscalls, or stack frames.
+1. Pick the narrowest layer (config/hash/timers -> `core`; terminal/i18n/input -> `tui`; listing/IO/VFS/trash/tasks -> `fs`;
+   one widget or dialog per file -> `ui`, never growing `dialogs`/`file_pane`; controller -> `app`).
+2. **Contracts**: C structs/prototypes in `include/duop_<layer>.h` (fixed-width fields, `_Static_assert(sizeof/offsetof)`);
+   layouts shared with assembly mirror `include/types.inc`/`classes.inc` and are compared by `tests/test_abi_layouts.py`.
+   Kernel constants -> `include/duop_pal.h` + `include/os/<os>/<arch>/pal_target.inc` (+ `tools/abi_entries.def`).
+3. **Module rules**: only compiler headers (`<stdint.h>`, `<stddef.h>`, `<stdbool.h>`, `<stdarg.h>`) and `duop_*.h`; kernel only
+   through `os_*`; failures are `-errno` (`os_is_err`); file-scope data `const` or zero-initialised (`.data == 0`); functions
+   <= 80 lines, <= 16 non-static, file <= 500 lines; unaligned parser reads via `load_le16/32/64`; no VLA/alloca/float/`__int128`.
+4. **Register** the file in `Makefile` `C_SRCS` (and its test in the `test:` list); add a `PATH_TEST_RULES` entry in
+   `tests/run_smart_tests.py`.
+5. **Validate**: `check_modularity.py`, `check_lean.py`, `tools/check_c_syntax.py`, `make audit-all`, `make symbols`.
+
+## Adding assembly (PAL / SIMD only)
+
+`.intel_syntax noprefix` (x86-64) or GNU ARM syntax (AArch64), immutable data in `.rodata`, mutable in `.bss`, System V /
+AAPCS64 registers and alignment, `.global` only for the public API, registered in `PAL_SRCS` for **every** `ARCH` with the
+same symbols. Remaining non-PAL `.s` modules go in `SRCS`; after editing run `audit_stack_abi/cfg_stack/syscall_clobber/
+abi_regs/oop_vtables/fd_eintr` (`make audit-all`).

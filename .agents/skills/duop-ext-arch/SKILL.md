@@ -12,12 +12,12 @@ Use this skill whenever designing or modifying Duop subsystems, package/plugin c
 2. **Instant Startup & Lazy Work**: Never scan packages, registries, or large trees during startup unless explicitly requested by CLI flags (`duop pkg ...`) or user action (`Alt+K`, `Alt+U`, `PopupMenu`, `PreviewPane`).
 3. **Out-of-Process Extensions**: All third-party tools, previewers, and VFS providers MUST run as isolated child processes (`fork` + `execve` + `pipe` / `wait4`), never via `/bin/sh -c` on untrusted filenames.
 4. **Strict Downward Layering**:
-   - `include/` -> `src/os/<os>/<arch>/` -> `src/core/` -> `src/tui/` -> `src/fs/` -> `src/ui/` -> `src/app/` -> `src/main.s`.
-   - `src/fs/` (`pkg_*.s`) MUST NEVER call `ScreenBuffer_*`, `i18n_get`, `App_*`, or UI widgets directly.
-   - `src/ui/` MUST NOT depend on `src/app/`.
+   - `include/` -> `src/os/<os>/<arch>/` -> `src/core/` -> `src/tui/` -> `src/fs/` -> `src/ui/` -> `src/app/` -> `src/main.s` / `src/app/main.c`.
+   - `src/fs/` (`pkg_*`) MUST NEVER call `ScreenBuffer_*`, `i18n_get`, `App_*`, or UI widgets directly.
+   - `src/ui/` reaches the application only through the `App_*` service interface (`include/duop_app.h`), never its internals; `src/fs/` must not reference `main` (`g_envp` lives in core).
 
 ## Forward-Compatibility Contracts
 - **Manifest Keys (`manifest.ini`)**: Parsers MUST ignore unknown `key = value` lines so newer manifests work on older Duop versions.
-- **Zero-copy / Fixed Structs**: Keep `PkgEntry` (`296` B), `PkgAction` (`576` B), and `PkgRegEntry` (`512` B) aligned to 8 bytes with documented offsets at the top of the `.s` file.
+- **Zero-copy / Fixed Structs**: Keep `PkgEntry` (`296` B), `PkgAction` (`576` B), and `PkgRegEntry` (`512` B) aligned to 8 bytes with documented offsets in the header / source that owns them (`_Static_assert` in C).
 - **Safe Path Hygiene**: Always validate package names and archive entry paths against empty strings, leading `/`, and `..` segments before `path_join`.
-- **Lean-Module Discipline**: Any new subsystem goes into a dedicated `src/<layer>/<topic>.s` (`<= 500` lines, routines `<= 80` lines, `<= 16` `.global` symbols).
+- **Lean-Module Discipline**: Any new subsystem goes into a dedicated `src/<layer>/<topic>.c` (`<= 500` lines, functions `<= 80` lines, `<= 16` non-static symbols; assembly only for the PAL).

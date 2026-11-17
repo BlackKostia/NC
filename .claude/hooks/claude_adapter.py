@@ -34,6 +34,10 @@ def to_agy(payload: dict) -> dict:
         args["Path"] = tin.get("file_path") or tin.get("notebook_path") or ""
         if tool == "Write":
             args["Content"] = tin.get("content") or ""
+        elif tool == "Edit":
+            args["Replacement"] = tin.get("new_string") or ""          # lets the pre-tool guards inspect the code being added
+        elif tool == "MultiEdit":
+            args["Replacement"] = "\n".join(str(e.get("new_string") or "") for e in (tin.get("edits") or []))
     elif name == "run_command":
         args["CommandLine"] = tin.get("command") or ""
     return {

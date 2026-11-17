@@ -14,3 +14,5 @@ A `SIGKILL` or power loss at any point must never leave the user with both sourc
 1. **Atomic state updates:** never truncate a config/bookmark/history file in place; write to a temp file, `fsync`, check `close()`, and `renameat`.
 2. **Move ordering:** during cross-device `move`, copy + `fsync` + `close()` check must complete before `unlink` of the source.
 3. **Faultlab verification:** test crash points with `tools/faultlab/campaign.py` (`SIGKILL` / `EIO` injection) and verify 0 `DATA_LOSS` and 0 `SILENT_CORRUPTION`.
+
+Tests: `tools/faultlab/campaign.py` as above; for C modules also compare the final tree of the new code against the frozen asm in a differential test (`tests/test_c_trash.py`, `test_c_fops_small.py` pattern).

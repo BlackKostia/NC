@@ -11,6 +11,6 @@ The UI event loop must never hang indefinitely on a pipe, FIFO, child process, o
 
 ## Rules
 
-1. **No blocking I/O in UI:** never open unknown paths (e.g. FIFOs) without `O_NONBLOCK` in the UI process; delegate blocking previews to `preview_helper.s` or background workers.
+1. **No blocking I/O in UI:** never open unknown paths (e.g. FIFOs) without `O_NONBLOCK` in the UI process; delegate blocking previews to `preview_helper` or background workers (`fs_read_file_alloc` opens with `O_NONBLOCK` and accepts regular files only).
 2. **Helper timeouts & non-blocking `wait4`:** bound helper processes (`git_status`, previewers, external tools) with timeouts or non-blocking polling so a wedged child cannot freeze the TUI.
 3. **Clean EOF exit:** when `stdin` returns EOF (`read == 0`) or `-EIO` in `input_next_event`, exit the event loop cleanly and restore the terminal.

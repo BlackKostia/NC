@@ -215,6 +215,25 @@ flowchart TB
 | 4 `src/ui`, `src/app`, повна збірка aarch64 | ⏳ | не розпочато; `make ARCH=aarch64` збирає лише PAL + selftest |
 | 5 ARM32 / FreeBSD | ⏳ | не виконано: бракує інструментів лінкування ARM32 у середовищі |
 
+### Дорожня карта після v2.6.7 (залишок ≈ 35 тис. рядків asm: `fs` 11,6 K, `ui` 17,2 K, `app` 5,0 K, `main.s`, `memcheck.s`, i18n-таблиці)
+
+Рішення: порядок **знизу вгору + ранній aarch64-майлстоун**; хук — **тіровані перевірки**; цілі зараз — **Linux x86_64 + aarch64** (ARM32/FreeBSD — окремий Етап 5, бракує тулчейна).
+
+| Фаза | Зміст | Стан |
+|---|---|---|
+| H1–H7 Хуки та скіли | тірований pre-commit (hunk-aware `run_smart_tests.py`: реєстрація модуля в `Makefile` та додавання в `duop_*.h` — локальні; повний `make test` у `pre-push`), `tools/check_c_syntax.py` (x86_64 gcc + aarch64 clang із CFLAGS Makefile), `tools/faultlab/audit_null_alloc_c.py`, `[[nodiscard]]` на `os_*`/`mem_alloc`/`path_join`/`sys_write_all`/`tmp_*`, C-гарди в `duop_lifecycle`/`duop_safety_guards` (`.c/.h` під lean-гейтом, faultlab лише для `fs/core/os`), 24 скіли оновлено, новий скіл `duop-asm-to-c-migration`, `AGENTS.md` | ✅ |
+| E2 | англійська таблиця на C (`tools/gen_i18n.py`, `lang/en.lang`) | ⏳ |
+| E3 | `tools/gen_abi.py`: `build/duop_classes.h` із `classes.inc`/`types.inc` (+ `PTR`-розмітка) | ⏳ |
+| E4 | відновлення з фолтів на aarch64 (`pal_fault.s`, `DUOP_TRY`, `tests/test_c_try.py`) | ⏳ |
+| E5–E8 | `g_envp` у core; `include/duop_app.h` (29 викликів `ui→app`); `memcheck.s` → C; спільні тест-утиліти (`build_with_refs`, `script_cli`, `snapshot`, `mutcheck`) | ⏳ |
+| M1 | «headless aarch64»: `make ARCH=aarch64 headless` (`--version`, `--help`, CLI `pkg`/`diff`) + CI (x86_64, `ubuntu-24.04-arm`, qemu-user) | ⏳ |
+| S1–S5 `fs` | S1 `file_ops_overwrite`, `pkg_fetch`, `dir_cache*`, `git_status*`, `preview_io/helper`, `img_core`; S2 `dir_sort*`; S3 `dir_model*`; S4 `file_ops*` + `task*`; S5 `archive_*` + `pkg_*` | ⏳ |
+| U0–U4 `ui` | U0 render-diff harness + `duop_ui.h`; U1 листкові віджети; U2 діалоги; U3 переглядач; U4 панелі (`file_pane_render.s` 1223 рядки → ≤ 500-рядкові модулі) | ⏳ |
+| App | `app_*`, `app_loop`, `main.s` → `src/app/main.c`; `SRCS` порожніє, `make ARCH=aarch64` будує повний `duop` | ⏳ |
+| Фаза 4 | повний aarch64 + нативний arm64 CI, C-аудити замість asm-аудитів, інверсія `gen_abi`, документація | ⏳ |
+
+Орієнтир: ≈ 110–120 комітів; бюджет бінарника — сумарно ≤ +30 % `text` до v2.6.7 (≈ 190 KiB).
+
 **Знахідки міграції** (реальні помилки, виявлені новими тестами): `app_cmd_diff` не задавав `cap` для `str_copy`/`str_cat` і працював лише завдяки залишковому регістру; `format_datetime` повертав порожній рядок для хвилини перед 1970 (колізія ключа кешу); `u64_to_hex` переповнював буфер при `min_digits > 32`; aarch64: `O_NOFOLLOW`, `os_dir_next_ex`, `os_mem_find_byte/count_byte/mismatch16`, `os_str_contains_ci_fast`. Етап 2 tui/3 img додатково: `i18n_detect_env` повертав *вказівник* порожнього `LANG` як індекс мови (безпечно лише завдяки `i18n_set_lang`); `bmp_header` повертав затертий регістр як код помилки (`lea rax,[hsz+14]` перед `ja`); `data_read_file(cap=0)` читав без межі. `dir_search_walk` для DT_UNKNOWN передавав `AT_SYMLINK_NOFOLLOW` як прапорець *follow* у `os_statat`. Ще з Етапу 3 (Disk Usage, кошик, навігація): `du_toggle` викликав `dir_du_populate` зі стеком, зсунутим на 8 байтів від вирівнювання `call` (два `push` на вході) — нешкідливо для asm-викликаних, фатально для C із вирівняними записами в стек (переїхав до `app_du.s` з виправленням; тепер `test_c_stack_align.py` стежить за цим); `tu_write_info` вважав короткий запис успіхом і комітив обрізаний `.trashinfo` (тепер `-EIO`); `nav_frecency_record` спершу збільшував лічильник / звільняв останній запис і лише потім викликав `nav_strdup` — при OOM лишався `NULL`-запис у списку або висячий вказівник у слоті 127 (тепер копія створюється першою). Тести з реальними потоками: `qemu-user` відхиляє `clone()` без `CLONE_SYSVSEM`, тому на aarch64 потокові сценарії виконуються послідовно. Висновок для наступних модулів: asm-викликачі покладаються на **ширину** повернення (`rax` проти `eax`) і на випадкові значення регістрів — тому `intptr_t` для `-errno`, диференційний тест і повний `make test` після кожного модуля обов'язкові (приклад: `ds_append_entry` — asm-виклики перевіряють знак `eax`, `void` ламав пакетний VFS).
 
 **Метод міграції одного модуля** (повторюваний): заморозити старий `.s` як оракул у `tests/harness/*_reference.s`, написати `.c` з тим самим контрактом (пара в `rax:rdx` → struct з двох `uint64_t`; повернення `-errno` → `intptr_t`), диференційний тест (хост-harness з `c_harness.rename_defined_globals` для x86_64 + `tests/c_harness.py` для aarch64 під qemu), перевірити `audit_live_regs.py`, повний `make test`, закоммітити (хук ≈ 5 хв).

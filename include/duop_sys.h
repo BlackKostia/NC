@@ -6,8 +6,8 @@ extern volatile int32_t g_sigwinch;     /* set by the SIGWINCH handler, cleared 
 extern volatile int32_t g_sigterm;      /* set by SIGTERM / SIGINT (outside child runs) */
 extern void *g_try_frame;               /* head of the active TRY frame chain (asm macros in try_using.inc) */
 
-intptr_t    sys_write_all(int fd, const void *buf, size_t len);       /* total written or -errno; retries EINTR/EAGAIN */
-intptr_t    sys_read_retry(int fd, void *buf, size_t len);            /* read(2) retried on EINTR */
+DUOP_NODISCARD intptr_t    sys_write_all(int fd, const void *buf, size_t len);       /* total written or -errno; retries EINTR/EAGAIN */
+DUOP_NODISCARD intptr_t    sys_read_retry(int fd, void *buf, size_t len);            /* read(2) retried on EINTR */
 int64_t     sys_clock_ms(void);
 void        sys_get_winsize(int *cols, int *rows);
 int         term_enter_raw(void);
@@ -21,5 +21,5 @@ int         sys_open_external(const char *path, char **envp);         /* 0 launc
 void        os_fault_guard_install(void);
 
 /* crash-safe writes (src/core/tmpfile.c): open <final>.tmp.<hex> exclusively, then fsync + rename it over final */
-intptr_t    tmp_open_atomic(const char *final_path, char *tmp_buf, int mode);   /* tmp_buf: PATH_MAX bytes; fd or -errno */
-intptr_t    tmp_commit_atomic(int fd, const char *tmp_buf, const char *final_path, int64_t write_rc);   /* write_rc < 0 aborts; 0 or -errno */
+DUOP_NODISCARD intptr_t    tmp_open_atomic(const char *final_path, char *tmp_buf, int mode);   /* tmp_buf: PATH_MAX bytes; fd or -errno */
+DUOP_NODISCARD intptr_t    tmp_commit_atomic(int fd, const char *tmp_buf, const char *final_path, int64_t write_rc);   /* write_rc < 0 aborts; 0 or -errno */

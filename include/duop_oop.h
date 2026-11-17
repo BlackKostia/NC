@@ -56,9 +56,9 @@ int Widget_on_mouse(Widget *self, void *event);
 void Widget_on_focus(Widget *self, int gained);
 int Widget_hit_test(Widget *self, int mx, int my);
 
-void *mem_alloc(size_t size);
+DUOP_NODISCARD void *mem_alloc(size_t size);                    /* NULL on OOM: callers must check */
 void mem_free(void *ptr);
-void *mem_realloc(void *ptr, size_t size);                    /* NULL on OOM: the old block stays valid */
+DUOP_NODISCARD void *mem_realloc(void *ptr, size_t size);                    /* NULL on OOM: the old block stays valid */
 void mem_copy(void *dst, const void *src, size_t n);           /* non-overlapping, SIMD */
 void mem_move(void *dst, const void *src, size_t n);           /* overlap-safe, SIMD */
 void mem_zero(void *dst, size_t n);

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import fnmatch
+import re
 import subprocess
 import sys
 import time
@@ -29,6 +30,41 @@ FULL_SUITE_PATTERNS = (
     "src/app/app_loop.s",
     "src/app/app_events.s",
 )
+
+# A module migration only *registers* itself in the Makefile (a source in SRCS / C_SRCS, a test in `test:`) and appends
+# declarations to include/duop_*.h. Such hunks cannot change how the rest of the tree builds, so they do not need the
+# full suite (tiered pre-commit hook: the full `make test` runs in pre-push, before tags and in CI).
+REGISTRATION_LINE = re.compile(r"^\s*(?:src/\S+\.(?:s|c)(?:\s*\\)?|python3 tests/test_\w+\.py)\s*$")
+LOCAL_HEADER_GLOB = "include/duop_*.h"
+ABI_TESTS = ("tests/test_abi_layouts.py", "tests/test_abi_cross.py")
+
+
+def _changed_lines(diff_text: str) -> list[str]:
+    return [ln for ln in diff_text.splitlines() if ln[:1] in "+-" and not ln.startswith(("+++", "---"))]
+
+
+def makefile_diff_is_local(diff_text: str) -> bool:
+    """True when every changed Makefile line only registers a source file or a test script."""
+    lines = _changed_lines(diff_text)
+    return bool(lines) and all(REGISTRATION_LINE.match(ln[1:]) for ln in lines)
+
+
+def header_diff_is_local(diff_text: str) -> bool:
+    """True when a duop_*.h change only adds lines (existing declarations are untouched)."""
+    lines = _changed_lines(diff_text)
+    return bool(lines) and all(ln.startswith("+") for ln in lines)
+
+
+def local_change(rel: str, staged_only: bool = False) -> bool:
+    """Is the working-tree / staged change of a Makefile or duop_*.h file a pure registration / addition?"""
+    if rel != "Makefile" and not fnmatch.fnmatch(rel, LOCAL_HEADER_GLOB):
+        return False
+    cmd = ["git", "diff", "--cached" if staged_only else "HEAD", "-U0", "--", rel]
+    res = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True, check=False)
+    if res.returncode != 0:
+        return False
+    return makefile_diff_is_local(res.stdout) if rel == "Makefile" else header_diff_is_local(res.stdout)
+
 
 # Subsystem path globs -> affected test scripts (relative to ROOT).
 PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
@@ -106,7 +142,11 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     (".agents/skills/duop-lean-modules/*", ("tests/test_lean_gate.py", "tests/test_lean_split.py")),
     (".agents/skills/duop-reliability-audit/*", ("tests/test_reliability_audit.py", "tests/test_fault_injection.py", "tests/test_audit_live_regs.py", "tests/test_elf_hardening.py")),
     ("tools/abi_verify.c", ("tests/test_reliability_audit.py",)),
-    (".agents/hooks/*", ("tests/test_lean_gate.py", "tests/test_i18n_hook.py")),
+    (".agents/hooks/*", ("tests/test_lean_gate.py", "tests/test_i18n_hook.py", "tests/test_c_guards.py")),
+    (".claude/hooks/*", ("tests/test_i18n_hook.py", "tests/test_c_guards.py")),
+    ("tools/check_c_syntax.py", ("tests/test_c_guards.py",)),
+    ("tools/faultlab/audit_null_alloc_c.py", ("tests/test_c_guards.py",)),
+    (".githooks/*", ("tests/test_smart_runner.py",)),
 )
 
 
@@ -138,8 +178,9 @@ def detect_changed_files(staged_only: bool = False) -> list[str]:
     return changed
 
 
-def select_tests(changed_files: list[str]) -> tuple[bool, list[str]]:
-    """Return (run_full_suite, list_of_test_paths)."""
+def select_tests(changed_files: list[str], local_ok=None) -> tuple[bool, list[str]]:
+    """Return (run_full_suite, list_of_test_paths). local_ok(rel) -> True for a Makefile / duop_*.h change that only
+    registers or adds (see local_change); such files do not trigger the full suite."""
     selected: list[str] = []
     seen: set[str] = set()
     has_asm = False
@@ -150,11 +191,17 @@ def select_tests(changed_files: list[str]) -> tuple[bool, list[str]]:
             selected.append(t)
 
     for rel in changed_files:
+        if local_ok is not None and local_ok(rel):
+            for t in ABI_TESTS if rel.startswith("include/") else ():
+                add_test(t)
+            continue
         for pat in FULL_SUITE_PATTERNS:
             if fnmatch.fnmatch(rel, pat):
                 return True, []
         if rel.endswith(".s") or rel.endswith(".inc"):
             has_asm = True
+        if rel.endswith(".c"):
+            add_test("tests/test_c_stack_align.py")
         if rel.startswith("tests/test_") and rel.endswith(".py"):
             add_test(rel)
             continue
@@ -200,7 +247,7 @@ def main() -> int:
         print("No changed files detected; running core reliability & PTY smoke tests.")
         return run_selected(["tests/test_reliability_audit.py", "tests/test_pty.py"], dry_run=args.dry_run)
 
-    run_full, tests = select_tests(changed)
+    run_full, tests = select_tests(changed, local_ok=lambda rel: local_change(rel, staged_only=args.staged))
     if run_full:
         if args.dry_run:
             print("FULL_SUITE")
