@@ -102,6 +102,7 @@ int undo_pop_and_apply(void);                                           /* 1 und
 
 /* ---- file operations still in assembly (file_ops*.s) ---- */
 intptr_t fs_rename_noreplace(const char *old_path, const char *new_path);   /* 0, or -errno (-EEXIST: target exists) */
+void fs_progress_item(void);                                                /* one more item done in the running copy / delete */
 int fs_copy_recursive(const char *src_path, const char *dst_path);          /* 0, or -errno */
 int fs_delete_recursive(const char *path);                                  /* 0, or -errno */
 
@@ -149,3 +150,7 @@ int dirwatch_fd(void);                                         /* pollable watch
 void dirwatch_set(int slot, const char *path);                 /* slot 0 / 1 = left / right pane directory */
 uint32_t dirwatch_poll(void);                                  /* 1/2 = slot 0 structural/content, 4/8 = slot 1 */
 void dirwatch_cleanup(void);
+
+/* ---- whole-file helpers of the file operations (file_ops_read.c) ---- */
+intptr_t fs_read_file_alloc(const char *path, size_t max_bytes, void **out_buf, size_t *out_len);   /* regular file -> NUL-terminated heap buffer: 0, or -errno */
+intptr_t copy_link_at(int sdir, const char *sname, int ddir, const char *dname);                    /* copy a symlink as a symlink: 0, or -errno */

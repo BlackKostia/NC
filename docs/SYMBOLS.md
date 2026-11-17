@@ -497,8 +497,6 @@
 - **`src/fs/file_ops_copy_at.s`**
   - `copy_reg_at` — being truncated. A canceled copy unlinks its partial destination.
   - `copy_dir_fd` — Internal: int copy_dir_fd(int sfd, int dfd, int depth) -- copies every entry of sfd into dfd
-- **`src/fs/file_ops_copy_link.s`**
-  - `copy_link_at` — Internal: int copy_link_at(int sdir, const char *sname, int ddir, const char *dname)
 - **`src/fs/file_ops_delete.s`**
   - `fs_delete_recursive` — Symlinks are removed, never followed (O_NOFOLLOW on every directory open).
   - `fs_move_recursive` — int fs_move_recursive(const char *src_path, const char *dst_path)
@@ -507,8 +505,9 @@
   - `fo_open_overwrite` — Returns the fd or -errno (no fallback on ENOSPC: truncating would destroy the old file for nothing).
   - `fo_overwrite_open` — Returns the open fd, or -errno.
   - `fo_overwrite_commit` — Atomically replaces `name` with the finished temp file.
-- **`src/fs/file_ops_read.s`**
-  - `fs_read_file_alloc` — int fs_read_file_alloc(const char *path, size_t max_bytes, void **out_buf, size_t *out_len)
+- **`src/fs/file_ops_read.c`**
+  - `fs_read_file_alloc` — `intptr_t fs_read_file_alloc(const char *path, size_t max_bytes, void **out_buf, size_t *out_len)`
+  - `copy_link_at` — `intptr_t copy_link_at(int sdir, const char *sname, int ddir, const char *dname)`
 - **`src/fs/fs_write.c`**
   - `fs_write_file` — `int fs_write_file(const char *path, const void *buf, uint64_t len)`
 - **`src/fs/git_status.s`**

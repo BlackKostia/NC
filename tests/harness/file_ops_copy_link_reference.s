@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/file_ops_read.c replaced (tests/test_c_fops_small.py diffs against it)
 # Filesystem Operations: copy a symbolic link (split from file_ops_copy_at.s)
 
 .intel_syntax noprefix

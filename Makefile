@@ -61,11 +61,9 @@ SRCS := \
 	src/fs/dir_cache_fetch.s \
 	src/fs/file_ops.s \
 	src/fs/file_ops_copy_at.s \
-	src/fs/file_ops_copy_link.s \
 	src/fs/file_ops_overwrite.s \
 	src/fs/file_ops_copy.s \
 	src/fs/file_ops_delete.s \
-	src/fs/file_ops_read.s \
 	src/fs/task.s \
 	src/fs/task_worker.s \
 	src/fs/task_control.s \
@@ -233,7 +231,8 @@ C_SRCS := \
 	src/fs/nav_state.c \
 	src/fs/nav_persist.c \
 	src/fs/git_trust.c \
-	src/fs/dir_watch.c
+	src/fs/dir_watch.c \
+	src/fs/file_ops_read.c
 
 PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_os.s \
@@ -350,6 +349,7 @@ test: $(TARGET)
 	python3 tests/test_c_nav_state.py
 	python3 tests/test_c_git_trust.py
 	python3 tests/test_c_dir_watch.py
+	python3 tests/test_c_fops_small.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_abi_layouts.py
 	python3 tests/test_pty.py
