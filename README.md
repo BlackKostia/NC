@@ -2,9 +2,9 @@
 
 **English** | [Українська](README.uk.md)
 
-An ultra-fast, compact dual-pane CLI/TUI file manager for **Linux x86-64**, written **100% in pure x86-64 GNU Assembler** (`.intel_syntax noprefix`) with **zero runtime library dependencies** — no `libc`, no `ncurses`, only direct Linux kernel syscalls and a vtable-based OOP runtime.
+An ultra-fast, compact dual-pane CLI/TUI file manager for Linux, built on a **hybrid zero-`libc` architecture**: a **pure assembly PAL + SIMD layer** (`src/os/`) beneath **portable freestanding C23** (`src/core/`, `src/tui/`, `src/fs/`…) with **zero external runtime dependencies** — no `libc`, no `ncurses`, only direct kernel syscalls and a vtable-based OOP runtime.
 
-> **Supported runtime target:** **Linux x86-64** (`x86_64` ELF64). The AArch64 PAL backend (`src/os/linux/aarch64/`) is compile-time object-verified only; macOS, FreeBSD, and ARM64 runtime binaries are not supported.
+> **Architecture & target status:** Migrating from pure x86-64 GNU Assembler to **Asm PAL + freestanding `no-libc` C23** ([HYBRID_PORTABILITY_PLAN.md](docs/HYBRID_PORTABILITY_PLAN.md)). Currently `src/core/`, `src/tui/`, and `src/fs/inflate.c` run in portable C23 while remaining `src/fs/`, `src/ui/`, and `src/app/` modules are in x86-64 assembly; **Linux x86-64** is the supported runtime target during migration, and the AArch64 PAL backend (`src/os/linux/aarch64/`) is compile-time object-verified.
 
 ## Highlights
 
