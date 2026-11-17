@@ -78,8 +78,6 @@ SRCS := \
 	src/fs/pkg_cli.s \
 	src/fs/archive_vfs.s \
 	src/fs/archive_extract.s \
-	src/fs/git_status.s \
-	src/fs/git_status_query.s \
 	src/ui/header_bar.s \
 	src/ui/header_bar_render.s \
 	src/ui/header_bar_git.s \
@@ -231,6 +229,7 @@ C_SRCS := \
 	src/fs/file_ops_overwrite.c \
 	src/fs/pkg_fetch.c \
 	src/fs/dir_cache.c \
+	src/fs/git_status.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -406,6 +405,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_fops_overwrite.py
 	python3 tests/test_c_pkg_fetch.py
 	python3 tests/test_c_dir_cache.py
+	python3 tests/test_c_git_status.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

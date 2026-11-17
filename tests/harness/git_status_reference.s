@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/git_status.c replaced (tests/test_c_git_status.py diffs against it)
 # src/fs/git_status.s - Git branch & porcelain v1 status integration
 
 .intel_syntax noprefix

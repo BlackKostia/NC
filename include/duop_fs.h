@@ -168,3 +168,12 @@ extern uint64_t g_dc_bytes;                                    /* footprint of t
 int dircache_store(DirModel *m);                               /* 1: m's arrays donated (m left empty), 0: m keeps them */
 int dircache_fetch(DirModel *m, const FileStat *dir_st);       /* 1: snapshot installed, order[] reusable; 2: installed, re-filter/sort; 0: miss/stale */
 void dircache_invalidate(const char *path);                    /* drops the snapshot of path */
+
+/* ---- git branch + `git status --porcelain=v1 -z` of a pane (git_status.c) ---- */
+extern int g_git_defer;                                        /* 1 until the first frame is drawn: git_refresh does nothing */
+int git_refresh(DirModel *dm);                                 /* runs git status for dm->path (trusted repositories only); returns 0 */
+int git_lookup(DirModel *dm, const char *name);                /* status character of a top-level name, or 0 */
+const char *git_branch(DirModel *dm);                          /* branch name, or "" */
+void git_free_ctx(DirModel *dm);
+int git_spawn_status(const char *dir, char *out_buf, int buf_cap);   /* bytes of output (NUL-terminated), or -1 */
+void git_parse_branch(char *branch, const char **p_cur, const char *end);   /* "## <branch>..." record -> branch[64] */

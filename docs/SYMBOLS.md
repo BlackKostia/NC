@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 740
+- **Exported `.global` Symbols**: 739
 
 ## Structs (`include/*.inc`)
 
@@ -506,15 +506,13 @@
   - `copy_link_at` — `intptr_t copy_link_at(int sdir, const char *sname, int ddir, const char *dname)`
 - **`src/fs/fs_write.c`**
   - `fs_write_file` — `int fs_write_file(const char *path, const void *buf, uint64_t len)`
-- **`src/fs/git_status.s`**
-  - `git_free_ctx` — void git_free_ctx(DirModel *dm)
-  - `git_spawn_status` — int git_spawn_status(const char *dir, char *out_buf, int buf_cap) -> bytes or -1
-  - `git_parse_branch` — void git_parse_branch(GitCtx *ctx, const char **p_cur, const char *end)
-- **`src/fs/git_status_query.s`**
-  - `git_refresh` — void git_refresh(DirModel *dm)
-  - `git_lookup` — int git_lookup(DirModel *dm, const char *name) -> status char or 0
-  - `git_branch` — const char *git_branch(DirModel *dm) -> branch string or ""
-  - `g_git_defer`
+- **`src/fs/git_status.c`**
+  - `git_free_ctx` — `void git_free_ctx(DirModel *dm)`
+  - `git_spawn_status` — `int git_spawn_status(const char *dir, char *out_buf, int buf_cap)`
+  - `git_parse_branch` — `void git_parse_branch(char *branch, const char **p_cur, const char *end)`
+  - `git_refresh` — `int git_refresh(DirModel *dm)`
+  - `git_lookup` — `int git_lookup(DirModel *dm, const char *name)`
+  - `git_branch` — `const char *git_branch(DirModel *dm)`
 - **`src/fs/img_bmp.c`**
   - `img_bmp_decode` — `int img_bmp_decode(const uint8_t *d, size_t n, Image *out)`
 - **`src/fs/img_core.s`**

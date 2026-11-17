@@ -102,7 +102,7 @@
   2. компактний `inflate`-модуль (~420 рядків) для прозорої навігації по `.tar.gz` та `.zip` як по звичайних директоріях. ✅
 
 ### 2.5 Git-інтеграція в панелях та шапці ✅
-- **Файли**: [git_status.s](src/fs/git_status.s), [git_render.s](src/ui/git_render.s), [file_pane.s](src/ui/file_pane.s), [header_bar.s](src/ui/header_bar.s).
+- **Файли**: [git_status.c](src/fs/git_status.c), [git_render.s](src/ui/git_render.s), [file_pane.s](src/ui/file_pane.s), [header_bar.s](src/ui/header_bar.s).
 - **Реалізація**: виклик `git status --porcelain=v1 -z -b` через `fork/execve` + `pipe`; індикатор гілки в [HeaderBar](src/ui/header_bar.s) та колонка статусів (`M` / `A` / `?` / `D`) у `FilePane`. ✅
 
 ### 2.6 Масове перейменування ✅
@@ -173,7 +173,7 @@
 ## Аудит продуктивності (`v1.3.0` – `v1.5.0`) — виконано
 
 - **`v1.3.0`**: slab-алокатор ([memory.s](src/core/memory.s)), SSE2-примітиви в PAL ([pal_simd.s](src/os/linux/x86_64/pal_simd.s)), FD-відносні copy/delete з `FICLONE` → `copy_file_range` → спільний буфер 256 КіБ, видалення за `d_type` без `stat`, prefix-key radix для `SORT_NAME`/`SORT_EXT`, звуження фільтра без пересортування.
-- **`v1.4.0`**: LRU-кеш тек ([dir_cache.s](src/fs/dir_cache.s)) і лексичний `chdir` без `chdir`/`getcwd`, `mmap`-переглядач будь-якого розміру із захистом від `SIGBUS` ([viewer_dialog.s](src/ui/viewer_dialog.s)), ковзне вікно `io_uring` на 256 запитів і пакетний `statx` для цілей симлінків, почергове завантаження обох панелей.
+- **`v1.4.0`**: LRU-кеш тек ([dir_cache.c](src/fs/dir_cache.c)) і лексичний `chdir` без `chdir`/`getcwd`, `mmap`-переглядач будь-якого розміру із захистом від `SIGBUS` ([viewer_dialog.s](src/ui/viewer_dialog.s)), ковзне вікно `io_uring` на 256 запитів і пакетний `statx` для цілей симлінків, почергове завантаження обох панелей.
 - **`v1.5.0`**: мультиплексований цикл подій без холостих пробуджень, `inotify`-автооновлення, дебаунс прев'ю й асинхронне читання в окремому процесі ([preview_io.s](src/fs/preview_io.s)), DEC 2026 synchronized output, SIMD-пропуск незмінених рядків у `ScreenBuffer_flush`, табличні RGB-послідовності, кеш `format_datetime`.
 
 ## Аудит відмовостійкості (`v2.6.x`, 2026-11-16) — виконано
