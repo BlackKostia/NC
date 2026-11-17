@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/img_pnm.c replaced (tests/test_c_img_simple.py diffs against it)
 # Netpbm decoder (binary P5 graymap / P6 pixmap, maxval up to 65535) and QOI decoder.
 
 .intel_syntax noprefix

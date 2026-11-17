@@ -5,8 +5,6 @@
     "copy_reg_at__fo_resolve_eexist_open -> fo_resolve_eexist_open rdx": "fo_resolve_eexist_open returns rax = fd and edx = 1 when the fd is an overwrite temp file",
     "img_box_pixels -> term_cell_px rdx": "term_cell_px returns (eax = width, edx = height) in pixels",
     "img_scale_rect -> isc_span rdx": "isc_span returns (eax = first, edx = last) source index",
-    "input_poll_event -> utf8_decode rdx": "utf8_decode returns the byte count in rdx (documented in utf8.c: Utf8Dec struct return)",
-    "qoi_stream -> qoi_op r10": "qoi_op is an inline helper: it updates r9d (pixel), r10d (run) and r12 (cursor) by contract",
-    "qoi_stream -> qoi_op r9": "qoi_op is an inline helper: it updates r9d (pixel), r10d (run) and r12 (cursor) by contract"
+    "input_poll_event -> utf8_decode rdx": "utf8_decode returns the byte count in rdx (documented in utf8.c: Utf8Dec struct return)"
   }
 }

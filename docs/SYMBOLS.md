@@ -537,8 +537,8 @@
   - `g_git_defer`
 - **`src/fs/git_trust.s`**
   - `git_repo_trusted` — int git_repo_trusted(const char *dotgit) -- dotgit = "<worktree>/.git"; 1 = trusted, 0 = refuse
-- **`src/fs/img_bmp.s`**
-  - `img_bmp_decode` — int img_bmp_decode(const uint8_t *d, size_t n, Image *out)
+- **`src/fs/img_bmp.c`**
+  - `img_bmp_decode` — `int img_bmp_decode(const uint8_t *d, size_t n, Image *out)`
 - **`src/fs/img_core.s`**
   - `img_detect` — int img_detect(const uint8_t *d, size_t n, const char *path) -> IMG_FMT_* (0 = not an image)
   - `img_decode` — int img_decode(const uint8_t *d, size_t n, int fmt, Image *out) -> 0 or IMG_E_*
@@ -572,15 +572,15 @@
   - `img_png_decode` — int img_png_decode(const uint8_t *d, size_t n, Image *out) -> 0 or IMG_E_*
 - **`src/fs/img_png_px.s`**
   - `png_run_pass` — uint8_t *png_run_pass(PngCtx *c, uint8_t *src, const PngPass *p) -> first byte after the pass
-- **`src/fs/img_pnm.s`**
-  - `img_pnm_decode` — int img_pnm_decode(const uint8_t *d, size_t n, Image *out)
-  - `img_qoi_decode` — int img_qoi_decode(const uint8_t *d, size_t n, Image *out) -- "Quite OK Image" format
+- **`src/fs/img_pnm.c`**
+  - `img_pnm_decode` — `int img_pnm_decode(const uint8_t *d, size_t n, Image *out)`
+  - `img_qoi_decode` — `int img_qoi_decode(const uint8_t *d, size_t n, Image *out)`
 - **`src/fs/img_quant.s`**
   - `img_quantize` — uint32_t *pal /*256 x 0x00RRGGBB*/) -> palette size (0 on OOM)
 - **`src/fs/img_sixel.s`**
   - `img_sixel_encode` — uint8_t *out, size_t cap) -> bytes written, 0 on overflow / OOM
-- **`src/fs/img_tga.s`**
-  - `img_tga_decode` — int img_tga_decode(const uint8_t *d, size_t n, Image *out)
+- **`src/fs/img_tga.c`**
+  - `img_tga_decode` — `int img_tga_decode(const uint8_t *d, size_t n, Image *out)`
 - **`src/fs/inflate.c`**
   - `inflate_raw` — `int64_t inflate_raw(const void *src, uint64_t src_len, void *dst, uint64_t dst_cap)`
   - `inflate_zlib` — `int64_t inflate_zlib(const void *src, uint64_t src_len, void *dst, uint64_t dst_cap)`

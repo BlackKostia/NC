@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/img_bmp.c replaced (tests/test_c_img_simple.py diffs against it)
 # BMP decoder: OS/2 core and Windows DIB headers, 1/4/8-bit palettes, 16/32-bit BI_RGB and
 # BI_BITFIELDS masks, 24-bit BGR; bottom-up and top-down rows.
 
