@@ -418,24 +418,24 @@
 - **`src/fs/dir_model_filter.s`**
   - `DirModel_apply_filter` — ==============================================================================
   - `DirModel_chdir` — ==============================================================================
-  - `DirModel_get_entry` — ==============================================================================
-  - `mark_link_dir` — ==============================================================================
 - **`src/fs/dir_model_load.s`**
   - `ensure_capacity` — ==============================================================================
   - `prepare_filter` — ==============================================================================
   - `entry_passes_filter` — ==============================================================================
   - `finish_load_internal` — ==============================================================================
   - `DirModel_reload` — ==============================================================================
-- **`src/fs/dir_model_select.s`**
-  - `DirModel_ensure_all_stats` — ==============================================================================
-  - `DirModel_toggle_select` — ==============================================================================
-  - `DirModel_select_all_toggle` — ==============================================================================
-  - `DirModel_count_selected` — ==============================================================================
-  - `DirModel_find_by_name` — ==============================================================================
-- **`src/fs/dir_model_stat.s`**
-  - `apply_stat_to_entry` — ==============================================================================
-  - `DirModel_ensure_entry_stat` — ==============================================================================
-  - `DirModel_stat_range` — ==============================================================================
+- **`src/fs/dir_model_select.c`**
+  - `DirModel_ensure_all_stats` — `void DirModel_ensure_all_stats(DirModel *m)`
+  - `DirModel_toggle_select` — `void DirModel_toggle_select(DirModel *m, intptr_t idx)`
+  - `DirModel_select_all_toggle` — `void DirModel_select_all_toggle(DirModel *m)`
+  - `DirModel_count_selected` — `size_t DirModel_count_selected(DirModel *m, int64_t *out_bytes)`
+  - `DirModel_find_by_name` — `intptr_t DirModel_find_by_name(DirModel *m, const char *name)`
+- **`src/fs/dir_model_stat.c`**
+  - `DirModel_get_entry` — `FileEntry *DirModel_get_entry(DirModel *m, intptr_t idx)`
+  - `mark_link_dir` — `void mark_link_dir(DirModel *m, FileEntry *e)`
+  - `apply_stat_to_entry` — `void apply_stat_to_entry(DirModel *m, FileEntry *e, const FileStat *st, int dirfd)`
+  - `DirModel_ensure_entry_stat` — `void DirModel_ensure_entry_stat(DirModel *m, FileEntry *e)`
+  - `DirModel_stat_range` — `void DirModel_stat_range(DirModel *m, size_t view_start, size_t view_len)`
 - **`src/fs/dir_model_stream.s`**
   - `DirModel_step_load` — ==============================================================================
   - `DirModel_cancel_load` — ==============================================================================

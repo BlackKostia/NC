@@ -13,8 +13,6 @@
     "src/app/app_ext_keys.s:app_handle_ext_key": 95,
     "src/app/app_keys.s:handle_key": 186,
     "src/fs/dir_model_filter.s:DirModel_apply_filter": 157,
-    "src/fs/dir_model_select.s:DirModel_ensure_all_stats": 173,
-    "src/fs/dir_model_stat.s:apply_stat_to_entry": 85,
     "src/fs/dir_model_stream.s:DirModel_step_load": 256,
     "src/fs/file_ops.s:copy_data": 102,
     "src/fs/file_ops_delete.s:delete_dir_fd": 91,

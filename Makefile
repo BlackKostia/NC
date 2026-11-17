@@ -49,8 +49,6 @@ SRCS := \
 	src/fs/dir_model_load.s \
 	src/fs/dir_model_stream.s \
 	src/fs/dir_model_filter.s \
-	src/fs/dir_model_stat.s \
-	src/fs/dir_model_select.s \
 	src/fs/file_ops.s \
 	src/fs/file_ops_copy_at.s \
 	src/fs/file_ops_copy.s \
@@ -228,6 +226,8 @@ C_SRCS := \
 	src/fs/img_core.c \
 	src/fs/dir_sort.c \
 	src/fs/dir_sort_radix.c \
+	src/fs/dir_model_stat.c \
+	src/fs/dir_model_select.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -407,6 +407,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_preview.py
 	python3 tests/test_c_img_core.py
 	python3 tests/test_c_dir_sort.py
+	python3 tests/test_c_dir_model_stat.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

@@ -48,6 +48,7 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/app/app_task*", ("tests/test_fs_reliability.py", "tests/test_bg_tasks.py", "tests/test_reliability_audit.py")),
     ("src/ui/progress_dialog*", ("tests/test_bg_tasks.py",)),
     ("src/ui/conflict_dialog*", ("tests/test_fs_reliability.py", "tests/test_reliability_audit.py")),
+    ("src/fs/dir_model_s*", ("tests/test_c_dir_model_stat.py", "tests/test_performance_dir.py", "tests/test_fastpath.py")),
     ("src/fs/dir_model*", ("tests/test_performance_dir.py", "tests/test_fastpath.py", "tests/test_nav_viewer.py", "tests/test_event_loop.py")),
     ("src/fs/dir_sort*", ("tests/test_c_dir_sort.py", "tests/test_performance_dir.py", "tests/test_pty.py")),
     ("src/fs/dir_cache*", ("tests/test_c_dir_cache.py", "tests/test_nav_viewer.py", "tests/test_performance_dir.py")),

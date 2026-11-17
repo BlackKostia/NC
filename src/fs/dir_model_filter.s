@@ -27,8 +27,6 @@
 .section .text
 .global DirModel_apply_filter
 .global DirModel_chdir
-.global DirModel_get_entry
-.global mark_link_dir
 
 # ==============================================================================
 # void DirModel_apply_filter(DirModel *this)
@@ -314,37 +312,4 @@ DirModel_chdir__reset_entry_stats:
 .Ldmc_ok:
 .LDirModel_chdir__reset_entry_stats_ret:
     lea rsp, [rsp + 8]
-    ret
-
-# ==============================================================================
-# FileEntry *DirModel_get_entry(DirModel *this, ssize_t idx)
-# Maps visible index through order[] indirection to 32-byte FileEntry*.
-# ==============================================================================
-DirModel_get_entry:
-    test rsi, rsi
-    js .Ldge_null
-    cmp rsi, [rdi + DirModel.count]
-    jae .Ldge_null
-    mov rax, [rdi + DirModel.order]
-    mov eax, [rax + rsi * 4]
-    shl rax, 5
-    add rax, [rdi + DirModel.entries]
-    ret
-.Ldge_null:
-    xor eax, eax
-    ret
-
-# ==============================================================================
-# Helper: void mark_link_dir(DirModel *model, FileEntry *entry)
-# A symlink resolved to a directory: count it as a dir once and flag FE_LINK_DIR.
-# ==============================================================================
-mark_link_dir:
-    test dword ptr [rsi + FileEntry.flags], FE_IS_DIR | FE_LINK_DIR
-    jnz .Lmld_flag
-    inc dword ptr [rdi + DirModel.dir_count]
-    cmp dword ptr [rdi + DirModel.file_count], 0
-    je .Lmld_flag
-    dec dword ptr [rdi + DirModel.file_count]
-.Lmld_flag:
-    or dword ptr [rsi + FileEntry.flags], FE_LINK_DIR
     ret

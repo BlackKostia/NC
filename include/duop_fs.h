@@ -84,7 +84,18 @@ int fs_write_file(const char *path, const void *buf, uint64_t len);        /* at
 int DirModel_step_load(DirModel *m, size_t max_entries);        /* 1 more may follow, 0 done, -errno */
 const char *DirModel_entry_name(const DirModel *m, const FileEntry *e);
 int DirModel_reload(DirModel *m);
-void DirModel_ensure_all_stats(DirModel *m);                   /* stats every entry whose size / mtime is still unknown */
+
+/* ---- lazy stat, selection and lookup (dir_model_stat.c, dir_model_select.c) ---- */
+FileEntry *DirModel_get_entry(DirModel *m, intptr_t idx);      /* visible index -> entry through order[], or NULL */
+void mark_link_dir(DirModel *m, FileEntry *e);                 /* symlink to a directory: counted as a dir once, FE_LINK_DIR */
+void apply_stat_to_entry(DirModel *m, FileEntry *e, const FileStat *st, int dirfd);   /* dirfd -2: link targets left to the caller */
+void DirModel_ensure_entry_stat(DirModel *m, FileEntry *e);
+void DirModel_stat_range(DirModel *m, size_t view_start, size_t view_len);            /* the visible rows not stat'ed yet */
+void DirModel_ensure_all_stats(DirModel *m);                   /* batched stat of every pending entry (sort by size / time) */
+void DirModel_toggle_select(DirModel *m, intptr_t idx);
+void DirModel_select_all_toggle(DirModel *m);                  /* select all visible, or clear when anything is selected */
+size_t DirModel_count_selected(DirModel *m, int64_t *out_bytes);
+intptr_t DirModel_find_by_name(DirModel *m, const char *name); /* view index or -1 */
 
 /* ---- sorting of index slices (dir_sort.c, dir_sort_radix.c): dirs first, equal primary keys by name ascending ---- */
 void DirModel_sort(DirModel *m);                               /* order[has_dotdot ..] -> [dirs][files], each sorted; is_unsorted = 0 */
