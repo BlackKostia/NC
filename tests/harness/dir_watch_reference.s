@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/dir_watch.c replaced (tests/test_c_dir_watch.py diffs against it)
 # Directory Watch: kernel change notifications for the two displayed directories
 #
 # One non-blocking watch fd (inotify on Linux, via PAL) with up to two watches (slot 0 =

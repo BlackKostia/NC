@@ -142,3 +142,10 @@ int nav_frecency_match(const char *substr, int *out_indices, int max_out);
 
 /* ---- git status guard (git_trust.c) ---- */
 int git_repo_trusted(const char *dotgit);                      /* "<worktree>/.git": 1 when `git status` may run there (plain dir, vetted local config), else 0 */
+
+/* ---- directory change notifications (dir_watch.c) ---- */
+int dirwatch_init(void);                                       /* 0, or -errno (the feature stays off) */
+int dirwatch_fd(void);                                         /* pollable watch fd or -1 */
+void dirwatch_set(int slot, const char *path);                 /* slot 0 / 1 = left / right pane directory */
+uint32_t dirwatch_poll(void);                                  /* 1/2 = slot 0 structural/content, 4/8 = slot 1 */
+void dirwatch_cleanup(void);

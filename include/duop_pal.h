@@ -65,6 +65,17 @@
 #define S_IFLNK 0120000
 #define S_IFIFO 0010000
 
+/* inotify event bits (pal_target.inc PAL_IN_*; identical on every Linux target) */
+#define PAL_IN_MODIFY 0x00000002
+#define PAL_IN_ATTRIB 0x00000004
+#define PAL_IN_MOVED_FROM 0x00000040
+#define PAL_IN_MOVED_TO 0x00000080
+#define PAL_IN_CREATE 0x00000100
+#define PAL_IN_DELETE 0x00000200
+#define PAL_IN_DELETE_SELF 0x00000400
+#define PAL_IN_MOVE_SELF 0x00000800
+#define PAL_IN_Q_OVERFLOW 0x00004000
+
 #define OS_AT_EXECFN 31                       /* auxv: path given to execve */
 
 #define PAL_DT_UNKNOWN 0                      /* d_type of a directory entry (generic Linux values) */

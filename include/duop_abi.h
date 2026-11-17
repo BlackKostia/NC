@@ -112,6 +112,11 @@ void      os_munmap(void *addr, size_t len);
 void      os_sigbus_guard_install(void);
 int64_t   os_clock_ms(void);
 int64_t   os_time_sec(void);                                  /* CLOCK_REALTIME seconds; 0 when the clock cannot be read */
+int       os_watch_init(void);                                /* non-blocking close-on-exec inotify fd, or -errno */
+int       os_watch_add(int fd, const char *path, uint32_t mask);   /* watch descriptor, or -errno */
+int       os_watch_rm(int fd, int wd);
+intptr_t  os_watch_read(int fd, void *buf, size_t cap);       /* bytes of queued events, or -errno (-EAGAIN: none) */
+int       os_watch_next(const void *buf, size_t len, size_t *pos, int *wd, uint32_t *mask);   /* 1 and the next event, 0 at the end */
 int       os_thread_spawn(void (*fn)(void *), void *arg, void *stack_top, int *ctid_out);   /* >= 0, or -errno; *ctid_out is cleared by the kernel at thread exit */
 void      os_thread_join(int *ctid);                          /* futex-waits until *ctid becomes 0 */
 int64_t   os_du_usage(int dirfd, const char *name, FileStat *out);   /* allocated bytes (lstat semantics) or -errno */

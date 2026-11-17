@@ -70,7 +70,6 @@ SRCS := \
 	src/fs/task_worker.s \
 	src/fs/task_control.s \
 	src/fs/task_conflict.s \
-	src/fs/dir_watch.s \
 	src/fs/preview_io.s \
 	src/fs/preview_helper.s \
 	src/fs/img_core.s \
@@ -233,7 +232,8 @@ C_SRCS := \
 	src/fs/trash_undo.c \
 	src/fs/nav_state.c \
 	src/fs/nav_persist.c \
-	src/fs/git_trust.c
+	src/fs/git_trust.c \
+	src/fs/dir_watch.c
 
 PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_os.s \
@@ -349,6 +349,7 @@ test: $(TARGET)
 	python3 tests/test_c_trash.py
 	python3 tests/test_c_nav_state.py
 	python3 tests/test_c_git_trust.py
+	python3 tests/test_c_dir_watch.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_abi_layouts.py
 	python3 tests/test_pty.py

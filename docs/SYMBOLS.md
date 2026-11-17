@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 742
+- **Exported `.global` Symbols**: 740
 
 ## Structs (`include/*.inc`)
 
@@ -465,12 +465,10 @@
 - **`src/fs/dir_sort_radix.s`**
   - `radix_sort_u32` — ==============================================================================
   - `make_prefix_key` — ==============================================================================
-- **`src/fs/dir_watch.s`**
-  - `dirwatch_init` — int dirwatch_init(void) -> 0 or -errno (feature simply stays off on failure)
-  - `dirwatch_fd` — int dirwatch_fd(void) -> watch fd or -1
-  - `dirwatch_set` — void dirwatch_set(int slot, const char *path) -- (re)targets a slot; no-op if unchanged
-  - `dirwatch_poll` — 4 = slot1 structural, 8 = slot1 content.
-  - `dirwatch_cleanup` — void dirwatch_cleanup(void) -- closes watch fd and frees g_dw_state
+- **`src/fs/dir_watch.c`**
+  - `dirwatch_init` — `int dirwatch_init(void)`
+  - `dirwatch_set` — `void dirwatch_set(int slot, const char *path)`
+  - `dirwatch_poll` — `uint32_t dirwatch_poll(void)`
 - **`src/fs/disk_usage.c`**
   - `dir_du_populate` — `int dir_du_populate(DirModel *m)`
 - **`src/fs/du_cache.c`**
