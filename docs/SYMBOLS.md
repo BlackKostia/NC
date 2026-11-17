@@ -412,13 +412,13 @@
   - `close_stream_resources` — `void close_stream_resources(DirModel *m)`
   - `DirModel_dtor` — `void DirModel_dtor(DirModel *m)`
   - `DirModel_entry_name` — `const char *DirModel_entry_name(const DirModel *m, const FileEntry *e)`
-- **`src/fs/dir_model_filter.s`**
-  - `DirModel_apply_filter` — ==============================================================================
-  - `DirModel_chdir` — ==============================================================================
+- **`src/fs/dir_model_filter.c`**
+  - `prepare_filter` — `void prepare_filter(DirModel *m)`
+  - `entry_passes_filter` — `int entry_passes_filter(const DirModel *m, uintptr_t unused, uint32_t flags, const char *name)`
+  - `DirModel_apply_filter` — `void DirModel_apply_filter(DirModel *m)`
+  - `DirModel_chdir` — `intptr_t DirModel_chdir(DirModel *m, const char *target)`
 - **`src/fs/dir_model_load.s`**
   - `ensure_capacity` — ==============================================================================
-  - `prepare_filter` — ==============================================================================
-  - `entry_passes_filter` — ==============================================================================
   - `finish_load_internal` — ==============================================================================
   - `DirModel_reload` — ==============================================================================
 - **`src/fs/dir_model_select.c`**

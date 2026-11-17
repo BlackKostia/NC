@@ -97,6 +97,12 @@ void reset_entry_stats(DirModel *m);                           /* stats and sele
 void close_stream_resources(DirModel *m);                      /* streaming fd and buffer released */
 const char *DirModel_entry_name(const DirModel *m, const FileEntry *e);   /* NULL for NULL arguments */
 
+/* ---- live filter and lexical chdir (dir_model_filter.c) ---- */
+void prepare_filter(DirModel *m);                              /* filter -> flt_lc / flt_lc_len (ASCII lower case) */
+int entry_passes_filter(const DirModel *m, uintptr_t unused, uint32_t flags, const char *name);   /* asm ABI: flags in edx, name in rcx */
+void DirModel_apply_filter(DirModel *m);                       /* order[] and the counts for the current filter (narrowing in place) */
+intptr_t DirModel_chdir(DirModel *m, const char *target);      /* 0 or -errno; the listing comes from the dir cache or a reload */
+
 /* ---- lazy stat, selection and lookup (dir_model_stat.c, dir_model_select.c) ---- */
 FileEntry *DirModel_get_entry(DirModel *m, intptr_t idx);      /* visible index -> entry through order[], or NULL */
 void mark_link_dir(DirModel *m, FileEntry *e);                 /* symlink to a directory: counted as a dir once, FE_LINK_DIR */
