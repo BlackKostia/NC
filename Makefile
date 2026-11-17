@@ -46,9 +46,7 @@ SRCS := \
 	src/core/memory.s \
 	src/core/memcheck.s \
 	src/core/oop_rt.s \
-	src/core/try_rt.s \
 	src/core/tmpfile.s \
-	src/core/syscall.s \
 	src/core/config.s \
 	src/core/config_parse.s \
 	src/core/config_load.s \
@@ -241,6 +239,8 @@ C_SRCS := \
 	src/core/string_path.c \
 	src/core/string_format.c \
 	src/core/string_datetime.c \
+	src/core/syscall.c \
+	src/core/try_rt.c \
 	src/core/mem_prims.c \
 	src/fs/inflate.c
 
@@ -334,6 +334,7 @@ test: $(TARGET)
 	python3 tests/test_c_hash.py
 	python3 tests/test_c_inflate.py
 	python3 tests/test_c_string.py
+	python3 tests/test_c_syscall.py
 	python3 tests/test_pty.py
 	python3 tests/test_fs_reliability.py
 	python3 tests/test_performance_dir.py

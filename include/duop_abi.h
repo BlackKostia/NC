@@ -103,6 +103,12 @@ int       os_watch_rm(int fd, int wd);
 intptr_t  os_watch_read(int fd, void *buf, size_t cap);
 int       os_watch_next(const void *buf, size_t len, size_t *pos, int *wd, uint32_t *mask);
 
+int       os_poll_out(int fd, int timeout_ms);     /* >0 writable, 0 timeout, -errno */
+void      os_sig_reset_pipe(void);                  /* SIG_DFL for SIGPIPE in a forked child */
+void      os_mark_child_forked(void);               /* reset the child's TRY owner and inherited slot */
+void      os_signals_install(void (*on_winch)(void), void (*on_int)(void), void (*on_term)(void));
+void      os_fault_guard_install_slot(void **try_frame_slot);
+
 /* ---- SIMD/scalar primitives (pal_simd.s) ---- */
 void   os_mem_copy_fast(void *dst, const void *src, size_t n);   /* non-overlapping */
 void   os_mem_move_fast(void *dst, const void *src, size_t n);   /* overlap-safe */

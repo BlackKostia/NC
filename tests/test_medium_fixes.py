@@ -36,7 +36,7 @@ def wait_for_text(sess: PtySession, needle: str, timeout: float = 4.0) -> None:
 
 def test_m1_flush_eagain_and_dirty_recovery() -> None:
     """M1: sys_write_all handles EAGAIN via POLLOUT and ScreenBuffer_flush sets force_full on error."""
-    with open(os.path.join(REPO_ROOT, "src/core/syscall.s")) as f:
+    with open(os.path.join(REPO_ROOT, "src/core/syscall.c")) as f:
         sc = f.read()
     with open(os.path.join(REPO_ROOT, "src/tui/screen.s")) as f:
         scr = f.read()

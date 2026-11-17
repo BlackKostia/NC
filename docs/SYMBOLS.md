@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 21
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 825
+- **Exported `.global` Symbols**: 820
 
 ## Structs (`include/*.inc`)
 
@@ -321,30 +321,25 @@
   - `path_dirname` — `void path_dirname(const char *path, char *dst, size_t cap)`
   - `path_basename` — `const char *path_basename(const char *path)`
   - `path_normalize` — `size_t path_normalize(const char *base, const char *target, char *out, size_t cap)`
-- **`src/core/syscall.s`**
-  - `g_sigwinch`
-  - `g_sigterm`
-  - `sys_write_all` — ssize_t sys_write_all(int fd, const void *buf, size_t len)
-  - `sys_read_retry` — ssize_t sys_read_retry(int fd, void *buf, size_t len)
-  - `sys_clock_ms` — int64_t sys_clock_ms(void)
-  - `sys_get_winsize` — void sys_get_winsize(int *cols, int *rows)
-  - `term_enter_raw` — int term_enter_raw(void)
-  - `term_exit_raw` — void term_exit_raw(void)
-  - `signals_install` — void signals_install(void)
-  - `env_getenv` — rdi = envp, rsi = name (without '=') -> rax = value ptr or 0
-  - `sys_exec_sh_arg` — Exits raw mode, runs `/bin/sh -c <sh_script> sh [arg1]`, waits, re-enters raw mode.
-  - `sys_exec_argv` — Exits raw mode, execve(exe, argv, envp), waits, re-enters raw mode.
-  - `sys_exec_argv_bg` — Runs exe in background with /dev/null stdio without leaving raw mode.
-  - `sys_open_external` — int sys_open_external(const char *path, char **envp) -> 0 if launched, -1 if no GUI display
+- **`src/core/syscall.c`**
+  - `sys_write_all` — `intptr_t sys_write_all(int fd, const void *buf, size_t len)`
+  - `sys_read_retry` — `intptr_t sys_read_retry(int fd, void *buf, size_t len)`
+  - `term_enter_raw` — `int term_enter_raw(void)`
+  - `term_exit_raw` — `void term_exit_raw(void)`
+  - `signals_install` — `void signals_install(void)`
+  - `env_getenv` — `const char *env_getenv(char **envp, const char *name)`
+  - `sys_exec_sh_arg` — `int sys_exec_sh_arg(const char *script, const char *arg1, char **envp)`
+  - `sys_exec_argv` — `int sys_exec_argv(const char *exe, char **argv, char **envp)`
+  - `sys_exec_argv_bg` — `int sys_exec_argv_bg(const char *exe, char **argv, char **envp)`
+  - `sys_open_external` — `int sys_open_external(const char *path, char **envp)`
 - **`src/core/tmpfile.s`**
   - `tmp_ensure_dir` — Creates/validates a private 0700 directory /tmp/duop-<uid>-<pid>[-n].
   - `tmp_open_unique` — int tmp_open_unique(const char *prefix, const char *suffix, char *out_path, int cap) -> fd >= 0 or -1
   - `tmp_make_path` — int tmp_make_path(const char *prefix, const char *suffix, char *out_path, int cap) -> 0 ok, -1 err
   - `tmp_open_atomic` — int tmp_open_atomic(const char *final_path, char *tmp_buf, int mode)
   - `tmp_commit_atomic` — int tmp_commit_atomic(int fd, const char *tmp_buf, const char *final_path, int64_t write_rc)
-- **`src/core/try_rt.s`**
-  - `g_try_frame`
-  - `os_fault_guard_install` — Installs unified SA_SIGINFO handler for SIGSEGV, SIGBUS, SIGFPE once at startup.
+- **`src/core/try_rt.c`**
+  - `os_fault_guard_install` — `void os_fault_guard_install(void)`
 - **`src/core/utf8.c`**
   - `utf8_decode` — `Utf8Dec utf8_decode(const char *s)`
   - `utf8_encode` — `int utf8_encode(uint32_t cp, char *out)`

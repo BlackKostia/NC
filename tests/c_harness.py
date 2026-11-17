@@ -14,7 +14,8 @@ COMMON = ["-std=gnu2x", "-Os", "-ffreestanding", "-fno-pic", "-fno-pie", "-fcf-p
           "-fno-asynchronous-unwind-tables", "-fno-unwind-tables", "-fno-ident", "-funsigned-char", "-fno-strict-aliasing",
           "-fno-common", "-ffunction-sections", "-Wall", "-Wextra", "-Werror", "-I", str(ROOT / "include")]
 PAL_FILES = ["pal_start", "pal_sys_fd", "pal_sys_path", "pal_sys_proc", "pal_sys_mem", "pal_simd", "pal_os", "pal_file",
-             "pal_fault", "pal_time"]
+             "pal_fault", "pal_time", "pal_pty"]
+SHIMS = "tests/harness/pal_shims.c"
 ARCHS = {
     "x86_64": dict(cc=["gcc"], extra=["-fno-stack-clash-protection"], as_=["as"], ld=["ld"], run=[]),
     "aarch64": dict(cc=["clang", "--target=aarch64-linux-gnu", "-mno-outline-atomics"], extra=[],
@@ -37,7 +38,7 @@ def build(arch: str, work: Path, c_files: list[str]) -> Path:
         subprocess.run([*t["as_"], "-I", str(ROOT / f"include/os/linux/{arch}"), "-I", str(ROOT / "include"),
                         str(pal / f"{name}.s"), "-o", str(o)], check=True, capture_output=True)
         objs.append(str(o))
-    for i, c in enumerate(c_files):
+    for i, c in enumerate([*c_files, SHIMS]):
         src = Path(c) if Path(c).is_absolute() else ROOT / c
         o = work / f"c{i}_{src.stem}.o"
         subprocess.run([*t["cc"], *COMMON, *t["extra"], "-c", str(src), "-o", str(o)], check=True, capture_output=True)
