@@ -77,10 +77,6 @@ SRCS := \
 	src/fs/img_kitty.s \
 	src/fs/img_quant.s \
 	src/fs/img_sixel.s \
-	src/fs/img_png.s \
-	src/fs/img_png_px.s \
-	src/fs/img_gif.s \
-	src/fs/img_gif_lzw.s \
 	src/fs/img_jpeg.s \
 	src/fs/img_jpeg_frame.s \
 	src/fs/img_jpeg_scan.s \
@@ -242,7 +238,9 @@ C_SRCS := \
 	src/tui/screen_text.c \
 	src/fs/img_bmp.c \
 	src/fs/img_tga.c \
-	src/fs/img_pnm.c
+	src/fs/img_pnm.c \
+	src/fs/img_gif.c \
+	src/fs/img_png.c
 
 PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_os.s \
@@ -347,7 +345,7 @@ test: $(TARGET)
 	python3 tests/test_c_input.py
 	python3 tests/test_c_i18n.py
 	python3 tests/test_c_screen.py
-	python3 tests/test_c_img_simple.py
+	python3 tests/test_c_img.py
 	python3 tests/test_abi_layouts.py
 	python3 tests/test_pty.py
 	python3 tests/test_fs_reliability.py

@@ -1,4 +1,4 @@
-# Frozen reference oracle: the hand-written asm that src/fs/img_tga.c replaced (tests/test_c_img_simple.py diffs against it)
+# Frozen reference oracle: the hand-written asm that src/fs/img_tga.c replaced (tests/test_c_img.py diffs against it)
 # Truevision TGA decoder: color-mapped (1/9), true-color (2/10) and gray (3/11) images,
 # raw or RLE, 8/15/16/24/32-bit pixels, bottom-left or top-left origin.
 

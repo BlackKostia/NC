@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/img_png.c replaced (tests/test_c_img.py diffs against it)
 # PNG container decoder: IHDR validation, PLTE/tRNS/IDAT collection, zlib inflate and the
 # plain / Adam7 pass schedule. Scanline filtering and pixel formats live in img_png_px.s.
 

@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/img_png.c replaced (tests/test_c_img.py diffs against it)
 # PNG pixel stage: scanline unfiltering (None/Sub/Up/Average/Paeth) and conversion of every
 # color type / bit depth (1..16, palette + tRNS, gray/RGB color keys) to RGBA8.
 

@@ -4,10 +4,10 @@
 
 ## Summary
 
-- **Structs (`.struct`)**: 21
+- **Structs (`.struct`)**: 19
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 777
+- **Exported `.global` Symbols**: 775
 
 ## Structs (`include/*.inc`)
 
@@ -16,8 +16,6 @@
 | `HT` | `include/img_jpeg.inc` | `look`, `maxcode`, `valptr`, `mincode`, `vals` |
 | `JC` | `include/img_jpeg.inc` | `id`, `h`, `v`, `tq`, `td`, `ta`, `pred`, `bw`, `bh`, `sx`, `sy`, `pad`, `plane` |
 | `Jpeg` | `include/img_jpeg.inc` | `qt`, `huff`, `comp`, `blk`, `tmp`, `p`, `end`, `bits`, `nbits`, `marker`, `ncomp`, `w`, `h`, `hmax`, `vmax`, `mcux`, `mcuy`, `rst`, `sncomp`, `scomp`, `todo`, `frame`, `out` |
-| `PngCtx` | `include/img_png.inc` | `w`, `h`, `depth`, `ctype`, `ch`, `bits`, `fbpp`, `ilace`, `plte`, `plte_n`, `trns_n`, `trns`, `idat`, `idat_n`, `raw`, `raw_n`, `out` |
-| `PngPass` | `include/img_png.inc` | `x0`, `y0`, `dx`, `dy`, `pw`, `ph` |
 | `FileStat` | `include/pal.inc` | `dev`, `ino`, `size`, `mtime`, `mode`, `mtime_nsec`, `nlink`, `uid`, `gid` |
 | `Rect` | `include/types.inc` | `x`, `y`, `w`, `h` |
 | `Cell` | `include/types.inc` | `ch`, `fg`, `bg`, `attrs` |
@@ -547,10 +545,8 @@
   - `img_fit` — Largest size with the source aspect ratio that fits the box (scales up and down), >= 1x1.
   - `img_scale` — void img_scale(const Image *src, uint8_t *dst_rgba, int ow, int oh)
   - `img_scale_rect` — Area-averaged downscale / nearest upscale of rect {x,y,w,h} into ow x oh RGBA buffer.
-- **`src/fs/img_gif.s`**
-  - `img_gif_decode` — int img_gif_decode(const uint8_t *d, size_t n, Image *out)
-- **`src/fs/img_gif_lzw.s`**
-  - `gif_lzw` — void gif_lzw(GifCtx *c) -- decodes c->data into the canvas
+- **`src/fs/img_gif.c`**
+  - `img_gif_decode` — `int img_gif_decode(const uint8_t *d, size_t n, Image *out)`
 - **`src/fs/img_jpeg.s`**
   - `img_jpeg_decode` — int img_jpeg_decode(const uint8_t *d, size_t n, Image *out)
 - **`src/fs/img_jpeg_bits.s`**
@@ -568,10 +564,8 @@
   - `img_kitty_encode` — uint8_t *out, size_t cap) -> bytes written, 0 if cap is too small
   - `img_kitty_place` — size_t img_kitty_place(uint8_t *out, const int *rect /*x,y,w,h*/, int cols, int rows) -> bytes
   - `img_b64_encode` — size_t img_b64_encode(const uint8_t *src, size_t len, char *dst) -> bytes written (with padding)
-- **`src/fs/img_png.s`**
-  - `img_png_decode` — int img_png_decode(const uint8_t *d, size_t n, Image *out) -> 0 or IMG_E_*
-- **`src/fs/img_png_px.s`**
-  - `png_run_pass` — uint8_t *png_run_pass(PngCtx *c, uint8_t *src, const PngPass *p) -> first byte after the pass
+- **`src/fs/img_png.c`**
+  - `img_png_decode` — `int img_png_decode(const uint8_t *d, size_t n, Image *out)`
 - **`src/fs/img_pnm.c`**
   - `img_pnm_decode` — `int img_pnm_decode(const uint8_t *d, size_t n, Image *out)`
   - `img_qoi_decode` — `int img_qoi_decode(const uint8_t *d, size_t n, Image *out)`

@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/img_gif.c replaced (tests/test_c_img_gif.py diffs against it)
 # GIF LZW stage: variable-width code reader (LSB first), dictionary with KwKwK handling and
 # pixel placement (interlace row order, transparency, clipping to the logical screen).
 

@@ -14,7 +14,7 @@
 #include "duop_img.h"
 
 #define RD(n) extern int ref_img_##n##_decode(const uint8_t *, size_t, Image *);
-RD(bmp) RD(tga) RD(pnm) RD(qoi)
+RD(bmp) RD(tga) RD(pnm) RD(qoi) RD(gif) RD(png)
 
 static void *guarded(size_t len)                     /* len readable/writable bytes ending exactly at a guard page */
 {
@@ -25,7 +25,24 @@ static void *guarded(size_t len)                     /* len readable/writable by
     return base + data - len;
 }
 
-static Image *g_cur;
+/* heap shims: exactly-sized zero-filled blocks at the end of a mapping (mem_alloc is zero-filled in Duop) */
+static struct { void *p, *base; size_t total; } g_live[256];
+void *mem_alloc(size_t n)
+{
+    size_t data = (n + 4095) & ~(size_t)4095;
+    if (!data) data = 4096;
+    uint8_t *base = mmap(NULL, data + 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    mprotect(base + data, 4096, PROT_NONE);
+    for (int i = 0; i < 256; i++)
+        if (!g_live[i].p) { g_live[i].p = base + data - n; g_live[i].base = base; g_live[i].total = data + 4096; return g_live[i].p; }
+    abort();
+}
+void mem_free(void *p)
+{
+    for (int i = 0; i < 256; i++)
+        if (p && g_live[i].p == p) { munmap(g_live[i].base, g_live[i].total); g_live[i].p = NULL; return; }
+}
+void mem_copy(void *d, const void *s, size_t n) { memcpy(d, s, n); }
 int img_alloc(Image *img, int w, int h)              /* the asm img_core semantics, with a guarded buffer */
 {
     if (w <= 0 || h <= 0 || w > IMG_MAX_DIM || h > IMG_MAX_DIM) return IMG_E_CORRUPT;
@@ -56,6 +73,7 @@ int main(void)
     static const struct { Dec ref, c; const char *name; } fmts[] = {
         [IMG_FMT_BMP] = {ref_img_bmp_decode, img_bmp_decode, "bmp"}, [IMG_FMT_TGA] = {ref_img_tga_decode, img_tga_decode, "tga"},
         [IMG_FMT_PNM] = {ref_img_pnm_decode, img_pnm_decode, "pnm"}, [IMG_FMT_QOI] = {ref_img_qoi_decode, img_qoi_decode, "qoi"},
+        [IMG_FMT_GIF] = {ref_img_gif_decode, img_gif_decode, "gif"}, [IMG_FMT_PNG] = {ref_img_png_decode, img_png_decode, "png"},
     };
     long recs = 0, asm_faults = 0, ok_imgs = 0;
     for (;;) {

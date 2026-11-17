@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/img_gif.c replaced (tests/test_c_img_gif.py diffs against it)
 # GIF decoder: first frame of GIF87a/89a — global/local palettes, graphic-control transparency,
 # interlaced rows and variable-width LZW (2..12 bits), drawn onto the logical screen.
 
