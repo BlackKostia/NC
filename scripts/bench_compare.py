@@ -83,20 +83,29 @@ MANAGERS: list[ManagerSpec] = [
 ]
 
 
-def sample_dir_entries(target_dir: str, limit: int = 25) -> list[bytes]:
+def sample_dir_entries(target_dir: str, limit: int = 25) -> tuple[list[bytes], re.Pattern[bytes] | None]:
     """Read only the first `limit` non-dot entries without scanning the whole dir."""
     samples: list[bytes] = []
+    exts: dict[bytes, int] = {}
     with os.scandir(target_dir) as it:
         for entry in it:
             if entry.name.startswith("."):
                 continue
-            # Use prefix (up to 24 bytes) so truncated columns in narrow panes still match
             token = entry.name[:24].encode("utf-8", errors="ignore")
             if len(token) >= 3:
                 samples.append(token)
+            if "." in entry.name and not entry.name.startswith("."):
+                ext = entry.name.rsplit(".", 1)[1].encode("utf-8", errors="ignore")
+                if 1 <= len(ext) <= 6 and ext.isalnum():
+                    exts[ext] = exts.get(ext, 0) + 1
             if len(samples) >= limit:
                 break
-    return samples
+    pattern: re.Pattern[bytes] | None = None
+    if exts:
+        top_ext, cnt = max(exts.items(), key=lambda kv: kv[1])
+        if cnt >= max(3, len(samples) // 2):
+            pattern = re.compile(rb"[A-Za-z0-9_-]{3,}\." + re.escape(top_ext))
+    return samples, pattern
 
 
 def set_pty_size(fd: int, rows: int = 40, cols: int = 120) -> None:
@@ -117,11 +126,48 @@ def read_proc_rss_kb(pid: int) -> int:
     return 0
 
 
+def wait_proc_bounded(pid: int, timeout_s: float = 2.0) -> int:
+    """Wait up to timeout_s for pid, returning peak RSS in KB, else terminate."""
+    peak_rss_kb = 0
+    end = time.perf_counter() + timeout_s
+    while time.perf_counter() < end:
+        peak_rss_kb = max(peak_rss_kb, read_proc_rss_kb(pid))
+        try:
+            wpid, _, rusage = os.wait4(pid, os.WNOHANG)
+            if wpid == pid:
+                return max(peak_rss_kb, rusage.ru_maxrss)
+        except ChildProcessError:
+            return peak_rss_kb
+        time.sleep(0.02)
+    try:
+        os.killpg(pid, signal.SIGTERM)
+    except OSError:
+        pass
+    end_term = time.perf_counter() + 1.0
+    while time.perf_counter() < end_term:
+        peak_rss_kb = max(peak_rss_kb, read_proc_rss_kb(pid))
+        try:
+            wpid, _, rusage = os.wait4(pid, os.WNOHANG)
+            if wpid == pid:
+                return max(peak_rss_kb, rusage.ru_maxrss)
+        except ChildProcessError:
+            return peak_rss_kb
+        time.sleep(0.02)
+    try:
+        os.killpg(pid, signal.SIGKILL)
+        _, _, rusage = os.wait4(pid, 0)
+        peak_rss_kb = max(peak_rss_kb, rusage.ru_maxrss)
+    except OSError:
+        pass
+    return peak_rss_kb
+
+
 def run_single(
     spec: ManagerSpec,
     bin_path: str,
     target_dir: str,
     markers: list[bytes],
+    marker_re: re.Pattern[bytes] | None,
     timeout_s: float,
 ) -> tuple[float | None, int]:
     master, slave = pty.openpty()
@@ -159,36 +205,28 @@ def run_single(
                     break
                 raw_buf.extend(chunk)
                 plain = ANSI_RE.sub(b"", bytes(raw_buf))
-                if any(m in plain for m in markers):
+                matched = any(m in plain for m in markers) or (marker_re is not None and marker_re.search(plain) is not None)
+                if matched:
                     found_ms = (time.perf_counter() - t0) * 1000.0
                     peak_rss_kb = max(peak_rss_kb, read_proc_rss_kb(proc.pid))
                     break
             if proc.poll() is not None:
                 break
 
-        try:
-            os.write(master, spec.quit_seq)
-        except OSError:
-            pass
-
-        try:
-            _, status, rusage = os.wait4(proc.pid, 0)
-            peak_rss_kb = max(peak_rss_kb, rusage.ru_maxrss)
-        except ChildProcessError:
-            pass
-        except KeyboardInterrupt:
-            raise
-    finally:
-        if proc.poll() is None:
+        if found_ms is not None:
+            try:
+                os.write(master, spec.quit_seq)
+            except OSError:
+                pass
+            peak_rss_kb = max(peak_rss_kb, wait_proc_bounded(proc.pid, timeout_s=2.0))
+        else:
+            peak_rss_kb = max(peak_rss_kb, read_proc_rss_kb(proc.pid))
             try:
                 os.killpg(proc.pid, signal.SIGTERM)
-                proc.wait(timeout=1.5)
-            except Exception:
-                try:
-                    os.killpg(proc.pid, signal.SIGKILL)
-                    proc.wait(timeout=1.0)
-                except Exception:
-                    pass
+            except OSError:
+                pass
+            peak_rss_kb = max(peak_rss_kb, wait_proc_bounded(proc.pid, timeout_s=1.0))
+    finally:
         try:
             os.close(master)
         except OSError:
@@ -221,7 +259,7 @@ def main() -> int:
         print(f"ERROR: directory not found: {args.dir}", file=sys.stderr)
         return 2
 
-    markers = sample_dir_entries(args.dir)
+    markers, marker_re = sample_dir_entries(args.dir)
     if not markers:
         print(f"ERROR: directory has no visible non-dot entries to detect render: {args.dir}", file=sys.stderr)
         return 2
@@ -232,6 +270,8 @@ def main() -> int:
 
     print(f"Target directory: {args.dir}")
     print(f"Sampled markers : {len(markers)} entries (e.g. {markers[0].decode('utf-8', 'replace')})")
+    if marker_re is not None:
+        print(f"Pattern marker  : {marker_re.pattern.decode('utf-8', 'replace')}")
     print(f"Runs / Warmup   : {args.runs} / {args.warmup} (timeout {args.timeout:.0f}s)\n")
 
     for spec in MANAGERS:
@@ -243,16 +283,23 @@ def main() -> int:
             continue
 
         print(f"[{spec.name}] ({bin_path}) ...", flush=True)
+        timed_out = False
         for _ in range(args.warmup):
-            run_single(spec, bin_path, args.dir, markers, args.timeout)
+            w_ms, _ = run_single(spec, bin_path, args.dir, markers, marker_re, args.timeout)
+            if w_ms is None:
+                print(f"  warmup: TIMEOUT (>{args.timeout:.0f}s) - skipping remaining runs", flush=True)
+                timed_out = True
+                break
 
         times_ms: list[float] = []
         rss_list: list[int] = []
-        for i in range(args.runs):
-            dt_ms, rss_kb = run_single(spec, bin_path, args.dir, markers, args.timeout)
-            if dt_ms is None:
-                print(f"  run {i + 1}: TIMEOUT (>{args.timeout:.0f}s)", flush=True)
-            else:
+        if not timed_out:
+            for i in range(args.runs):
+                dt_ms, rss_kb = run_single(spec, bin_path, args.dir, markers, marker_re, args.timeout)
+                if dt_ms is None:
+                    print(f"  run {i + 1}: TIMEOUT (>{args.timeout:.0f}s) - stopping manager", flush=True)
+                    rss_list.append(rss_kb)
+                    break
                 print(f"  run {i + 1}: {dt_ms:.1f} ms | Peak RSS: {rss_kb / 1024:.2f} MiB", flush=True)
                 times_ms.append(dt_ms)
                 rss_list.append(rss_kb)
