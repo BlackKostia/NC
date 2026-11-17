@@ -196,7 +196,7 @@ flowchart TB
 
 ## Журнал виконання (оновлюється разом з комітами)
 
-Стан на v2.6.7. Кожен рядок підтверджено тестами; середовище розробки: gcc 13.3, clang 18.1, binutils 2.42 (x86_64 + aarch64), `qemu-user` (aarch64/arm). **Немає** ARM32-лінкера (`arm-linux-gnueabi-ld`/`ld.lld`) і sudo — тому Етап 5 (ARM32) не виконано. Обсяг: 18 модулів на C23 (≈ 2 600 рядків C замість ≈ 5 600 рядків asm), 208 асемблерних модулів лишаються.
+Стан на v2.6.7. Кожен рядок підтверджено тестами; середовище розробки: gcc 13.3, clang 18.1, binutils 2.42 (x86_64 + aarch64), `qemu-user` (aarch64/arm). **Немає** ARM32-лінкера (`arm-linux-gnueabi-ld`/`ld.lld`) і sudo — тому Етап 5 (ARM32) не виконано. Обсяг: 45 модулів на C23, 186 асемблерних файлів лишаються (з них 14 — PAL, `i18n.s`/`i18n_keys.s` — таблиці даних).
 
 | Етап | Стан | Що зроблено / доказ |
 |---|---|---|
@@ -210,11 +210,11 @@ flowchart TB
 | 1 крос-перевірка ABI | ✅ | `tools/abi_cross.py` + `tools/abi_entries.def` (66 констант проти заголовків цілі); `arm` — «UNAVAILABLE» без заголовків |
 | 1b aarch64 | ✅ (PAL) / ⏳ (TRY) | Виправлено `O_NOFOLLOW`, `os_dir_next_ex`, 4 SIMD-контракти; додано 9 відсутніх символів (`pal_file.s`); `pal_selftest` 63/63. **Лишається:** фолт-відновлення `TRY` (`pf_fault_handler` на aarch64 — лише fatal), SIGBUS-тест на нативному arm64 |
 | 2 `src/core` | ✅ крім memcheck | На C: `utf8`, `hash`, `hash_file`, `mem_prims`, `string*` (4), `syscall`, `try_rt`, `memory` (аллокатор), `oop_rt`, `tmpfile`, `config*` (4). Лишилось в asm: `memcheck.s` (x86-інструмент MEMCHECK) |
-| 2 `src/tui` | ⏳ | не розпочато (17 модулів, 4 740 рядків) |
-| 3 `src/fs` | ◐ | `inflate.c`. Лишилось ~84 модулі |
+| 2 `src/tui` | ✅ крім таблиць | На C: `theme`, `kbd_map`, `kbd_layout`, `data_dirs`, `screen_rect`, `input*` (3), `term_caps`, `i18n_env`, `i18n_pack`, `screen`, `screen_buffer`, `screen_text` — диференційні тести проти замороженого asm (`tests/test_c_tui_data.py`, `test_c_input.py`, `test_c_i18n.py`, `test_c_screen.py`), на aarch64 під qemu де можливо. Лишилось в asm як **дані**: `i18n.s` (англійська таблиця), `i18n_keys.s` (ключі + пошук) — їх охороняють `check_modularity.py`/i18n-хуки |
+| 3 `src/fs` | ◐ | На C: `inflate`, декодери зображень `img_bmp/tga/pnm(+qoi)/gif/png` (`tests/test_c_img.py`: 36 000 структурованих і мутованих файлів у guard-сторінках). Лишилось ~60 модулів (`img_jpeg*`, `img_core` (TRY), `img_quant/sixel/kitty`, `dir_*`, `file_ops*`, `task*`, `pkg_*`, `nav_*`, …) |
 | 4 `src/ui`, `src/app`, повна збірка aarch64 | ⏳ | не розпочато; `make ARCH=aarch64` збирає лише PAL + selftest |
 | 5 ARM32 / FreeBSD | ⏳ | не виконано: бракує інструментів лінкування ARM32 у середовищі |
 
-**Знахідки міграції** (реальні помилки, виявлені новими тестами): `app_cmd_diff` не задавав `cap` для `str_copy`/`str_cat` і працював лише завдяки залишковому регістру; `format_datetime` повертав порожній рядок для хвилини перед 1970 (колізія ключа кешу); `u64_to_hex` переповнював буфер при `min_digits > 32`; aarch64: `O_NOFOLLOW`, `os_dir_next_ex`, `os_mem_find_byte/count_byte/mismatch16`, `os_str_contains_ci_fast`. Висновок для наступних модулів: asm-викликачі покладаються на **ширину** повернення (`rax` проти `eax`) і на випадкові значення регістрів — тому `intptr_t` для `-errno`, диференційний тест і повний `make test` після кожного модуля обов'язкові.
+**Знахідки міграції** (реальні помилки, виявлені новими тестами): `app_cmd_diff` не задавав `cap` для `str_copy`/`str_cat` і працював лише завдяки залишковому регістру; `format_datetime` повертав порожній рядок для хвилини перед 1970 (колізія ключа кешу); `u64_to_hex` переповнював буфер при `min_digits > 32`; aarch64: `O_NOFOLLOW`, `os_dir_next_ex`, `os_mem_find_byte/count_byte/mismatch16`, `os_str_contains_ci_fast`. Етап 2 tui/3 img додатково: `i18n_detect_env` повертав *вказівник* порожнього `LANG` як індекс мови (безпечно лише завдяки `i18n_set_lang`); `bmp_header` повертав затертий регістр як код помилки (`lea rax,[hsz+14]` перед `ja`); `data_read_file(cap=0)` читав без межі. Висновок для наступних модулів: asm-викликачі покладаються на **ширину** повернення (`rax` проти `eax`) і на випадкові значення регістрів — тому `intptr_t` для `-errno`, диференційний тест і повний `make test` після кожного модуля обов'язкові.
 
 **Метод міграції одного модуля** (повторюваний): заморозити старий `.s` як оракул у `tests/harness/*_reference.s`, написати `.c` з тим самим контрактом (пара в `rax:rdx` → struct з двох `uint64_t`; повернення `-errno` → `intptr_t`), диференційний тест (хост-harness з `c_harness.rename_defined_globals` для x86_64 + `tests/c_harness.py` для aarch64 під qemu), перевірити `audit_live_regs.py`, повний `make test`, закоммітити (хук ≈ 5 хв).
