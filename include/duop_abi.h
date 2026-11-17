@@ -88,10 +88,12 @@ intptr_t os_sigaltstack(const void *ss, void *old_ss);
 intptr_t os_rt_sigaction(int sig, const void *act, void *old, size_t sigsetsize);
 intptr_t os_rt_sigprocmask(int how, const void *set, void *old, size_t sigsetsize);
 
-/* Memory-check hooks (src/core/memcheck.s, MEMCHECK builds only) */
+/* Memory-check hooks (src/core/memcheck.c, MEMCHECK builds only; main.s calls mc_init / mc_report) */
 void mc_on_alloc(void *p, size_t size, void *caller);
 void mc_on_free(void *p, void *caller);
 void mc_on_realloc(void *old_p, void *new_p, size_t size, void *caller);
+void mc_init(char **envp);                    /* $DUOP_MEMCHECK_LOG selects the log file, default stderr */
+void mc_report(void);                         /* MC_SUMMARY + one MC_LEAK line per live block */
 
 /* ---- Normalised PAL (src/os/<os>/<arch>/pal_os.s and siblings) ---- */
 DUOP_NODISCARD int       os_statat(int dirfd, const char *path, FileStat *out, int follow_symlinks);

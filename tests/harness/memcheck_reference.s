@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/core/memcheck.c replaced (tests/test_c_memcheck.py diffs against it; assemble with --defsym MEMCHECK=1)
 # Compile-time MEMCHECK=1 heap leak & bad-free tracker (zero overhead in release).
 .intel_syntax noprefix
 .include "pal.inc"

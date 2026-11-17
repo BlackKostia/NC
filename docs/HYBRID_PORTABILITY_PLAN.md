@@ -226,7 +226,7 @@ flowchart TB
 | E3 | `tools/gen_abi.py`: `build/duop_classes.h` із `classes.inc`/`types.inc` (+ `PTR`-розмітка) | ⏳ |
 | E4 | відновлення з фолтів на aarch64 (`pal_fault.s`, `DUOP_TRY`, `tests/test_c_try.py`) | ⏳ |
 | E5 | ✅ `g_envp` визначено в `src/core/syscall.c`; `main.s` лише записує (розірвано єдиний зв'язок fs→main) | ✅ |
-| E7 | `memcheck.s` → C | ⏳ |
+| E7 | ✅ `src/core/memcheck.c` (`#ifdef MEMCHECK`, порожній об'єкт у звичайній збірці); оракул `tests/harness/memcheck_reference.s`; `tests/test_c_memcheck.py` (60 випадкових скриптів, повна таблиця 65 536 слотів, межа 65 535 проб, лог-файли, 14/14 мутацій); `make memcheck` + `test_memcheck.py` без змін | ✅ |
 | E8 | ✅ спільні тест-утиліти в `tests/c_harness.py` (`version_dir`, `build_with_refs`, `run_impl`/`diff_impls`, `snapshot` без читання FIFO, `mutcheck`) і `tests/harness/script_cli.h` (скрипт на stdin, один impl на процес, `sc_put/num/esc/hex`); `tests/test_c_harness_utils.py`; `pal_thread`/`pal_du` — через `pal_extra` | ✅ |
 | E6 | ✅ `include/duop_app.h`: 20 `App_*` точок входу, які реально викликають `src/ui`/`src/fs` (єдині двері ui→app); `tests/test_c_app_api.py` звіряє виклики, визначення в `src/app`, сигнатури з коментарями asm і компіляцію x86_64/aarch64 | ✅ |
 | M1 | «headless aarch64»: `make ARCH=aarch64 headless` (`--version`, `--help`, CLI `pkg`/`diff`) + CI (x86_64, `ubuntu-24.04-arm`, qemu-user) | ⏳ |

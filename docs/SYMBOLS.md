@@ -258,12 +258,12 @@
   - `memset` — `void *memset(void *dst, int c, size_t n)`
   - `memcmp` — `int memcmp(const void *a, const void *b, size_t n)`
   - `bcmp` — `int bcmp(const void *a, const void *b, size_t n)`
-- **`src/core/memcheck.s`**
-  - `mc_init` — void mc_init(char **envp)
-  - `mc_on_alloc` — void mc_on_alloc(void *ptr, size_t size, uint64_t caller)
-  - `mc_on_free` — void mc_on_free(void *ptr, uint64_t caller)
-  - `mc_on_realloc` — void mc_on_realloc(void *old_ptr, void *new_ptr, size_t new_size, uint64_t caller)
-  - `mc_report` — void mc_report(void)
+- **`src/core/memcheck.c`**
+  - `mc_init` — `void mc_init(char **envp)`
+  - `mc_on_alloc` — `void mc_on_alloc(void *ptr, size_t size, void *caller)`
+  - `mc_on_free` — `void mc_on_free(void *ptr, void *caller)`
+  - `mc_on_realloc` — `void mc_on_realloc(void *old_ptr, void *new_ptr, size_t size, void *caller)`
+  - `mc_report` — `void mc_report(void)`
 - **`src/core/oop_rt.c`**
   - `Object_alloc` — `void *Object_alloc(const ObjectVtbl *vtbl, size_t size)`
   - `Object_free` — `void Object_free(Object *obj)`

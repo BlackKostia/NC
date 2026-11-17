@@ -39,33 +39,6 @@ LOCAL_HEADER_GLOB = "include/duop_*.h"
 ABI_TESTS = ("tests/test_abi_layouts.py", "tests/test_abi_cross.py")
 
 
-def _changed_lines(diff_text: str) -> list[str]:
-    return [ln for ln in diff_text.splitlines() if ln[:1] in "+-" and not ln.startswith(("+++", "---"))]
-
-
-def makefile_diff_is_local(diff_text: str) -> bool:
-    """True when every changed Makefile line only registers a source file or a test script."""
-    lines = _changed_lines(diff_text)
-    return bool(lines) and all(REGISTRATION_LINE.match(ln[1:]) for ln in lines)
-
-
-def header_diff_is_local(diff_text: str) -> bool:
-    """True when a duop_*.h change only adds lines (existing declarations are untouched)."""
-    lines = _changed_lines(diff_text)
-    return bool(lines) and all(ln.startswith("+") for ln in lines)
-
-
-def local_change(rel: str, staged_only: bool = False) -> bool:
-    """Is the working-tree / staged change of a Makefile or duop_*.h file a pure registration / addition?"""
-    if rel != "Makefile" and not fnmatch.fnmatch(rel, LOCAL_HEADER_GLOB):
-        return False
-    cmd = ["git", "diff", "--cached" if staged_only else "HEAD", "-U0", "--", rel]
-    res = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True, check=False)
-    if res.returncode != 0:
-        return False
-    return makefile_diff_is_local(res.stdout) if rel == "Makefile" else header_diff_is_local(res.stdout)
-
-
 # Subsystem path globs -> affected test scripts (relative to ROOT).
 PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/fs/file_ops_read*", ("tests/test_c_fops_small.py", "tests/test_viewer_pro.py", "tests/test_fs_reliability.py")),
@@ -124,6 +97,8 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/tui/i18n*", ("tests/test_lang_packs.py", "tests/test_i18n_hook.py", "tests/test_c_i18n.py", "tests/test_c_i18n_table.py")),
     ("include/duop_app.h", ("tests/test_c_app_api.py",)),
     ("src/app/*", ("tests/test_c_app_api.py",)),
+    ("src/core/memcheck*", ("tests/test_c_memcheck.py", "tests/test_memcheck.py")),
+    ("tests/harness/memcheck_*", ("tests/test_c_memcheck.py",)),
     ("tests/c_harness.py", ("tests/test_c_harness_utils.py", "tests/test_c_i18n_table.py", "tests/test_c_syscall.py", "tests/test_c_hash.py")),
     ("tests/harness/script_cli.h", ("tests/test_c_harness_utils.py",)),
     ("tools/gen_i18n.py", ("tests/test_c_i18n_table.py", "tests/test_c_i18n.py", "tests/test_i18n_hook.py")),
@@ -153,6 +128,33 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("tools/faultlab/audit_null_alloc_c.py", ("tests/test_c_guards.py",)),
     (".githooks/*", ("tests/test_smart_runner.py",)),
 )
+
+
+def _changed_lines(diff_text: str) -> list[str]:
+    return [ln for ln in diff_text.splitlines() if ln[:1] in "+-" and not ln.startswith(("+++", "---"))]
+
+
+def makefile_diff_is_local(diff_text: str) -> bool:
+    """True when every changed Makefile line only registers a source file or a test script."""
+    lines = _changed_lines(diff_text)
+    return bool(lines) and all(REGISTRATION_LINE.match(ln[1:]) for ln in lines)
+
+
+def header_diff_is_local(diff_text: str) -> bool:
+    """True when a duop_*.h change only adds lines (existing declarations are untouched)."""
+    lines = _changed_lines(diff_text)
+    return bool(lines) and all(ln.startswith("+") for ln in lines)
+
+
+def local_change(rel: str, staged_only: bool = False) -> bool:
+    """Is the working-tree / staged change of a Makefile or duop_*.h file a pure registration / addition?"""
+    if rel != "Makefile" and not fnmatch.fnmatch(rel, LOCAL_HEADER_GLOB):
+        return False
+    cmd = ["git", "diff", "--cached" if staged_only else "HEAD", "-U0", "--", rel]
+    res = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True, check=False)
+    if res.returncode != 0:
+        return False
+    return makefile_diff_is_local(res.stdout) if rel == "Makefile" else header_diff_is_local(res.stdout)
 
 
 def detect_changed_files(staged_only: bool = False) -> list[str]:
