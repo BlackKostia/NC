@@ -122,6 +122,8 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/ui/user_menu*", ("tests/test_config_usermenu.py",)),
     ("src/ui/bookmark*", ("tests/test_nav_tabs.py",)),
     ("src/tui/i18n*", ("tests/test_lang_packs.py", "tests/test_i18n_hook.py", "tests/test_c_i18n.py", "tests/test_c_i18n_table.py")),
+    ("include/duop_app.h", ("tests/test_c_app_api.py",)),
+    ("src/app/*", ("tests/test_c_app_api.py",)),
     ("tools/gen_i18n.py", ("tests/test_c_i18n_table.py", "tests/test_c_i18n.py", "tests/test_i18n_hook.py")),
     ("lang/*", ("tests/test_lang_packs.py", "tests/test_i18n_hook.py")),
     ("src/tui/kbd_*", ("tests/test_kbd_layout.py",)),

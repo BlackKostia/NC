@@ -225,7 +225,8 @@ flowchart TB
 | E2 | ✅ англійська таблиця на C: `src/tui/i18n_en.lang` (джерело поза `lang/`, щоб завантажувач не вважав його пакетом) → `tools/gen_i18n.py` → `build/i18n_en.c` (`lang_en_table` + `i18n_key_blob`), `src/tui/i18n_keys.c`; `i18n.s`/`i18n_keys.s` заморожені в `tests/harness/i18n_{table,keys}_reference.s`; `tests/test_c_i18n_table.py` (265 слотів і ключів проти asm, 8 мутацій генератора, qemu-aarch64) | ✅ |
 | E3 | `tools/gen_abi.py`: `build/duop_classes.h` із `classes.inc`/`types.inc` (+ `PTR`-розмітка) | ⏳ |
 | E4 | відновлення з фолтів на aarch64 (`pal_fault.s`, `DUOP_TRY`, `tests/test_c_try.py`) | ⏳ |
-| E5–E8 | `g_envp` у core; `include/duop_app.h` (29 викликів `ui→app`); `memcheck.s` → C; спільні тест-утиліти (`build_with_refs`, `script_cli`, `snapshot`, `mutcheck`) | ⏳ |
+| E5, E7, E8 | `g_envp` у core; `memcheck.s` → C; спільні тест-утиліти (`build_with_refs`, `script_cli`, `snapshot`, `mutcheck`) | ⏳ |
+| E6 | ✅ `include/duop_app.h`: 20 `App_*` точок входу, які реально викликають `src/ui`/`src/fs` (єдині двері ui→app); `tests/test_c_app_api.py` звіряє виклики, визначення в `src/app`, сигнатури з коментарями asm і компіляцію x86_64/aarch64 | ✅ |
 | M1 | «headless aarch64»: `make ARCH=aarch64 headless` (`--version`, `--help`, CLI `pkg`/`diff`) + CI (x86_64, `ubuntu-24.04-arm`, qemu-user) | ⏳ |
 | S1–S5 `fs` | S1 `file_ops_overwrite`, `pkg_fetch`, `dir_cache*`, `git_status*`, `preview_io/helper`, `img_core`; S2 `dir_sort*`; S3 `dir_model*`; S4 `file_ops*` + `task*`; S5 `archive_*` + `pkg_*` | ⏳ |
 | U0–U4 `ui` | U0 render-diff harness + `duop_ui.h`; U1 листкові віджети; U2 діалоги; U3 переглядач; U4 панелі (`file_pane_render.s` 1223 рядки → ≤ 500-рядкові модулі) | ⏳ |

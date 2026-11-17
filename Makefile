@@ -346,6 +346,7 @@ test: $(TARGET)
 	python3 tests/test_c_input.py
 	python3 tests/test_c_i18n.py
 	python3 tests/test_c_i18n_table.py
+	python3 tests/test_c_app_api.py
 	python3 tests/test_c_screen.py
 	python3 tests/test_c_img.py
 	python3 tests/test_c_img_out.py
