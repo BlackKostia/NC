@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 21
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 787
+- **Exported `.global` Symbols**: 783
 
 ## Structs (`include/*.inc`)
 
@@ -333,20 +333,16 @@
   - `data_read_file` — `intptr_t data_read_file(const char *path, char *buf, size_t cap)`
 - **`src/tui/i18n.s`**
   - `lang_en_table`
-- **`src/tui/i18n_env.s`**
-  - `i18n_lang_reset` — void i18n_lang_reset(void) -- registry = { English }
-  - `i18n_register` — void i18n_register(LangStrings *tbl, const char *id) -- insert keeping packs sorted by id
-  - `i18n_has_id` — int i18n_has_id(const char *id) -> 1 when a language with this id is registered
-  - `i18n_find` — s is an id, a code or a locale ("uk", "UA", "uk_UA.UTF-8"); ids win over codes, any case.
-  - `i18n_detect_env` — English (0) when that locale has no pack
-  - `i18n_get` — Preserves all registers except RAX.
-  - `i18n_set_lang` — const LangStrings *i18n_set_lang(int idx) -- out-of-range indices select English
-  - `i18n_get_idx` — int i18n_get_idx(void)
-  - `i18n_count` — int i18n_count(void)
+- **`src/tui/i18n_env.c`**
+  - `i18n_lang_reset` — `void i18n_lang_reset(void)`
+  - `i18n_register` — `void i18n_register(LangStrings *tbl, const char *id)`
+  - `i18n_find` — `int i18n_find(const char *s)`
+  - `i18n_detect_env` — `int i18n_detect_env(char **envp)`
+  - `i18n_set_lang` — `const LangStrings *i18n_set_lang(int idx)`
 - **`src/tui/i18n_keys.s`**
   - `i18n_key_offset` — int i18n_key_offset(const char *key) -> byte offset of the LangStrings slot, or -1
-- **`src/tui/i18n_pack.s`**
-  - `i18n_load` — void i18n_load(char **envp) -- (re)build the language registry from the packs on the data path
+- **`src/tui/i18n_pack.c`**
+  - `i18n_load` — `void i18n_load(char **envp)`
 - **`src/tui/input.c`**
   - `input_probe_eof` — `int input_probe_eof(void)`
   - `input_next_event` — `int input_next_event(Event *evt, int timeout_ms)`

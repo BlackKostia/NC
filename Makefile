@@ -46,9 +46,7 @@ SRCS := \
 	src/main.s \
 	src/core/memcheck.s \
 	src/tui/i18n.s \
-	src/tui/i18n_env.s \
 	src/tui/i18n_keys.s \
-	src/tui/i18n_pack.s \
 	src/tui/screen.s \
 	src/tui/screen_buffer.s \
 	src/tui/screen_text.s \
@@ -243,7 +241,9 @@ C_SRCS := \
 	src/tui/term_caps.c \
 	src/tui/input.c \
 	src/tui/input_parse.c \
-	src/tui/input_seq.c
+	src/tui/input_seq.c \
+	src/tui/i18n_env.c \
+	src/tui/i18n_pack.c
 
 PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_os.s \
@@ -286,11 +286,15 @@ $(VER_INC): VERSION
 	@mkdir -p $(BUILD)
 	@printf '.macro DUOP_VER_ASCII\n    .ascii "$(VERSION)"\n.endm\n.macro DUOP_VER_ASCIZ\n    .asciz "$(VERSION)"\n.endm\n' > $@
 
+$(BUILD)/version.h: VERSION
+	@mkdir -p $(BUILD)
+	@printf '#pragma once\n#define DUOP_VERSION "$(VERSION)"\n' > $@
+
 $(BUILD)/%.o: src/%.s $(INCS) $(VER_INC)
 	@mkdir -p $(dir $@)
 	$(AS) $(ASFLAGS) $< -o $@
 
-$(BUILD)/%.o: src/%.c $(wildcard include/*.h)
+$(BUILD)/%.o: src/%.c $(wildcard include/*.h) | $(BUILD)/version.h
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
 
@@ -342,6 +346,7 @@ test: $(TARGET)
 	python3 tests/test_c_config.py
 	python3 tests/test_c_tui_data.py
 	python3 tests/test_c_input.py
+	python3 tests/test_c_i18n.py
 	python3 tests/test_abi_layouts.py
 	python3 tests/test_pty.py
 	python3 tests/test_fs_reliability.py

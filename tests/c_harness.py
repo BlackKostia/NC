@@ -28,7 +28,7 @@ def available(arch: str) -> bool:
     return all(shutil.which(x[0]) for x in (t["cc"], t["as_"], t["ld"])) and (not t["run"] or shutil.which(t["run"][0]))
 
 
-def build(arch: str, work: Path, c_files: list[str], extra_objs: list[Path] | None = None) -> Path:
+def build(arch: str, work: Path, c_files: list[str], extra_objs: list[Path] | None = None, cflags: list[str] | None = None) -> Path:
     """c_files: repo-relative or absolute .c paths (harness + modules under test); extra_objs: prebuilt objects to link too."""
     t = ARCHS[arch]
     objs: list[str] = []
@@ -41,7 +41,7 @@ def build(arch: str, work: Path, c_files: list[str], extra_objs: list[Path] | No
     for i, c in enumerate([*c_files, SHIMS]):
         src = Path(c) if Path(c).is_absolute() else ROOT / c
         o = work / f"c{i}_{src.stem}.o"
-        subprocess.run([*t["cc"], *COMMON, *t["extra"], "-c", str(src), "-o", str(o)], check=True, capture_output=True)
+        subprocess.run([*t["cc"], *COMMON, *t["extra"], *(cflags or []), "-c", str(src), "-o", str(o)], check=True, capture_output=True)
         objs.append(str(o))
     objs.extend(str(o) for o in extra_objs or [])
     exe = work / "prog"

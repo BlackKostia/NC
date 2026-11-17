@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/tui/i18n_pack.c replaced (tests/test_c_i18n.py diffs against it)
 # Interface language packs: every "*.lang" file on the data path (data_dirs.s: $DUOP_LANGS,
 # ~/.config/duop/lang, lang/ beside the binary, share/duop/lang) becomes one language, so new
 # interface languages need no rebuild. A pack is "key = value" lines over the LangStrings slots

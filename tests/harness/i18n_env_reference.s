@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/tui/i18n_env.c replaced (tests/test_c_i18n.py diffs against it)
 # Duop i18n runtime: the registry of interface languages (index 0 = built-in English, then the
 # *.lang packs sorted by id), current-language accessors, lookup by id / code and POSIX locale
 # detection. The packs themselves are loaded by i18n_pack.s.

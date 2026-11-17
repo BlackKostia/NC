@@ -1,6 +1,7 @@
 /* include/duop_tui.h - C view of the terminal layer (the .c files under src/tui): value types, ScreenBuffer, data-file scanning.
  * Layouts mirror include/types.inc and classes.inc exactly; tests/test_abi_layouts.py compares every offset. */
 #pragma once
+#include "duop_config.h"          /* I18N_ID_LEN, key codes */
 #include "duop_keys.h"
 #include "duop_oop.h"
 
@@ -55,6 +56,16 @@ typedef struct ScreenBuffer {
     int32_t width, height, force_full, pen_fg, pen_bg, pen_attrs;
 } ScreenBuffer;
 
+/* ---- Interface languages (i18n.s: English table + key table; i18n_env.c: registry; i18n_pack.c: *.lang packs) ----
+ * One table = one pointer per slot; slot 0 is the language code, 1 its name. The order and count are the assembler's
+ * `LangStrings` (include/types.inc), proven equal by tests/test_abi_layouts.py. */
+#define LANG_SLOTS 265
+#define I18N_MAX 16                /* interface languages: built-in English + *.lang packs */
+#define I18N_FILE_MAX 65536        /* bytes read from one *.lang file */
+#define I18N_ARENA 524288          /* static storage for loaded packs (tables + text) */
+typedef struct LangStrings { const char *s[LANG_SLOTS]; } LangStrings;
+extern const LangStrings lang_en_table;
+
 /* ---- Runtime data files (data_dirs.c): one DataSpec describes one kind of "*<ext>" file ---- */
 typedef struct DataSpec {
     const char *env;               /* "DUOP_LAYOUTS=": ':'-separated dirs that replace the default search path */
@@ -107,3 +118,16 @@ int term_caps_filter(uint8_t *buf, int from, int len);   /* removes terminal rep
 int term_img_proto(void);
 CellPx term_cell_px(void);                    /* pixels per cell, 0 = unknown */
 int term_caps_changed(void);                  /* 1 once after the protocol or cell size changed */
+
+/* ---- Interface languages: registry (i18n_env.c), pack loader (i18n_pack.c), key table (i18n_keys.s) ---- */
+void i18n_lang_reset(void);                   /* registry = { English } */
+int i18n_count(void);
+int i18n_has_id(const char *id);
+void i18n_register(LangStrings *tbl, const char *id);   /* insert keeping the packs sorted by id */
+int i18n_find(const char *s);                 /* index of an id, code or locale ("uk", "UA", "uk_UA.UTF-8"), or -1 */
+int i18n_detect_env(char **envp);             /* first set of LC_ALL / LC_MESSAGES / LANG; English (0) without a pack */
+const LangStrings *i18n_get(void);            /* touches rax only: the asm callers keep every other register live */
+const LangStrings *i18n_set_lang(int idx);    /* out-of-range selects English */
+int i18n_get_idx(void);
+void i18n_load(char **envp);                  /* (re)build the registry from the packs on the data path */
+int i18n_key_offset(const char *key);         /* byte offset of the LangStrings slot named `key`, or -1 */
