@@ -258,7 +258,7 @@ GEN_OBJS := $(BUILD)/i18n_en.o
 OBJS := $(patsubst src/%.s,$(BUILD)/%.o,$(SRCS) $(PAL_SRCS)) $(patsubst src/%.c,$(BUILD)/%.o,$(C_SRCS)) $(GEN_OBJS)
 INCS := $(wildcard include/*.inc) $(wildcard $(PAL_INC)/*.inc)
 
-.PHONY: all release run test memcheck verify hooks symbols symbols-check clean pal-selftest check-toolchain
+.PHONY: all release run test memcheck verify hooks symbols symbols-check clean pal-selftest check-toolchain headless
 
 all: $(TARGET)
 
@@ -285,15 +285,41 @@ $(BUILD)/%.o: src/%.s $(INCS) $(VER_INC)
 	@mkdir -p $(dir $@)
 	$(AS) $(ASFLAGS) $< -o $@
 
-$(BUILD)/%.o: src/%.c $(wildcard include/*.h) | $(BUILD)/version.h
+$(BUILD)/%.o: src/%.c $(wildcard include/*.h) | $(BUILD)/version.h $(BUILD)/i18n_slots.h
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
+
+# LS_<key> slot indices of LangStrings (i18n_get()->s[LS_cli_usage]), generated from include/types.inc
+$(BUILD)/i18n_slots.h: tools/gen_i18n.py include/types.inc
+	@mkdir -p $(BUILD)
+	python3 tools/gen_i18n.py --out-slots $@
 
 $(BUILD)/i18n_en.c: tools/gen_i18n.py src/tui/i18n_en.lang include/types.inc
 	@mkdir -p $(BUILD)
 	python3 tools/gen_i18n.py --out $@
 
-$(BUILD)/i18n_en.o: $(BUILD)/i18n_en.c $(wildcard include/*.h) | $(BUILD)/version.h
+$(BUILD)/i18n_en.o: $(BUILD)/i18n_en.c $(wildcard include/*.h) | $(BUILD)/version.h $(BUILD)/i18n_slots.h
+	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
+
+# Headless build (docs/HYBRID_PORTABILITY_PLAN.md, M1): the command line (--help / --version / --license) without the TUI. It links the PAL,
+# pal_start and every portable C module of the selected ARCH, so it runs the C23 layers natively (x86_64) or under qemu-aarch64. Its own
+# objects live in $(BUILD)_headless/ so tests that glob $(BUILD)/**/*.o never see a second entry point.
+HB            := $(BUILD)_headless
+HEADLESS_C    := src/app/cli_args.c src/app/license.c src/app/main_headless.c
+HEADLESS_OBJS := $(patsubst src/%.s,$(HB)/%.o,$(PAL_START_SRCS)) $(patsubst src/%.c,$(HB)/%.o,$(HEADLESS_C)) \
+	$(patsubst src/%.s,$(BUILD)/%.o,$(PAL_SRCS)) $(patsubst src/%.c,$(BUILD)/%.o,$(C_SRCS)) $(GEN_OBJS)
+
+headless: $(BUILD)/duop_headless
+
+$(BUILD)/duop_headless: $(HEADLESS_OBJS)
+	$(LD) $(LDFLAGS) $(HEADLESS_OBJS) -o $@
+
+$(HB)/%.o: src/%.s $(INCS)
+	@mkdir -p $(dir $@)
+	$(AS) $(ASFLAGS) $< -o $@
+
+$(HB)/%.o: src/%.c $(wildcard include/*.h) | $(BUILD)/version.h $(BUILD)/i18n_slots.h
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
 
 # PAL walking skeleton: C self-test linked with the PAL of the selected ARCH (qemu-aarch64 runs the arm64 one).
@@ -349,6 +375,7 @@ test: $(TARGET)
 	python3 tests/test_c_i18n_table.py
 	python3 tests/test_c_app_api.py
 	python3 tests/test_c_harness_utils.py
+	python3 tests/test_headless.py
 	python3 tests/test_c_screen.py
 	python3 tests/test_c_img.py
 	python3 tests/test_c_img_out.py
@@ -455,7 +482,7 @@ hooks:
 	git config core.hooksPath .githooks
 	chmod +x .githooks/* .agents/hooks/*.py .agents/skills/*/scripts/*
 
--include $(shell find $(BUILD) $(ST) -name '*.d' 2>/dev/null)
+-include $(shell find $(BUILD) $(HB) $(ST) -name '*.d' 2>/dev/null)
 
 clean:
-	rm -rf $(BUILD) $(TARGET) build_mc build_aarch64 build_selftest duop_memcheck
+	rm -rf $(BUILD) $(HB) $(TARGET) build_mc build_aarch64 build_aarch64_headless build_headless build_selftest duop_memcheck

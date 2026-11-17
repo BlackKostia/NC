@@ -18,4 +18,6 @@ __pycache__/
 .vscode/
 .idea/
 build_aarch64/
+build_headless/
+build_aarch64_headless/
 build_selftest/

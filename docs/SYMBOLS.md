@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 738
+- **Exported `.global` Symbols**: 741
 
 ## Structs (`include/*.inc`)
 
@@ -1030,5 +1030,10 @@
   - `App_open_viewer` — void App_open_viewer(App *app, const char *path)
   - `App_view_as_done` — void App_view_as_done(App *app, ViewAsDialog *dlg) -- open the viewer in the chosen mode
   - `App_cmd_view_mode` — int App_cmd_view_mode(App *app) -- Alt+V: cycle the preview's Image / Hex / Text view
+- **`src/app/cli_args.c`**
+  - `cli_parse` — `void cli_parse(int argc, char **argv, CliArgs *out)`
+  - `cli_print_info` — `bool cli_print_info(const CliArgs *args, char **envp)`
+- **`src/app/main_headless.c`**
+  - `duop_main` — `int duop_main(int argc, char **argv, char **envp, const uintptr_t *auxv)`
 - **`src/main.s`**
   - `_start`

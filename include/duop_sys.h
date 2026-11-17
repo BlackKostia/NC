@@ -2,6 +2,10 @@
 #pragma once
 #include "duop_abi.h"
 
+#define STDIN_FD 0
+#define STDOUT_FD 1
+#define STDERR_FD 2
+
 extern volatile int32_t g_sigwinch;     /* set by the SIGWINCH handler, cleared by the event loop */
 extern volatile int32_t g_sigterm;      /* set by SIGTERM / SIGINT (outside child runs) */
 extern char **g_envp;                  /* process environment (src/core/syscall.c); the entry point stores envp here at startup */

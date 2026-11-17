@@ -117,6 +117,10 @@ def check_c_sources(root: Path, errors: list[str]) -> int:
         mk_c = parse_makefile_var(mk, "C_SRCS", ".c")
     except ValueError:
         mk_c = []
+    try:
+        mk_c += parse_makefile_var(mk, "HEADLESS_C", ".c")             # entry point + CLI of `make headless` (not part of the TUI binary)
+    except ValueError:
+        pass
     missing = sorted(set(c_files) - set(mk_c))
     ghosts = sorted(set(mk_c) - set(c_files))
     if missing:
