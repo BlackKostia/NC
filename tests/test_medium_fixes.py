@@ -38,10 +38,10 @@ def test_m1_flush_eagain_and_dirty_recovery() -> None:
     """M1: sys_write_all handles EAGAIN via POLLOUT and ScreenBuffer_flush sets force_full on error."""
     with open(os.path.join(REPO_ROOT, "src/core/syscall.c")) as f:
         sc = f.read()
-    with open(os.path.join(REPO_ROOT, "src/tui/screen.s")) as f:
+    with open(os.path.join(REPO_ROOT, "src/tui/screen.c")) as f:
         scr = f.read()
     assert "EAGAIN" in sc, "sys_write_all must handle -EAGAIN"
-    assert "ScreenBuffer.force_full" in scr.split("sys_write_all")[1], (
+    assert "force_full" in scr.split("sys_write_all")[1], (
         "ScreenBuffer_flush must set force_full=1 when sys_write_all fails"
     )
     print("[PASS] M1. sys_write_all handles EAGAIN and ScreenBuffer_flush marks force_full on failure")

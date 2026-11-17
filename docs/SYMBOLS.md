@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 21
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 783
+- **Exported `.global` Symbols**: 777
 
 ## Structs (`include/*.inc`)
 
@@ -355,32 +355,25 @@
 - **`src/tui/kbd_map.c`**
   - `kbd_latin` — `int kbd_latin(int key)`
   - `kbd_layout_parse` — `void kbd_layout_parse(char *text)`
-- **`src/tui/screen.s`**
-  - `ScreenBuffer_new` — ScreenBuffer *ScreenBuffer_new(int width, int height)
-  - `ScreenBuffer_dtor` — void ScreenBuffer_dtor(ScreenBuffer *this)
-  - `ScreenBuffer_flush` — void ScreenBuffer_flush(ScreenBuffer *this)
-  - `ScreenBuffer_vtbl`
-- **`src/tui/screen_buffer.s`**
-  - `ScreenBuffer_resize` — void ScreenBuffer_resize(ScreenBuffer *this, int width, int height)
-  - `ScreenBuffer_clear` — void ScreenBuffer_clear(ScreenBuffer *this, uint32_t fg, uint32_t bg)
-  - `ScreenBuffer_set_pen` — void ScreenBuffer_set_pen(ScreenBuffer *this, uint32_t fg, uint32_t bg, uint32_t attrs)
-  - `ScreenBuffer_set_cell` — void ScreenBuffer_set_cell(ScreenBuffer *this, int x, int y, uint32_t cp, uint32_t fg, uint32_t bg)
-  - `ScreenBuffer_set_cell_pen` — void ScreenBuffer_set_cell_pen(ScreenBuffer *this, int x, int y, uint32_t cp)
-  - `ScreenBuffer_fill_rect` — Uses current pen colors/attrs!
-  - `ScreenBuffer_draw_hline` — void ScreenBuffer_draw_hline(ScreenBuffer *this, int x, int y, int len, uint32_t cp)
-- **`src/tui/screen_out.s`**
-  - `out_u32` — void out_u32(ScreenBuffer *this, uint32_t val)
-  - `out_cstr` — void out_cstr(ScreenBuffer *this, const char *s, size_t len)
-  - `out_rgb_sgr` — channel digits come from u8_dec_tbl (no division, no per-byte calls).
+- **`src/tui/screen.c`**
+  - `ScreenBuffer_new` — `ScreenBuffer *ScreenBuffer_new(int width, int height)`
+  - `ScreenBuffer_dtor` — `void ScreenBuffer_dtor(ScreenBuffer *s)`
+  - `ScreenBuffer_flush` — `void ScreenBuffer_flush(ScreenBuffer *s)`
+- **`src/tui/screen_buffer.c`**
+  - `ScreenBuffer_resize` — `intptr_t ScreenBuffer_resize(ScreenBuffer *s, int width, int height)`
+  - `ScreenBuffer_clear` — `void ScreenBuffer_clear(ScreenBuffer *s, uint32_t fg, uint32_t bg)`
+  - `ScreenBuffer_set_pen` — `void ScreenBuffer_set_pen(ScreenBuffer *s, uint32_t fg, uint32_t bg, uint32_t attrs)`
+  - `ScreenBuffer_set_cell` — `void ScreenBuffer_set_cell(ScreenBuffer *s, int x, int y, uint32_t cp, uint32_t fg, uint32_t bg)`
+  - `ScreenBuffer_set_cell_pen` — `void ScreenBuffer_set_cell_pen(ScreenBuffer *s, int x, int y, uint32_t cp)`
+  - `ScreenBuffer_fill_rect` — `void ScreenBuffer_fill_rect(ScreenBuffer *s, int x, int y, int w, int h, uint32_t cp)`
+  - `ScreenBuffer_draw_hline` — `void ScreenBuffer_draw_hline(ScreenBuffer *s, int x, int y, int len, uint32_t cp)`
 - **`src/tui/screen_rect.c`**
   - `ScreenBuffer_rect_changed` — `int ScreenBuffer_rect_changed(ScreenBuffer *s, int x, int y, int w, int h)`
   - `ScreenBuffer_rect_invalidate` — `void ScreenBuffer_rect_invalidate(ScreenBuffer *s, int x, int y, int w, int h)`
-- **`src/tui/screen_text.s`**
-  - `ScreenBuffer_draw_box` — Uses current pen! Draws rounded corners (╭╮╰╯─│). If fill_interior != 0, fills interior spaces.
-  - `ScreenBuffer_draw_text` — Uses current pen! Returns display columns written.
-  - `ScreenBuffer_draw_text_pad` — Draws utf8 up to `width` columns and pads remaining columns with spaces using current pen.
-  - `out_ensure` — int out_ensure(ScreenBuffer *this, size_t need) -> 0 ok, -ENOMEM on failure
-  - `out_byte` — void out_byte(ScreenBuffer *this, uint8_t b)
+- **`src/tui/screen_text.c`**
+  - `ScreenBuffer_draw_box` — `void ScreenBuffer_draw_box(ScreenBuffer *s, int x, int y, int w, int h, int fill_interior)`
+  - `ScreenBuffer_draw_text` — `int ScreenBuffer_draw_text(ScreenBuffer *s, int x, int y, const char *utf8, int max_cols)`
+  - `ScreenBuffer_draw_text_pad` — `void ScreenBuffer_draw_text_pad(ScreenBuffer *s, int x, int y, const char *utf8, int width)`
 - **`src/tui/term_caps.c`**
   - `term_caps_init` — `void term_caps_init(char **envp)`
   - `term_caps_query` — `void term_caps_query(void)`

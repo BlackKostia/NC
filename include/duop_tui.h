@@ -56,6 +56,36 @@ typedef struct ScreenBuffer {
     int32_t width, height, force_full, pen_fg, pen_bg, pen_attrs;
 } ScreenBuffer;
 
+/* ---- ScreenBuffer methods (screen.c: lifecycle + flush, screen_buffer.c: cells, screen_text.c: text and boxes) ---- */
+#define ATTR_NONE 0
+#define ATTR_BOLD 1
+#define ATTR_DIM 2
+#define ATTR_ITALIC 4
+#define ATTR_UNDERLINE 8
+#define ATTR_REVERSE 16
+#define CH_BOX_TL 0x256D           /* rounded box corners and lines */
+#define CH_BOX_TR 0x256E
+#define CH_BOX_BL 0x2570
+#define CH_BOX_BR 0x256F
+#define CH_BOX_H 0x2500
+#define CH_BOX_V 0x2502
+#define OUT_BUF_INIT_CAP 131072    /* 128 KiB ANSI flush buffer */
+
+extern const ObjectVtbl ScreenBuffer_vtbl;
+ScreenBuffer *ScreenBuffer_new(int width, int height);          /* NULL on OOM */
+void ScreenBuffer_dtor(ScreenBuffer *s);
+intptr_t ScreenBuffer_resize(ScreenBuffer *s, int width, int height);   /* 0 or -ENOMEM; sizes below 1 become 1 */
+void ScreenBuffer_flush(ScreenBuffer *s);                       /* emits only the cells that differ from the front buffer */
+void ScreenBuffer_clear(ScreenBuffer *s, uint32_t fg, uint32_t bg);
+void ScreenBuffer_set_pen(ScreenBuffer *s, uint32_t fg, uint32_t bg, uint32_t attrs);
+void ScreenBuffer_set_cell(ScreenBuffer *s, int x, int y, uint32_t cp, uint32_t fg, uint32_t bg);
+void ScreenBuffer_set_cell_pen(ScreenBuffer *s, int x, int y, uint32_t cp);   /* current pen; out-of-range cells are ignored */
+void ScreenBuffer_fill_rect(ScreenBuffer *s, int x, int y, int w, int h, uint32_t cp);
+void ScreenBuffer_draw_hline(ScreenBuffer *s, int x, int y, int len, uint32_t cp);
+void ScreenBuffer_draw_box(ScreenBuffer *s, int x, int y, int w, int h, int fill_interior);
+int ScreenBuffer_draw_text(ScreenBuffer *s, int x, int y, const char *utf8, int max_cols);   /* display columns written */
+void ScreenBuffer_draw_text_pad(ScreenBuffer *s, int x, int y, const char *utf8, int width);
+
 /* ---- Interface languages (i18n.s: English table + key table; i18n_env.c: registry; i18n_pack.c: *.lang packs) ----
  * One table = one pointer per slot; slot 0 is the language code, 1 its name. The order and count are the assembler's
  * `LangStrings` (include/types.inc), proven equal by tests/test_abi_layouts.py. */

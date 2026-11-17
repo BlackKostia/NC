@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/tui/screen*.c replaced (tests/test_c_screen.py diffs against it)
 # ScreenBuffer Class (Double-Buffered TrueColor ANSI Terminal Renderer) — screen out (split from screen.s)
 
 .intel_syntax noprefix
