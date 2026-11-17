@@ -8,7 +8,6 @@
 #include "duop_string.h"
 #include "duop_sys.h"
 
-void *g_envp;                       /* defined in main.s; read by the git helpers linked in with the real model objects */
 extern int ref_dir_du_populate(DirModel *);
 extern void ref_du_set_progress(int (*)(void *, DuProgress *), void *);
 DirModel *DirModel_new(const char *path);

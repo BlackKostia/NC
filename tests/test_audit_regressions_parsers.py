@@ -25,8 +25,6 @@ _ASM_PARSER_HARNESS = r"""
 
 .section .bss
 .align 8
-.global g_envp
-g_envp:   .space 8
 h_try:    .space TRY_FRAME_SIZE
 h_img:    .space Image._size
 h_six:    .space 128

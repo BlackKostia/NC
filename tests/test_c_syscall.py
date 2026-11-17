@@ -3,6 +3,7 @@
 x86_64 and aarch64 (qemu-user) through a freestanding harness."""
 
 import re
+import subprocess
 from pathlib import Path
 
 import c_harness as H
@@ -30,6 +31,18 @@ def run(arch: str) -> dict[str, int]:
         return vals
 
 
+def test_envp_owned_by_core() -> None:
+    """g_envp (read by git_status / preview_helper in src/fs) is defined in src/core, not in the entry point: no fs -> main edge."""
+    def symbols(obj: str) -> dict[str, str]:
+        out = subprocess.run(["nm", str(H.ROOT / "build" / obj)], capture_output=True, text=True, check=True).stdout
+        return {ln.split()[-1]: ln.split()[-2] for ln in out.splitlines() if len(ln.split()) >= 2}
+    assert symbols("core/syscall.o").get("g_envp") == "B", "g_envp must be a .bss symbol of src/core/syscall.c"
+    assert symbols("main.o").get("g_envp") == "U", "main.s only fills g_envp in"
+    for obj in ("fs/git_status.o", "fs/preview_helper.o"):
+        assert symbols(obj).get("g_envp") == "U", obj
+    print("[PASS] Y-envp. g_envp is owned by src/core/syscall.c; main.s and the fs helpers only reference it")
+
+
 def main() -> None:
     expect = {"env_home": 1, "env_prefix_miss": 1, "env_empty": 1, "env_null": 1,
               "sh_arg_args": 0, "bg_status": 4 << 8, "open_external_nodisplay": -1, "open_external_display": 0,
@@ -44,6 +57,7 @@ def main() -> None:
         assert got["argv_status"] == 5 << 8 and got["sh_arg_status"] == 3 << 8, got
         assert got["argv_missing"] == 127 << 8, f"{arch}: exec failure must surface as exit 127, got {got['argv_missing']}"
         print(f"[PASS] Y-{arch}: exec/wait statuses, env lookup, double-fork opener, signal flags, 300 KB write_all")
+    test_envp_owned_by_core()
     print("ALL C SYSCALL TESTS PASSED.")
 
 

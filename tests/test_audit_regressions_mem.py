@@ -23,8 +23,6 @@ _ASM_MEM_HARNESS = r"""
 
 .section .bss
 .align 8
-.global g_envp
-g_envp:   .space 8
 h_pool:   .space 16384
 h_items:  .space 1024
 

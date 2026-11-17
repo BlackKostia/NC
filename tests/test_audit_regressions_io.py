@@ -24,8 +24,6 @@ _ASM_IO_HARNESS = r"""
 
 .section .bss
 .align 8
-.global g_envp
-g_envp:    .space 8
 h_buf64:   .space 128
 h_out:     .space PATH_MAX
 h_cmd_out: .space 256

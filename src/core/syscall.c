@@ -70,6 +70,8 @@ void signals_install(void)
     os_fault_guard_install();                   /* unified TRY/CATCH + mmap SIGBUS guard */
 }
 
+char **g_envp;                          /* environment of the process: set once by the entry point, read by the git/preview helpers */
+
 const char *env_getenv(char **envp, const char *name)
 {
     if (!envp) return nullptr;

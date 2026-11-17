@@ -10,7 +10,6 @@
 #include <string.h>
 #include <unistd.h>
 
-char **g_envp;
 extern void *guard_exact(size_t);
 extern int img_decode(const uint8_t *d, size_t n, int fmt, void *out);
 extern void img_free(void *img);

@@ -4,6 +4,7 @@
 
 extern volatile int32_t g_sigwinch;     /* set by the SIGWINCH handler, cleared by the event loop */
 extern volatile int32_t g_sigterm;      /* set by SIGTERM / SIGINT (outside child runs) */
+extern char **g_envp;                  /* process environment (src/core/syscall.c); the entry point stores envp here at startup */
 extern void *g_try_frame;               /* head of the active TRY frame chain (asm macros in try_using.inc) */
 
 DUOP_NODISCARD intptr_t    sys_write_all(int fd, const void *buf, size_t len);       /* total written or -errno; retries EINTR/EAGAIN */

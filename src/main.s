@@ -40,13 +40,9 @@ str_license:
     .ascii "SOFTWARE.\n"
 .equ str_license_len, . - str_license
 
-.section .bss
-.align 8
-g_envp: .space 8
-
 .section .text
 .global _start
-.global g_envp
+.extern g_envp                # defined in src/core/syscall.c; stored here from the initial stack
 
 # Helper: --lang value (id, code or locale) -> language index; English (0) when no pack matches
 parse_lang_val:

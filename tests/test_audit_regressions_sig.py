@@ -25,8 +25,6 @@ _ASM_SIG_HARNESS = r"""
 
 .section .bss
 .align 8
-.global g_envp
-g_envp: .space 8
 
 .section .text
 .global _start

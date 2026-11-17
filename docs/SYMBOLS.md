@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 739
+- **Exported `.global` Symbols**: 738
 
 ## Structs (`include/*.inc`)
 
@@ -1032,4 +1032,3 @@
   - `App_cmd_view_mode` — int App_cmd_view_mode(App *app) -- Alt+V: cycle the preview's Image / Hex / Text view
 - **`src/main.s`**
   - `_start`
-  - `g_envp`
