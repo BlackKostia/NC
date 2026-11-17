@@ -686,16 +686,16 @@
   - `g_task_start_ms`
   - `g_task_wake_fd`
   - `g_task_op`
-- **`src/fs/trash_info.s`**
-  - `tu_write_info` — int tu_write_info(const char *info_path, const char *orig_path) -> 0, or -errno
-- **`src/fs/trash_undo.s`**
-  - `tu_get_data_home` — Helper: void tu_get_data_home(const char **envp, char *dst, size_t cap)
-  - `tu_mkdir_p_base` — Helper: void tu_mkdir_p_base(const char *data_home)
-  - `tu_pick_unique` — Helper: void tu_pick_unique(const char *data_home, const char *base, char *out_files, char *out_info)
-- **`src/fs/trash_undo_ops.s`**
-  - `trash_move_file` — int trash_move_file(const char *src_path, const char **envp, char *out_trash_path, char *out_info_path)
-  - `undo_push` — void undo_push(int kind, const char *orig_path, const char *cur_path, const char *info_path)
-  - `undo_pop_and_apply` — int undo_pop_and_apply(void) -> 1=undone, 0=empty, <0=-errno
+- **`src/fs/trash_dirs.c`**
+  - `tu_get_data_home` — `void tu_get_data_home(const char *const *envp, char *dst, size_t cap)`
+  - `tu_mkdir_p_base` — `void tu_mkdir_p_base(const char *data_home)`
+  - `tu_pick_unique` — `int tu_pick_unique(const char *data_home, const char *base, char *out_files, char *out_info)`
+- **`src/fs/trash_info.c`**
+  - `tu_write_info` — `int tu_write_info(const char *info_path, const char *orig_path)`
+- **`src/fs/trash_undo.c`**
+  - `trash_move_file` — `int trash_move_file(const char *src_path, const char *const *envp, char *out_trash_path, char *out_info_path)`
+  - `undo_push` — `void undo_push(int kind, const char *orig_path, const char *cur_path, const char *info_path)`
+  - `undo_pop_and_apply` — `int undo_pop_and_apply(void)`
 
 ### UI Widgets & Dialogs (`src/ui/`)
 

@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/trash_info.c, trash_dirs.c and trash_undo.c replaced (tests/test_c_trash.py diffs against it)
 # src/fs/trash_info.s - freedesktop.org Trash specification 1.0 ".trashinfo" writer
 #
 #   [Trash Info]\nPath=<percent-encoded absolute path>\nDeletionDate=YYYY-MM-DDThh:mm:ss\n

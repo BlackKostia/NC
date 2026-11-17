@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/trash_info.c, trash_dirs.c and trash_undo.c replaced (tests/test_c_trash.py diffs against it)
 # src/fs/trash_undo.s - freedesktop.org XDG Trash and 16-deep Undo stack
 
 .intel_syntax noprefix

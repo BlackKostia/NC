@@ -111,6 +111,7 @@ void     *os_mmap_file_ro(int fd, size_t len);
 void      os_munmap(void *addr, size_t len);
 void      os_sigbus_guard_install(void);
 int64_t   os_clock_ms(void);
+int64_t   os_time_sec(void);                                  /* CLOCK_REALTIME seconds; 0 when the clock cannot be read */
 int       os_thread_spawn(void (*fn)(void *), void *arg, void *stack_top, int *ctid_out);   /* >= 0, or -errno; *ctid_out is cleared by the kernel at thread exit */
 void      os_thread_join(int *ctid);                          /* futex-waits until *ctid becomes 0 */
 int64_t   os_du_usage(int dirfd, const char *name, FileStat *out);   /* allocated bytes (lstat semantics) or -errno */

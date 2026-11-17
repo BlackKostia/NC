@@ -85,3 +85,22 @@ int DirModel_step_load(DirModel *m, size_t max_entries);        /* 1 more may fo
 const char *DirModel_entry_name(const DirModel *m, const FileEntry *e);
 void DirModel_sort(DirModel *m);
 int DirModel_reload(DirModel *m);
+
+/* ---- trash (freedesktop.org Trash 1.0) and the 16-deep undo stack (trash_info.c, trash_dirs.c, trash_undo.c) ---- */
+#define UNDO_MAX 16
+#define UNDO_NONE 0
+#define UNDO_RENAME 1
+#define UNDO_MOVE 2
+#define UNDO_TRASH 3
+int tu_write_info(const char *info_path, const char *orig_path);        /* atomic <name>.trashinfo with the escaped original path and UTC date; 0 or -errno */
+void tu_get_data_home(const char *const *envp, char *dst, size_t cap);  /* $XDG_DATA_HOME, else $HOME/.local/share, else /tmp */
+void tu_mkdir_p_base(const char *data_home);                            /* creates data_home, Trash, Trash/files and Trash/info (0700), errors ignored */
+int tu_pick_unique(const char *data_home, const char *base, char *out_files, char *out_info);   /* free "<base>[.N]" name in Trash/files: 0, or -EEXIST */
+int trash_move_file(const char *src_path, const char *const *envp, char *out_trash_path, char *out_info_path);   /* 0, or -errno */
+void undo_push(int kind, const char *orig_path, const char *cur_path, const char *info_path);   /* info_path may be NULL */
+int undo_pop_and_apply(void);                                           /* 1 undone, 0 nothing to undo, -errno (-EEXIST keeps the entry) */
+
+/* ---- file operations still in assembly (file_ops*.s) ---- */
+intptr_t fs_rename_noreplace(const char *old_path, const char *new_path);   /* 0, or -errno (-EEXIST: target exists) */
+int fs_copy_recursive(const char *src_path, const char *dst_path);          /* 0, or -errno */
+int fs_delete_recursive(const char *path);                                  /* 0, or -errno */

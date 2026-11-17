@@ -94,9 +94,6 @@ SRCS := \
 	src/fs/git_status.s \
 	src/fs/git_status_query.s \
 	src/fs/git_trust.s \
-	src/fs/trash_undo.s \
-	src/fs/trash_undo_ops.s \
-	src/fs/trash_info.s \
 	src/ui/header_bar.s \
 	src/ui/header_bar_render.s \
 	src/ui/header_bar_git.s \
@@ -235,7 +232,10 @@ C_SRCS := \
 	src/fs/du_links.c \
 	src/fs/du_cache.c \
 	src/fs/du_parallel.c \
-	src/fs/disk_usage.c
+	src/fs/disk_usage.c \
+	src/fs/trash_info.c \
+	src/fs/trash_dirs.c \
+	src/fs/trash_undo.c
 
 PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_os.s \
@@ -348,6 +348,8 @@ test: $(TARGET)
 	python3 tests/test_c_du_tables.py
 	python3 tests/test_c_du_walk.py
 	python3 tests/test_c_du_populate.py
+	python3 tests/test_c_trash.py
+	python3 tests/test_c_stack_align.py
 	python3 tests/test_abi_layouts.py
 	python3 tests/test_pty.py
 	python3 tests/test_fs_reliability.py
