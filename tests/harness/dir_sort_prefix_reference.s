@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/dir_sort.c + dir_sort_radix.c replaced (tests/test_c_dir_sort.py diffs against it)
 # src/fs/dir_sort.s - Modular 4-byte index Introsort & byte-skipping LSD Radix Sort — dir sort prefix (split from dir_sort.s)
 
 .intel_syntax noprefix

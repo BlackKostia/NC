@@ -449,18 +449,16 @@
   - `ds_glob_ci` — `int ds_glob_ci(const char *str, const char *pat)`
   - `ds_match_mask` — `int ds_match_mask(const char *name, const char *mask, int has_glob)`
   - `ds_grep_file` — `int ds_grep_file(int dirfd, const char *name, const char *pat, size_t pat_len, char *buf)`
-- **`src/fs/dir_sort.s`**
-  - `extract_radix_key` — ==============================================================================
-  - `cmp_indices` — ==============================================================================
-  - `insertion_sort_u32` — ==============================================================================
-  - `heapsort_u32`
-- **`src/fs/dir_sort_intro.s`**
-  - `introsort_u32` — ==============================================================================
-- **`src/fs/dir_sort_prefix.s`**
-  - `DirModel_sort` — ==============================================================================
-- **`src/fs/dir_sort_radix.s`**
-  - `radix_sort_u32` — ==============================================================================
-  - `make_prefix_key` — ==============================================================================
+- **`src/fs/dir_sort.c`**
+  - `extract_radix_key` — `uint64_t extract_radix_key(uint32_t idx, const FileEntry *entries, uint32_t mode, uint32_t desc)`
+  - `cmp_indices` — `int cmp_indices(uint32_t a, uint32_t b, const FileEntry *entries, const char *pool, uint32_t mode, uint32_t desc)`
+  - `insertion_sort_u32` — `void insertion_sort_u32(uint32_t *arr, size_t len, const FileEntry *entries, const char *pool, uint32_t mode, uint32_t desc)`
+  - `heapsort_u32` — `void heapsort_u32(uint32_t *arr, size_t n, const FileEntry *entries, const char *pool, uint32_t mode, uint32_t desc)`
+  - `introsort_u32` — `void introsort_u32(uint32_t *arr, size_t len, const FileEntry *entries, const char *pool, uint32_t mode, uint32_t desc)`
+- **`src/fs/dir_sort_radix.c`**
+  - `radix_sort_u32` — `void radix_sort_u32(uint32_t *arr, size_t len, const FileEntry *entries, const char *pool, uint32_t mode, uint32_t desc)`
+  - `make_prefix_key` — `uint64_t make_prefix_key(uint32_t idx, const FileEntry *entries, const char *pool, uint32_t mode, uint32_t desc)`
+  - `DirModel_sort` — `void DirModel_sort(DirModel *m)`
 - **`src/fs/dir_watch.c`**
   - `dirwatch_init` — `int dirwatch_init(void)`
   - `dirwatch_set` — `void dirwatch_set(int slot, const char *path)`

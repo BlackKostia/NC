@@ -80,11 +80,21 @@ int fuzzy_score(const char *query, const char *cand, uint64_t *out_mask);   /* <
 int dir_fuzzy_collect(const char *root, char *pool, int pool_cap, FuzzyItem *items, int max_items);   /* names collected (depth <= 8, no .git) */
 int fs_write_file(const char *path, const void *buf, uint64_t len);        /* atomic write (tmp + fsync + rename) keeping the mode of a regular target: 0 / -1 */
 
-/* ---- directory model methods still in assembly (dir_model*.s, dir_sort*.s) ---- */
+/* ---- directory model methods still in assembly (dir_model*.s) ---- */
 int DirModel_step_load(DirModel *m, size_t max_entries);        /* 1 more may follow, 0 done, -errno */
 const char *DirModel_entry_name(const DirModel *m, const FileEntry *e);
-void DirModel_sort(DirModel *m);
 int DirModel_reload(DirModel *m);
+void DirModel_ensure_all_stats(DirModel *m);                   /* stats every entry whose size / mtime is still unknown */
+
+/* ---- sorting of index slices (dir_sort.c, dir_sort_radix.c): dirs first, equal primary keys by name ascending ---- */
+void DirModel_sort(DirModel *m);                               /* order[has_dotdot ..] -> [dirs][files], each sorted; is_unsorted = 0 */
+int cmp_indices(uint32_t a, uint32_t b, const FileEntry *entries, const char *pool, uint32_t mode, uint32_t desc);
+uint64_t extract_radix_key(uint32_t idx, const FileEntry *entries, uint32_t mode, uint32_t desc);
+uint64_t make_prefix_key(uint32_t idx, const FileEntry *entries, const char *pool, uint32_t mode, uint32_t desc);
+void insertion_sort_u32(uint32_t *arr, size_t len, const FileEntry *entries, const char *pool, uint32_t mode, uint32_t desc);
+void heapsort_u32(uint32_t *arr, size_t len, const FileEntry *entries, const char *pool, uint32_t mode, uint32_t desc);
+void introsort_u32(uint32_t *arr, size_t len, const FileEntry *entries, const char *pool, uint32_t mode, uint32_t desc);
+void radix_sort_u32(uint32_t *arr, size_t len, const FileEntry *entries, const char *pool, uint32_t mode, uint32_t desc);
 
 /* ---- trash (freedesktop.org Trash 1.0) and the 16-deep undo stack (trash_info.c, trash_dirs.c, trash_undo.c) ---- */
 #define UNDO_MAX 16

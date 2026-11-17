@@ -52,7 +52,7 @@ def test_compact_structures_and_pal_contracts() -> None:
     assert "HUGE_DIR_THRESHOLD" in config_inc, "Missing HUGE_DIR_THRESHOLD in config.inc"
     assert "FE_STAT_READY" in config_inc, "Missing FE_STAT_READY flag in config.inc"
     assert "PAL_DT_DIR" in pal_inc, "Missing PAL_DT_* normalized dirent types in pal.inc"
-    assert "src/fs/dir_sort.s" in makefile, "Makefile must compile src/fs/dir_sort.s"
+    assert "src/fs/dir_sort.c" in makefile and "src/fs/dir_sort_radix.c" in makefile, "Makefile must compile src/fs/dir_sort.c + dir_sort_radix.c"
     assert os.path.isfile(os.path.join(REPO_ROOT, "src/os/linux/x86_64/pal_uring.s")), "Missing pal_uring.s"
     print("[PASS] P1. Compact 32B FileEntry, name_pool, 4B order indices, 1 MiB dirent buf & PAL contracts")
 
