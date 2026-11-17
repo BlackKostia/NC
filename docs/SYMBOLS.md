@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 21
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 804
+- **Exported `.global` Symbols**: 801
 
 ## Structs (`include/*.inc`)
 
@@ -234,25 +234,22 @@
 
 ### Core Runtime (`src/core/`)
 
-- **`src/core/config.s`**
-  - `cfg_getenv` — Helper: const char *cfg_getenv(char **envp, const char *key_eq)
-  - `skip_ws` — Helper: skip spaces/tabs; returns advanced ptr in rax
-  - `parse_hex_rgb` — Helper: parse "#RRGGBB" or "RRGGBB" -> rax = 0x01RRGGBB or -1
-  - `parse_key_spec` — rdi = tok -> eax = key, edx = mods (or eax = 0 on invalid)
-  - `next_token` — rdi = cursor -> rax = token_start (NUL-terminated in buffer), rdx = next_cursor
+- **`src/core/config.c`**
+  - `cfg_getenv` — `const char *cfg_getenv(char **envp, const char *key_eq)`
+  - `skip_ws` — `char *skip_ws(char *p)`
+  - `parse_hex_rgb` — `int32_t parse_hex_rgb(const char *s)`
+  - `parse_key_spec` — `CfgKey parse_key_spec(const char *tok)`
+  - `next_token` — `CfgToken next_token(char *cursor)`
 - **`src/core/config_expand.c`**
   - `config_expand_cmd` — `intptr_t config_expand_cmd(const char *tmpl, char *out, size_t cap, const ConfigExpandCtx *ctx)`
-- **`src/core/config_load.s`**
-  - `config_load` — void config_load(char **envp)
-  - `config_get` — Config *config_get(void)
-  - `config_lookup_bind` — int config_lookup_bind(int key, int mods) -> action_id or -1
-  - `config_lookup_open` — const char *config_lookup_open(const char *filename)
-  - `config_menu_count` — int config_menu_count(void)
-  - `config_menu_item` — int config_menu_item(int idx, const char **out_label, const char **out_cmd)
-  - `g_config`
-  - `g_cfg_warn`
-- **`src/core/config_parse.s`**
-  - `parse_config_line` — Helper: parse one NUL-terminated line (modified in place)
+- **`src/core/config_load.c`**
+  - `config_load` — `void config_load(char **envp)`
+  - `config_lookup_bind` — `int config_lookup_bind(int key, int mods)`
+  - `config_lookup_open` — `const char *config_lookup_open(const char *name)`
+  - `config_menu_count` — `int config_menu_count(void)`
+  - `config_menu_item` — `int config_menu_item(int idx, const char **out_label, const char **out_cmd)`
+- **`src/core/config_parse.c`**
+  - `parse_config_line` — `void parse_config_line(char *line)`
 - **`src/core/hash.c`**
   - `crc32_update` — `uint32_t crc32_update(uint32_t crc, const uint8_t *buf, size_t len)`
   - `sha256_init` — `void sha256_init(ShaCtx *c)`

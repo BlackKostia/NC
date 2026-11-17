@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/core/config_load.c replaced (tests/test_c_config.py diffs against it)
 # Duop Runtime Configuration (~/.config/duop/duoprc) & User Menu Expansion — config load (split from config.s)
 
 .intel_syntax noprefix

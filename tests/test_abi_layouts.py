@@ -23,6 +23,25 @@ LAYOUTS = [  # (C header, C expression, assembler symbol)
     ("duop_oop.h", "WF_DIRTY", "WF_DIRTY"),
     ("duop_oop.h", "WF_ENABLED", "WF_ENABLED"),
     ("duop_config.h", "PATH_MAX", "PATH_MAX"),
+    ("duop_config.h", "sizeof(Config)", "15024"),                       # CFG_TOTAL_SZ (private to the old config*.s)
+    ("duop_config.h", "offsetof(Config, color_mask)", "16"),
+    ("duop_config.h", "offsetof(Config, bind_cnt)", "20"),
+    ("duop_config.h", "offsetof(Config, colors)", "32"),
+    ("duop_config.h", "offsetof(Config, binds)", "160"),
+    ("duop_config.h", "offsetof(Config, opens)", "672"),
+    ("duop_config.h", "offsetof(Config, menus)", "8864"),
+    ("duop_config.h", "offsetof(Config, lang_id)", "CFG_LANG_ID"),
+    ("duop_config.h", "I18N_ID_LEN", "I18N_ID_LEN"),
+    ("duop_config.h", "MOD_ALT", "MOD_ALT"),
+    ("duop_config.h", "MOD_CTRL", "MOD_CTRL"),
+    ("duop_config.h", "KEY_F1", "KEY_F1"),
+    ("duop_config.h", "KEY_F10", "KEY_F10"),
+    ("duop_config.h", "KEY_F11", "KEY_F11"),
+    ("duop_config.h", "KEY_F12", "KEY_F12"),
+    ("duop_config.h", "SORT_NAME", "SORT_NAME"),
+    ("duop_config.h", "SORT_SIZE", "SORT_SIZE"),
+    ("duop_config.h", "SORT_MTIME", "SORT_MTIME"),
+    ("duop_config.h", "SORT_EXT", "SORT_EXT"),
 ]
 TARGETS = {"x86_64": ["x86_64-linux-gnu"], "aarch64": ["aarch64-linux-gnu", "-mno-outline-atomics"]}
 
