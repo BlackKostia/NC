@@ -11,10 +11,12 @@ Used by .githooks/pre-commit, verify_build.sh and the agent lifecycle hook (afte
 from __future__ import annotations
 
 import argparse
+import os
 import shlex
 import shutil
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -46,29 +48,30 @@ def to_syntax_only(cmd: list[str]) -> list[str]:
     return out + ["-fsyntax-only"]
 
 
+def check_one(rel: str, arch: str) -> int:
+    """0 when src/<x>.c compiles warning-free for `arch` (or the toolchain is absent), else 1."""
+    _, cc, ld = ARCHS[arch]
+    if not shutil.which(cc) or (ld and not shutil.which(ld)):
+        print(f"check_c_syntax: {arch} toolchain missing, skipped", file=sys.stderr)
+        return 0
+    cmd = compile_command(rel, arch)
+    if cmd is None:
+        print(f"check_c_syntax: no compile rule for {rel} [{arch}]", file=sys.stderr)
+        return 1
+    res = subprocess.run(to_syntax_only(cmd), cwd=ROOT, capture_output=True, text=True, check=False)
+    if res.returncode != 0:
+        print(f"C-SYNTAX FAILED [{arch}] {rel}:\n{(res.stderr or res.stdout).strip()}", file=sys.stderr)
+        return 1
+    return 0
+
+
 def check(files: list[str], archs: list[str]) -> int:
-    (ROOT / "build").mkdir(exist_ok=True)
-    ver = ROOT / "build" / "version.h"
-    if not ver.is_file():
-        ver.write_text('#pragma once\n#define DUOP_VERSION "%s"\n' % (ROOT / "VERSION").read_text().strip())
-    failed = 0
-    for rel in files:
-        if not rel.startswith("src/") or not rel.endswith(".c") or not (ROOT / rel).is_file():
-            continue
-        for arch in archs:
-            _, cc, ld = ARCHS[arch]
-            if not shutil.which(cc) or (ld and not shutil.which(ld)):
-                print(f"check_c_syntax: {arch} toolchain missing, skipped", file=sys.stderr)
-                continue
-            cmd = compile_command(rel, arch)
-            if cmd is None:
-                print(f"check_c_syntax: no compile rule for {rel} [{arch}]", file=sys.stderr)
-                failed += 1
-                continue
-            res = subprocess.run(to_syntax_only(cmd), cwd=ROOT, capture_output=True, text=True, check=False)
-            if res.returncode != 0:
-                print(f"C-SYNTAX FAILED [{arch}] {rel}:\n{(res.stderr or res.stdout).strip()}", file=sys.stderr)
-                failed += 1
+    for arch in archs:                                    # generated headers every module may include (version.h, i18n_slots.h)
+        build = ARCHS[arch][0]
+        subprocess.run(["make", "-s", f"ARCH={arch}", f"{build}/version.h", f"{build}/i18n_slots.h"], cwd=ROOT, check=False, capture_output=True)
+    tasks = [(rel, arch) for rel in files if rel.startswith("src/") and rel.endswith(".c") and (ROOT / rel).is_file() for arch in archs]
+    with ThreadPoolExecutor(max_workers=min(len(tasks), os.cpu_count() or 4) or 1) as pool:      # make -n + the compiler: independent processes
+        failed = sum(pool.map(lambda t: check_one(*t), tasks))
     return 1 if failed else 0
 
 

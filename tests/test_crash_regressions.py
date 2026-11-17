@@ -15,6 +15,7 @@ import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from test_pty import PtySession  # noqa: E402
+from par import run_parallel  # noqa: E402
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BINARY = os.path.join(REPO_ROOT, "duop")
@@ -180,7 +181,8 @@ def test_terminal_pane_tiny_sizes() -> None:
         left, right = os.path.join(tmp, "l"), os.path.join(tmp, "r")
         os.makedirs(left)
         os.makedirs(right)
-        for cols, rows in ((1, 30), (100, 2), (100, 1), (2, 2), (3, 5)):
+
+        def one(cols: int, rows: int) -> None:                       # one pty session per size: the sizes are independent
             sess = PtySession(BINARY, ["--lang", "en", left, right])
             try:
                 sess.drain(0.5)
@@ -195,15 +197,14 @@ def test_terminal_pane_tiny_sizes() -> None:
                 quit_clean(sess)
             finally:
                 kill_session(sess)
+
+        run_parallel([lambda c=c, r=r: one(c, r) for c, r in ((1, 30), (100, 2), (100, 1), (2, 2), (3, 5))])
     print("[PASS] CR5. Embedded terminal pane survives 1-column/1-row terminals and recovers")
 
 
 def main() -> None:
-    test_size_sort_click_large_dir()
-    test_archive_with_live_filter()
-    test_multibyte_names_in_virtual_listings()
-    test_long_path_title_keeps_tail()
-    test_terminal_pane_tiny_sizes()
+    run_parallel([test_size_sort_click_large_dir, test_archive_with_live_filter, test_multibyte_names_in_virtual_listings, test_long_path_title_keeps_tail,
+                  test_terminal_pane_tiny_sizes])
     print("ALL CRASH REGRESSION TESTS PASSED.")
 
 

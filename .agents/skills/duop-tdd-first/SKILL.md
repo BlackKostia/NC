@@ -36,7 +36,10 @@ created or updated in the session (`DUOP_TDD_BYPASS=1` only for pure non-functio
 
 1. Bump `VERSION` when `src/`/`include/` changed and `v$(cat VERSION)` is already tagged (`duop-version-release`).
 2. Fast loop: `python3 tests/run_smart_tests.py --files <changed files>`; before pushing: `./.agents/skills/duop-pty-verify/scripts/verify_build.sh`.
-   The full `make test` is ~90 suites (~8 min): the pre-commit hook runs the smart subset for module-local commits, the
-   complete set runs in `pre-push` and CI, so keep unit-level tests in focused, fast suites (isolated `tempfile` trees,
-   permissions restored before cleanup).
+   The full `make test` is ~95 suites run in parallel by `tests/run_tests.py` (~1 min on 12 cores; `make test-serial` is the old one-by-one
+   run, ~13 min): the pre-commit hook runs the smart subset for module-local commits, the complete set runs in `pre-push` and CI. Keep tests
+   independent so they can run concurrently (isolated `tempfile` trees, no fixed paths, permissions restored before cleanup), prefer polling
+   waits to fixed sleeps, and register a new test as one `python3 tests/test_x.py` line in the Makefile `test-serial:` recipe (that recipe is the
+   registry the runner reads; `tests/test_run_tests.py` fails for an unregistered `tests/test_*.py`). Tests that must not overlap (they write
+   shared build output) belong in `EXCLUSIVE` of `tests/run_tests.py`; independent cases inside one test go through `tests/par.py:run_parallel`.
 3. Commit tests + implementation together (`feat:`, `fix:` with a `Test:` line, `refactor:`).

@@ -28,9 +28,9 @@ static bool check(const uint8_t *p, size_t n, uint8_t seed) { for (size_t i = 0;
 typedef struct { uint8_t *p; size_t n; uint8_t seed; } Slot;
 static Slot slots[512];
 
-static void random_churn(void)
+static void random_churn(long ops)
 {
-    for (long it = 0; it < 200000; it++) {
+    for (long it = 0; it < ops; it++) {
         Slot *s = &slots[rnd() % 512];
         uint32_t op = rnd() % 4;
         if (s->p && (op == 0 || op == 1)) {                           /* free, contents must have survived */
@@ -103,10 +103,12 @@ static void arena_reclaim(void)
 
 int duop_main(int argc, char **argv, char **envp, const uintptr_t *auxv)
 {
-    (void)argc; (void)argv; (void)envp; (void)auxv;
+    (void)envp; (void)auxv;
+    long ops = 200000;                                          /* argv[1]: random operations (the qemu run uses fewer: it is ~30x slower) */
+    if (argc > 1) { ops = 0; for (const char *p = argv[1]; *p >= '0' && *p <= '9'; p++) ops = ops * 10 + (*p - '0'); }
     edge_cases();
     arena_reclaim();
-    random_churn();
+    random_churn(ops);
     char out[32] = "ok ";
     size_t n = 3;
     char t[12]; int k = 0; long c = checks;

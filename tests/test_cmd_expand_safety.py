@@ -13,6 +13,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from test_pty import PtySession  # noqa: E402
+from par import run_parallel  # noqa: E402
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BINARY = os.path.join(REPO_ROOT, "duop")
@@ -118,19 +119,20 @@ def test_current_name_is_quote_aware() -> None:
         "single": "printf '%%s|' '%f' > '{out}'",
         "double": "printf '%%s|' \"%f\" > '{out}'",
     }
-    for name in names:
-        for kind, tpl in cases.items():
-            with tempfile.TemporaryDirectory(prefix="ce1b_") as tmp:
-                left = os.path.join(tmp, "l")
-                make_files(left, [name])
-                out = os.path.join(tmp, "out.txt")
-                sess = run_menu(tmp, left, tpl.format(out=out), KEY_DOWN)
-                try:
-                    assert wait_for(out), f"{kind}/{name!r}: command did not run"
-                    assert open(out, encoding="utf-8").read() == name + "|", f"{kind}: {name!r} altered"
-                    no_markers(left, f"{kind}/{name!r}")
-                finally:
-                    kill(sess)
+    def one(name: str, kind: str, tpl: str) -> None:                  # every (name, quoting) pair is its own session
+        with tempfile.TemporaryDirectory(prefix="ce1b_") as tmp:
+            left = os.path.join(tmp, "l")
+            make_files(left, [name])
+            out = os.path.join(tmp, "out.txt")
+            sess = run_menu(tmp, left, tpl.format(out=out), KEY_DOWN)
+            try:
+                assert wait_for(out), f"{kind}/{name!r}: command did not run"
+                assert open(out, encoding="utf-8").read() == name + "|", f"{kind}: {name!r} altered"
+                no_markers(left, f"{kind}/{name!r}")
+            finally:
+                kill(sess)
+
+    run_parallel([lambda n=n, k=k, t=t: one(n, k, t) for n in names for k, t in cases.items()])
     print("[PASS] CE1b. %f is shell-safe in every quoting context for hostile names")
 
 
@@ -197,10 +199,8 @@ def test_large_expansions_are_complete() -> None:
 
 
 def main() -> None:
-    test_selection_list_is_quote_aware()
-    test_current_name_is_quote_aware()
-    test_oversized_expansion_is_refused()
-    test_large_expansions_are_complete()
+    run_parallel([test_selection_list_is_quote_aware, test_current_name_is_quote_aware, test_oversized_expansion_is_refused,
+                  test_large_expansions_are_complete])
     print("ALL COMMAND EXPANSION SAFETY TESTS PASSED.")
 
 

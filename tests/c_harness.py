@@ -10,6 +10,7 @@ import stat
 import subprocess
 import tempfile
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,6 +27,16 @@ ARCHS = {
 }
 
 
+JOBS = max(1, int(os.environ.get("DUOP_TEST_JOBS", "0")) or min(8, os.cpu_count() or 2))   # parallel compiler / assembler processes per build
+
+
+def parallel(jobs: list[Callable[[], None]]) -> None:
+    """Run independent tool invocations concurrently; the first failure is raised after all have finished."""
+    with ThreadPoolExecutor(max_workers=JOBS) as pool:
+        for f in [pool.submit(j) for j in jobs]:
+            f.result()
+
+
 def available(arch: str) -> bool:
     t = ARCHS[arch]
     return all(shutil.which(x[0]) for x in (t["cc"], t["as_"], t["ld"])) and (not t["run"] or shutil.which(t["run"][0]))
@@ -36,18 +47,24 @@ def build(arch: str, work: Path, c_files: list[str], extra_objs: list[Path] | No
     """c_files: repo-relative or absolute .c paths (harness + modules under test); extra_objs: prebuilt objects to link too;
     pal_override: PAL file name -> replacement .s (mutation checks of the PAL itself)."""
     t = ARCHS[arch]
-    objs: list[str] = []
     pal = ROOT / f"src/os/linux/{arch}"
+    jobs: list[Callable[[], None]] = []
+    objs: list[str] = []
+
+    def tool(cmd: list[str]) -> Callable[[], None]:
+        return lambda: subprocess.run(cmd, check=True, capture_output=True) and None
+
     for name in PAL_FILES:
         o = work / f"{name}.o"
-        subprocess.run([*t["as_"], "-I", str(ROOT / f"include/os/linux/{arch}"), "-I", str(ROOT / "include"),
-                        str((pal_override or {}).get(name) or pal / f"{name}.s"), "-o", str(o)], check=True, capture_output=True)
+        src = (pal_override or {}).get(name) or pal / f"{name}.s"
+        jobs.append(tool([*t["as_"], "-I", str(ROOT / f"include/os/linux/{arch}"), "-I", str(ROOT / "include"), str(src), "-o", str(o)]))
         objs.append(str(o))
     for i, c in enumerate([*c_files, SHIMS]):
         src = Path(c) if Path(c).is_absolute() else ROOT / c
         o = work / f"c{i}_{src.stem}.o"
-        subprocess.run([*t["cc"], *COMMON, *t["extra"], *(cflags or []), "-c", str(src), "-o", str(o)], check=True, capture_output=True)
+        jobs.append(tool([*t["cc"], *COMMON, *t["extra"], *(cflags or []), "-c", str(src), "-o", str(o)]))
         objs.append(str(o))
+    parallel(jobs)
     objs.extend(str(o) for o in extra_objs or [])
     exe = work / "prog"
     # pal_fault/pal_file reference mem_copy and try_rt helpers in some builds; --unresolved-symbols keeps unused paths gc'd

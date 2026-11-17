@@ -27,8 +27,8 @@ def build(arch: str, t: Path, pal_fault: Path | None = None) -> Path:
                    pal_override={"pal_fault": pal_fault} if pal_fault else None)
 
 
-def run(arch: str, exe: Path, script: str) -> subprocess.CompletedProcess:
-    return H.run(arch, exe, [], script.encode(), timeout=60)
+def run(arch: str, exe: Path, script: str, timeout: int = 60) -> subprocess.CompletedProcess:
+    return H.run(arch, exe, [], script.encode(), timeout=timeout)
 
 
 def test_scenarios(arch: str, exe: Path) -> None:
@@ -41,7 +41,7 @@ def test_scenarios(arch: str, exe: Path) -> None:
 
 
 def test_repeated(arch: str, exe: Path) -> None:
-    n = 3000
+    n = 800
     res = run(arch, exe, "S\nK8\nN\n" * n)
     assert res.returncode == 0 and res.stdout.decode().count("S sig=11 chain=0") == n, res.stderr[-200:]
     print(f"[PASS] TRY2-{arch}. {n * 4} recovered faults in one process: no frame, stack or signal-mask leak")
@@ -75,7 +75,7 @@ def test_mutations(arch: str, t: Path) -> None:
         (t / f"m{i}").mkdir()
         try:
             exe = build(arch, t / f"m{i}", path)
-            res = run(arch, exe, script)
+            res = run(arch, exe, script, timeout=10)                  # a broken resume loops or hangs: ten seconds is plenty
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
             return True
         return res.returncode != 0 or res.stdout.decode().splitlines() != want

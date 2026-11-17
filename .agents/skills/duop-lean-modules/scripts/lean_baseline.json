@@ -6,8 +6,7 @@
   "files": {
     "src/os/linux/x86_64/pal_uring.s": 502,
     "src/ui/file_pane_render.s": 1223,
-    "tests/test_fs_reliability.py": 710,
-    "tests/test_pty.py": 628
+    "tests/test_fs_reliability.py": 710
   },
   "funcs": {
     "src/app/app_close_dialog.s:App_close_dialog": 122,
@@ -39,7 +38,6 @@
     "src/ui/term_pane.s:term_put_byte": 82,
     "tests/test_fs_reliability.py:run_adversarial_failure_tests": 251,
     "tests/test_fs_reliability.py:run_happy_scale_and_edge_tests": 199,
-    "tests/test_pty.py:VirtualTerminal": 122,
     "tests/test_pty.py:run_tests": 403
   }
 }

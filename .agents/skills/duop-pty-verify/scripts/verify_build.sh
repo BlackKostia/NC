@@ -17,23 +17,26 @@ else
 fi
 
 echo "==> [1/4] Checking Duop modularity, stack/ABI reliability & i18n contracts..."
-python3 ./.agents/skills/duop-modular-asm/scripts/check_modularity.py --root "$ROOT"
-python3 ./.agents/skills/duop-reliability-audit/scripts/audit_stack_abi.py
-python3 ./.agents/skills/duop-reliability-audit/scripts/audit_cfg_stack.py
-python3 ./.agents/skills/duop-reliability-audit/scripts/audit_syscall_clobber.py
-python3 ./.agents/skills/duop-reliability-audit/scripts/audit_abi_regs.py
-python3 ./.agents/skills/duop-reliability-audit/scripts/audit_oop_vtables.py
-python3 ./.agents/skills/duop-reliability-audit/scripts/audit_fd_eintr.py
-if command -v gcc >/dev/null 2>&1; then
-    mkdir -p "$ROOT/build"
-    gcc -O2 -Wall -Wextra "$ROOT/tools/abi_verify.c" -o "$ROOT/build/abi_verify"
-    "$ROOT/build/abi_verify" "$ROOT/include/os/linux/x86_64/pal_target.inc"
+# The pre-commit hook has just run the same gates on the staged tree (DUOP_CHECKS_DONE=1): do not repeat them
+if [[ "${DUOP_CHECKS_DONE:-0}" != "1" ]]; then
+    python3 ./.agents/skills/duop-modular-asm/scripts/check_modularity.py --root "$ROOT"
+    python3 ./.agents/skills/duop-reliability-audit/scripts/audit_stack_abi.py
+    python3 ./.agents/skills/duop-reliability-audit/scripts/audit_cfg_stack.py
+    python3 ./.agents/skills/duop-reliability-audit/scripts/audit_syscall_clobber.py
+    python3 ./.agents/skills/duop-reliability-audit/scripts/audit_abi_regs.py
+    python3 ./.agents/skills/duop-reliability-audit/scripts/audit_oop_vtables.py
+    python3 ./.agents/skills/duop-reliability-audit/scripts/audit_fd_eintr.py
+    if command -v gcc >/dev/null 2>&1; then
+        mkdir -p "$ROOT/build"
+        gcc -O2 -Wall -Wextra "$ROOT/tools/abi_verify.c" -o "$ROOT/build/abi_verify"
+        "$ROOT/build/abi_verify" "$ROOT/include/os/linux/x86_64/pal_target.inc"
+    fi
+    # Lean gate: whole working tree, or only the staged commit content when run from pre-commit
+    python3 ./.agents/skills/duop-lean-modules/scripts/check_lean.py --root "$ROOT" ${DUOP_LEAN_STAGED:+--staged}
 fi
-# Portability gate for every freestanding C module (project CFLAGS, x86_64 gcc + aarch64 clang when installed)
+# Whole tree, always: a changed header can break modules that were not staged (check_c_syntax compiles in parallel)
 python3 ./tools/check_c_syntax.py $(git ls-files 'src/*.c')
 python3 ./tools/faultlab/audit_null_alloc_c.py
-# Lean gate: whole working tree, or only the staged commit content when run from pre-commit
-python3 ./.agents/skills/duop-lean-modules/scripts/check_lean.py --root "$ROOT" ${DUOP_LEAN_STAGED:+--staged}
 python3 ./tests/test_lean_gate.py
 python3 ./tests/test_lean_split.py
 python3 ./tests/test_i18n_hook.py
@@ -79,7 +82,7 @@ fi
 if [[ "$MODE" == "full" ]]; then
     echo "==> [Extra] Rebuilding DWARF debug binary & running PTY tests..."
     make -s clean
-    make -s
+    make -s -j"$(nproc 2>/dev/null || echo 4)"
     make -s test
 fi
 

@@ -14,6 +14,7 @@ import zlib
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from test_pty import PtySession  # noqa: E402
+from par import run_parallel  # noqa: E402
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BINARY = os.path.join(REPO_ROOT, "duop")
@@ -114,8 +115,7 @@ def test_understated_size_is_rejected_without_overflow() -> None:
 
 
 def main() -> None:
-    test_deflated_entries_of_all_sizes_open()
-    test_understated_size_is_rejected_without_overflow()
+    run_parallel([test_deflated_entries_of_all_sizes_open, test_understated_size_is_rejected_without_overflow])
     print("ALL ARCHIVE HARDENING TESTS PASSED.")
 
 

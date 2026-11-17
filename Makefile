@@ -2,6 +2,7 @@
 
 OS      ?= linux
 ARCH    ?= x86_64
+JOBS    ?= $(shell nproc 2>/dev/null || echo 4)
 MEMCHECK ?= 0
 TARGET  := duop
 BUILD   := build
@@ -258,13 +259,14 @@ GEN_OBJS := $(BUILD)/i18n_en.o
 OBJS := $(patsubst src/%.s,$(BUILD)/%.o,$(SRCS) $(PAL_SRCS)) $(patsubst src/%.c,$(BUILD)/%.o,$(C_SRCS)) $(GEN_OBJS)
 INCS := $(wildcard include/*.inc) $(wildcard $(PAL_INC)/*.inc)
 
-.PHONY: all release run test memcheck verify hooks symbols symbols-check clean pal-selftest check-toolchain headless
+.PHONY: all release run test test-serial memcheck verify hooks symbols symbols-check clean pal-selftest check-toolchain headless
 
 all: $(TARGET)
 
-release: ASFLAGS := -I $(PAL_INC) -I include -I $(BUILD)
-release: LDFLAGS := -s -z noexecstack --gc-sections
-release: clean $(TARGET)
+# Stripped release build: a clean tree first, then a parallel build (a plain `release: clean $(TARGET)` cannot be run with -j: clean would race the compiler)
+release:
+	@$(MAKE) --no-print-directory clean
+	@$(MAKE) --no-print-directory -j$(JOBS) ASFLAGS="-I $(PAL_INC) -I include -I $(BUILD)" LDFLAGS="-s -z noexecstack --gc-sections" $(TARGET)
 
 $(TARGET): $(OBJS)
 	$(LD) $(LDFLAGS) $(OBJS) -o $@
@@ -354,7 +356,12 @@ check-toolchain:
 run: $(TARGET)
 	./$(TARGET)
 
+# The registry of test scripts is the recipe of test-serial (one `python3 tests/test_x.py` line each: hooks and tests/run_smart_tests.py
+# recognise those lines); `make test` runs the same scripts in parallel through tests/run_tests.py.
 test: $(TARGET)
+	python3 tests/run_tests.py
+
+test-serial: $(TARGET)
 	python3 tests/test_pal_architecture.py
 	python3 tests/test_abi_cross.py
 	python3 tests/test_pal_parity.py
@@ -377,6 +384,7 @@ test: $(TARGET)
 	python3 tests/test_c_app_api.py
 	python3 tests/test_c_harness_utils.py
 	python3 tests/test_headless.py
+	python3 tests/test_run_tests.py
 	python3 tests/test_c_screen.py
 	python3 tests/test_c_img.py
 	python3 tests/test_c_img_out.py
