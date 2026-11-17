@@ -80,9 +80,12 @@ int fuzzy_score(const char *query, const char *cand, uint64_t *out_mask);   /* <
 int dir_fuzzy_collect(const char *root, char *pool, int pool_cap, FuzzyItem *items, int max_items);   /* names collected (depth <= 8, no .git) */
 int fs_write_file(const char *path, const void *buf, uint64_t len);        /* atomic write (tmp + fsync + rename) keeping the mode of a regular target: 0 / -1 */
 
-/* ---- directory model methods still in assembly (dir_model*.s) ---- */
-int DirModel_step_load(DirModel *m, size_t max_entries);        /* 1 more may follow, 0 done, -errno */
-int DirModel_reload(DirModel *m);
+/* ---- loading and streaming (dir_model_load.c, dir_model_stream.c) ---- */
+int ensure_capacity(DirModel *m, size_t need_name_bytes);      /* room for one entry + the name bytes: 0 or -ENOMEM */
+void finish_load_internal(DirModel *m, int canceled);          /* stream closed; sorted unless canceled / huge */
+int DirModel_reload(DirModel *m);                              /* reset, open, "..", first batch: 0 or -errno */
+intptr_t DirModel_step_load(DirModel *m, size_t max_entries);  /* 1 more may follow, 0 done, -errno (the listing is then aborted) */
+void DirModel_cancel_load(DirModel *m);                        /* Esc: the rows so far stay */
 
 /* ---- the DirModel class (dir_model.c) ---- */
 extern const ObjectVtbl DirModel_vtbl;

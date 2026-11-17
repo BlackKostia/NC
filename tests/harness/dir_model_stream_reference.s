@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/dir_model_load.c + dir_model_stream.c replaced (tests/test_c_dir_model_load.py diffs against it)
 # src/fs/dir_model.s - Compact 32B DirModel, zero-stat d_type scan, streaming & lazy stat — dir model stream (split from dir_model.s)
 
 .intel_syntax noprefix

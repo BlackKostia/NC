@@ -417,10 +417,10 @@
   - `entry_passes_filter` — `int entry_passes_filter(const DirModel *m, uintptr_t unused, uint32_t flags, const char *name)`
   - `DirModel_apply_filter` — `void DirModel_apply_filter(DirModel *m)`
   - `DirModel_chdir` — `intptr_t DirModel_chdir(DirModel *m, const char *target)`
-- **`src/fs/dir_model_load.s`**
-  - `ensure_capacity` — ==============================================================================
-  - `finish_load_internal` — ==============================================================================
-  - `DirModel_reload` — ==============================================================================
+- **`src/fs/dir_model_load.c`**
+  - `ensure_capacity` — `int ensure_capacity(DirModel *m, size_t need_name_bytes)`
+  - `finish_load_internal` — `void finish_load_internal(DirModel *m, int canceled)`
+  - `DirModel_reload` — `int DirModel_reload(DirModel *m)`
 - **`src/fs/dir_model_select.c`**
   - `DirModel_ensure_all_stats` — `void DirModel_ensure_all_stats(DirModel *m)`
   - `DirModel_toggle_select` — `void DirModel_toggle_select(DirModel *m, intptr_t idx)`
@@ -433,9 +433,9 @@
   - `apply_stat_to_entry` — `void apply_stat_to_entry(DirModel *m, FileEntry *e, const FileStat *st, int dirfd)`
   - `DirModel_ensure_entry_stat` — `void DirModel_ensure_entry_stat(DirModel *m, FileEntry *e)`
   - `DirModel_stat_range` — `void DirModel_stat_range(DirModel *m, size_t view_start, size_t view_len)`
-- **`src/fs/dir_model_stream.s`**
-  - `DirModel_step_load` — ==============================================================================
-  - `DirModel_cancel_load` — ==============================================================================
+- **`src/fs/dir_model_stream.c`**
+  - `DirModel_step_load` — `intptr_t DirModel_step_load(DirModel *m, size_t max_entries)`
+  - `DirModel_cancel_load` — `void DirModel_cancel_load(DirModel *m)`
 - **`src/fs/dir_search.c`**
   - `ds_ensure_model_cap` — `int ds_ensure_model_cap(DirModel *m, size_t add_name_bytes)`
   - `ds_append_entry` — `int ds_append_entry(DirModel *m, const char *rel_name, const FileStat *st)`
