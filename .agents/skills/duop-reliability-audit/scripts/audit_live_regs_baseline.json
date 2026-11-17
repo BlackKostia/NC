@@ -3,8 +3,6 @@
     "HeaderBar_render -> HeaderBar_render__width r8": "x/width are re-derived for every zone by HeaderBar_render__pick_pill_bg at the loop head (esi, ecx, r8d)",
     "HeaderBar_render -> HeaderBar_render__width rcx": "x/width are re-derived for every zone by HeaderBar_render__pick_pill_bg at the loop head (esi, ecx, r8d)",
     "ScreenBuffer_draw_text -> utf8_decode rdx": "utf8_decode returns the byte count in rdx (documented in utf8.c: Utf8Dec struct return)",
-    "cec_emit_value -> cec_emit_dq rcx": "cec_emit_sq/dq return the new index in rax and a pointer to the NUL of src in rcx (documented)",
-    "cec_emit_value -> cec_emit_sq rcx": "cec_emit_sq/dq return the new index in rax and a pointer to the NUL of src in rcx (documented)",
     "cf_reply -> parse_uint rdi": "parse_uint returns the advanced pointer in rdi (documented in input.s)",
     "copy_reg_at__fo_resolve_eexist_open -> fo_resolve_eexist_open rdx": "fo_resolve_eexist_open returns rax = fd and edx = 1 when the fd is an overwrite temp file",
     "fuz_draw_row -> utf8_decode rdx": "utf8_decode returns the byte count in rdx (documented in utf8.c: Utf8Dec struct return)",

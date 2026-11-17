@@ -240,8 +240,8 @@
   - `parse_hex_rgb` — Helper: parse "#RRGGBB" or "RRGGBB" -> rax = 0x01RRGGBB or -1
   - `parse_key_spec` — rdi = tok -> eax = key, edx = mods (or eax = 0 on invalid)
   - `next_token` — rdi = cursor -> rax = token_start (NUL-terminated in buffer), rdx = next_cursor
-- **`src/core/config_expand.s`**
-  - `config_expand_cmd` — Returns 0, or -ENAMETOOLONG when the expansion does not fit (out is then an empty string).
+- **`src/core/config_expand.c`**
+  - `config_expand_cmd` — `intptr_t config_expand_cmd(const char *tmpl, char *out, size_t cap, const ConfigExpandCtx *ctx)`
 - **`src/core/config_load.s`**
   - `config_load` — void config_load(char **envp)
   - `config_get` — Config *config_get(void)

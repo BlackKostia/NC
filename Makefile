@@ -48,7 +48,6 @@ SRCS := \
 	src/core/config.s \
 	src/core/config_parse.s \
 	src/core/config_load.s \
-	src/core/config_expand.s \
 	src/tui/theme.s \
 	src/tui/i18n.s \
 	src/tui/i18n_env.s \
@@ -240,6 +239,7 @@ C_SRCS := \
 	src/core/oop_rt.c \
 	src/core/tmpfile.c \
 	src/core/hash_file.c \
+	src/core/config_expand.c \
 	src/core/syscall.c \
 	src/core/try_rt.c \
 	src/core/mem_prims.c \
@@ -338,6 +338,7 @@ test: $(TARGET)
 	python3 tests/test_c_syscall.py
 	python3 tests/test_c_memory.py
 	python3 tests/test_c_core_files.py
+	python3 tests/test_c_config_expand.py
 	python3 tests/test_abi_layouts.py
 	python3 tests/test_pty.py
 	python3 tests/test_fs_reliability.py

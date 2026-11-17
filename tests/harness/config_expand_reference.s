@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/core/config_expand.c replaced (tests/test_c_config_expand.py)
 # Duop Runtime Configuration (~/.config/duop/duoprc) — shell command template expansion (split from config.s)
 #
 # config_expand_cmd turns a User Menu / open-rule template into a /bin/sh script. Placeholders:
