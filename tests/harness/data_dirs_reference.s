@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/tui/data_dirs.c replaced (tests/test_c_tui_data.py diffs against it)
 # Runtime data directories: finds every "*<ext>" file of one DataSpec kind (keyboard layouts,
 # interface language packs, ...) so such data is added without rebuilding. Search path:
 #   $<env>                    ':'-separated directories; when set, replaces everything below

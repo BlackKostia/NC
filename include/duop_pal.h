@@ -64,3 +64,5 @@
 #define S_IFREG 0100000
 #define S_IFLNK 0120000
 #define S_IFIFO 0010000
+
+#define OS_AT_EXECFN 31                       /* auxv: path given to execve */

@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/tui/theme.c replaced (tests/test_c_tui_data.py diffs against it)
 # TrueColor 24-bit Modern Themes (Tokyo Night, Catppuccin Mocha, Cyber Emerald)
 
 .intel_syntax noprefix

@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/tui/kbd_map.c replaced (tests/test_c_tui_data.py diffs against it)
 # Keyboard layout table: parses *.layout text into {codepoint -> Latin key} pairs and answers
 # kbd_latin(key) for hotkey matching (Event.lat). File syntax (UTF-8, one setting per line):
 #   # comment

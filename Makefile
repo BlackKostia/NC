@@ -45,7 +45,6 @@ VER_INC := $(BUILD)/version.inc
 SRCS := \
 	src/main.s \
 	src/core/memcheck.s \
-	src/tui/theme.s \
 	src/tui/i18n.s \
 	src/tui/i18n_env.s \
 	src/tui/i18n_keys.s \
@@ -56,12 +55,8 @@ SRCS := \
 	src/tui/screen_out.s \
 	src/tui/input.s \
 	src/tui/term_caps.s \
-	src/tui/screen_rect.s \
 	src/tui/input_parse.s \
 	src/tui/input_seq.s \
-	src/tui/kbd_map.s \
-	src/tui/kbd_layout.s \
-	src/tui/data_dirs.s \
 	src/fs/dir_model.s \
 	src/fs/dir_model_load.s \
 	src/fs/dir_model_stream.s \
@@ -243,7 +238,12 @@ C_SRCS := \
 	src/core/syscall.c \
 	src/core/try_rt.c \
 	src/core/mem_prims.c \
-	src/fs/inflate.c
+	src/fs/inflate.c \
+	src/tui/theme.c \
+	src/tui/kbd_map.c \
+	src/tui/kbd_layout.c \
+	src/tui/data_dirs.c \
+	src/tui/screen_rect.c
 
 PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_os.s \
@@ -340,6 +340,7 @@ test: $(TARGET)
 	python3 tests/test_c_core_files.py
 	python3 tests/test_c_config_expand.py
 	python3 tests/test_c_config.py
+	python3 tests/test_c_tui_data.py
 	python3 tests/test_abi_layouts.py
 	python3 tests/test_pty.py
 	python3 tests/test_fs_reliability.py

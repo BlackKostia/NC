@@ -42,6 +42,20 @@ LAYOUTS = [  # (C header, C expression, assembler symbol)
     ("duop_config.h", "SORT_SIZE", "SORT_SIZE"),
     ("duop_config.h", "SORT_MTIME", "SORT_MTIME"),
     ("duop_config.h", "SORT_EXT", "SORT_EXT"),
+    ("duop_tui.h", "sizeof(Cell)", "Cell._size"),
+    *[("duop_tui.h", f"offsetof(Cell, {f})", f"Cell.{f}") for f in ("ch", "fg", "bg", "attrs")],
+    ("duop_tui.h", "sizeof(Theme)", "Theme._size"),
+    *[("duop_tui.h", f"offsetof(Theme, {f})", f"Theme.{f}") for f in ("name", "bg", "surface", "accent", "text", "dir_fg", "hidden_fg",
+                                                                  "badge_fg", "dialog_border", "err_fg", "scroll_track", "scroll_thumb", "pad")],
+    ("duop_tui.h", "sizeof(ScreenBuffer)", "ScreenBuffer._size"),
+    *[("duop_tui.h", f"offsetof(ScreenBuffer, {f})", f"ScreenBuffer.{f}")
+      for f in ("front", "back", "out_buf", "out_len", "out_cap", "cell_cap", "width", "height", "force_full", "pen_fg", "pen_bg", "pen_attrs")],
+    ("duop_tui.h", "sizeof(DataSpec)", "DataSpec._size"),
+    *[("duop_tui.h", f"offsetof(DataSpec, {f})", f"DataSpec.{f}") for f in ("env", "sub", "ext", "load")],
+    ("duop_tui.h", "KBD_MAP_MAX", "KBD_MAP_MAX"),
+    ("duop_tui.h", "KBD_FILE_MAX", "KBD_FILE_MAX"),
+    ("duop_tui.h", "KEY_UP", "KEY_UP"),
+    ("duop_tui.h", "CELL_WIDE_TAIL", "CELL_WIDE_TAIL"),
 ]
 TARGETS = {"x86_64": ["x86_64-linux-gnu"], "aarch64": ["aarch64-linux-gnu", "-mno-outline-atomics"]}
 

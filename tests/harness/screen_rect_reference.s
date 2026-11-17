@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/tui/screen_rect.c replaced (tests/test_c_tui_data.py diffs against it)
 # ScreenBuffer rectangle helpers for graphics overlays (Sixel / Kitty images drawn over cells):
 # does the next flush rewrite any cell of a rect, and forcing a rect to be rewritten.
 

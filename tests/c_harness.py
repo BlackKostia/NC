@@ -28,8 +28,8 @@ def available(arch: str) -> bool:
     return all(shutil.which(x[0]) for x in (t["cc"], t["as_"], t["ld"])) and (not t["run"] or shutil.which(t["run"][0]))
 
 
-def build(arch: str, work: Path, c_files: list[str]) -> Path:
-    """c_files: repo-relative or absolute .c paths (harness + modules under test)."""
+def build(arch: str, work: Path, c_files: list[str], extra_objs: list[Path] | None = None) -> Path:
+    """c_files: repo-relative or absolute .c paths (harness + modules under test); extra_objs: prebuilt objects to link too."""
     t = ARCHS[arch]
     objs: list[str] = []
     pal = ROOT / f"src/os/linux/{arch}"
@@ -43,6 +43,7 @@ def build(arch: str, work: Path, c_files: list[str]) -> Path:
         o = work / f"c{i}_{src.stem}.o"
         subprocess.run([*t["cc"], *COMMON, *t["extra"], "-c", str(src), "-o", str(o)], check=True, capture_output=True)
         objs.append(str(o))
+    objs.extend(str(o) for o in extra_objs or [])
     exe = work / "prog"
     # pal_fault/pal_file reference mem_copy and try_rt helpers in some builds; --unresolved-symbols keeps unused paths gc'd
     subprocess.run([*t["ld"], "-z", "noexecstack", "--gc-sections", *objs, "-o", str(exe)], check=True, capture_output=True)

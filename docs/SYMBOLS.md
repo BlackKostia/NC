@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 21
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 801
+- **Exported `.global` Symbols**: 798
 
 ## Structs (`include/*.inc`)
 
@@ -328,9 +328,9 @@
 
 ### TUI Engine (`src/tui/`)
 
-- **`src/tui/data_dirs.s`**
-  - `data_dirs_scan` — (the auxiliary vector follows it); spec->load(path, name) runs for every matching file
-  - `data_read_file` — NUL-terminated; -1 when the file cannot be opened
+- **`src/tui/data_dirs.c`**
+  - `data_dirs_scan` — `void data_dirs_scan(char **envp, const DataSpec *spec)`
+  - `data_read_file` — `intptr_t data_read_file(const char *path, char *buf, size_t cap)`
 - **`src/tui/i18n.s`**
   - `lang_en_table`
 - **`src/tui/i18n_env.s`**
@@ -364,12 +364,11 @@
 - **`src/tui/input_seq.s`**
   - `input_parse_csi` — int input_parse_csi(Event *evt)
   - `input_parse_ss3` — int input_parse_ss3(Event *evt)
-- **`src/tui/kbd_layout.s`**
-  - `kbd_layout_load` — void kbd_layout_load(char **envp) -- the initial-stack envp (the auxiliary vector follows it)
-- **`src/tui/kbd_map.s`**
-  - `kbd_map_reset` — void kbd_map_reset(void)
-  - `kbd_latin` — int kbd_latin(int key) -> the Latin key under `key` when a layout maps it, else key
-  - `kbd_layout_parse` — void kbd_layout_parse(char *text) -- NUL-terminated layout file, modified in place
+- **`src/tui/kbd_layout.c`**
+  - `kbd_layout_load` — `void kbd_layout_load(char **envp)`
+- **`src/tui/kbd_map.c`**
+  - `kbd_latin` — `int kbd_latin(int key)`
+  - `kbd_layout_parse` — `void kbd_layout_parse(char *text)`
 - **`src/tui/screen.s`**
   - `ScreenBuffer_new` — ScreenBuffer *ScreenBuffer_new(int width, int height)
   - `ScreenBuffer_dtor` — void ScreenBuffer_dtor(ScreenBuffer *this)
@@ -387,9 +386,9 @@
   - `out_u32` — void out_u32(ScreenBuffer *this, uint32_t val)
   - `out_cstr` — void out_cstr(ScreenBuffer *this, const char *s, size_t len)
   - `out_rgb_sgr` — channel digits come from u8_dec_tbl (no division, no per-byte calls).
-- **`src/tui/screen_rect.s`**
-  - `ScreenBuffer_rect_changed` — int ScreenBuffer_rect_changed(ScreenBuffer *s, int x, int y, int w, int h)
-  - `ScreenBuffer_rect_invalidate` — void ScreenBuffer_rect_invalidate(ScreenBuffer *s, int x, int y, int w, int h)
+- **`src/tui/screen_rect.c`**
+  - `ScreenBuffer_rect_changed` — `int ScreenBuffer_rect_changed(ScreenBuffer *s, int x, int y, int w, int h)`
+  - `ScreenBuffer_rect_invalidate` — `void ScreenBuffer_rect_invalidate(ScreenBuffer *s, int x, int y, int w, int h)`
 - **`src/tui/screen_text.s`**
   - `ScreenBuffer_draw_box` — Uses current pen! Draws rounded corners (╭╮╰╯─│). If fill_interior != 0, fills interior spaces.
   - `ScreenBuffer_draw_text` — Uses current pen! Returns display columns written.
@@ -404,10 +403,8 @@
   - `term_img_proto` — int term_img_proto(void)
   - `term_cell_px` — (int w, int h) term_cell_px(void) -> eax = cell width, edx = cell height in pixels (0 = unknown)
   - `term_caps_changed` — int term_caps_changed(void) -> 1 once after the protocol or cell size changed
-- **`src/tui/theme.s`**
-  - `themes_table`
-  - `theme_get` — const Theme *theme_get(int idx)
-  - `theme_count` — int theme_count(void)
+- **`src/tui/theme.c`**
+  - `theme_get` — `const Theme *theme_get(int idx)`
 
 ### Filesystem & Codecs (`src/fs/`)
 
