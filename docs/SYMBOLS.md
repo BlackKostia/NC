@@ -546,19 +546,19 @@
   - `img_gif_decode` — `int img_gif_decode(const uint8_t *d, size_t n, Image *out)`
 - **`src/fs/img_jpeg.c`**
   - `img_jpeg_decode` — `int img_jpeg_decode(const uint8_t *d, size_t n, Image *out)`
-- **`src/fs/img_kitty.s`**
-  - `img_kitty_encode` — uint8_t *out, size_t cap) -> bytes written, 0 if cap is too small
-  - `img_kitty_place` — size_t img_kitty_place(uint8_t *out, const int *rect /*x,y,w,h*/, int cols, int rows) -> bytes
-  - `img_b64_encode` — size_t img_b64_encode(const uint8_t *src, size_t len, char *dst) -> bytes written (with padding)
+- **`src/fs/img_kitty.c`**
+  - `img_b64_encode` — `size_t img_b64_encode(const uint8_t *src, size_t len, char *dst)`
+  - `img_kitty_encode` — `size_t img_kitty_encode(const uint8_t *rgba, int w, int h, int cols, uint8_t *out, size_t cap)`
+  - `img_kitty_place` — `size_t img_kitty_place(uint8_t *out, const int *rect, int cols, int rows)`
 - **`src/fs/img_png.c`**
   - `img_png_decode` — `int img_png_decode(const uint8_t *d, size_t n, Image *out)`
 - **`src/fs/img_pnm.c`**
   - `img_pnm_decode` — `int img_pnm_decode(const uint8_t *d, size_t n, Image *out)`
   - `img_qoi_decode` — `int img_qoi_decode(const uint8_t *d, size_t n, Image *out)`
-- **`src/fs/img_quant.s`**
-  - `img_quantize` — uint32_t *pal /*256 x 0x00RRGGBB*/) -> palette size (0 on OOM)
-- **`src/fs/img_sixel.s`**
-  - `img_sixel_encode` — uint8_t *out, size_t cap) -> bytes written, 0 on overflow / OOM
+- **`src/fs/img_quant.c`**
+  - `img_quantize` — `int img_quantize(const uint8_t *rgba, size_t n, uint32_t bg, uint8_t *idx, uint32_t *pal)`
+- **`src/fs/img_sixel.c`**
+  - `img_sixel_encode` — `size_t img_sixel_encode(const uint8_t *rgba, int w, int h, uint32_t bg, uint8_t *out, size_t cap)`
 - **`src/fs/img_tga.c`**
   - `img_tga_decode` — `int img_tga_decode(const uint8_t *d, size_t n, Image *out)`
 - **`src/fs/inflate.c`**

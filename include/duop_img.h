@@ -37,3 +37,10 @@ int img_qoi_decode(const uint8_t *d, size_t n, Image *out);
 int img_gif_decode(const uint8_t *d, size_t n, Image *out);   /* first frame; a broken LZW stream keeps the pixels so far */
 int img_png_decode(const uint8_t *d, size_t n, Image *out);   /* plain and Adam7, all color types / depths, tRNS */
 int img_jpeg_decode(const uint8_t *d, size_t n, Image *out);   /* baseline Huffman, 1 or 3 components, any power-of-two subsampling */
+
+/* Terminal picture encoders (preview helper and viewer): bytes written, 0 when `cap` is too small or on OOM */
+size_t img_b64_encode(const uint8_t *src, size_t len, char *dst);                 /* with '=' padding */
+size_t img_kitty_encode(const uint8_t *rgba, int w, int h, int cols /* 0 = native size, < 0 = transmit only */, uint8_t *out, size_t cap);
+size_t img_kitty_place(uint8_t *out, const int *rect /* x, y, w, h in pixels */, int cols, int rows);
+int img_quantize(const uint8_t *rgba, size_t n, uint32_t bg /* 0xRRGGBB */, uint8_t *idx, uint32_t *pal /* 256 x 0x00RRGGBB */);   /* palette size, 0 on OOM */
+size_t img_sixel_encode(const uint8_t *rgba, int w, int h, uint32_t bg /* 0xRRGGBB */, uint8_t *out, size_t cap);

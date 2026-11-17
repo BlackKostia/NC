@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/img_sixel.c replaced (tests/test_c_img_out.py diffs against it)
 # DEC Sixel encoder: RGBA8 -> adaptive palette (img_quantize) -> "ESC P q" raster with "#n;2;r;g;b"
 # color registers and run-length compressed six-pixel bands (only colors used in a band are sent).
 

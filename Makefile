@@ -74,9 +74,6 @@ SRCS := \
 	src/fs/preview_io.s \
 	src/fs/preview_helper.s \
 	src/fs/img_core.s \
-	src/fs/img_kitty.s \
-	src/fs/img_quant.s \
-	src/fs/img_sixel.s \
 	src/fs/nav_state.s \
 	src/fs/nav_state_history.s \
 	src/fs/nav_state_bookmarks.s \
@@ -236,7 +233,10 @@ C_SRCS := \
 	src/fs/img_pnm.c \
 	src/fs/img_gif.c \
 	src/fs/img_png.c \
-	src/fs/img_jpeg.c
+	src/fs/img_jpeg.c \
+	src/fs/img_kitty.c \
+	src/fs/img_quant.c \
+	src/fs/img_sixel.c
 
 PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_os.s \
@@ -342,6 +342,7 @@ test: $(TARGET)
 	python3 tests/test_c_i18n.py
 	python3 tests/test_c_screen.py
 	python3 tests/test_c_img.py
+	python3 tests/test_c_img_out.py
 	python3 tests/test_abi_layouts.py
 	python3 tests/test_pty.py
 	python3 tests/test_fs_reliability.py

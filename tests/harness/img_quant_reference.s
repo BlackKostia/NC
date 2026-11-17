@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/img_quant.c replaced (tests/test_c_img_out.py diffs against it)
 # Adaptive palette quantizer for Sixel: alpha is blended over the background, colors are binned
 # to 15 bits (5-5-5) and the 255 most frequent bins (bin means, not centres) become the palette;
 # every other used bin maps to its nearest palette entry.

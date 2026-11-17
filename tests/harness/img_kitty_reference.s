@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/img_kitty.c replaced (tests/test_c_img_out.py diffs against it)
 # Kitty graphics protocol encoder: RGBA8 picture -> "ESC _ G a=T,f=32,..." transmission split into
 # base64 chunks of at most 4096 bytes (m=1 ... m=0), cursor not moved (C=1).
 
