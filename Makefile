@@ -364,6 +364,7 @@ test: $(TARGET)
 	python3 tests/test_c_inflate.py
 	python3 tests/test_c_string.py
 	python3 tests/test_c_syscall.py
+	python3 tests/test_c_try.py
 	python3 tests/test_c_memory.py
 	python3 tests/test_c_memcheck.py
 	python3 tests/test_c_core_files.py

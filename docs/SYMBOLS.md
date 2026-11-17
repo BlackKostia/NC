@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 741
+- **Exported `.global` Symbols**: 743
 
 ## Structs (`include/*.inc`)
 
@@ -78,6 +78,7 @@
   - `os_fs_is_derived`
 - **`src/os/linux/aarch64/pal_fault.s`**
   - `os_fault_guard_install_slot`
+  - `os_try_begin`
   - `os_signals_install`
   - `pf_sig_restorer`
   - `os_sig_reset_pipe`
@@ -155,6 +156,7 @@
   - `os_fs_is_derived` — identified at all (the xdg document portal FUSE mount refuses fstatfs with EPERM)
 - **`src/os/linux/x86_64/pal_fault.s`**
   - `os_fault_guard_install_slot` — void os_fault_guard_install_slot(TryFrame **slot_ptr)
+  - `os_try_begin` — here a second time (rsp = TF_RSP, rip = TF_RIP, rax = signal) with the registers restored.
   - `os_signals_install` — void os_signals_install(void (*on_winch)(void), void (*on_int)(void), void (*on_term)(void))
   - `pf_sig_restorer` — SA_RESTORER trampoline (must invoke rt_sigreturn directly with untouched rsp)
   - `os_sig_reset_pipe` — void os_sig_reset_pipe(void) - restore SIG_DFL for SIGPIPE in forked children

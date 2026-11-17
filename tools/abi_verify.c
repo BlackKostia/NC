@@ -18,6 +18,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <ucontext.h>
 
 #ifdef ABI_EMIT
 /* Cross mode (tools/abi_cross.py): no libc and no execution. Every fact becomes an absolute

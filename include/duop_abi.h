@@ -142,6 +142,21 @@ void      os_mark_child_forked(void);               /* reset the child's TRY own
 void      os_signals_install(void (*on_winch)(void), void (*on_int)(void), void (*on_term)(void));
 void      os_fault_guard_install_slot(void **try_frame_slot);
 
+/* ---- TRY/CATCH fault guard for C (pal_fault.s). A TryFrame is setjmp-like: os_try_begin returns 0, and when a SIGSEGV / SIGBUS / SIGFPE
+ * hits this thread before os_try_end the handler unlinks the frame, restores the callee-saved registers and sp and makes os_try_begin
+ * return a second time with the signal number. Locals changed after os_try_begin and read after the fault must be volatile. The x86_64
+ * layout is the assembly TRY_BEGIN frame of include/try_using.inc, so asm and C frames share one chain (g_try_frame). */
+#if defined(__x86_64__)
+#define TRY_FRAME_REGS 8                       /* rbx rbp r12 r13 r14 r15 rsp rip */
+#elif defined(__aarch64__)
+#define TRY_FRAME_REGS 14                      /* x19..x30 sp pc */
+#else
+#define TRY_FRAME_REGS 16                      /* declaration only: no PAL implementation yet */
+#endif
+typedef struct TryFrame { void *prev; uintptr_t regs[TRY_FRAME_REGS]; } TryFrame;
+_Static_assert(sizeof(TryFrame) == (TRY_FRAME_REGS + 1) * sizeof(void *), "TryFrame is shared with pal_fault.s");
+int       os_try_begin(TryFrame *frame) __attribute__((returns_twice));
+
 /* ---- SIMD/scalar primitives (pal_simd.s) ---- */
 void   os_mem_copy_fast(void *dst, const void *src, size_t n);   /* non-overlapping */
 void   os_mem_move_fast(void *dst, const void *src, size_t n);   /* overlap-safe */

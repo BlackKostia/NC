@@ -141,6 +141,15 @@
 .equ TIMESPEC_SEC,            0
 .equ TIMESPEC_NSEC,           8
 .equ KSIGINFO_ADDR,           16
+.equ TF_PREV,                 0            // TryFrame (include/duop_abi.h): prev, x19..x30, sp, pc
+.equ TF_X19,                  8
+.equ TF_SP,                   104
+.equ TF_PC,                   112
+.equ TRY_FRAME_SIZE,          120
+.equ KUC_RET,                 184          // ucontext_t.uc_mcontext.regs[0]: the value a handler's resume sees in x0
+.equ KUC_X19,                 336          // regs[19]; x19..x30 follow every 8 bytes
+.equ KUC_SP,                  432          // uc_mcontext.sp
+.equ KUC_PC,                  440          // uc_mcontext.pc
 .equ KDIRENT_INO,             0
 .equ KDIRENT_RECLEN,          16
 .equ KDIRENT_TYPE,            18

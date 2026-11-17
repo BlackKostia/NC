@@ -31,15 +31,17 @@ def available(arch: str) -> bool:
     return all(shutil.which(x[0]) for x in (t["cc"], t["as_"], t["ld"])) and (not t["run"] or shutil.which(t["run"][0]))
 
 
-def build(arch: str, work: Path, c_files: list[str], extra_objs: list[Path] | None = None, cflags: list[str] | None = None) -> Path:
-    """c_files: repo-relative or absolute .c paths (harness + modules under test); extra_objs: prebuilt objects to link too."""
+def build(arch: str, work: Path, c_files: list[str], extra_objs: list[Path] | None = None, cflags: list[str] | None = None,
+          pal_override: dict[str, Path] | None = None) -> Path:
+    """c_files: repo-relative or absolute .c paths (harness + modules under test); extra_objs: prebuilt objects to link too;
+    pal_override: PAL file name -> replacement .s (mutation checks of the PAL itself)."""
     t = ARCHS[arch]
     objs: list[str] = []
     pal = ROOT / f"src/os/linux/{arch}"
     for name in PAL_FILES:
         o = work / f"{name}.o"
         subprocess.run([*t["as_"], "-I", str(ROOT / f"include/os/linux/{arch}"), "-I", str(ROOT / "include"),
-                        str(pal / f"{name}.s"), "-o", str(o)], check=True, capture_output=True)
+                        str((pal_override or {}).get(name) or pal / f"{name}.s"), "-o", str(o)], check=True, capture_output=True)
         objs.append(str(o))
     for i, c in enumerate([*c_files, SHIMS]):
         src = Path(c) if Path(c).is_absolute() else ROOT / c

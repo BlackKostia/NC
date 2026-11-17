@@ -25,6 +25,7 @@ g_sig_altstack:  .space SIGSTKSZ_BUFSZ
 
 .section .text
 .global os_fault_guard_install_slot
+.global os_try_begin
 .global os_signals_install
 .global pf_sig_restorer
 .global os_sig_reset_pipe
@@ -189,7 +190,89 @@ pf_sigbus_fallback:
     ret
 
 pf_term_handler:
+    b pf_fatal_default
+
+// int os_try_begin(TryFrame *f): setjmp-like. Saves x19..x30, sp and the return address in the TRY frame, links it into the chain behind
+// g_pf_slot_ptr and returns 0. The fault handler below resumes here a second time (sp restored, pc = the return address, x0 = signal).
+os_try_begin:
+    stp x19, x20, [x0, #TF_X19]
+    stp x21, x22, [x0, #TF_X19 + 16]
+    stp x23, x24, [x0, #TF_X19 + 32]
+    stp x25, x26, [x0, #TF_X19 + 48]
+    stp x27, x28, [x0, #TF_X19 + 64]
+    stp x29, x30, [x0, #TF_X19 + 80]
+    mov x9, sp
+    str x9, [x0, #TF_SP]
+    str x30, [x0, #TF_PC]
+    adrp x9, g_pf_slot_ptr
+    ldr x9, [x9, :lo12:g_pf_slot_ptr]
+    mov x10, #0
+    cbz x9, 1f
+    ldr x10, [x9]
+    str x0, [x9]
+1:  str x10, [x0, #TF_PREV]
+    mov w0, #0
+    ret
+
+// void pf_fault_handler(int sig, siginfo_t *info, void *uctx): with an active TRY frame (main thread of this process only) patch the
+// interrupted context so that rt_sigreturn resumes at the frame's os_try_begin; otherwise SIGBUS on a registered mapping is
+// mapped over with a zero page and everything else is fatal.
 pf_fault_handler:
+    adrp x8, g_pf_slot_ptr
+    ldr x8, [x8, :lo12:g_pf_slot_ptr]
+    cbz x8, pf_no_try
+    ldr x9, [x8]
+    cbz x9, pf_no_try
+    stp x29, x30, [sp, #-64]!
+    mov x29, sp
+    stp x0, x1, [sp, #16]
+    str x2, [sp, #32]
+    str x8, [sp, #40]
+    OS_GETPID
+    mov w10, w0
+    adrp x9, g_try_owner_pid
+    ldr w11, [x9, :lo12:g_try_owner_pid]
+    cmp w10, w11
+    b.ne 1f
+    OS_GETTID
+    adrp x9, g_try_main_tid
+    ldr w11, [x9, :lo12:g_try_main_tid]
+    cmp w0, w11
+    b.ne 3f
+    b 2f
+1:  OS_GETTID                               // forked child: its main thread has tid == pid
+    cmp w0, w10
+    b.ne 3f
+2:  ldr x8, [sp, #40]
+    ldr x9, [x8]
+    ldr x2, [sp, #32]
+    ldr x10, [x9, #TF_PREV]                 // pop the frame first: a fault in the catch path must not loop
+    str x10, [x8]
+    ldp x10, x11, [x9, #TF_X19]
+    stp x10, x11, [x2, #KUC_X19]
+    ldp x10, x11, [x9, #TF_X19 + 16]
+    stp x10, x11, [x2, #KUC_X19 + 16]
+    ldp x10, x11, [x9, #TF_X19 + 32]
+    stp x10, x11, [x2, #KUC_X19 + 32]
+    ldp x10, x11, [x9, #TF_X19 + 48]
+    stp x10, x11, [x2, #KUC_X19 + 48]
+    ldp x10, x11, [x9, #TF_X19 + 64]
+    stp x10, x11, [x2, #KUC_X19 + 64]
+    ldp x10, x11, [x9, #TF_X19 + 80]
+    stp x10, x11, [x2, #KUC_X19 + 80]
+    ldr x10, [x9, #TF_SP]
+    str x10, [x2, #KUC_SP]
+    ldr x10, [x9, #TF_PC]
+    str x10, [x2, #KUC_PC]
+    ldrsw x10, [sp, #16]                    // x0 of the resumed os_try_begin = the signal number
+    str x10, [x2, #KUC_RET]
+    ldp x29, x30, [sp], #64
+    ret
+3:  ldp x0, x1, [sp, #16]
+    ldp x29, x30, [sp], #64
+pf_no_try:
+    cmp w0, #SIGBUS
+    b.eq pf_sigbus_fallback
     b pf_fatal_default
 
 pf_install_sig_table:

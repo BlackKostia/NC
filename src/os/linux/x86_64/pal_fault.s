@@ -27,6 +27,7 @@ g_sig_altstack:  .space SIGSTKSZ_BUFSZ
 
 .section .text
 .global os_fault_guard_install_slot
+.global os_try_begin
 .global os_signals_install
 .global pf_sig_restorer
 .global os_sig_reset_pipe
@@ -133,6 +134,30 @@ pf_bus_patch:
 .Lpbp_fatal:
     mov edi, SIGBUS
     jmp pf_fatal_default
+
+# int os_try_begin(TryFrame *f): setjmp-like. Saves the callee-saved registers, the sp after the return and the return address in the
+# TRY frame (layout of try_using.inc), links it into the chain behind g_pf_slot_ptr and returns 0. The fault handler below resumes
+# here a second time (rsp = TF_RSP, rip = TF_RIP, rax = signal) with the registers restored.
+os_try_begin:
+    mov [rdi + TF_RBX], rbx
+    mov [rdi + TF_RBP], rbp
+    mov [rdi + TF_R12], r12
+    mov [rdi + TF_R13], r13
+    mov [rdi + TF_R14], r14
+    mov [rdi + TF_R15], r15
+    lea rax, [rsp + 8]
+    mov [rdi + TF_RSP], rax
+    mov rax, [rsp]
+    mov [rdi + TF_RIP], rax
+    mov r8, [rip + g_pf_slot_ptr]
+    xor eax, eax
+    test r8, r8
+    jz 1f
+    mov rax, [r8]
+    mov [r8], rdi
+1:  mov [rdi + TF_PREV], rax
+    xor eax, eax
+    ret
 
 # void pf_fault_handler(int sig, siginfo_t *info, void *uctx)
 pf_fault_handler:

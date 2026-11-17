@@ -1,9 +1,7 @@
 # Duop Compile-Time PAL Target Definitions: Linux x86-64
 # Verified against Linux 7.0 / Ubuntu 24.04 x86-64 kernel ABI headers.
 # Kernel syscall numbers and structs stay encapsulated here and in src/os/linux/x86_64/.
-
 .intel_syntax noprefix
-
 .ifndef PAL_TARGET_INCLUDED
 .equ PAL_TARGET_INCLUDED, 1
 
@@ -184,6 +182,9 @@
 .equ SIGSEGV,               11
 .equ SIGPIPE,               13
 .equ KSIGINFO_ADDR,         16
+.equ KUC_RET,               144          # ucontext_t.uc_mcontext.gregs[REG_RAX]: the value a handler's resume sees in rax
+.equ KUC_SP,                160          # gregs[REG_RSP]
+.equ KUC_PC,                168          # gregs[REG_RIP]
 .equ SIGINT,                2
 .equ SIGTERM,               15
 .equ SIGWINCH,              28
