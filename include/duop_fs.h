@@ -104,3 +104,38 @@ int undo_pop_and_apply(void);                                           /* 1 und
 intptr_t fs_rename_noreplace(const char *old_path, const char *new_path);   /* 0, or -errno (-EEXIST: target exists) */
 int fs_copy_recursive(const char *src_path, const char *dst_path);          /* 0, or -errno */
 int fs_delete_recursive(const char *path);                                  /* 0, or -errno */
+
+/* ---- navigation state: tab history, bookmarks, frecency (nav_state.c, nav_persist.c) ---- */
+#define NAV_TAB_MAX 8                  /* tabs per pane */
+#define NAV_HIST_MAX 32                /* remembered paths per tab */
+#define NAV_BM_MAX 64
+#define NAV_FRE_MAX 128
+
+typedef struct NavTab {                /* 4384 bytes; the pane code reads cursor and hist_len directly */
+    char path[PATH_MAX];
+    int32_t cursor, scroll, sort_mode, sort_desc, show_hidden;
+    int32_t hist_pos, hist_len, hist_pad;
+    char *hist[NAV_HIST_MAX];          /* heap strings, hist_len valid */
+} NavTab;
+#if UINTPTR_MAX == UINT64_MAX
+_Static_assert(sizeof(NavTab) == 4384, "NavTab is shared with assembly");
+#endif
+
+char *nav_strdup(const char *s);                               /* heap copy, NULL when out of memory */
+int nav_ci_contains(const char *hay, const char *needle);      /* ASCII case-insensitive substring; an empty needle matches */
+NavTab *nav_tabs_alloc(const char *init_path);                 /* NAV_TAB_MAX zeroed tabs; tab 0 starts at init_path */
+void nav_tabs_free(NavTab *tabs, int tab_count);
+void nav_hist_push(NavTab *tab, const char *path);             /* new place: cuts the forward history, repeats are ignored */
+const char *nav_hist_back(NavTab *tab);                        /* previous path or NULL */
+const char *nav_hist_fwd(NavTab *tab);
+void nav_state_init(const char *const *envp);                  /* once: data directory + bookmarks + frecency */
+void nav_state_cleanup(void);
+int nav_bookmarks_count(void);
+const char *nav_bookmarks_get(int idx);
+int nav_bookmarks_add(const char *path);                       /* 1 added, 0 duplicate / full */
+void nav_bookmarks_remove(int idx);
+void nav_frecency_record(const char *path);
+int nav_frecency_count(void);
+const char *nav_frecency_get(int idx);
+int nav_frecency_score(int idx);
+int nav_frecency_match(const char *substr, int *out_indices, int max_out);

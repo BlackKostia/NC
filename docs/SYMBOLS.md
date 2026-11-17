@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 762
+- **Exported `.global` Symbols**: 743
 
 ## Structs (`include/*.inc`)
 
@@ -556,37 +556,16 @@
 - **`src/fs/inflate.c`**
   - `inflate_raw` — `int64_t inflate_raw(const void *src, uint64_t src_len, void *dst, uint64_t dst_cap)`
   - `inflate_zlib` — `int64_t inflate_zlib(const void *src, uint64_t src_len, void *dst, uint64_t dst_cap)`
-- **`src/fs/nav_state.s`**
-  - `nav_strdup` — Internal: char *nav_strdup(const char *s)
-  - `nav_ci_contains` — Internal: ASCII case-insensitive substring match: int nav_ci_contains(const char *hay, const char *needle)
-  - `nav_tabs_alloc` — void *nav_tabs_alloc(const char *init_path)
-  - `nav_tabs_free` — void nav_tabs_free(void *tabs, int tab_count)
-  - `nav_u32_to_str` — Internal: write uint32 decimal + ' ' to buf; returns bytes written
-  - `nav_state_init` — void nav_state_init(char **envp)
-  - `nav_state_cleanup` — void nav_state_cleanup(void) -- frees global bookmark & frecency string arrays
-- **`src/fs/nav_state_bookmarks.s`**
-  - `nav_bookmarks_load` — Internal: load bookmarks file
-  - `nav_bookmarks_count` — int nav_bookmarks_count(void)
-  - `nav_bookmarks_get` — const char *nav_bookmarks_get(int idx)
-  - `nav_bookmarks_add` — int nav_bookmarks_add(const char *path) -- returns 1 if added, 0 if dup/full
-  - `nav_bookmarks_remove` — void nav_bookmarks_remove(int idx)
-  - `g_data_dir`
-  - `g_data_ready`
-  - `g_bm_cnt`
-  - `g_bm_ptrs`
-- **`src/fs/nav_state_frecency.s`**
-  - `nav_frecency_load` — Internal: load frecency file ("<score> <path>\n")
-  - `nav_frecency_record` — void nav_frecency_record(const char *path)
-  - `nav_frecency_count` — int nav_frecency_count(void)
-  - `nav_frecency_get` — const char *nav_frecency_get(int idx)
-  - `nav_frecency_score` — int nav_frecency_score(int idx)
-  - `nav_frecency_match` — int nav_frecency_match(const char *substr, int *out_indices, int max_out)
-  - `g_fre_cnt`
-  - `g_fre_ptrs`
-- **`src/fs/nav_state_history.s`**
-  - `nav_hist_push` — void nav_hist_push(void *tab, const char *path)
-  - `nav_hist_back` — const char *nav_hist_back(void *tab)
-  - `nav_hist_fwd` — const char *nav_hist_fwd(void *tab)
+- **`src/fs/nav_persist.c`**
+  - `nav_bookmarks_remove` — `void nav_bookmarks_remove(int idx)`
+- **`src/fs/nav_state.c`**
+  - `nav_strdup` — `char *nav_strdup(const char *s)`
+  - `nav_ci_contains` — `int nav_ci_contains(const char *hay, const char *needle)`
+  - `nav_tabs_alloc` — `NavTab *nav_tabs_alloc(const char *init_path)`
+  - `nav_tabs_free` — `void nav_tabs_free(NavTab *tabs, int tab_count)`
+  - `nav_hist_push` — `void nav_hist_push(NavTab *tab, const char *path)`
+  - `nav_hist_back` — `const char *nav_hist_back(NavTab *tab)`
+  - `nav_hist_fwd` — `const char *nav_hist_fwd(NavTab *tab)`
 - **`src/fs/pkg_actions.s`**
   - `pkg_action_parse` — void pkg_action_parse(const char *buf, int len, PkgAction *out)
   - `pkg_actions_scan` — int pkg_actions_scan(char **envp, PkgAction *out, int max) -> count

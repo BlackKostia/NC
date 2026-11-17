@@ -98,8 +98,7 @@ def test_m3_bounded_dir_recursion() -> None:
 def test_m4_atomic_state_and_trashinfo_writes() -> None:
     """M4: Bookmarks, frecency, and trashinfo are written atomically (temp + fsync + rename), not O_TRUNC."""
     for rel in (
-        "src/fs/nav_state_bookmarks.s",
-        "src/fs/nav_state_frecency.s",
+        "src/fs/nav_persist.c",
         "src/fs/trash_info.c",
     ):
         txt = open(os.path.join(REPO_ROOT, rel)).read()

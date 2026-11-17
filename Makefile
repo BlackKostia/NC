@@ -74,10 +74,6 @@ SRCS := \
 	src/fs/preview_io.s \
 	src/fs/preview_helper.s \
 	src/fs/img_core.s \
-	src/fs/nav_state.s \
-	src/fs/nav_state_history.s \
-	src/fs/nav_state_bookmarks.s \
-	src/fs/nav_state_frecency.s \
 	src/fs/pkg_fetch.s \
 	src/fs/pkg_archive.s \
 	src/fs/pkg_manager.s \
@@ -235,7 +231,9 @@ C_SRCS := \
 	src/fs/disk_usage.c \
 	src/fs/trash_info.c \
 	src/fs/trash_dirs.c \
-	src/fs/trash_undo.c
+	src/fs/trash_undo.c \
+	src/fs/nav_state.c \
+	src/fs/nav_persist.c
 
 PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_os.s \
@@ -349,6 +347,7 @@ test: $(TARGET)
 	python3 tests/test_c_du_walk.py
 	python3 tests/test_c_du_populate.py
 	python3 tests/test_c_trash.py
+	python3 tests/test_c_nav_state.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_abi_layouts.py
 	python3 tests/test_pty.py

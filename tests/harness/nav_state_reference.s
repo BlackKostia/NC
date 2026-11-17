@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/nav_state.c and nav_persist.c replaced (tests/test_c_nav_state.py diffs against it)
 # Duop Navigation State: Per-tab History, Bookmarks (Hotlist) & Frecency (z)
 # Pure x86-64 GAS, zero .data, PAL-clean (uses OS_* macros only).
 
