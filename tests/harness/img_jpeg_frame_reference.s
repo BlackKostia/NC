@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/img_jpeg*.c replaced (tests/test_c_img.py diffs against it)
 # Baseline JPEG frame layer: SOF0/1 component setup (sampling factors, MCU-padded planes)
 # and the SOS scan header.
 

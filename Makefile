@@ -77,11 +77,6 @@ SRCS := \
 	src/fs/img_kitty.s \
 	src/fs/img_quant.s \
 	src/fs/img_sixel.s \
-	src/fs/img_jpeg.s \
-	src/fs/img_jpeg_frame.s \
-	src/fs/img_jpeg_scan.s \
-	src/fs/img_jpeg_bits.s \
-	src/fs/img_jpeg_idct.s \
 	src/fs/nav_state.s \
 	src/fs/nav_state_history.s \
 	src/fs/nav_state_bookmarks.s \
@@ -240,7 +235,8 @@ C_SRCS := \
 	src/fs/img_tga.c \
 	src/fs/img_pnm.c \
 	src/fs/img_gif.c \
-	src/fs/img_png.c
+	src/fs/img_png.c \
+	src/fs/img_jpeg.c
 
 PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_os.s \

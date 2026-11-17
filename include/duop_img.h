@@ -36,3 +36,4 @@ int img_pnm_decode(const uint8_t *d, size_t n, Image *out);
 int img_qoi_decode(const uint8_t *d, size_t n, Image *out);
 int img_gif_decode(const uint8_t *d, size_t n, Image *out);   /* first frame; a broken LZW stream keeps the pixels so far */
 int img_png_decode(const uint8_t *d, size_t n, Image *out);   /* plain and Adam7, all color types / depths, tRNS */
+int img_jpeg_decode(const uint8_t *d, size_t n, Image *out);   /* baseline Huffman, 1 or 3 components, any power-of-two subsampling */

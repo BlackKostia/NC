@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/img_jpeg*.c replaced (tests/test_c_img.py diffs against it)
 # Baseline JPEG scan layer: interleaved MCUs and single-component scans, restart intervals,
 # DC prediction and AC run-length decoding with dequantization into natural order.
 # Bits/Huffman: img_jpeg_bits.s; IDCT: img_jpeg_idct.s.

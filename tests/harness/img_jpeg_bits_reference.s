@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/img_jpeg*.c replaced (tests/test_c_img.py diffs against it)
 # Baseline JPEG bit layer: MSB-first reader with 0xFF00 unstuffing that stops (feeding zeros) at
 # the next marker, magnitude extension and Huffman decoding (8-bit lookup + canonical fallback).
 

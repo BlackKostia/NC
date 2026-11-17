@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/img_jpeg*.c replaced (tests/test_c_img.py diffs against it)
 # Baseline JPEG pixel stage: separable 8x8 inverse DCT with a 12-bit fixed-point cosine table
 # (64-bit accumulators, zero-row fast path) into component planes, then YCbCr / gray -> RGBA.
 

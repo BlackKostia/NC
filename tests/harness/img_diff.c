@@ -14,7 +14,7 @@
 #include "duop_img.h"
 
 #define RD(n) extern int ref_img_##n##_decode(const uint8_t *, size_t, Image *);
-RD(bmp) RD(tga) RD(pnm) RD(qoi) RD(gif) RD(png)
+RD(bmp) RD(tga) RD(pnm) RD(qoi) RD(gif) RD(png) RD(jpeg)
 
 static void *guarded(size_t len)                     /* len readable/writable bytes ending exactly at a guard page */
 {
@@ -52,6 +52,7 @@ int img_alloc(Image *img, int w, int h)              /* the asm img_core semanti
     img->px = guarded((size_t)w * h * 4);
     return 0;
 }
+void img_free(Image *img) { mem_free(img->px); img->px = NULL; }
 void mem_zero(void *p, size_t n) { memset(p, 0, n); }
 
 static sigjmp_buf jb;
@@ -73,7 +74,7 @@ int main(void)
     static const struct { Dec ref, c; const char *name; } fmts[] = {
         [IMG_FMT_BMP] = {ref_img_bmp_decode, img_bmp_decode, "bmp"}, [IMG_FMT_TGA] = {ref_img_tga_decode, img_tga_decode, "tga"},
         [IMG_FMT_PNM] = {ref_img_pnm_decode, img_pnm_decode, "pnm"}, [IMG_FMT_QOI] = {ref_img_qoi_decode, img_qoi_decode, "qoi"},
-        [IMG_FMT_GIF] = {ref_img_gif_decode, img_gif_decode, "gif"}, [IMG_FMT_PNG] = {ref_img_png_decode, img_png_decode, "png"},
+        [IMG_FMT_GIF] = {ref_img_gif_decode, img_gif_decode, "gif"}, [IMG_FMT_PNG] = {ref_img_png_decode, img_png_decode, "png"}, [IMG_FMT_JPEG] = {ref_img_jpeg_decode, img_jpeg_decode, "jpeg"},
     };
     long recs = 0, asm_faults = 0, ok_imgs = 0;
     for (;;) {

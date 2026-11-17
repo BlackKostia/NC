@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/img_jpeg*.c replaced (tests/test_c_img.py diffs against it)
 # Baseline JPEG decoder, marker layer: SOI..EOI walk, DQT, DHT (canonical tables + 8-bit
 # lookup), SOF0/SOF1 frame setup, DRI and SOS. Progressive / arithmetic / CMYK files are
 # reported as IMG_E_UNSUP. Entropy decoding: img_jpeg_scan.s; IDCT + color: img_jpeg_idct.s.

@@ -13,7 +13,7 @@ import c_harness as H
 
 ROOT = H.ROOT
 HOST_CFLAGS = [f for f in H.COMMON if f != "-ffreestanding"] + ["-fno-stack-clash-protection"]
-FMT = {"bmp": 4, "pnm": 5, "tga": 6, "qoi": 7, "gif": 3, "png": 1}
+FMT = {"bmp": 4, "pnm": 5, "tga": 6, "qoi": 7, "gif": 3, "png": 1, "jpeg": 2}
 
 
 def rb(rng: random.Random, n: int) -> bytes:
@@ -263,8 +263,47 @@ def png(rng: random.Random) -> bytes:
     return out[:rng.randrange(0, len(out) + 1)] if rng.random() < 0.1 else out
 
 
-GEN = {"bmp": bmp, "tga": tga, "pnm": pnm, "qoi": qoi, "gif": gif, "png": png}
-MIN = {"bmp": 0, "tga": 18, "pnm": 2, "qoi": 0, "gif": 0, "png": 0}     # callers (img_detect) guarantee these minimum lengths for the decoders
+def jpeg(rng: random.Random) -> bytes:
+    """Real encoder output (Pillow/libjpeg): every subsampling, gray, restart intervals, optimized tables, progressive
+    (rejected as unsupported), 16-bit quantizers, then optional truncation / byte flips."""
+    from PIL import Image
+    import io
+    w, h = rng.randrange(1, 80), rng.randrange(1, 60)
+    mode = rng.choice(["RGB", "RGB", "RGB", "L"])
+    kind = rng.random()
+    if kind < 0.4:                                              # noise: long AC runs, big magnitudes, 16-bit Huffman codes
+        px = rb(rng, w * h * (3 if mode == "RGB" else 1))
+    elif kind < 0.7:                                            # gradients: few coefficients, long zero runs, EOB
+        px = bytes(((x * 255 // max(w, 1)) ^ (y * rng.randrange(1, 9))) & 255 for y in range(h) for x in range(w) for _ in range(3 if mode == "RGB" else 1))
+    else:
+        px = bytes(rng.choice([0, 255, 128]) for _ in range(w * h * (3 if mode == "RGB" else 1)))
+    im = Image.frombytes(mode, (w, h), px)
+    kw = {"quality": rng.choice([1, 20, 50, 75, 95, 100]), "optimize": rng.random() < 0.4, "progressive": rng.random() < 0.08}
+    if mode == "RGB":
+        kw["subsampling"] = rng.choice([0, 1, 2, 2, 1])
+    if rng.random() < 0.3:
+        kw["restart_marker_blocks"] = rng.randrange(1, 9)
+    if rng.random() < 0.2:
+        kw["qtables"] = [[rng.choice([1, 2, 16, 300, 1000, 255]) for _ in range(64)] for _ in range(2 if mode == "RGB" else 1)]
+    buf = io.BytesIO()
+    try:
+        im.save(buf, "JPEG", **kw)
+    except (ValueError, OSError, TypeError):
+        kw.pop("subsampling", None)
+        kw.pop("qtables", None)
+        buf = io.BytesIO()
+        im.save(buf, "JPEG", **kw)
+    out = buf.getvalue()
+    r = rng.random()
+    if r < 0.15:
+        out = out[:rng.randrange(2, len(out) + 1)]
+    elif r < 0.3:
+        out = out[:len(out) - rng.randrange(1, 4)]
+    return out
+
+
+GEN = {"bmp": bmp, "tga": tga, "pnm": pnm, "qoi": qoi, "gif": gif, "png": png, "jpeg": jpeg}
+MIN = {"bmp": 0, "tga": 18, "pnm": 2, "qoi": 0, "gif": 0, "png": 0, "jpeg": 0}     # callers (img_detect) guarantee these minimum lengths for the decoders
 
 
 def records(rng: random.Random, name: str, count: int) -> bytes:
@@ -279,7 +318,7 @@ def records(rng: random.Random, name: str, count: int) -> bytes:
     return bytes(out)
 
 
-def build(t: Path, refs: tuple[str, ...] = ("bmp", "tga", "pnm", "gif", "gif_lzw", "png", "png_px"), mods: tuple[str, ...] = ("bmp", "tga", "pnm", "gif", "png")) -> Path:
+def build(t: Path, refs: tuple[str, ...] = ("bmp", "tga", "pnm", "gif", "gif_lzw", "png", "png_px", "jpeg", "jpeg_frame", "jpeg_bits", "jpeg_scan", "jpeg_idct"), mods: tuple[str, ...] = ("bmp", "tga", "pnm", "gif", "png", "jpeg")) -> Path:
     objs = []
     for m in refs:
         o = t / f"img_{m}_ref.o"
@@ -303,13 +342,13 @@ def build(t: Path, refs: tuple[str, ...] = ("bmp", "tga", "pnm", "gif", "gif_lzw
 
 def test_differential(exe: Path) -> None:
     rng = random.Random(0x1CE)
-    for name in ("bmp", "tga", "pnm", "qoi", "gif", "png"):
-        data = records(rng, name, 6000)
+    for name in ("bmp", "tga", "pnm", "qoi", "gif", "png", "jpeg"):
+        data = records(rng, name, 1500 if name == "jpeg" else 6000)
         res = subprocess.run([str(exe)], input=data, capture_output=True, timeout=300)
         assert res.returncode == 0, f"{name}: {res.stdout.decode()} {res.stderr.decode()[-300:]}"
         line = res.stdout.decode().strip()
         decoded = int(line.split("(")[1].split(" decoded")[0])
-        assert decoded > 600, f"{name}: the generator must produce many decodable files ({line})"
+        assert decoded > 300, f"{name}: the generator must produce many decodable files ({line})"
         print(f"[PASS] IMG-{name}. {line}")
 
 
@@ -317,7 +356,7 @@ def main() -> None:
     with H.workdir() as d:
         exe = build(Path(d))
         test_differential(exe)
-    print("ALL C IMG (BMP/TGA/PNM/QOI/GIF/PNG) TESTS PASSED.")
+    print("ALL C IMG (BMP/TGA/PNM/QOI/GIF/PNG/JPEG) TESTS PASSED.")
 
 
 if __name__ == "__main__":

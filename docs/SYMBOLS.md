@@ -4,18 +4,15 @@
 
 ## Summary
 
-- **Structs (`.struct`)**: 19
+- **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 775
+- **Exported `.global` Symbols**: 768
 
 ## Structs (`include/*.inc`)
 
 | Struct | Defined In | Fields |
 |---|---|---|
-| `HT` | `include/img_jpeg.inc` | `look`, `maxcode`, `valptr`, `mincode`, `vals` |
-| `JC` | `include/img_jpeg.inc` | `id`, `h`, `v`, `tq`, `td`, `ta`, `pred`, `bw`, `bh`, `sx`, `sy`, `pad`, `plane` |
-| `Jpeg` | `include/img_jpeg.inc` | `qt`, `huff`, `comp`, `blk`, `tmp`, `p`, `end`, `bits`, `nbits`, `marker`, `ncomp`, `w`, `h`, `hmax`, `vmax`, `mcux`, `mcuy`, `rst`, `sncomp`, `scomp`, `todo`, `frame`, `out` |
 | `FileStat` | `include/pal.inc` | `dev`, `ino`, `size`, `mtime`, `mode`, `mtime_nsec`, `nlink`, `uid`, `gid` |
 | `Rect` | `include/types.inc` | `x`, `y`, `w`, `h` |
 | `Cell` | `include/types.inc` | `ch`, `fg`, `bg`, `attrs` |
@@ -547,19 +544,8 @@
   - `img_scale_rect` — Area-averaged downscale / nearest upscale of rect {x,y,w,h} into ow x oh RGBA buffer.
 - **`src/fs/img_gif.c`**
   - `img_gif_decode` — `int img_gif_decode(const uint8_t *d, size_t n, Image *out)`
-- **`src/fs/img_jpeg.s`**
-  - `img_jpeg_decode` — int img_jpeg_decode(const uint8_t *d, size_t n, Image *out)
-- **`src/fs/img_jpeg_bits.s`**
-  - `jb_huff` — int jb_huff(Jpeg *j, const HuffTable *t)
-  - `jb_extend` — int jb_extend(Jpeg *j, int s) -- receive s bits as a signed JPEG magnitude
-- **`src/fs/img_jpeg_frame.s`**
-  - `jpeg_sof` — (int status, 0) jpeg_sof(Jpeg *j, const uint8_t *seg, int len)
-  - `jpeg_sos` — (int status, uint8_t *resume) jpeg_sos(Jpeg *j, const uint8_t *seg, int len)
-- **`src/fs/img_jpeg_idct.s`**
-  - `jpeg_idct_store` — void jpeg_idct_store(Jpeg *j, JComp *c, int bx, int by) -- j->blk -> plane block (bx, by)
-  - `jpeg_color` — void jpeg_color(Jpeg *j) -- planes -> RGBA (nearest upsampling of subsampled chroma)
-- **`src/fs/img_jpeg_scan.s`**
-  - `jpeg_scan` — int jpeg_scan(Jpeg *j, const uint8_t *data) -- leaves j->p at the marker that ended the scan
+- **`src/fs/img_jpeg.c`**
+  - `img_jpeg_decode` — `int img_jpeg_decode(const uint8_t *d, size_t n, Image *out)`
 - **`src/fs/img_kitty.s`**
   - `img_kitty_encode` — uint8_t *out, size_t cap) -> bytes written, 0 if cap is too small
   - `img_kitty_place` — size_t img_kitty_place(uint8_t *out, const int *rect /*x,y,w,h*/, int cols, int rows) -> bytes
