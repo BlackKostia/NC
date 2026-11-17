@@ -168,18 +168,17 @@ class PtySession:
             os._exit(127)
         os.close(slave)
 
-    # A long wait is a budget ("done by now"), not a goal: once the program has drawn something and then been silent for QUIET seconds the
-    # frame is complete (QUIET > WATCH_DEBOUNCE_MS = 150, the longest delay inside the app), so the drain ends early. Short waits keep
-    # their exact length. DUOP_PTY_FULL_WAIT=1 restores the fixed waits (debugging a timing-sensitive failure).
+    # drain(wait) reads for `wait` seconds. With early=True a long wait is only a budget: once the program has drawn something and then been
+    # silent for QUIET seconds (> WATCH_DEBOUNCE_MS = 150, the longest delay inside the app) the frame is complete and the drain ends. Opt in
+    # only where nothing slow (image decoding, a worker thread) can answer after a pause: such output arrives late under load.
     QUIET = 0.25
     EARLY_FROM = 0.4
-    FULL_WAIT = os.environ.get("DUOP_PTY_FULL_WAIT") == "1"
 
-    def drain(self, wait=0.15):
+    def drain(self, wait=0.15, early=False):
         start = time.monotonic()
         deadline = start + wait
         last_data = None
-        early = wait >= self.EARLY_FROM and not self.FULL_WAIT
+        early = early and wait >= self.EARLY_FROM
         while True:
             now = time.monotonic()
             rem = deadline - now
@@ -199,9 +198,9 @@ class PtySession:
             except OSError:
                 break
 
-    def send(self, seq: bytes, wait=0.12):
+    def send(self, seq: bytes, wait=0.12, early=False):
         os.write(self.master, seq)
-        self.drain(wait)
+        self.drain(wait, early)
 
     def send_mouse(self, btn: int, x0: int, y0: int, kind="M", wait=0.12):
         seq = f"\x1b[<{btn};{x0 + 1};{y0 + 1}{kind}".encode("ascii")

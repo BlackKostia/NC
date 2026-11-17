@@ -19,7 +19,7 @@ import tempfile
 import termios
 import time
 
-from pty_session import PtySession, VirtualTerminal  # noqa: E402,F401  (moved to pty_session.py; re-exported for the suites that import them from here)
+from pty_session import PtySession, VirtualTerminal  # noqa: E402,F401  (moved to pty_session.py; re-exported)
 
 
 

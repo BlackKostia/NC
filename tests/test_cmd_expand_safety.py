@@ -64,10 +64,10 @@ def run_menu(tmp: str, left: str, cmd: str, keys: bytes, lang: str = "en", settl
     with open(cfg, "w", encoding="utf-8") as f:
         f.write(f"menu T {cmd}\n")
     sess = PtySession(BINARY, ["--lang", lang, left, right], extra_env={"DUOP_CONFIG": cfg, "HOME": tmp})
-    sess.drain(0.5)
-    sess.send(keys, wait=0.4)
+    sess.drain(0.5, early=True)
+    sess.send(keys, wait=0.4, early=True)
     sess.send(KEY_ALT_U, wait=0.3)
-    sess.send(b"\r", wait=settle)
+    sess.send(b"\r", wait=settle, early=True)
     return sess
 
 
