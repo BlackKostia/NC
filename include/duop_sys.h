@@ -19,3 +19,7 @@ int         sys_exec_argv(const char *exe, char **argv, char **envp);
 int         sys_exec_argv_bg(const char *exe, char **argv, char **envp);
 int         sys_open_external(const char *path, char **envp);         /* 0 launched, -1 without a GUI display */
 void        os_fault_guard_install(void);
+
+/* crash-safe writes (src/core/tmpfile.c): open <final>.tmp.<hex> exclusively, then fsync + rename it over final */
+intptr_t    tmp_open_atomic(const char *final_path, char *tmp_buf, int mode);   /* tmp_buf: PATH_MAX bytes; fd or -errno */
+intptr_t    tmp_commit_atomic(int fd, const char *tmp_buf, const char *final_path, int64_t write_rc);   /* write_rc < 0 aborts; 0 or -errno */

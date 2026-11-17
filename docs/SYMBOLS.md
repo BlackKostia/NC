@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 766
+- **Exported `.global` Symbols**: 765
 
 ## Structs (`include/*.inc`)
 
@@ -403,12 +403,10 @@
   - `dircache_invalidate` — void dircache_invalidate(const char *path) -- drop a snapshot (e.g. on inotify events)
 - **`src/fs/dir_diff.c`**
   - `dir_diff_mark` — `int dir_diff_mark(DirModel *active, DirModel *other)`
-- **`src/fs/dir_fuzzy.s`**
-  - `fuzzy_score` — int fuzzy_score(const char *query, const char *cand, uint64_t *out_mask)
-  - `dfc_walk` — void dfc_walk(ctx *ctx, const char *dir_abs, const char *rel_pfx, int depth)
-- **`src/fs/dir_fuzzy_walk.s`**
-  - `dir_fuzzy_collect` — int dir_fuzzy_collect(const char *root, char *pool, int pool_cap, void *items, int max_items)
-  - `fs_write_file` — int fs_write_file(const char *path, const void *buf, uint64_t len) -> 0 ok, -1 err
+- **`src/fs/dir_fuzzy.c`**
+  - `fuzzy_score` — `int fuzzy_score(const char *query, const char *cand, uint64_t *out_mask)`
+- **`src/fs/dir_fuzzy_walk.c`**
+  - `dir_fuzzy_collect` — `int dir_fuzzy_collect(const char *root, char *pool, int pool_cap, FuzzyItem *items, int max_items)`
 - **`src/fs/dir_model.s`**
   - `DirModel_vtbl`
   - `DirModel_init_env` — ==============================================================================
@@ -517,6 +515,8 @@
   - `fo_overwrite_commit` — Atomically replaces `name` with the finished temp file.
 - **`src/fs/file_ops_read.s`**
   - `fs_read_file_alloc` — int fs_read_file_alloc(const char *path, size_t max_bytes, void **out_buf, size_t *out_len)
+- **`src/fs/fs_write.c`**
+  - `fs_write_file` — `int fs_write_file(const char *path, const void *buf, uint64_t len)`
 - **`src/fs/git_status.s`**
   - `git_free_ctx` — void git_free_ctx(DirModel *dm)
   - `git_spawn_status` — int git_spawn_status(const char *dir, char *out_buf, int buf_cap) -> bytes or -1

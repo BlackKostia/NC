@@ -70,3 +70,12 @@ int ds_ensure_model_cap(DirModel *m, size_t add_name_bytes);    /* room for one 
 int ds_append_entry(DirModel *m, const char *rel_name, const FileStat *st);   /* 0, or -1 when the model cannot grow */
 int ds_append_parent(DirModel *m);                              /* ".." as the newest entry (FE_IS_PARENT); 0 or < 0 */
 void ds_join_rel(char *dst, const char *prefix, const char *name);
+
+/* ---- fuzzy finder backend (dir_fuzzy*.c, fs_write.c) ---- */
+typedef struct FuzzyItem {
+    const char *path;              /* NUL-terminated, relative to the collected root; lives in the caller's pool */
+    int32_t is_dir, pad;
+} FuzzyItem;
+int fuzzy_score(const char *query, const char *cand, uint64_t *out_mask);   /* <0 no match, else score >= 1 (0: empty query); out_mask = matched candidate positions < 64 */
+int dir_fuzzy_collect(const char *root, char *pool, int pool_cap, FuzzyItem *items, int max_items);   /* names collected (depth <= 8, no .git) */
+int fs_write_file(const char *path, const void *buf, uint64_t len);        /* atomic write (tmp + fsync + rename) keeping the mode of a regular target: 0 / -1 */

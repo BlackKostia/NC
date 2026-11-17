@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/dir_fuzzy*.c and fs_write.c replaced (tests/test_c_dir_fuzzy.py diffs against it)
 # src/fs/dir_fuzzy.s - Fuzzy matching scorer & recursive tree collector
 
 .intel_syntax noprefix
