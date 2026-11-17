@@ -200,7 +200,11 @@ def run_single(
 def resolve_bin(name: str, duop_bin: str) -> str | None:
     if name == "duop":
         return duop_bin if os.path.isfile(duop_bin) and os.access(duop_bin, os.X_OK) else shutil.which("duop")
-    return shutil.which(name)
+    found = shutil.which(name)
+    if found:
+        return found
+    snap_bin = f"/snap/bin/{name}"
+    return snap_bin if os.path.isfile(snap_bin) and os.access(snap_bin, os.X_OK) else None
 
 
 def main() -> int:
