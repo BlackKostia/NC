@@ -6,7 +6,7 @@
 
 ## Чому гібрид (Asm PAL + Freestanding C23)
 
-- **Мінімальний статичний ELF64 без `libc`**: у C23 використовується режим `-ffreestanding -nostdlib` (лише `stdint.h`/`stddef.h` і `include/duop_abi.h`), без динамічних бібліотек і зі збереженням інваріанта `.data == 0`.
+- **Мінімальний статичний ELF64 без `libc`**: у C23 використовується режим `-ffreestanding -nostdlib` (лише `stdint.h`/`stddef.h` і `include/duop_abi.h`), без динамічних бібліотек без сторонніх бібліотек; ініціалізований `.data` дозволений, розмір бінарника вимірюється, але не є гейтом.
 - **Низькорівнева швидкість там, де вона критична**: прямі системні виклики, `io_uring`, обробники сигналів (`SIGBUS`), PTY та SSE2/NEON SIMD залишаються на чистому асемблері у `src/os/<os>/<arch>/`.
 - **Синтаксис Intel без синтаксичного шуму**: для x86-64 асемблерних модулів використовується `.intel_syntax noprefix`, `.struct` та `.macro` для декларативних `vtable` і сумісності з C ABI.
 
@@ -66,7 +66,7 @@ duop/
 │   ├── ui/                   # header_bar*.s, function_bar.s, status_bar*.s, file_pane*.s, preview_pane*.s, dialogs*.s, viewer_*.s, term_pane*.s, bulk_rename*.s, pkg_dialog.s, fuzzy_dialog.s, syntax.s, hex_edit.s
 │   └── app/                  # app*.s (головний цикл, команди, задачі, події, діалоги)
 └── tests/
-    ├── test_pal_architecture.py # Перевірка compile-time PAL, ізоляції сисколів, макросів OS_* та ELF .data==0
+    ├── test_pal_architecture.py # Перевірка compile-time PAL, ізоляції сисколів, макросів OS_* та статичного ELF
     ├── test_pty.py           # Наскрізні тести в реальному PTY (клавіатура, миша, resize, ФС)
     ├── test_fs_reliability.py # Стрес- та відмовостійкі тести copy/move/delete/rename/EXDEV
     ├── test_performance_dir.py # Тести 32B/pool, lazy stat, Radix/Introsort, huge-mode [FS-order] та Esc-скасування
@@ -84,7 +84,7 @@ make          # Зібрати ./duop (з DWARF debug-інформацією)
 make release  # Зібрати оптимізований stripped-бінарник
 make run      # Запустити ./duop
 make test     # Запустити наскрізні PTY-тести
-make verify   # Повна перевірка (модульність + release + debug + ELF .data==0 + PTY)
+make verify   # Повна перевірка (модульність + release + debug + статичний ELF без libc/dynamic + PTY)
 make hooks    # Активувати Git-хуки з .githooks/ та права на скрипти
 ```
 

@@ -32,7 +32,7 @@ Keep every Duop subsystem small, decoupled, zero-libc, single-purpose. **New mod
    layouts shared with assembly mirror `include/types.inc`/`classes.inc` and are compared by `tests/test_abi_layouts.py`.
    Kernel constants -> `include/duop_pal.h` + `include/os/<os>/<arch>/pal_target.inc` (+ `tools/abi_entries.def`).
 3. **Module rules**: only compiler headers (`<stdint.h>`, `<stddef.h>`, `<stdbool.h>`, `<stdarg.h>`) and `duop_*.h`; kernel only
-   through `os_*`; failures are `-errno` (`os_is_err`); file-scope data `const` or zero-initialised (`.data == 0`); functions
+   through `os_*`; failures are `-errno` (`os_is_err`); file-scope data may be initialised (`.data` is allowed; `const` -> `.rodata` and zero -> `.bss` preferred); functions
    <= 80 lines, <= 16 non-static, file <= 500 lines; unaligned parser reads via `load_le16/32/64`; no VLA/alloca/float/`__int128`.
 4. **Register** the file in `Makefile` `C_SRCS` (and its test in the `test:` list); add a `PATH_TEST_RULES` entry in
    `tests/run_smart_tests.py`.
@@ -40,7 +40,7 @@ Keep every Duop subsystem small, decoupled, zero-libc, single-purpose. **New mod
 
 ## Adding assembly (PAL / SIMD only)
 
-`.intel_syntax noprefix` (x86-64) or GNU ARM syntax (AArch64), immutable data in `.rodata`, mutable in `.bss`, System V /
+`.intel_syntax noprefix` (x86-64) or GNU ARM syntax (AArch64), immutable data in `.rodata`, mutable in `.bss` (or initialised `.data`), System V /
 AAPCS64 registers and alignment, `.global` only for the public API, registered in `PAL_SRCS` for **every** `ARCH` with the
 same symbols. Remaining non-PAL `.s` modules go in `SRCS`; after editing run `audit_stack_abi/cfg_stack/syscall_clobber/
 abi_regs/oop_vtables/fd_eintr` (`make audit-all`).

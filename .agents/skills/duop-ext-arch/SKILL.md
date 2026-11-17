@@ -8,7 +8,7 @@ description: Enforces Duop architectural philosophy, strict downward layering, z
 Use this skill whenever designing or modifying Duop subsystems, package/plugin contracts, or cross-layer integrations.
 
 ## Core Philosophy (Non-Negotiable)
-1. **Static zero-`libc` ELF64**: Never introduce external shared library dependencies, `dlopen`, or writable `.data` (`ELF .data == 0`).
+1. **Static zero-`libc` ELF64**: Never introduce external shared library or third-party code dependencies (no `libc`, no `dlopen`, no `.dynamic`). Initialised writable `.data` is allowed; binary size is measured, not gated.
 2. **Instant Startup & Lazy Work**: Never scan packages, registries, or large trees during startup unless explicitly requested by CLI flags (`duop pkg ...`) or user action (`Alt+K`, `Alt+U`, `PopupMenu`, `PreviewPane`).
 3. **Out-of-Process Extensions**: All third-party tools, previewers, and VFS providers MUST run as isolated child processes (`fork` + `execve` + `pipe` / `wait4`), never via `/bin/sh -c` on untrusted filenames.
 4. **Strict Downward Layering**:

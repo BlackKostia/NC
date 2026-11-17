@@ -29,7 +29,7 @@ callers keep working because the C honours the exact System V contract of the ol
    equivalent (document it).
 6. **Gates**: `make -j8`, `make symbols`, `check_lean.py --update`, `check_modularity.py`, `make audit-all`,
    `tests/test_c_stack_align.py`, `tools/check_c_syntax.py <files>` (x86_64 + aarch64), `tools/faultlab/audit_null_alloc_c.py`,
-   `size duop` (`.data == 0`), plus the PTY suites that exercise the module (`tests/run_smart_tests.py --files ...`).
+   `size duop` (reported only; no `.data`/size gate, but no `libc`/dynamic/W+X: `audit_elf_hardening.py`), plus the PTY suites that exercise the module (`tests/run_smart_tests.py --files ...`).
 7. **Fix what the tests reference**: grep `tests/*.py`, `run_smart_tests.py` and `.agents/skills/*/scripts` for the old
    `.s` file name (e.g. `test_medium_fixes` M4 reads sources); map the new C files in `PATH_TEST_RULES`.
 8. **Commit** `refactor(<layer>): <what> moves to C23 (vX.Y.Z)` with a body that states: the contract kept, defects found
@@ -44,8 +44,8 @@ callers keep working because the C honours the exact System V contract of the ol
 - **Stack**: asm callers often leave `rsp` 8 bytes off the 16-byte call alignment, so C must not use aligned SSE stack
   stores (`tests/test_c_stack_align.py`). A frame above 4608 B (`-Wframe-larger-than`) moves to `mem_alloc`. Recursion is
   bounded and its frames small (worker-thread stacks are 64 KiB).
-- **Data**: `.data == 0` — file-scope data is `const` or zero-initialised; initial values are set in an `init` function
-  (`static int wd[2] = {-1,-1}` fails `audit_elf_hardening`). Struct layouts mirror `include/types.inc` / `classes.inc`
+- **Data**: initialised writable globals (`static int wd[2] = {-1,-1}`) are allowed and land in `.data`; keep `const`
+  tables in `.rodata` and zero state in `.bss` where that is natural. Struct layouts mirror `include/types.inc` / `classes.inc`
   (`#pragma pack(4)` for `DirModel`), checked by `tests/test_abi_layouts.py`.
 - **Errors**: every `os_*`, `mem_alloc`, `path_join`, `tmp_*`, `sys_write_all` result is checked ([[nodiscard]] +
   `-Werror`); allocate before mutating a container; keep the asm's limits (`PATH_MAX`, caps) and report instead of

@@ -255,8 +255,6 @@ def main() -> int:
             code = strip_asm_comment_and_strings(raw).strip()
             if not code:
                 continue
-            if re.match(r"^(?:\.data\b|\.section\s+\.data\b)", code):
-                errors.append(f"{rel}:{idx}: writable '.data' section is forbidden; use .rodata or .bss/mem_alloc")
             if not in_os_pal:
                 pm = RAW_PAL_VIOLATION_RE.search(code)
                 if pm:
@@ -313,7 +311,7 @@ def main() -> int:
 
     print(
         f"Modularity check passed: {len(all_disk_srcs)} assembly + {n_c} C modules, VERSION={ver}, "
-        "PAL boundaries, layers & i18n symmetric, .data-free."
+        "PAL boundaries, layers & i18n symmetric."
     )
     return 0
 

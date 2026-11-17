@@ -8,7 +8,7 @@ An ultra-fast, compact dual-pane CLI/TUI file manager for Linux, built on a **hy
 
 ## Highlights
 
-- **Tiny Static ELF64**: ~193 KB stripped binary (`.text` ~188 KiB, **0 bytes** in `.data`), ~0.32 ms cold start, ~112.5 ms first frame on a 100,000-file directory (via [`scripts/bench.sh`](scripts/bench.sh)).
+- **Tiny Static ELF64**: ~193 KB stripped binary at v2.6.7 (no `libc`, no third-party libraries; size and `.data` are tracked, not gated), ~0.32 ms cold start, ~112.5 ms first frame on a 100,000-file directory (via [`scripts/bench.sh`](scripts/bench.sh)).
 - **High-Throughput Core**:
   - Compact 32-byte `FileEntry` + contiguous `name_pool` + 4-byte `order[]` index sorting (Introsort + LSD Radix Sort).
   - Lazy `d_type` open + rolling `io_uring` (`IORING_OP_STATX`) batch statting + `copy_file_range` / `FICLONE` fast-path copy.

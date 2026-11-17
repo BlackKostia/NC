@@ -158,7 +158,7 @@ def handle_session_start(payload: dict, root: Path) -> dict:
         "assembly PAL (src/os/<os>/<arch>/); remaining src/**/*.s modules are being migrated to C (skill duop-asm-to-c-migration). "
         "Use workspace rules in AGENTS.md and skills in .agents/skills/: "
         "duop-tdd-first, duop-asm-to-c-migration, duop-modular-asm, duop-lean-modules, duop-multiplatform-pal, duop-ui-i18n-widget, duop-pty-verify, duop-version-release. "
-        "Keep modules lean: .s/.c <= 500 lines, routine/function <= 80 lines, exports <= 16 (duop-lean-modules gate); C: .data == 0, frame <= 4608 B, no libc. "
+        "Keep modules lean: .s/.c <= 500 lines, routine/function <= 80 lines, exports <= 16 (duop-lean-modules gate); C: frame <= 4608 B, no libc or third-party libraries (initialised .data and binary size are not gated). "
         "Always design & write tests under tests/ before editing src/ or include/ (a differential test against a frozen asm oracle counts). "
         "Pre-commit is tiered: module-local commits run the smart tests (tests/run_smart_tests.py); the full `make test` runs in pre-push and CI. "
         "Verify with ./.agents/skills/duop-pty-verify/scripts/verify_build.sh, maintain SemVer in VERSION, "

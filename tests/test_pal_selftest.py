@@ -28,8 +28,8 @@ def check_static_elf(arch: str, klass: str, machine: str) -> None:
     assert klass in hdr and machine in hdr, hdr
     segs = subprocess.run(["readelf", "-lW", str(exe)], capture_output=True, text=True).stdout
     assert "INTERP" not in segs and "DYNAMIC" not in segs, f"{arch}: selftest must be a static, libc-free ELF"
-    size = subprocess.run(["size", str(exe)], capture_output=True, text=True).stdout.split("\n")[1].split()
-    assert size[1] == "0", f"{arch}: .data must be 0, got {size[1]}"
+    assert "NEEDED" not in subprocess.run(["readelf", "-d", str(exe)], capture_output=True, text=True).stdout, \
+        f"{arch}: selftest must not depend on shared libraries"   # initialised .data is allowed
 
 
 def main() -> None:

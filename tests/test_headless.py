@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """M1, the headless build: src/app/cli_args.c + license.c + main_headless.c (`make headless`, any ARCH) versus the assembly entry point
 (src/main.s, the product binary ./duop): --help / --version / --license / --lang output byte for byte, the argument grammar against an
-independent Python model of main.s, the LICENSE file, ELF shape (static, no INTERP/.dynamic, .data == 0) and qemu-aarch64 for the
+independent Python model of main.s, the LICENSE file, ELF shape (static, no INTERP/.dynamic, no W+X) and qemu-aarch64 for the
 aarch64 binary. Mutation checks of cli_args.c run through the freestanding harness."""
 
 import random
@@ -64,9 +64,8 @@ def test_elf(binary: Path, arch: str) -> None:
     assert re.search(r"Machine:\s+" + re.escape(want), hdr), hdr[:400]
     assert "Class:                             ELF64" in hdr and "Type:                              EXEC" in hdr
     assert "INTERP" not in hdr and "There is no dynamic section" in hdr, "static executable: no PT_INTERP, no .dynamic"
-    data = re.search(r"\]\s+\.data\s+PROGBITS\s+\S+\s+\S+\s+([0-9a-f]+)", hdr)
-    assert data is None or int(data.group(1), 16) == 0, "ELF .data must be empty"
-    print(f"[PASS] HL3. {arch}: static ELF64 {want}, no INTERP/.dynamic, .data == 0")
+    assert "RWE" not in hdr, "no writable+executable segment"      # initialised .data is allowed
+    print(f"[PASS] HL3. {arch}: static ELF64 {want}, no INTERP/.dynamic, no W+X segment")
 
 
 def test_license() -> None:

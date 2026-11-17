@@ -83,7 +83,7 @@ if [ -n "$FEATURE_STAGED" ] && [ -z "$DOCS_STAGED" ]; then
     echo "  If user-facing behavior, hotkeys, or extension contracts changed, see .agents/skills/duop-docs-sync/SKILL.md." >&2
 fi
 
-# 5. Build stripped release binary, verify ELF .data==0 & --version, and run PTY suite
+# 5. Build stripped release binary, audit the static ELF (no libc/dynamic/W+X; .data allowed) & --version, and run PTY suite
 NEEDS_BUILD="$(printf '%s\n' "$STAGED" | grep -E '^(src/|include/|Makefile$|VERSION$|tests/.*\.py$)' || true)"
 if [[ -n "$NEEDS_BUILD" && "${DUOP_SKIP_PTY_HOOK:-0}" != "1" ]]; then
     echo "[pre-commit] Running release build + ELF audit + PTY test suite..."

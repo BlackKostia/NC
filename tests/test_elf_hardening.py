@@ -3,7 +3,8 @@
 
 EH1 PT_GNU_STACK is present and not executable.  Without the header, kernels older than 5.8 start the process with
     READ_IMPLIES_EXEC, which makes every readable mapping (heap arenas, .bss, the stack) executable.
-EH2 no segment is writable and executable at the same time; static, no interpreter, .data == 0
+EH2 no segment is writable and executable at the same time; static, no interpreter, no shared-library dependency
+    (initialised `.data` is allowed since the 2026-11-17 relaxation; the size of the binary is not gated)
 """
 
 import os

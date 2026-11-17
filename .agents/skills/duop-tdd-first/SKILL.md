@@ -21,7 +21,7 @@ created or updated in the session (`DUOP_TDD_BYPASS=1` only for pure non-functio
 3. **Fault injection**: `EACCES` / `ENOENT` / `EEXIST` / `EXDEV`, partial batch failure, canceled dialogs, OOM. Golden
    invariant: a failed or canceled copy / move / rename / delete leaves the source intact, shows an EN/UA status error, and
    the process stays responsive.
-4. **ABI / static invariants**: `.data == 0`, struct layouts (`tests/test_abi_layouts.py`), PAL constants (`test_abi_cross.py`).
+4. **ABI / static invariants**: static ELF without libc/dynamic/W+X, struct layouts (`tests/test_abi_layouts.py`), PAL constants (`test_abi_cross.py`).
 5. **Module migration (asm -> C)**: the test *is* a differential harness against the frozen asm oracle
    (`tests/harness/<m>_reference.s`) on random + boundary + real-filesystem inputs, followed by mutation checks
    (`duop-asm-to-c-migration`). Red = the harness fails (or the C does not exist yet); Green = identical results.
