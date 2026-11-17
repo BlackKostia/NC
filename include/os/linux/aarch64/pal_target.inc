@@ -94,6 +94,7 @@
 .equ STDIN_FD,                0
 .equ STDOUT_FD,               1
 .equ STDERR_FD,               2
+.equ EPERM,                   1
 .equ ENOENT,                  2
 .equ ESRCH,                   3
 .equ EIO,                     5

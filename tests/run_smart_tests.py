@@ -41,6 +41,7 @@ ABI_TESTS = ("tests/test_abi_layouts.py", "tests/test_abi_cross.py")
 
 # Subsystem path globs -> affected test scripts (relative to ROOT).
 PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("src/fs/file_ops_overwrite*", ("tests/test_c_fops_overwrite.py", "tests/test_copy_overwrite_atomic.py", "tests/test_fs_reliability.py")),
     ("src/fs/file_ops_read*", ("tests/test_c_fops_small.py", "tests/test_viewer_pro.py", "tests/test_fs_reliability.py")),
     ("src/fs/file_ops*", ("tests/test_fs_reliability.py", "tests/test_bg_tasks.py", "tests/test_reliability_audit.py", "tests/test_copy_overwrite_atomic.py")),
     ("src/fs/task*", ("tests/test_fs_reliability.py", "tests/test_bg_tasks.py", "tests/test_reliability_audit.py", "tests/test_copy_overwrite_atomic.py")),

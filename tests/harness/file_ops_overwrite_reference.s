@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/file_ops_overwrite.c replaced (tests/test_c_fops_overwrite.py diffs against it)
 # src/fs/file_ops_overwrite.s - crash-safe "Overwrite": write a sibling temp file, then rename it over the target
 #
 # Opening the existing target with O_TRUNC destroys the old content before the new copy exists: a read

@@ -4,6 +4,7 @@
 #pragma once
 
 /* errno values returned as -errno by every os_* function (generic Linux numbering) */
+#define EPERM 1
 #define ENOENT 2
 #define ESRCH 3
 #define EINTR 4

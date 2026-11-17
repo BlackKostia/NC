@@ -59,7 +59,6 @@ SRCS := \
 	src/fs/dir_cache_fetch.s \
 	src/fs/file_ops.s \
 	src/fs/file_ops_copy_at.s \
-	src/fs/file_ops_overwrite.s \
 	src/fs/file_ops_copy.s \
 	src/fs/file_ops_delete.s \
 	src/fs/task.s \
@@ -232,6 +231,7 @@ C_SRCS := \
 	src/fs/nav_persist.c \
 	src/fs/git_trust.c \
 	src/fs/dir_watch.c \
+	src/fs/file_ops_overwrite.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -404,6 +404,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_git_trust.py
 	python3 tests/test_c_dir_watch.py
 	python3 tests/test_c_fops_small.py
+	python3 tests/test_c_fops_overwrite.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

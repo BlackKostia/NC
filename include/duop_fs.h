@@ -154,3 +154,9 @@ void dirwatch_cleanup(void);
 /* ---- whole-file helpers of the file operations (file_ops_read.c) ---- */
 intptr_t fs_read_file_alloc(const char *path, size_t max_bytes, void **out_buf, size_t *out_len);   /* regular file -> NUL-terminated heap buffer: 0, or -errno */
 intptr_t copy_link_at(int sdir, const char *sname, int ddir, const char *dname);                    /* copy a symlink as a symlink: 0, or -errno */
+
+/* ---- crash-safe "Overwrite" (file_ops_overwrite.c): write a sibling temp file, then rename it over the target ---- */
+typedef struct FoOpenResult { intptr_t fd; uint64_t used; } FoOpenResult;     /* rax:rdx: the fd or -errno; used = 1 when a temp file stands in */
+DUOP_NODISCARD FoOpenResult fo_open_overwrite(int dfd, const char *name, uint32_t dst_mode, uint32_t new_mode, char *out_tmp);
+DUOP_NODISCARD intptr_t fo_overwrite_open(int dfd, const char *name, uint32_t mode, char *out_tmp);            /* exclusive temp file next to `name`: fd or -errno */
+DUOP_NODISCARD intptr_t fo_overwrite_commit(int dfd, const char *tmp, const char *name);                      /* renames the finished temp file over `name`: 0 or -errno */

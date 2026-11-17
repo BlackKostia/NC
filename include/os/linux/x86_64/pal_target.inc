@@ -97,6 +97,7 @@
 .equ S_IFLNK,               0120000
 
 # --- Common Errno Values (PAL normalizes failures to -errno) ---
+.equ EPERM,                 1
 .equ ENOENT,                2
 .equ ESRCH,                 3
 .equ EINTR,                 4
@@ -167,7 +168,6 @@
 
 .equ WINSIZE_ROW,           0
 .equ WINSIZE_COL,           2
-
 .equ KSIGACTION_SIZE,       32
 .equ KSIG_HANDLER,          0
 .equ KSIG_FLAGS,            8

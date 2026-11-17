@@ -501,10 +501,10 @@
   - `fs_delete_recursive` — Symlinks are removed, never followed (O_NOFOLLOW on every directory open).
   - `fs_move_recursive` — int fs_move_recursive(const char *src_path, const char *dst_path)
   - `fs_read_file_head` — int fs_read_file_head(const char *path, void *buf, size_t max_bytes, size_t *out_read)
-- **`src/fs/file_ops_overwrite.s`**
-  - `fo_open_overwrite` — Returns the fd or -errno (no fallback on ENOSPC: truncating would destroy the old file for nothing).
-  - `fo_overwrite_open` — Returns the open fd, or -errno.
-  - `fo_overwrite_commit` — Atomically replaces `name` with the finished temp file.
+- **`src/fs/file_ops_overwrite.c`**
+  - `fo_overwrite_open` — `intptr_t fo_overwrite_open(int dfd, const char *name, uint32_t mode, char *out_tmp)`
+  - `fo_overwrite_commit` — `intptr_t fo_overwrite_commit(int dfd, const char *tmp, const char *name)`
+  - `fo_open_overwrite` — `FoOpenResult fo_open_overwrite(int dfd, const char *name, uint32_t dst_mode, uint32_t new_mode, char *out_tmp)`
 - **`src/fs/file_ops_read.c`**
   - `fs_read_file_alloc` — `intptr_t fs_read_file_alloc(const char *path, size_t max_bytes, void **out_buf, size_t *out_len)`
   - `copy_link_at` — `intptr_t copy_link_at(int sdir, const char *sname, int ddir, const char *dname)`
