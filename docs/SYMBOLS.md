@@ -475,15 +475,15 @@
   - `dir_du_populate` — model is then back in the normal listing
   - `du_toggle` — void du_toggle(App *app)
   - `du_mtime_sig` — int64_t du_mtime_sig(const FileStat *st)
-- **`src/fs/du_cache.s`**
-  - `du_cache_init` — void *du_cache_init(void) - safe to call repeatedly from main thread
-  - `du_cache_get` — int du_cache_get(uint64_t ino, uint64_t dev, int64_t mtime_sig, uint64_t *out_size) -> 1 hit, 0 miss
-  - `du_cache_put` — void du_cache_put(uint64_t ino, uint64_t dev, int64_t mtime_sig, uint64_t size)
-  - `du_cache_cleanup` — void du_cache_cleanup(void)
-- **`src/fs/du_links.s`**
-  - `du_links_reset` — void du_links_reset(void) -- empty set for a new scan (allocated on first use)
-  - `du_link_first` — Without a table or with a crowded probe run it answers 1: never undercount.
-  - `du_links_cleanup` — void du_links_cleanup(void)
+- **`src/fs/du_cache.c`**
+  - `du_cache_init` — `void *du_cache_init(void)`
+  - `du_cache_get` — `int du_cache_get(uint64_t ino, uint64_t dev, int64_t mtime_sig, uint64_t *out_size)`
+  - `du_cache_put` — `void du_cache_put(uint64_t ino, uint64_t dev, int64_t mtime_sig, uint64_t size)`
+  - `du_cache_cleanup` — `void du_cache_cleanup(void)`
+- **`src/fs/du_links.c`**
+  - `du_links_reset` — `void du_links_reset(void)`
+  - `du_link_first` — `int du_link_first(uint64_t dev, uint64_t ino)`
+  - `du_links_cleanup` — `void du_links_cleanup(void)`
 - **`src/fs/du_parallel.s`**
   - `du_parallel_walk` — void du_parallel_walk(int dfd, DuWorkItem *items, int count)
   - `du_set_progress` — void du_set_progress(int (*cb)(void *ctx, DuProgress *p), void *ctx) -- cb = 0: no progress UI

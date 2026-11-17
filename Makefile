@@ -79,9 +79,7 @@ SRCS := \
 	src/fs/nav_state_bookmarks.s \
 	src/fs/nav_state_frecency.s \
 	src/fs/disk_usage.s \
-	src/fs/du_cache.s \
 	src/fs/du_parallel.s \
-	src/fs/du_links.s \
 	src/fs/pkg_fetch.s \
 	src/fs/pkg_archive.s \
 	src/fs/pkg_manager.s \
@@ -235,7 +233,9 @@ C_SRCS := \
 	src/fs/dir_search.c \
 	src/fs/dir_fuzzy.c \
 	src/fs/dir_fuzzy_walk.c \
-	src/fs/fs_write.c
+	src/fs/fs_write.c \
+	src/fs/du_links.c \
+	src/fs/du_cache.c
 
 PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_os.s \
@@ -345,6 +345,7 @@ test: $(TARGET)
 	python3 tests/test_c_fs_small.py
 	python3 tests/test_c_dir_search.py
 	python3 tests/test_c_dir_fuzzy.py
+	python3 tests/test_c_du_tables.py
 	python3 tests/test_abi_layouts.py
 	python3 tests/test_pty.py
 	python3 tests/test_fs_reliability.py

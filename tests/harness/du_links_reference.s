@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/du_links.c and du_cache.c replaced (tests/test_c_du_tables.py diffs against it)
 # src/fs/du_links.s - hard-link accounting for Disk Usage: a file with several names
 # (st_nlink > 1) is counted once per scan, like `du`. A (dev, ino) set shared by the walker
 # threads behind a spinlock; du_links_reset (main thread) allocates and clears it per scan.

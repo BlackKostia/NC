@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/du_links.c and du_cache.c replaced (tests/test_c_du_tables.py diffs against it)
 # src/fs/du_cache.s - In-memory recursive directory size cache for instant Disk Usage navigation
 .intel_syntax noprefix
 

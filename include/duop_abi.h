@@ -27,6 +27,18 @@ typedef struct FileStat {
 _Static_assert(sizeof(FileStat) == 56, "FileStat must match include/pal.inc");
 _Static_assert(offsetof(FileStat, mode) == 32 && offsetof(FileStat, uid) == 48, "FileStat layout");
 
+/* Polite busy-wait step for spinlocks (x86 PAUSE, ARM YIELD). */
+static inline void duop_cpu_relax(void)
+{
+#if defined(__x86_64__)
+    __builtin_ia32_pause();
+#elif defined(__aarch64__) || defined(__arm__)
+    __asm__ __volatile__("yield" ::: "memory");
+#else
+    __asm__ __volatile__("" ::: "memory");
+#endif
+}
+
 /* Error contract: results in [-4095, -1] are -errno. */
 static inline bool os_is_err(intptr_t r) { return (uintptr_t)r > (uintptr_t)-4096; }
 
