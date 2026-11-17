@@ -54,3 +54,15 @@ def run(arch: str, exe: Path, args: list[str] | None = None, stdin: bytes = b"",
 
 def workdir() -> tempfile.TemporaryDirectory:
     return tempfile.TemporaryDirectory(prefix="duop_c_")
+
+
+def rename_defined_globals(objs: list[Path], prefix: str) -> None:
+    """Prefix every global symbol *defined* in any of objs (and its references inside objs); externals such as PAL
+    functions stay untouched. Used to link a frozen reference .s next to the C module that replaces it."""
+    names: set[str] = set()
+    for o in objs:
+        out = subprocess.run(["nm", "-g", "--defined-only", str(o)], capture_output=True, text=True, check=True).stdout
+        names.update(line.split()[-1] for line in out.splitlines() if line.strip())
+    args = [a for n in sorted(names) for a in ("--redefine-sym", f"{n}={prefix}{n}")]
+    for o in objs:
+        subprocess.run(["objcopy", *args, str(o)], check=True)

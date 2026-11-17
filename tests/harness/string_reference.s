@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/core/string.c replaced (tests/test_c_string.py diffs against it)
 # Core String, Formatting, and Path Utilities
 
 .intel_syntax noprefix

@@ -211,12 +211,14 @@ app_cmd_diff:
     call i18n_get
     mov rsi, [rax + LangStrings.diff_pfx]
     mov rdi, rsp
+    mov edx, 32               # cap of the prefix buffer (was an accidental leftover register value)
     call str_copy
     mov edi, r12d
     lea rsi, [rsp + 32]
     call u64_to_dec
     mov rdi, rsp
     lea rsi, [rsp + 32]
+    mov edx, 32               # cap of the status buffer (u64_to_dec used to leave a digit char in rdx)
     call str_cat
     mov rdi, rbx; mov rsi, rsp; mov edx, MSG_INFO
     call App_set_status

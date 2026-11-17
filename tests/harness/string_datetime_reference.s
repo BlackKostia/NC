@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/core/string_datetime.c replaced (tests/test_c_string.py diffs against it)
 # Core String, Formatting, and Path Utilities — string datetime (split from string.s)
 
 .intel_syntax noprefix

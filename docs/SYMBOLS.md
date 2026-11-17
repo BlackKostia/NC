@@ -298,29 +298,29 @@
   - `Widget_on_mouse` — int Widget_on_mouse(Widget *this, Event *evt)
   - `Widget_on_focus` — void Widget_on_focus(Widget *this, int gained)
   - `Widget_hit_test` — int Widget_hit_test(Widget *this, int mx, int my)
-- **`src/core/string.s`**
-  - `str_len` — size_t str_len(const char *s) -- NULL-safe; preserves all registers except rax (SSE2 PAL)
-  - `str_copy` — Safely copies src into dst (NUL-terminated if cap > 0). Returns chars written.
-  - `str_cat` — size_t str_cat(char *dst, const char *src, size_t cap)
-  - `str_cmp` — int str_cmp(const char *a, const char *b)
-  - `str_casecmp` — int str_casecmp(const char *a, const char *b)
-  - `str_contains_ci` — Lowercases the needle once, then runs the SSE2 candidate scan (os_str_contains_ci_fast).
-  - `str_chr` — const char *str_chr(const char *s, int ch)
-  - `str_rchr` — const char *str_rchr(const char *s, int ch)
-  - `str_starts_with` — int str_starts_with(const char *s, const char *prefix)
-  - `u64_to_dec` — buf must have >= 21 bytes. Returns length (NUL-terminated).
-  - `u64_to_hex` — size_t u64_to_hex(uint64_t val, char *buf, int min_digits)
-- **`src/core/string_datetime.s`**
-  - `format_datetime_raw`
-- **`src/core/string_format.s`**
-  - `format_size` — Formats human-readable size (e.g. "512 B", "4.2 K", "128 M") into buf (>= 16 bytes)
-  - `format_perms` — Writes 10 chars + NUL (e.g. "drwxr-xr-x")
-  - `format_datetime` — few distinct minutes), so redrawing a pane skips the calendar divisions per visible row.
-- **`src/core/string_path.s`**
-  - `path_join` — Returns resulting length (>= 0) on success, or -ENAMETOOLONG on truncation/overflow.
-  - `path_dirname` — rdi=path, rsi=dst, rdx=cap
-  - `path_basename` — const char *path_basename(const char *path)
-  - `path_normalize` — Pure string work (no chdir/getcwd). Returns length, or 0 if it does not fit in `cap`.
+- **`src/core/string.c`**
+  - `str_len` — `size_t str_len(const char *s)`
+  - `str_copy` — `size_t str_copy(char *dst, const char *src, size_t cap)`
+  - `str_cat` — `size_t str_cat(char *dst, const char *src, size_t cap)`
+  - `str_cmp` — `int str_cmp(const char *a, const char *b)`
+  - `str_casecmp` — `int str_casecmp(const char *a, const char *b)`
+  - `str_contains_ci` — `int str_contains_ci(const char *hay, const char *needle)`
+  - `str_chr` — `const char *str_chr(const char *s, int ch)`
+  - `str_rchr` — `const char *str_rchr(const char *s, int ch)`
+  - `str_starts_with` — `int str_starts_with(const char *s, const char *prefix)`
+  - `u64_to_dec` — `size_t u64_to_dec(uint64_t v, char *buf)`
+  - `u64_to_hex` — `size_t u64_to_hex(uint64_t v, char *buf, int min_digits)`
+- **`src/core/string_datetime.c`**
+  - `format_datetime_raw` — `void format_datetime_raw(int64_t epoch, char *buf)`
+- **`src/core/string_format.c`**
+  - `format_size` — `size_t format_size(int64_t bytes, char *buf)`
+  - `format_perms` — `void format_perms(uint32_t mode, char *buf)`
+  - `format_datetime` — `void format_datetime(int64_t epoch, char *buf)`
+- **`src/core/string_path.c`**
+  - `path_join` — `int64_t path_join(char *dst, const char *dir, const char *name, size_t cap)`
+  - `path_dirname` — `void path_dirname(const char *path, char *dst, size_t cap)`
+  - `path_basename` — `const char *path_basename(const char *path)`
+  - `path_normalize` — `size_t path_normalize(const char *base, const char *target, char *out, size_t cap)`
 - **`src/core/syscall.s`**
   - `g_sigwinch`
   - `g_sigterm`
