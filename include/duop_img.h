@@ -26,6 +26,13 @@ typedef struct Image {
 } Image;
 _Static_assert(sizeof(Image) == 24, "Image is shared with assembly");
 
+/* ---- image core (img_core.c) ---- */
+int img_detect(const uint8_t *d, size_t n, const char *path);            /* IMG_FMT_*, 0 = not an image (TGA: 18 bytes + ".tga") */
+int img_decode(const uint8_t *d, size_t n, int fmt, Image *out);         /* 0, or IMG_E_* (a faulting decoder: IMG_E_CORRUPT), out freed */
+typedef struct ImgFit { uint64_t w, h; } ImgFit;                         /* asm callers read eax = ow, edx = oh */
+ImgFit img_fit(int iw, int ih, int bw, int bh);                          /* aspect-preserving fit into the box, >= 1 x 1 */
+void img_scale(const Image *src, uint8_t *dst_rgba, int ow, int oh);
+void img_scale_rect(const Image *src, uint8_t *dst_rgba, int ow, int oh, const int *rect /* x, y, w, h */);
 int img_alloc(Image *img, int w, int h);   /* 0, IMG_E_CORRUPT (bad size), IMG_E_UNSUP (too many pixels) or IMG_E_NOMEM */
 void img_free(Image *img);
 

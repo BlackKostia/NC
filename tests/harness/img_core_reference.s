@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/img_core.c replaced (tests/test_c_img_core.py diffs against it)
 # Image core: format detection, decode dispatch, RGBA buffer management and area-averaged
 # scaling used by the preview helper (thumbnails) and the viewer (fit to window).
 

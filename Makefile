@@ -63,7 +63,6 @@ SRCS := \
 	src/fs/task_worker.s \
 	src/fs/task_control.s \
 	src/fs/task_conflict.s \
-	src/fs/img_core.s \
 	src/fs/pkg_archive.s \
 	src/fs/pkg_manager.s \
 	src/fs/pkg_verify.s \
@@ -230,6 +229,7 @@ C_SRCS := \
 	src/fs/git_status.c \
 	src/fs/preview_io.c \
 	src/fs/preview_helper.c \
+	src/fs/img_core.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -407,6 +407,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_dir_cache.py
 	python3 tests/test_c_git_status.py
 	python3 tests/test_c_preview.py
+	python3 tests/test_c_img_core.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

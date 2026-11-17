@@ -515,14 +515,14 @@
   - `git_branch` — `const char *git_branch(DirModel *dm)`
 - **`src/fs/img_bmp.c`**
   - `img_bmp_decode` — `int img_bmp_decode(const uint8_t *d, size_t n, Image *out)`
-- **`src/fs/img_core.s`**
-  - `img_detect` — int img_detect(const uint8_t *d, size_t n, const char *path) -> IMG_FMT_* (0 = not an image)
-  - `img_decode` — int img_decode(const uint8_t *d, size_t n, int fmt, Image *out) -> 0 or IMG_E_*
-  - `img_alloc` — int img_alloc(Image *img, int w, int h) -> 0, IMG_E_CORRUPT (bad size) or IMG_E_NOMEM
-  - `img_free` — void img_free(Image *img) -- safe on an empty image
-  - `img_fit` — Largest size with the source aspect ratio that fits the box (scales up and down), >= 1x1.
-  - `img_scale` — void img_scale(const Image *src, uint8_t *dst_rgba, int ow, int oh)
-  - `img_scale_rect` — Area-averaged downscale / nearest upscale of rect {x,y,w,h} into ow x oh RGBA buffer.
+- **`src/fs/img_core.c`**
+  - `img_detect` — `int img_detect(const uint8_t *d, size_t n, const char *path)`
+  - `img_decode` — `int img_decode(const uint8_t *d, size_t n, int fmt, Image *out)`
+  - `img_alloc` — `int img_alloc(Image *img, int w, int h)`
+  - `img_free` — `void img_free(Image *img)`
+  - `img_fit` — `ImgFit img_fit(int iw, int ih, int bw, int bh)`
+  - `img_scale_rect` — `void img_scale_rect(const Image *src, uint8_t *dst, int ow, int oh, const int *rect)`
+  - `img_scale` — `void img_scale(const Image *src, uint8_t *dst_rgba, int ow, int oh)`
 - **`src/fs/img_gif.c`**
   - `img_gif_decode` — `int img_gif_decode(const uint8_t *d, size_t n, Image *out)`
 - **`src/fs/img_jpeg.c`**

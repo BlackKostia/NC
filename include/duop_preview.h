@@ -23,13 +23,6 @@
 typedef struct PvThumbReq { uint16_t w, h; uint8_t proto, cols, pad[2]; uint32_t bg; } PvThumbReq;
 _Static_assert(sizeof(PvThumbReq) == 12, "PvThumbReq is filled by assembly");
 
-/* the image core (img_core.s until it moves to C) */
-int img_detect(const uint8_t *d, size_t n, const char *path);            /* IMG_FMT_*, 0 = not an image */
-int img_decode(const uint8_t *d, size_t n, int fmt, Image *out);         /* 0 or IMG_E_* */
-typedef struct ImgFit { uint64_t w, h; } ImgFit;                         /* eax = ow, edx = oh */
-ImgFit img_fit(int iw, int ih, int bw, int bh);
-void img_scale(const Image *src, uint8_t *dst_rgba, int ow, int oh);
-
 /* UI side (preview_io.c) */
 int fs_preview_request(const char *path, uint32_t dims, uint32_t mode, uint32_t bg);   /* seq > 0, or -1 (read synchronously) */
 int fs_preview_fd(void);                                                 /* reply fd to poll, or -1 */

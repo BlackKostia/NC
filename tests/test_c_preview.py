@@ -10,7 +10,7 @@ PV2 request / reply differential through the real helper process: text heads, im
     receive buffer (stream reset), back-to-back requests, a helper stuck on "dead storage" replaced after PV_STUCK_MS, stop
 PV3 fixed in C: Kitty output for a zero-width box divided by zero (SIGFPE; the UI never asks for one, pv_make_thumb's contract
     allows it); hardening: the decoder opens the file non-blocking and decodes regular files only
-PV4 qemu-aarch64: skipped until img_core moves to C (the image core is x86-64 assembly); PV5 mutation check
+PV4 qemu-aarch64: the C modules alone give the x86_64 results; PV5 mutation check
 """
 
 import os
@@ -28,7 +28,7 @@ import test_c_img as I  # noqa: E402  (random image generators)
 ROOT = H.ROOT
 SRCS = ["src/fs/preview_io.c", "src/fs/preview_helper.c"]
 REFS = ["tests/harness/preview_io_reference.s", "tests/harness/preview_helper_reference.s"]
-IMG = [f"src/fs/img_{m}.c" for m in ("bmp", "tga", "pnm", "gif", "png", "jpeg", "kitty", "quant", "sixel")] + ["src/fs/inflate.c"]
+IMG = [f"src/fs/img_{m}.c" for m in ("core", "bmp", "tga", "pnm", "gif", "png", "jpeg", "kitty", "quant", "sixel")] + ["src/fs/inflate.c"]
 CORE = ["src/core/string.c", "src/core/utf8.c", "src/core/memory.c", "src/core/syscall.c", "src/core/try_rt.c", "src/core/mem_prims.c"]
 PATH_MAX, CAP_BIG = 4096, 16 + 160 * 100 * 4 + 2048
 
@@ -38,12 +38,9 @@ def build(arch: str, t: Path, srcs: list[str] | None = None) -> Path:
     inc = ["-I", str(ROOT / f"include/os/linux/{arch}"), "-I", str(ROOT / "include")]
     asm = H.ARCHS[arch]["as_"]
     extra: list[Path] = []
-    for name, src in (("img_core", ROOT / "src/fs/img_core.s"), ("pal_uring", ROOT / f"src/os/linux/{arch}/pal_uring.s")):
-        if name == "img_core" and arch != "x86_64":
-            continue
-        o = t / f"{name}.o"
-        subprocess.run([*asm, *inc, str(src), "-o", str(o)], check=True, capture_output=True)
-        extra.append(o)
+    o = t / "pal_uring.o"
+    subprocess.run([*asm, *inc, str(ROOT / f"src/os/linux/{arch}/pal_uring.s"), "-o", str(o)], check=True, capture_output=True)
+    extra.append(o)
     if arch == "x86_64":
         refs = []
         for r in REFS:
@@ -224,7 +221,12 @@ def main() -> None:
         scripts = (thumbs, ipc, test_fixed(exe, t))
         expect = tuple(run(exe, "c", sc) for sc in scripts)
         if H.available("aarch64"):
-            print("[SKIP] PV4: img_core.s has no aarch64 port yet (the C image path is exercised once img_core moves to C)")
+            a64 = build("aarch64", t / "a64")
+            for sc, e in zip(scripts[:2], expect[:2]):
+                assert run(a64, "c", sc, "aarch64") == e, "qemu-aarch64 differs from x86_64"
+            print("[PASS] PV4. qemu-aarch64: the C modules give the x86_64 results (thumbnails and the helper protocol)")
+        else:
+            print("[SKIP] PV4: aarch64 toolchain/qemu not installed")
         test_mutants(t, scripts, expect)
     print("ALL C PREVIEW TESTS PASSED.")
 
