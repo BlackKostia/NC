@@ -108,6 +108,7 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("tests/harness/cli_parse_cli.c", ("tests/test_headless.py",)),
     ("src/core/try_rt*", ("tests/test_c_try.py", "tests/test_try_using_and_security.py")),
     ("tests/harness/try_*", ("tests/test_c_try.py",)),
+    ("tools/gen_abi.py", ("tests/test_gen_abi.py", "tests/test_abi_layouts.py")),
     ("tools/gen_i18n.py", ("tests/test_c_i18n_table.py", "tests/test_c_i18n.py", "tests/test_i18n_hook.py", "tests/test_headless.py")),
     ("lang/*", ("tests/test_lang_packs.py", "tests/test_i18n_hook.py")),
     ("src/tui/kbd_*", ("tests/test_kbd_layout.py",)),

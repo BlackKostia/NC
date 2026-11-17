@@ -296,6 +296,11 @@ $(BUILD)/i18n_slots.h: tools/gen_i18n.py include/types.inc
 	@mkdir -p $(BUILD)
 	python3 tools/gen_i18n.py --out-slots $@
 
+# C structs of the assembler's classes and .struct layouts (tools/gen_abi.py; hand-written duop_*.h structs are skipped)
+$(BUILD)/duop_classes.h: tools/gen_abi.py include/classes.inc include/dialogs_ext.inc include/types.inc include/pal.inc include/config.inc include/oop.inc $(wildcard include/duop_*.h)
+	@mkdir -p $(BUILD)
+	python3 tools/gen_abi.py --out $@
+
 $(BUILD)/i18n_en.c: tools/gen_i18n.py src/tui/i18n_en.lang include/types.inc
 	@mkdir -p $(BUILD)
 	python3 tools/gen_i18n.py --out $@
@@ -402,6 +407,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py
+	python3 tests/test_gen_abi.py
 	python3 tests/test_pty.py
 	python3 tests/test_fs_reliability.py
 	python3 tests/test_performance_dir.py
