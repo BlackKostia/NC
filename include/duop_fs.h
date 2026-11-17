@@ -139,3 +139,6 @@ int nav_frecency_count(void);
 const char *nav_frecency_get(int idx);
 int nav_frecency_score(int idx);
 int nav_frecency_match(const char *substr, int *out_indices, int max_out);
+
+/* ---- git status guard (git_trust.c) ---- */
+int git_repo_trusted(const char *dotgit);                      /* "<worktree>/.git": 1 when `git status` may run there (plain dir, vetted local config), else 0 */

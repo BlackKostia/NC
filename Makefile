@@ -89,7 +89,6 @@ SRCS := \
 	src/fs/archive_extract.s \
 	src/fs/git_status.s \
 	src/fs/git_status_query.s \
-	src/fs/git_trust.s \
 	src/ui/header_bar.s \
 	src/ui/header_bar_render.s \
 	src/ui/header_bar_git.s \
@@ -233,7 +232,8 @@ C_SRCS := \
 	src/fs/trash_dirs.c \
 	src/fs/trash_undo.c \
 	src/fs/nav_state.c \
-	src/fs/nav_persist.c
+	src/fs/nav_persist.c \
+	src/fs/git_trust.c
 
 PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_os.s \
@@ -348,6 +348,7 @@ test: $(TARGET)
 	python3 tests/test_c_du_populate.py
 	python3 tests/test_c_trash.py
 	python3 tests/test_c_nav_state.py
+	python3 tests/test_c_git_trust.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_abi_layouts.py
 	python3 tests/test_pty.py

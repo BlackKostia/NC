@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/git_trust.c replaced (tests/test_c_git_trust.py diffs against it)
 # src/fs/git_trust.s - may `git status` run in this repository? (code-execution guard)
 #
 # `git status` runs programs named by the repository's own configuration: filter drivers

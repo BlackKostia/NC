@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 743
+- **Exported `.global` Symbols**: 742
 
 ## Structs (`include/*.inc`)
 
@@ -522,8 +522,6 @@
   - `git_lookup` — int git_lookup(DirModel *dm, const char *name) -> status char or 0
   - `git_branch` — const char *git_branch(DirModel *dm) -> branch string or ""
   - `g_git_defer`
-- **`src/fs/git_trust.s`**
-  - `git_repo_trusted` — int git_repo_trusted(const char *dotgit) -- dotgit = "<worktree>/.git"; 1 = trusted, 0 = refuse
 - **`src/fs/img_bmp.c`**
   - `img_bmp_decode` — `int img_bmp_decode(const uint8_t *d, size_t n, Image *out)`
 - **`src/fs/img_core.s`**
