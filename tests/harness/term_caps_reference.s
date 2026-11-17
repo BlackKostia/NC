@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/tui/term_caps.c replaced (tests/test_c_input.py diffs against it)
 # Terminal graphics capabilities: which image protocol to use (Kitty / Sixel / quadrant or half
 # blocks), the cell size in pixels (TIOCGWINSZ or the CSI 16 t reply) and a filter that removes
 # terminal replies (DA1 "CSI ? ... c", "CSI 6 ; h ; w t") from the input stream before key parsing.

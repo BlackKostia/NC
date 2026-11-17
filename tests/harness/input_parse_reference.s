@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/tui/input_parse.c replaced (tests/test_c_input.py diffs against it)
 # Input Event Decoder: Keyboard (CSI/SS3/UTF-8/Ctrl/Alt) + SGR 1006 & X10 Mouse — input parse (split from input.s)
 
 .intel_syntax noprefix

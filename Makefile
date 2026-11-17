@@ -53,10 +53,6 @@ SRCS := \
 	src/tui/screen_buffer.s \
 	src/tui/screen_text.s \
 	src/tui/screen_out.s \
-	src/tui/input.s \
-	src/tui/term_caps.s \
-	src/tui/input_parse.s \
-	src/tui/input_seq.s \
 	src/fs/dir_model.s \
 	src/fs/dir_model_load.s \
 	src/fs/dir_model_stream.s \
@@ -243,7 +239,11 @@ C_SRCS := \
 	src/tui/kbd_map.c \
 	src/tui/kbd_layout.c \
 	src/tui/data_dirs.c \
-	src/tui/screen_rect.c
+	src/tui/screen_rect.c \
+	src/tui/term_caps.c \
+	src/tui/input.c \
+	src/tui/input_parse.c \
+	src/tui/input_seq.c
 
 PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_os.s \
@@ -341,6 +341,7 @@ test: $(TARGET)
 	python3 tests/test_c_config_expand.py
 	python3 tests/test_c_config.py
 	python3 tests/test_c_tui_data.py
+	python3 tests/test_c_input.py
 	python3 tests/test_abi_layouts.py
 	python3 tests/test_pty.py
 	python3 tests/test_fs_reliability.py

@@ -13,12 +13,7 @@
 #define I18N_ID_LEN 16
 #define CFG_FILE_HARD 1048576u                 /* bigger files keep their head and raise g_cfg_warn */
 
-#define MOD_ALT 2
-#define MOD_CTRL 4
-#define KEY_F1 0x100011
-#define KEY_F10 0x10001A
-#define KEY_F11 0x10001B
-#define KEY_F12 0x10001C
+#include "duop_keys.h"
 
 enum { SORT_NAME = 0, SORT_SIZE = 1, SORT_MTIME = 2, SORT_EXT = 3 };
 

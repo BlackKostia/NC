@@ -182,13 +182,13 @@ def test_m5_bulk_rename_noreplace() -> None:
 
 def test_m6_ppoll_error_exits_cleanly() -> None:
     """M6: Persistent ppoll error (!= EINTR) exits UI cleanly instead of spinning."""
-    with open(os.path.join(REPO_ROOT, "src/tui/input.s")) as f:
+    with open(os.path.join(REPO_ROOT, "src/tui/input.c")) as f:
         inp = f.read()
-    with open(os.path.join(REPO_ROOT, "src/tui/input_parse.s")) as f:
+    with open(os.path.join(REPO_ROOT, "src/tui/input_parse.c")) as f:
         ip = f.read()
     with open(os.path.join(REPO_ROOT, "src/app/app_loop.s")) as f:
         al = f.read()
-    assert "-2" in inp and "cmp eax, -2" in ip and ".Larun_fatal_evt" in al, (
+    assert "return -2" in inp and "r == -2" in ip and ".Larun_fatal_evt" in al, (
         "Fatal ppoll error must propagate to App_run exit"
     )
     print("[PASS] M6. Persistent ppoll error exits UI cleanly")

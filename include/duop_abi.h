@@ -100,6 +100,7 @@ void      os_munmap(void *addr, size_t len);
 void      os_sigbus_guard_install(void);
 int64_t   os_clock_ms(void);
 void      os_get_winsize(int *cols, int *rows);
+void      os_get_winsize_px(int *xpix, int *ypix);   /* terminal size in pixels (0, 0 when not reported) */
 void      os_term_save_and_raw(void);
 int       os_term_restore(void);
 void      os_signals_worker_mode(void);

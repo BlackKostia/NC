@@ -1,11 +1,11 @@
 /* include/duop_tui.h - C view of the terminal layer (the .c files under src/tui): value types, ScreenBuffer, data-file scanning.
  * Layouts mirror include/types.inc and classes.inc exactly; tests/test_abi_layouts.py compares every offset. */
 #pragma once
+#include "duop_keys.h"
 #include "duop_oop.h"
 
 #define KBD_MAP_MAX 1024           /* keyboard layout entries {codepoint -> Latin key}, all files */
 #define KBD_FILE_MAX 16384         /* bytes read from one *.layout file */
-#define KEY_UP 0x100001u           /* first special key code; everything below is a Unicode codepoint */
 
 #define CELL_WIDE_TAIL 0xFFFFFFFFu
 
@@ -27,6 +27,24 @@ typedef struct Theme {
     uint32_t pad;
 } Theme;
 _Static_assert(sizeof(Theme) == 128, "Theme is shared with assembly");
+
+/* ---- Input (src/tui/input*.c): one decoded keyboard/mouse/resize event, 32 bytes ---- */
+typedef struct Event {
+    int32_t type;                  /* EVT_* */
+    int32_t mods;                  /* MOD_* */
+    int32_t key;                   /* Unicode codepoint or KEY_* */
+    int32_t mouse_x, mouse_y;      /* 0-based cell */
+    int32_t mouse_btn;             /* MOUSE_* */
+    int32_t mouse_kind;            /* MACT_* */
+    int32_t lat;                   /* layout-independent hotkey: the Latin key under `key` (*.layout files), else = key */
+} Event;
+_Static_assert(sizeof(Event) == 32, "Event is shared with assembly");
+
+#define IMG_PROTO_QUAD 0           /* 2x2 quadrant blocks (default text-cell output) */
+#define IMG_PROTO_HALF 1           /* 1x2 half blocks (DUOP_IMG_MODE=halfblock) */
+#define IMG_PROTO_SIXEL 2          /* DEC Sixel (DA1 reports ;4 or DUOP_IMG_MODE=sixel) */
+#define IMG_PROTO_KITTY 3          /* Kitty graphics protocol, f=32 RGBA */
+#define IN_BUF_SIZE 512            /* raw input bytes buffered between reads */
 
 /* ---- ScreenBuffer (classes.inc): double-buffered cell grid + the output byte stream ---- */
 typedef struct ScreenBuffer {
@@ -58,3 +76,34 @@ intptr_t data_read_file(const char *path, char *buf, size_t cap);   /* bytes rea
 
 int ScreenBuffer_rect_changed(ScreenBuffer *s, int x, int y, int w, int h);   /* 1 when the next flush rewrites a cell of the rect */
 void ScreenBuffer_rect_invalidate(ScreenBuffer *s, int x, int y, int w, int h);
+
+/* ---- Input decoder (input.c, input_parse.c, input_seq.c) ---- */
+extern uint8_t in_buf[IN_BUF_SIZE];           /* raw bytes read from stdin; the parsers consume [in_pos, in_len) */
+extern uint32_t in_pos, in_len;
+int input_next_event(Event *evt, int timeout_ms);   /* 1 event, 0 timeout / none, -2 stdin EOF */
+int input_poll_event(Event *evt, int timeout_ms);   /* the same without the layout-independent key; used by modal loops */
+int input_is_eof(void);
+int input_probe_eof(void);                    /* non-blocking stdin EOF probe before raw mode */
+void input_set_wake_fd(int fd);               /* aux slot 0: background task pipe */
+void input_set_aux_fd(int slot, int fd);      /* slot 0..3; fd -1 = none: readability ends the idle wait early */
+int wait_and_read(int timeout_ms);            /* bytes read, 0 timeout, -1 EINTR, -2 EOF / fatal */
+int wait_and_read_fd(int timeout_ms, int use_aux);
+uint64_t parse_uint(const char *p);           /* leading decimal digits, wraps at 2^32 (zero-extended: asm callers store rax) */
+static inline uint32_t parse_uint_adv(const uint8_t **p)   /* the same, advancing *p past the digits */
+{
+    uint32_t v = 0, d;
+    while ((d = (uint32_t)**p - '0') <= 9) { v = v * 10 + d; (*p)++; }
+    return v;
+}
+int input_parse_csi(Event *evt);              /* ESC [ ... at in_buf[in_pos] */
+int input_parse_ss3(Event *evt);              /* ESC O x */
+
+/* ---- Terminal capabilities (term_caps.c) ---- */
+typedef struct { uint64_t w, h; } CellPx;     /* rax:rdx, as the asm callers read eax / edx */
+void term_caps_init(char **envp);
+void term_caps_query(void);                   /* ask for DA1 (Sixel support) and the cell size in pixels */
+void term_caps_refresh(int cols, int rows);   /* cell pixels from TIOCGWINSZ, else the CSI 16 t reply */
+int term_caps_filter(uint8_t *buf, int from, int len);   /* removes terminal replies from buf[from..len); returns the bytes removed */
+int term_img_proto(void);
+CellPx term_cell_px(void);                    /* pixels per cell, 0 = unknown */
+int term_caps_changed(void);                  /* 1 once after the protocol or cell size changed */

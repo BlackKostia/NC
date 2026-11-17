@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/tui/input_seq.c replaced (tests/test_c_input.py diffs against it)
 # Input CSI/SS3 & Mouse Sequence Parser (split from input_parse.s)
 
 .intel_syntax noprefix

@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 21
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 798
+- **Exported `.global` Symbols**: 787
 
 ## Structs (`include/*.inc`)
 
@@ -347,23 +347,13 @@
   - `i18n_key_offset` — int i18n_key_offset(const char *key) -> byte offset of the LangStrings slot, or -1
 - **`src/tui/i18n_pack.s`**
   - `i18n_load` — void i18n_load(char **envp) -- (re)build the language registry from the packs on the data path
-- **`src/tui/input.s`**
-  - `input_next_event` — int input_next_event(Event *evt, int timeout_ms) -> 1 if event, 0 on timeout, -2 on stdin EOF
-  - `input_is_eof` — int input_is_eof(void)
-  - `input_probe_eof` — int input_probe_eof(void) -- non-blocking stdin EOF probe before raw mode
-  - `input_set_wake_fd` — void input_set_wake_fd(int fd) -- aux slot 0 (background task pipe)
-  - `input_set_aux_fd` — early (returning "no event"), so the app loop reacts to them instantly.
-  - `wait_and_read` — Appends incoming bytes to in_buf (compacting if needed). Returns bytes read, 0 on timeout, -1 on EINTR.
-  - `wait_and_read_fd` — Same as wait_and_read, but also returns 0 early when an aux fd becomes ready.
-  - `parse_uint` — Helper: parse unsigned decimal integer starting at rdi, returns value in eax, updated ptr in rdi
-  - `in_buf`
-  - `in_pos`
-  - `in_len`
-- **`src/tui/input_parse.s`**
-  - `input_poll_event` — Returns 1 if an event was populated, 0 on timeout/none.
-- **`src/tui/input_seq.s`**
-  - `input_parse_csi` — int input_parse_csi(Event *evt)
-  - `input_parse_ss3` — int input_parse_ss3(Event *evt)
+- **`src/tui/input.c`**
+  - `input_probe_eof` — `int input_probe_eof(void)`
+  - `input_next_event` — `int input_next_event(Event *evt, int timeout_ms)`
+  - `parse_uint` — `uint64_t parse_uint(const char *p)`
+  - `wait_and_read_fd` — `int wait_and_read_fd(int timeout_ms, int use_aux)`
+- **`src/tui/input_parse.c`**
+  - `input_poll_event` — `int input_poll_event(Event *evt, int timeout_ms)`
 - **`src/tui/kbd_layout.c`**
   - `kbd_layout_load` — `void kbd_layout_load(char **envp)`
 - **`src/tui/kbd_map.c`**
@@ -395,14 +385,12 @@
   - `ScreenBuffer_draw_text_pad` — Draws utf8 up to `width` columns and pads remaining columns with spaces using current pen.
   - `out_ensure` — int out_ensure(ScreenBuffer *this, size_t need) -> 0 ok, -ENOMEM on failure
   - `out_byte` — void out_byte(ScreenBuffer *this, uint8_t b)
-- **`src/tui/term_caps.s`**
-  - `term_caps_init` — void term_caps_init(char **envp)
-  - `term_caps_query` — void term_caps_query(void) -- ask for DA1 (Sixel support) and the cell size in pixels
-  - `term_caps_refresh` — void term_caps_refresh(int cols, int rows) -- cell pixels from TIOCGWINSZ, else the CSI reply
-  - `term_caps_filter` — int term_caps_filter(uint8_t *buf, int from, int len) -> bytes removed from buf[from..len)
-  - `term_img_proto` — int term_img_proto(void)
-  - `term_cell_px` — (int w, int h) term_cell_px(void) -> eax = cell width, edx = cell height in pixels (0 = unknown)
-  - `term_caps_changed` — int term_caps_changed(void) -> 1 once after the protocol or cell size changed
+- **`src/tui/term_caps.c`**
+  - `term_caps_init` — `void term_caps_init(char **envp)`
+  - `term_caps_query` — `void term_caps_query(void)`
+  - `term_caps_refresh` — `void term_caps_refresh(int cols, int rows)`
+  - `term_caps_changed` — `int term_caps_changed(void)`
+  - `term_caps_filter` — `int term_caps_filter(uint8_t *buf, int from, int len)`
 - **`src/tui/theme.c`**
   - `theme_get` — `const Theme *theme_get(int idx)`
 
