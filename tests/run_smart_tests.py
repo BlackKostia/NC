@@ -59,7 +59,7 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/app/app_menu*", ("tests/test_pkg_extensions.py", "tests/test_pkg_improvements.py", "tests/test_cmd_expand_safety.py")),
     ("src/app/app_cmdline*", ("tests/test_cmd_expand_safety.py",)),
     ("src/fs/img_*", ("tests/test_img_preview.py", "tests/test_image_formats.py", "tests/test_image_quality.py", "tests/test_decoder_bounds.py")),
-    ("src/fs/preview_*", ("tests/test_img_preview.py", "tests/test_event_loop.py")),
+    ("src/fs/preview_*", ("tests/test_c_preview.py", "tests/test_img_preview.py", "tests/test_event_loop.py", "tests/test_medium_fixes.py")),
     ("src/ui/img_*", ("tests/test_img_preview.py", "tests/test_image_quality.py")),
     ("src/ui/preview_*", ("tests/test_img_preview.py", "tests/test_ui_visual.py")),
     ("src/fs/disk_usage*", ("tests/test_disk_usage.py", "tests/test_du_progress.py", "tests/test_du_sizes.py", "tests/test_c_du_populate.py")),

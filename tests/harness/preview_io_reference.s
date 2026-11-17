@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/preview_io.c + preview_helper.c replaced (tests/test_c_preview.py diffs against it)
 # Async Preview Reader: a tiny helper process reads file heads for the live preview
 #
 # The UI never touches the disk for previews: it writes {seq, path} requests into a

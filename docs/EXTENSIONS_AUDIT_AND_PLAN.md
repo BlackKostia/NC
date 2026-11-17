@@ -17,7 +17,7 @@
    - `pkg_action_build_argv` ([pkg_actions.s](file:///home/chessplayer/DEV/NC/src/fs/pkg_actions.s)) і `sys_exec_argv` ([syscall.s](file:///home/chessplayer/DEV/NC/src/core/syscall.s)) підставляють `{dir}`, `{other_dir}`, `{file}`, `{path}`, `{marked_file}` напряму в `argv[]` системного виклику `execve`, оминаючи `/bin/sh -c`.
 
 4. **Ізольований асинхронний прев'ювер із таймаутом**
-   - Зовнішні прев'ювери (`preview_ext` + `preview_exec`) виконуються у фоновому процесі [preview_helper.s](file:///home/chessplayer/DEV/NC/src/fs/preview_helper.s) через `pipe` із жорстким таймаутом `350 ms` і `SIGKILL` ([pkg_preview.s](file:///home/chessplayer/DEV/NC/src/fs/pkg_preview.s)), що гарантує чутливість інтерфейсу.
+   - Зовнішні прев'ювери (`preview_ext` + `preview_exec`) виконуються у фоновому процесі [preview_helper.c](../src/fs/preview_helper.c) через `pipe` із жорстким таймаутом `350 ms` і `SIGKILL` ([pkg_preview.s](file:///home/chessplayer/DEV/NC/src/fs/pkg_preview.s)), що гарантує чутливість інтерфейсу.
 
 5. **Контроль цілісності та чисте видалення**
    - Перевірка SHA-256 перед розпакуванням, збереження хешу в `sha256` для `duop pkg verify`, облік активованих `.lang`/`.layout` у `files.list` для чистого `duop pkg remove`.

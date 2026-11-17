@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/preview_io.c + preview_helper.c replaced (tests/test_c_preview.py diffs against it)
 # Preview helper process: serves {seq, path, thumb dims} requests from fs_preview_request,
 # reads the file head without ever blocking the UI and, for images, decodes the whole file and
 # replies with an RGBA thumbnail (IMG_THUMB_HDR header + pixels) sized for the preview box.

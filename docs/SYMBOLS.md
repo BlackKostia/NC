@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 739
+- **Exported `.global` Symbols**: 736
 
 ## Structs (`include/*.inc`)
 
@@ -609,17 +609,14 @@
   - `pkg_vfs_load_dir` — int pkg_vfs_load_dir(char **envp, DirModel *model, const char *uri) -> 0 ok, -1 err
   - `pkg_vfs_parent_uri` — int pkg_vfs_parent_uri(const char *uri, char *out, int cap) -> 1 has parent, 0 exit VFS
   - `pkg_vfs_read_uri` — int pkg_vfs_read_uri(char **envp, const char *uri, char *out_tmp_path, int cap) -> 0 ok, -1 err
-- **`src/fs/preview_helper.s`**
-  - `pv_helper_main` — ------------------------------------------------------------------------------
-  - `pv_make_thumb` — 0 when the file is not an image.
-- **`src/fs/preview_io.s`**
-  - `fs_preview_request` — -> sequence number (> 0), or -1 (caller reads sync)
-  - `fs_preview_fd` — int fs_preview_fd(void) -> reply fd to poll, or -1
-  - `fs_preview_receive` — Replies to older requests are consumed too (caller compares seq).
-  - `fs_preview_stop` — void fs_preview_stop(void) -- close the request pipe (helper exits) and reap it
-  - `pv_read_exact` — ssize_t pv_read_exact(int fd, void *buf, size_t n) -- blocking; 0 on EOF (also used by the helper)
-  - `fs_preview_shm` — uint8_t *fs_preview_shm(void) -> image payload of the latest reply (valid while the helper idles)
-  - `fs_preview_shm_slot` — uint8_t *fs_preview_shm_slot(uint32_t seq) -> ping-pong SHM slot for seq
+- **`src/fs/preview_helper.c`**
+  - `pv_make_thumb` — `size_t pv_make_thumb(const char *path, const uint8_t *head, size_t head_len, const PvThumbReq *req, uint8_t *out, size_t cap)`
+  - `pv_helper_main` — `void pv_helper_main(int req_fd, int resp_fd)`
+- **`src/fs/preview_io.c`**
+  - `pv_read_exact` — `intptr_t pv_read_exact(int fd, void *buf, size_t n)`
+  - `fs_preview_stop` — `void fs_preview_stop(void)`
+  - `fs_preview_request` — `int fs_preview_request(const char *path, uint32_t dims, uint32_t mode, uint32_t bg)`
+  - `fs_preview_receive` — `int fs_preview_receive(void *buf, size_t cap, uint32_t *out_seq, size_t *out_len, size_t *out_tlen)`
 - **`src/fs/task.s`**
   - `fs_progress_begin` — Publishes basename(path) as the current item using the TaskShared.seq seqlock.
   - `fs_progress_bytes` — void fs_progress_bytes(uint64_t n) -- preserves every register

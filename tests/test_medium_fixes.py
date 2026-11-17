@@ -236,13 +236,13 @@ def test_m7_mem_alloc_big_overflow_guard() -> None:
 
 
 def test_m8_preview_fcntl_checked() -> None:
-    """M8: preview_io.s checks os_set_nonblock return values on both preview pipes."""
-    txt = open(os.path.join(REPO_ROOT, "src/fs/preview_io.s")).read()
-    after = txt.split("call os_set_nonblock", 1)[1]
-    assert "js " in after[:120], "First os_set_nonblock result not checked in preview_io.s"
-    after2 = after.split("call os_set_nonblock", 1)[1]
-    assert "js " in after2[:120], "Second os_set_nonblock result not checked in preview_io.s"
-    print("[PASS] M8. preview_io.s checks os_set_nonblock results")
+    """M8: preview_io.c checks os_set_nonblock return values on both preview pipes."""
+    txt = open(os.path.join(REPO_ROOT, "src/fs/preview_io.c")).read()
+    body = txt.split("static intptr_t pv_setup_parent_pipes", 1)[1].split("\n}\n", 1)[0]
+    assert body.count("os_set_nonblock(") == 2, "both preview pipes are switched to non-blocking"
+    assert "int r = os_set_nonblock(" in body and "if (r >= 0) r = os_set_nonblock(" in body and "if (r < 0) {" in body, \
+        "os_set_nonblock results not checked in preview_io.c"
+    print("[PASS] M8. preview_io.c checks os_set_nonblock results")
 
 
 if __name__ == "__main__":
