@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 768
+- **Exported `.global` Symbols**: 766
 
 ## Structs (`include/*.inc`)
 
@@ -445,20 +445,16 @@
 - **`src/fs/dir_model_stream.s`**
   - `DirModel_step_load` — ==============================================================================
   - `DirModel_cancel_load` — ==============================================================================
-- **`src/fs/dir_search.s`**
-  - `ds_ensure_model_cap` — int ds_ensure_model_cap(DirModel *m, size_t add_name_bytes)
-  - `ds_append_entry` — void ds_append_entry(DirModel *m, const char *rel_name, const FileStat *st)
-  - `ds_append_parent` — hidden by the live filter, never selectable), has_dotdot = 1 (sort keeps it first), not a dir.
-  - `ds_join_rel` — void ds_join_rel(char *dst, const char *prefix, const char *name)
-  - `dir_search_run` — int dir_search_run(DirModel *m, const char *root_path, const char *mask, const char *grep)
-- **`src/fs/dir_search_match.s`**
-  - `ds_glob_ci` — ==============================================================================
-  - `ds_match_mask` — ==============================================================================
-  - `ds_grep_file` — ==============================================================================
-- **`src/fs/dir_search_reset.s`**
-  - `ds_reset_model` — void ds_reset_model(DirModel *m, const char *root_path)
-- **`src/fs/dir_search_walk.s`**
-  - `ds_walk_dir` — void ds_walk_dir(SearchCtx *ctx, int dirfd, const char *rel_prefix, int depth)
+- **`src/fs/dir_search.c`**
+  - `ds_ensure_model_cap` — `int ds_ensure_model_cap(DirModel *m, size_t add_name_bytes)`
+  - `ds_append_entry` — `int ds_append_entry(DirModel *m, const char *rel_name, const FileStat *st)`
+  - `ds_append_parent` — `int ds_append_parent(DirModel *m)`
+  - `ds_join_rel` — `void ds_join_rel(char *dst, const char *prefix, const char *name)`
+  - `dir_search_run` — `int dir_search_run(DirModel *m, const char *root, const char *mask, const char *grep)`
+- **`src/fs/dir_search_match.c`**
+  - `ds_glob_ci` — `int ds_glob_ci(const char *str, const char *pat)`
+  - `ds_match_mask` — `int ds_match_mask(const char *name, const char *mask, int has_glob)`
+  - `ds_grep_file` — `int ds_grep_file(int dirfd, const char *name, const char *pat, size_t pat_len, char *buf)`
 - **`src/fs/dir_sort.s`**
   - `extract_radix_key` — ==============================================================================
   - `cmp_indices` — ==============================================================================

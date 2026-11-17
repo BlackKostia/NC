@@ -60,3 +60,13 @@ typedef struct DirModel {
 #define DIRMODEL_SIZE (offsetof(DirModel, flt_applied) + FILTER_MAX)
 
 int dir_diff_mark(DirModel *active, DirModel *other);   /* marks entries missing in / differing from `other`; their count */
+
+/* ---- recursive search into a virtual panel (dir_search*.c) ---- */
+int dir_search_run(DirModel *m, const char *root_path, const char *mask, const char *grep);   /* hits, or -errno when root cannot be opened */
+int ds_match_mask(const char *name, const char *mask, int has_glob);   /* empty mask matches; has_glob: '*' '?' pattern, else case-insensitive substring */
+int ds_glob_ci(const char *str, const char *pat);
+int ds_grep_file(int dirfd, const char *name, const char *pat, size_t pat_len, char *buf);   /* 1 when pat occurs in the first 1 MiB */
+int ds_ensure_model_cap(DirModel *m, size_t add_name_bytes);    /* room for one more entry and add_name_bytes of names: 0 / -1 */
+int ds_append_entry(DirModel *m, const char *rel_name, const FileStat *st);   /* 0, or -1 when the model cannot grow */
+int ds_append_parent(DirModel *m);                              /* ".." as the newest entry (FE_IS_PARENT); 0 or < 0 */
+void ds_join_rel(char *dst, const char *prefix, const char *name);

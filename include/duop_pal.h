@@ -66,3 +66,12 @@
 #define S_IFIFO 0010000
 
 #define OS_AT_EXECFN 31                       /* auxv: path given to execve */
+
+#define PAL_DT_UNKNOWN 0                      /* d_type of a directory entry (generic Linux values) */
+#define PAL_DT_FIFO 1
+#define PAL_DT_CHR 2
+#define PAL_DT_DIR 4
+#define PAL_DT_BLK 6
+#define PAL_DT_REG 8
+#define PAL_DT_LNK 10
+#define PAL_DT_SOCK 12

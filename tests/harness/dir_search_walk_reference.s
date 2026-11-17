@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/dir_search*.c replaced (tests/test_c_dir_search.py diffs against it)
 # src/fs/dir_search.s - Recursive directory search into DirModel virtual panel — dir search walk (split from dir_search.s)
 
 .intel_syntax noprefix
