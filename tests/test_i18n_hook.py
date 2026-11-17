@@ -56,7 +56,7 @@ def main() -> None:
         print("[PASS] H2. Claude PostToolUse: a key missing from lang/uk.lang blocks with the gate report")
         shutil.copy2(ROOT / "lang/uk.lang", pack)
         out = post_edit(repo, "src/ui/info_dialog.s", "i18n-hook-ui")
-        assert out.get("decision") == "block" and "English (src/tui/i18n.s)" in out.get("reason", ""), out
+        assert out.get("decision") == "block" and "English (src/tui/i18n_en.lang)" in out.get("reason", ""), out
         print("[PASS] H3. Claude PostToolUse: UI edits get the EN + UA translation reminder")
     print("ALL I18N HOOK TESTS PASSED.")
 

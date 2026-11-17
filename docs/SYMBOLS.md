@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 740
+- **Exported `.global` Symbols**: 739
 
 ## Structs (`include/*.inc`)
 
@@ -326,16 +326,14 @@
 - **`src/tui/data_dirs.c`**
   - `data_dirs_scan` — `void data_dirs_scan(char **envp, const DataSpec *spec)`
   - `data_read_file` — `intptr_t data_read_file(const char *path, char *buf, size_t cap)`
-- **`src/tui/i18n.s`**
-  - `lang_en_table`
 - **`src/tui/i18n_env.c`**
   - `i18n_lang_reset` — `void i18n_lang_reset(void)`
   - `i18n_register` — `void i18n_register(LangStrings *tbl, const char *id)`
   - `i18n_find` — `int i18n_find(const char *s)`
   - `i18n_detect_env` — `int i18n_detect_env(char **envp)`
   - `i18n_set_lang` — `const LangStrings *i18n_set_lang(int idx)`
-- **`src/tui/i18n_keys.s`**
-  - `i18n_key_offset` — int i18n_key_offset(const char *key) -> byte offset of the LangStrings slot, or -1
+- **`src/tui/i18n_keys.c`**
+  - `i18n_key_offset` — `int i18n_key_offset(const char *key)`
 - **`src/tui/i18n_pack.c`**
   - `i18n_load` — `void i18n_load(char **envp)`
 - **`src/tui/input.c`**

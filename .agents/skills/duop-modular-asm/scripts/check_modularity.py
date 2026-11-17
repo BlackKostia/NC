@@ -139,54 +139,36 @@ def check_version_file(root: Path, errors: list[str]) -> str | None:
 
 
 def check_i18n_symmetry(root: Path, errors: list[str]) -> None:
+    """Every LangStrings slot (include/types.inc) has English text in src/tui/i18n_en.lang (compiled into build/i18n_en.c
+    by tools/gen_i18n.py) and a Ukrainian translation in lang/uk.lang; the slot size is a whole number of pointers."""
     types_path = root / "include/types.inc"
-    i18n_path = root / "src/tui/i18n.s"
-    if not types_path.is_file() or not i18n_path.is_file():
-        errors.append("Missing include/types.inc or src/tui/i18n.s for i18n check")
+    en_path = root / "src/tui/i18n_en.lang"
+    if not types_path.is_file() or not en_path.is_file():
+        errors.append("Missing include/types.inc or src/tui/i18n_en.lang for i18n check")
         return
 
-    types_text = types_path.read_text(encoding="utf-8")
-    m = re.search(
-        r"LangStrings\.code:.*?LangStrings\._size:", types_text, re.S
-    )
+    m = re.search(r"LangStrings\.code:.*?LangStrings\._size:", types_path.read_text(encoding="utf-8"), re.S)
     if not m:
         errors.append("Could not parse LangStrings struct in include/types.inc")
         return
-
-    expected_slots = 0
     for line in m.group(0).splitlines():
-        clean = strip_asm_comment_and_strings(line)
-        sm = re.search(r"\.space\s+(\d+(?:\s*\*\s*\d+)?)", clean)
-        if sm:
-            expr = sm.group(1).replace(" ", "")
-            if "*" in expr:
-                a, b = expr.split("*", 1)
-                bytes_sz = int(a) * int(b)
-            else:
-                bytes_sz = int(expr)
-            if bytes_sz % 8 != 0:
-                errors.append(f"LangStrings non-8-byte field size: {bytes_sz}")
-            expected_slots += bytes_sz // 8
-
-    i18n_text = i18n_path.read_text(encoding="utf-8")
-    tm = re.search(
-        r"lang_en_table:\s*(.*?)\.if\s*\(\.\s*-\s*lang_en_table\)\s*!=\s*LangStrings\._size",
-        i18n_text,
-        re.S,
-    )
-    if not tm:
-        errors.append(
-            "Missing lang_en_table or compile-time size guard (.if (. - lang_en_table) != LangStrings._size) in src/tui/i18n.s"
-        )
-    else:
-        ptrs = 0
-        for line in tm.group(1).splitlines():
-            clean = strip_asm_comment_and_strings(line).strip()
-            if clean.startswith(".quad"):
-                ptrs += len([x for x in clean[5:].split(",") if x.strip()])
-        if ptrs != expected_slots:
-            errors.append(f"lang_en_table has {ptrs} pointers, but LangStrings has {expected_slots} pointer slots")
-    check_lang_packs(root, m.group(0), errors)
+        sm = re.search(r"\.space\s+(\d+)(?:\s*\*\s*(\d+))?", strip_asm_comment_and_strings(line))
+        if sm and (int(sm.group(1)) * int(sm.group(2) or 1)) % 8:
+            errors.append(f"LangStrings non-8-byte field size: {line.strip()}")
+    keys = langstrings_keys(m.group(0))
+    seen: list[str] = []
+    for idx, raw in enumerate(en_path.read_text(encoding="utf-8").splitlines(), start=1):
+        km = re.match(r"^\s*([A-Za-z0-9_.]+)\s*=", raw)
+        if km:
+            seen.append(km.group(1))
+            if km.group(1) not in keys:
+                errors.append(f"src/tui/i18n_en.lang:{idx}: unknown key '{km.group(1)}'")
+    missing = [k for k in keys if k not in seen]
+    if missing:
+        errors.append(f"src/tui/i18n_en.lang misses English text for: {', '.join(missing)}")
+    if len(seen) != len(set(seen)):
+        errors.append("src/tui/i18n_en.lang defines a key twice")
+    check_lang_packs(root, keys, errors)
 
 
 def langstrings_keys(struct_text: str) -> list[str]:
@@ -201,19 +183,8 @@ def langstrings_keys(struct_text: str) -> list[str]:
     return keys
 
 
-def check_lang_packs(root: Path, struct_text: str, errors: list[str]) -> None:
-    """i18n_keys.s names every LangStrings slot; lang/uk.lang (Ukrainian) translates every key and
-    no shipped pack uses an unknown key."""
-    keys = langstrings_keys(struct_text)
-    keys_path = root / "src/tui/i18n_keys.s"
-    if not keys_path.is_file():
-        errors.append("Missing src/tui/i18n_keys.s (language pack key table)")
-        return
-    table = re.findall(r"^\s*LK\s+([\w.]+)\s*,", keys_path.read_text(encoding="utf-8"), re.M)
-    if table != keys:
-        missing = sorted(set(keys) - set(table))
-        extra = sorted(set(table) - set(keys))
-        errors.append(f"src/tui/i18n_keys.s out of sync with LangStrings (missing {missing}, extra {extra}, or order)")
+def check_lang_packs(root: Path, keys: list[str], errors: list[str]) -> None:
+    """lang/uk.lang (Ukrainian) translates every key and no shipped pack uses an unknown key."""
     packs = sorted((root / "lang").glob("*.lang"))
     if not any(p.name == "uk.lang" for p in packs):
         errors.append("Missing lang/uk.lang (Ukrainian interface pack)")

@@ -306,19 +306,19 @@ def handle_post_tool_use(payload: dict, root: Path) -> dict:
                             "feedback": (
                                 "i18n symmetry gate (EN + UA) failed after editing " + rel + ":\n"
                                 + (proc.stdout + proc.stderr).strip()
-                                + "\nUpdate include/types.inc, src/tui/i18n.s (EN), src/tui/i18n_keys.s, and lang/uk.lang (UA) together."
+                                + "\nUpdate include/types.inc, src/tui/i18n_en.lang (EN) and lang/uk.lang (UA) together (the key table is generated from types.inc)."
                             )
                         }
                 if rel.startswith(("src/ui/", "src/app/")) and not any(
-                    f in ("src/tui/i18n.s", "lang/uk.lang") for f in state.get("modified_files") or []
+                    f in ("src/tui/i18n_en.lang", "lang/uk.lang") for f in state.get("modified_files") or []
                 ) and not state.get("i18n_reminded"):
                     state["i18n_reminded"] = True
                     save_state(spath, state)
                     return {
                         "feedback": (
                             "UI/App file edited (" + rel + "): ensure any new or changed user-visible text "
-                            "is immediately translated into both default project languages — English (src/tui/i18n.s) "
-                            "and Ukrainian (lang/uk.lang), with matching keys in include/types.inc and src/tui/i18n_keys.s."
+                            "is immediately translated into both default project languages — English (src/tui/i18n_en.lang) "
+                            "and Ukrainian (lang/uk.lang), with the slot declared in include/types.inc."
                         )
                     }
             if lean_target(rel) and (root / rel).is_file():

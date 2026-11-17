@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that build/i18n_en.c (tools/gen_i18n.py from src/tui/i18n_en.lang) replaced (tests/test_c_i18n_table.py diffs against it)
 # Internationalization (i18n): the built-in English string table -- the base and fallback of every
 # interface language. Other languages are *.lang packs loaded at runtime (i18n_pack.s, lang/uk.lang).
 .intel_syntax noprefix

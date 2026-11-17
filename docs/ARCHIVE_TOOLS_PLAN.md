@@ -69,7 +69,7 @@
    - `.zip` / ZIP64: запис `Local File Header` + стиснуті/stored дані + формування `Central Directory` в пам'яті/тимчасовому буфері + `EOCD` (та автоматичний перехід на ZIP64 при розмірі > 4 ГіБ або > 65535 файлів).
 3. **UI та інтеграція:**
    - Додати дію пакування (наприклад, у `PopupMenu` та/або гарячу клавішу `Alt+P`) із діалогом вибору імені та формату (`.tar.gz`, `.zip`, `.tar`).
-   - Синхронні EN/UA рядки в `LangStrings` ([types.inc](file:///home/chessplayer/DEV/NC/include/types.inc), [i18n.s](file:///home/chessplayer/DEV/NC/src/tui/i18n.s), [i18n_keys.s](file:///home/chessplayer/DEV/NC/src/tui/i18n_keys.s), [lang/uk.lang](file:///home/chessplayer/DEV/NC/lang/uk.lang)).
+   - Синхронні EN/UA рядки в `LangStrings` ([types.inc](file:///home/chessplayer/DEV/NC/include/types.inc), [i18n_en.lang](file:///home/chessplayer/DEV/NC/src/tui/i18n_en.lang), [lang/uk.lang](file:///home/chessplayer/DEV/NC/lang/uk.lang)).
 
 ---
 

@@ -45,8 +45,6 @@ VER_INC := $(BUILD)/version.inc
 SRCS := \
 	src/main.s \
 	src/core/memcheck.s \
-	src/tui/i18n.s \
-	src/tui/i18n_keys.s \
 	src/fs/dir_model.s \
 	src/fs/dir_model_load.s \
 	src/fs/dir_model_stream.s \
@@ -203,6 +201,7 @@ C_SRCS := \
 	src/tui/input_seq.c \
 	src/tui/i18n_env.c \
 	src/tui/i18n_pack.c \
+	src/tui/i18n_keys.c \
 	src/tui/screen.c \
 	src/tui/screen_buffer.c \
 	src/tui/screen_text.c \
@@ -253,7 +252,10 @@ PAL_SRCS := \
 PAL_START_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_start.s
 
-OBJS := $(patsubst src/%.s,$(BUILD)/%.o,$(SRCS) $(PAL_SRCS)) $(patsubst src/%.c,$(BUILD)/%.o,$(C_SRCS))
+# C generated at build time into $(BUILD) (tools/gen_i18n.py: the English table + key names from src/tui/i18n_en.lang)
+GEN_OBJS := $(BUILD)/i18n_en.o
+
+OBJS := $(patsubst src/%.s,$(BUILD)/%.o,$(SRCS) $(PAL_SRCS)) $(patsubst src/%.c,$(BUILD)/%.o,$(C_SRCS)) $(GEN_OBJS)
 INCS := $(wildcard include/*.inc) $(wildcard $(PAL_INC)/*.inc)
 
 .PHONY: all release run test memcheck verify hooks symbols symbols-check clean pal-selftest check-toolchain
@@ -285,6 +287,13 @@ $(BUILD)/%.o: src/%.s $(INCS) $(VER_INC)
 
 $(BUILD)/%.o: src/%.c $(wildcard include/*.h) | $(BUILD)/version.h
 	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
+
+$(BUILD)/i18n_en.c: tools/gen_i18n.py src/tui/i18n_en.lang include/types.inc
+	@mkdir -p $(BUILD)
+	python3 tools/gen_i18n.py --out $@
+
+$(BUILD)/i18n_en.o: $(BUILD)/i18n_en.c $(wildcard include/*.h) | $(BUILD)/version.h
 	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
 
 # PAL walking skeleton: C self-test linked with the PAL of the selected ARCH (qemu-aarch64 runs the arm64 one).
@@ -336,6 +345,7 @@ test: $(TARGET)
 	python3 tests/test_c_tui_data.py
 	python3 tests/test_c_input.py
 	python3 tests/test_c_i18n.py
+	python3 tests/test_c_i18n_table.py
 	python3 tests/test_c_screen.py
 	python3 tests/test_c_img.py
 	python3 tests/test_c_img_out.py

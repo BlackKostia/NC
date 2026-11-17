@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/tui/i18n_keys.c (key table generated into build/i18n_en.c) replaced (tests/test_c_i18n_table.py diffs against it)
 # Interface language pack keys: the name of every LangStrings slot as written in *.lang files
 # ("key = value"); array fields are numbered from 1 (f_labels.1 = F1 ... help_lines.22).
 # Generated from include/types.inc; the guard below fails the build when a slot has no key.

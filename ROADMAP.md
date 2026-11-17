@@ -11,7 +11,7 @@
 - **Кодова база**: `v1.0` починалася з `13 356` рядків і ~50 КБ (`text=45445, data=0, bss=680`); актуальний `v2.6+` із декодерами зображень (JPEG/PNG/GIF/BMP/PNM/TGA), Kitty/Sixel, Package Manager, `io_uring` та Archive VFS (ZIP64) — stripped static ELF ~193 КБ (`.data=0`, `bss` ~785 КБ, нуль `libc`).
 - **ООП-рантайм** ([oop.inc](include/oop.inc), [oop_rt.s](src/core/oop_rt.s), [classes.inc](include/classes.inc)): `Object`, `ScreenBuffer`, `DirModel`, `App`, `Widget` → `HeaderBar`, `FunctionBar`, `StatusBar`, `FilePane`, `PreviewPane`, `Dialog` → `ConfirmDialog`, `InputDialog`, `ViewerDialog`, `HelpDialog`.
 - **Графіка та ввід**: 24-біт TrueColor diff-рендер ([screen.s](src/tui/screen.s)), 3 теми ([theme.s](src/tui/theme.s)), повний декодер клавіатури (включно з `Alt + UTF-8`) і миші `SGR 1006` ([input.s](src/tui/input.s)).
-- **Двомовність (UA / EN)** ([i18n.s](src/tui/i18n.s)): `--lang ua|en`, автовизначення `LC_ALL`/`LC_MESSAGES`/`LANG`, миттєве перемикання `Alt+L` (`Alt+д`) або кнопкою у шапці, динамічні UTF-8 хіт-зони (`utf8_display_width`).
+- **Двомовність (UA / EN)** ([i18n_en.lang](src/tui/i18n_en.lang)): `--lang ua|en`, автовизначення `LC_ALL`/`LC_MESSAGES`/`LANG`, миттєве перемикання `Alt+L` (`Alt+д`) або кнопкою у шапці, динамічні UTF-8 хіт-зони (`utf8_display_width`).
 - **Файлова підсистема** ([dir_model.s](src/fs/dir_model.s), [file_ops.s](src/fs/file_ops.s)): `getdents64`, `newfstatat`, QuickSort, живий фільтр, рекурсивні `copy`/`move`/`delete`, Text/Hex viewer і live preview.
 - **Автотести** ([test_pty.py](tests/test_pty.py)): 50 тестових модулів у `tests/` (PTY, ФС-надійність, `io_uring`, продуктивність, fault-injection, PAL).
 
@@ -130,7 +130,7 @@
 - **Реалізація**: жодної вшитої кирилиці в коді — гарячі клавіші порівнюються з `Event.lat`, поля введення отримують `Event.key` без змін; нова розкладка додається файлом без перекомпіляції. Тести: [test_kbd_layout.py](tests/test_kbd_layout.py) (KL1–KL6). ✅
 
 ### 2.11 Мовні пакети інтерфейсу (`*.lang`) ✅
-- **Файли**: [i18n.s](src/tui/i18n.s) (вбудована англійська — основа і запасний варіант), [i18n_keys.s](src/tui/i18n_keys.s) (ключ ↔ слот `LangStrings`), [i18n_pack.s](src/tui/i18n_pack.s) (парсер `ключ = значення`, `"..."`, `\n`, `{version}`, статична арена без heap), [i18n_env.s](src/tui/i18n_env.s) (реєстр мов, пошук за id / code / локаллю), [data_dirs.s](src/tui/data_dirs.s) (спільний шлях пошуку з розкладками), [lang/uk.lang](lang/uk.lang).
+- **Файли**: [i18n_en.lang](src/tui/i18n_en.lang) (вбудована англійська — основа і запасний варіант; `tools/gen_i18n.py` компілює її в `build/i18n_en.c`), [i18n_keys.c](src/tui/i18n_keys.c) (ключ ↔ слот `LangStrings`), [i18n_pack.c](src/tui/i18n_pack.c) (парсер `ключ = значення`, `"..."`, `\n`, `{version}`, статична арена без heap), [i18n_env.c](src/tui/i18n_env.c) (реєстр мов, пошук за id / code / локаллю), [data_dirs.c](src/tui/data_dirs.c) (спільний шлях пошуку з розкладками), [lang/uk.lang](lang/uk.lang).
 - **Реалізація**: українські рядки, палітра команд і `--help`/`--version` винесені з коду у пакет; нова мова — файл без перекомпіляції; `Alt+L` перебирає всі мови; `--lang`, `duoprc lang =`, `LANG`. Тести: [test_lang_packs.py](tests/test_lang_packs.py) (LP1–LP7). ✅
 
 ---
@@ -220,6 +220,6 @@
 ## Критерії готовності та перевірки (Definition of Done)
 
 1. **Чистий static ELF без `libc`**: збірка `make release` і контроль розміру секцій (`size duop`).
-2. **ООП та двомовність**: кожен новий віджет/діалог наслідує `Widget`/`Dialog`, усі тексти додаються в `lang_en_table` та `lang_ua_table` ([i18n.s](src/tui/i18n.s)), хіт-зони миші розраховуються через `utf8_display_width`.
+2. **ООП та двомовність**: кожен новий віджет/діалог наслідує `Widget`/`Dialog`, усі тексти додаються в `src/tui/i18n_en.lang` та `lang/uk.lang`, хіт-зони миші розраховуються через `utf8_display_width`.
 3. **PTY-тести**: кожна нова фіча покривається автоматичним сценарієм у [test_pty.py](tests/test_pty.py) (`make clean && make && make test`).
 4. **Бенчмарки**: автоматизований замір часу старту (`hyperfine`), пам'яті (`/usr/bin/time -v`) і пропускної здатності каталогу на `100k` файлів.

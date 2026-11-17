@@ -2,7 +2,7 @@
  *
  * Every "*.lang" file on the data path (data_dirs.c: $DUOP_LANGS, ~/.config/duop/lang, lang/ beside the binary,
  * share/duop/lang) becomes one language, so new interface languages need no rebuild. A pack is "key = value" lines
- * over the LangStrings slots (i18n_keys.s); missing keys keep the built-in English text. Values may be "quoted" to
+ * over the LangStrings slots (i18n_keys.c); missing keys keep the built-in English text. Values may be "quoted" to
  * keep outer spaces and use \n \t \" \\ escapes; {version} expands to the Duop version. A pack must set `code`; the
  * first file of an id (file name without .lang) on the path wins. Packs live in a static arena for the whole run
  * (no heap, nothing to free). */

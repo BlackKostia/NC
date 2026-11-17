@@ -61,7 +61,7 @@ duop/
 │   ├── main.s                # Точка входу _start (прапорці --lang / -l / -h / --help / -V / --version / -L / --license)
 │   ├── os/linux/x86_64/      # pal_os.s, pal_uring.s (io_uring IORING_OP_STATX пакетний stat з fallback), pal_simd.s (SSE2 memcpy/memset/memcmp/strlen/ci-пошук)
 │   ├── core/                 # memory.s (slab-алокатор 64 Б–64 КіБ + mmap для великих), string.s, utf8.c, oop_rt.s, syscall.s
-│   ├── tui/                  # theme.s (3 TrueColor теми), i18n.s (UA/EN таблиці), screen.s, input.s (клавіатура + SGR 1006)
+│   ├── tui/                  # theme.c (3 TrueColor теми), i18n_en.lang + i18n_*.c (EN таблиця, мовні пакети), screen*.c, input*.c (клавіатура + SGR 1006)
 │   ├── fs/                   # dir_model*.s, dir_sort*.s, dir_cache*.s, file_ops*.s, task*.s, dir_watch.s, archive_vfs.s, inflate*.s, disk_usage.s, img_*.s, pkg_*.s, nav_state*.s
 │   ├── ui/                   # header_bar*.s, function_bar.s, status_bar*.s, file_pane*.s, preview_pane*.s, dialogs*.s, viewer_*.s, term_pane*.s, bulk_rename*.s, pkg_dialog.s, fuzzy_dialog.s, syntax.s, hex_edit.s
 │   └── app/                  # app*.s (головний цикл, команди, задачі, події, діалоги)

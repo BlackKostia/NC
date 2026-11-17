@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""src/tui/i18n_env.c and i18n_pack.c versus the frozen assembly (tests/harness/i18n_*_reference.s): random *.lang
+"""src/tui/i18n_env.c and i18n_pack.c versus the frozen assembly (tests/harness/i18n_{env,pack}_reference.s): random *.lang
 packs spread over a $DUOP_LANGS path (quoting, escapes, {version}, CRLF, unknown keys, duplicates, over-long ids,
 oversized files, arena / registry exhaustion), the shipped lang/uk.lang, id/code/locale lookup and environment
 detection; i18n_get must stay a rax-only leaf (asm callers keep their registers live across it)."""
@@ -7,16 +7,21 @@ detection; i18n_get must stay a rax-only leaf (asm callers keep their registers 
 import os
 import random
 import re
+import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
 import c_harness as H
 
 ROOT = H.ROOT
+sys.path.insert(0, str(ROOT / "tools"))
+import gen_i18n as G  # noqa: E402
+
 VERSION = (ROOT / "VERSION").read_text().strip()
-KEYS = re.findall(r"^\s+LK ([\w.]+),", (ROOT / "src/tui/i18n_keys.s").read_text(), re.M)
-CLI_C = ["tests/harness/i18n_cli.c", "src/tui/i18n_env.c", "src/tui/i18n_pack.c", "src/tui/data_dirs.c", "src/core/config.c",
+KEYS = G.slot_keys((ROOT / "include/types.inc").read_text())
+CLI_C = ["tests/harness/i18n_cli.c", "src/tui/i18n_env.c", "src/tui/i18n_pack.c", "src/tui/i18n_keys.c", "src/tui/data_dirs.c", "src/core/config.c",
          "src/core/config_parse.c", "src/core/config_load.c", "src/core/string.c", "src/core/string_path.c", "src/core/mem_prims.c",
          "src/core/syscall.c", "src/core/try_rt.c", "src/core/memory.c", "src/core/utf8.c"]
 ENV = {"PATH": os.environ.get("PATH", "")}
@@ -34,11 +39,9 @@ def build(t: Path) -> Path:
         subprocess.run(["as", *inc, str(ROOT / src), "-o", str(o)], check=True)
         objs.append(o)
     H.rename_defined_globals(objs, "ref_")
-    for m in ("i18n", "i18n_keys"):                                # shared data: the English table and the key table
-        o = t / f"{m}.o"
-        subprocess.run(["as", *inc, str(ROOT / f"src/tui/{m}.s"), "-o", str(o)], check=True)
-        objs.append(o)
-    return H.build("x86_64", t, CLI_C, objs, cflags=["-I", str(ver)])
+    gen = t / "i18n_en.c"                                          # shared data: the generated English table and key names
+    subprocess.run([sys.executable, str(ROOT / "tools/gen_i18n.py"), "--out", str(gen)], check=True)
+    return H.build("x86_64", t, [*CLI_C, str(gen)], objs, cflags=["-I", str(ver)])
 
 
 def run(exe: Path, impl: str, *args: str, env: dict | None = None) -> str:
@@ -170,6 +173,26 @@ def test_semantics(exe: Path) -> None:
     print("[PASS] I18N4. quotes, escapes, {version}, CRLF, missing code, over-long id and id ordering behave as documented")
 
 
+def unescape(text: str) -> str:
+    return re.sub(r"\\x([0-9a-f]{2})", lambda m: chr(int(m.group(1), 16)), text)
+
+
+def test_english_source_is_a_pack(exe: Path) -> None:
+    """src/tui/i18n_en.lang is read by tools/gen_i18n.py's parser; the real loader must decode every value the same way."""
+    pairs = G.parse_lang((ROOT / "src/tui/i18n_en.lang").read_text(encoding="utf-8"))
+    with tempfile.TemporaryDirectory() as d:
+        shutil.copy(ROOT / "src/tui/i18n_en.lang", Path(d) / "xx.lang")
+        out = both(exe, "dump", "xx", env={"DUOP_LANGS": d})
+    lang1 = out.split("lang 1 ok\n", 1)[1].split("\nidx=")[0]
+    got = {int(m.group(1)): m.group(2) for m in re.finditer(r"^(\d+):(.*)$", lang1, re.M)}
+    assert len(got) == len(KEYS), f"the loader decoded {len(got)} of {len(KEYS)} slots"
+    for i, key in enumerate(KEYS):
+        want = pairs[key].replace(G.VERSION_MARK, VERSION).encode("utf-8").decode("latin-1")
+        have = bytes(ord(c) for c in unescape(got[i])).decode("latin-1")
+        assert have == want, (key, have, want)
+    print(f"[PASS] I18N7. the loader decodes all {len(KEYS)} values of src/tui/i18n_en.lang exactly like the generator")
+
+
 def test_get_is_rax_only() -> None:
     obj = ROOT / "build/tui/i18n_env.o"
     if not obj.exists():
@@ -188,10 +211,11 @@ def test_aarch64_compiles() -> None:
         return
     with H.workdir() as d:
         (Path(d) / "version.h").write_text('#pragma once\n#define DUOP_VERSION "9.9.9"\n')
-        for m in ("i18n_env", "i18n_pack"):
-            subprocess.run(["clang", "--target=aarch64-linux-gnu", "-mno-outline-atomics", *H.COMMON, "-I", d, "-c", str(ROOT / f"src/tui/{m}.c"),
-                            "-o", str(Path(d) / f"{m}.o")], check=True, capture_output=True)
-    print("[PASS] I18N6. i18n_env.c / i18n_pack.c compile warning-free for aarch64 (the English table stays x86 asm for now)")
+        subprocess.run([sys.executable, str(ROOT / "tools/gen_i18n.py"), "--out", str(Path(d) / "i18n_en.c")], check=True)
+        for src in ("src/tui/i18n_env.c", "src/tui/i18n_pack.c", "src/tui/i18n_keys.c", str(Path(d) / "i18n_en.c")):
+            subprocess.run(["clang", "--target=aarch64-linux-gnu", "-mno-outline-atomics", *H.COMMON, "-I", d, "-c", str(ROOT / src),
+                            "-o", str(Path(d) / (Path(src).stem + ".o"))], check=True, capture_output=True)
+    print("[PASS] I18N6. i18n_env.c / i18n_pack.c / i18n_keys.c and the generated English table compile warning-free for aarch64")
 
 
 def main() -> None:
@@ -201,6 +225,7 @@ def main() -> None:
         test_limits(exe)
         test_shipped_and_lookup(exe)
         test_semantics(exe)
+        test_english_source_is_a_pack(exe)
     test_get_is_rax_only()
     test_aarch64_compiles()
     print("ALL C I18N TESTS PASSED.")
