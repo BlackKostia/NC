@@ -55,8 +55,6 @@ SRCS := \
 	src/fs/dir_sort_intro.s \
 	src/fs/dir_sort_radix.s \
 	src/fs/dir_sort_prefix.s \
-	src/fs/dir_cache.s \
-	src/fs/dir_cache_fetch.s \
 	src/fs/file_ops.s \
 	src/fs/file_ops_copy_at.s \
 	src/fs/file_ops_copy.s \
@@ -232,6 +230,7 @@ C_SRCS := \
 	src/fs/dir_watch.c \
 	src/fs/file_ops_overwrite.c \
 	src/fs/pkg_fetch.c \
+	src/fs/dir_cache.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -406,6 +405,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_fops_small.py
 	python3 tests/test_c_fops_overwrite.py
 	python3 tests/test_c_pkg_fetch.py
+	python3 tests/test_c_dir_cache.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

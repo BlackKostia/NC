@@ -160,3 +160,11 @@ typedef struct FoOpenResult { intptr_t fd; uint64_t used; } FoOpenResult;     /*
 DUOP_NODISCARD FoOpenResult fo_open_overwrite(int dfd, const char *name, uint32_t dst_mode, uint32_t new_mode, char *out_tmp);
 DUOP_NODISCARD intptr_t fo_overwrite_open(int dfd, const char *name, uint32_t mode, char *out_tmp);            /* exclusive temp file next to `name`: fd or -errno */
 DUOP_NODISCARD intptr_t fo_overwrite_commit(int dfd, const char *tmp, const char *name);                      /* renames the finished temp file over `name`: 0 or -errno */
+
+/* ---- LRU directory cache (dir_cache.c): listings of recently left directories, handed back in O(1) on return ---- */
+#define DC_SLOTS 16                                            /* snapshots kept at most (config.inc) */
+#define DC_BUDGET 33554432                                     /* 32 MiB of entries / order / name pools at most (config.inc) */
+extern uint64_t g_dc_bytes;                                    /* footprint of the snapshots held now */
+int dircache_store(DirModel *m);                               /* 1: m's arrays donated (m left empty), 0: m keeps them */
+int dircache_fetch(DirModel *m, const FileStat *dir_st);       /* 1: snapshot installed, order[] reusable; 2: installed, re-filter/sort; 0: miss/stale */
+void dircache_invalidate(const char *path);                    /* drops the snapshot of path */

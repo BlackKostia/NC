@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 743
+- **Exported `.global` Symbols**: 740
 
 ## Structs (`include/*.inc`)
 
@@ -393,14 +393,10 @@
   - `arc_populate` — void arc_populate(DirModel *m)
   - `arc_free_ctx` — void arc_free_ctx(DirModel *m)
   - `arc_nav_up_model` — int arc_nav_up_model(DirModel *m) -> -1 if not arc, else cursor (>=0)
-- **`src/fs/dir_cache.s`**
-  - `dc_free_slot` — Internal: void dc_free_slot(DCSlot *slot) -- releases arrays, marks free
-  - `dc_find` — Internal: DCSlot *dc_find(const char *path) -> used slot with that path, or NULL
-  - `dircache_store` — its capacities 0), or 0 when m keeps its arrays (incomplete load, unknown stamp, too big).
-  - `g_dc_bytes`
-- **`src/fs/dir_cache_fetch.s`**
-  - `dircache_fetch` — snapshot is dropped.
-  - `dircache_invalidate` — void dircache_invalidate(const char *path) -- drop a snapshot (e.g. on inotify events)
+- **`src/fs/dir_cache.c`**
+  - `dircache_store` — `int dircache_store(DirModel *m)`
+  - `dircache_fetch` — `int dircache_fetch(DirModel *m, const FileStat *st)`
+  - `dircache_invalidate` — `void dircache_invalidate(const char *path)`
 - **`src/fs/dir_diff.c`**
   - `dir_diff_mark` — `int dir_diff_mark(DirModel *active, DirModel *other)`
 - **`src/fs/dir_fuzzy.c`**

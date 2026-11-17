@@ -50,7 +50,7 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/ui/conflict_dialog*", ("tests/test_fs_reliability.py", "tests/test_reliability_audit.py")),
     ("src/fs/dir_model*", ("tests/test_performance_dir.py", "tests/test_fastpath.py", "tests/test_nav_viewer.py", "tests/test_event_loop.py")),
     ("src/fs/dir_sort*", ("tests/test_performance_dir.py", "tests/test_pty.py")),
-    ("src/fs/dir_cache*", ("tests/test_nav_viewer.py", "tests/test_performance_dir.py")),
+    ("src/fs/dir_cache*", ("tests/test_c_dir_cache.py", "tests/test_nav_viewer.py", "tests/test_performance_dir.py")),
     ("src/fs/dir_watch*", ("tests/test_event_loop.py", "tests/test_c_dir_watch.py")),
     ("src/ui/file_pane*", ("tests/test_pty.py", "tests/test_ui_visual.py", "tests/test_nav_tabs.py", "tests/test_pane_scrollbar.py")),
     ("src/fs/pkg_fetch*", ("tests/test_c_pkg_fetch.py", "tests/test_pkg_manager.py", "tests/test_pkg_improvements.py")),

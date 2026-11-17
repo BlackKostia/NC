@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/dir_cache.c replaced (tests/test_c_dir_cache.py diffs against it)
 # LRU Directory Cache: keeps the fully loaded listings of recently left directories
 #
 # Leaving a directory donates its DirModel arrays (entries / order / name_pool) to a slot

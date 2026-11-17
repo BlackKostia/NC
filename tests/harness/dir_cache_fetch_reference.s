@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/dir_cache.c replaced (tests/test_c_dir_cache.py diffs against it)
 # LRU Directory Cache: keeps the fully loaded listings of recently left directories — dir cache fetch (split from dir_cache.s)
 
 .intel_syntax noprefix
