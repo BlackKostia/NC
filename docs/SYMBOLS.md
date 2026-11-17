@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 736
+- **Exported `.global` Symbols**: 733
 
 ## Structs (`include/*.inc`)
 
@@ -403,18 +403,15 @@
   - `fuzzy_score` — `int fuzzy_score(const char *query, const char *cand, uint64_t *out_mask)`
 - **`src/fs/dir_fuzzy_walk.c`**
   - `dir_fuzzy_collect` — `int dir_fuzzy_collect(const char *root, char *pool, int pool_cap, FuzzyItem *items, int max_items)`
-- **`src/fs/dir_model.s`**
-  - `DirModel_vtbl`
-  - `DirModel_init_env` — ==============================================================================
-  - `DirModel_new` — ==============================================================================
-  - `alloc_initial_arrays` — ==============================================================================
-  - `DirModel_invalidate_stats` — ==============================================================================
-  - `reset_entry_stats` — ==============================================================================
-  - `close_stream_resources` — ==============================================================================
-  - `DirModel_dtor` — ==============================================================================
-  - `DirModel_entry_name` — ==============================================================================
-  - `g_huge_threshold`
-  - `g_stream_batch`
+- **`src/fs/dir_model.c`**
+  - `DirModel_init_env` — `void DirModel_init_env(char **envp)`
+  - `alloc_initial_arrays` — `int alloc_initial_arrays(DirModel *m)`
+  - `DirModel_new` — `DirModel *DirModel_new(const char *initial_path)`
+  - `DirModel_invalidate_stats` — `void DirModel_invalidate_stats(DirModel *m)`
+  - `reset_entry_stats` — `void reset_entry_stats(DirModel *m)`
+  - `close_stream_resources` — `void close_stream_resources(DirModel *m)`
+  - `DirModel_dtor` — `void DirModel_dtor(DirModel *m)`
+  - `DirModel_entry_name` — `const char *DirModel_entry_name(const DirModel *m, const FileEntry *e)`
 - **`src/fs/dir_model_filter.s`**
   - `DirModel_apply_filter` — ==============================================================================
   - `DirModel_chdir` — ==============================================================================

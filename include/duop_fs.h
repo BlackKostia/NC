@@ -82,8 +82,20 @@ int fs_write_file(const char *path, const void *buf, uint64_t len);        /* at
 
 /* ---- directory model methods still in assembly (dir_model*.s) ---- */
 int DirModel_step_load(DirModel *m, size_t max_entries);        /* 1 more may follow, 0 done, -errno */
-const char *DirModel_entry_name(const DirModel *m, const FileEntry *e);
 int DirModel_reload(DirModel *m);
+
+/* ---- the DirModel class (dir_model.c) ---- */
+extern const ObjectVtbl DirModel_vtbl;
+extern uint64_t g_huge_threshold;                              /* DUOP_HUGE_THRESHOLD (default HUGE_DIR_THRESHOLD) */
+extern uint64_t g_stream_batch;                                /* DUOP_STREAM_BATCH: entries per load step */
+void DirModel_init_env(char **envp);
+DirModel *DirModel_new(const char *initial_path);              /* NULL path: the cwd; loaded; NULL on OOM */
+void DirModel_dtor(DirModel *m);
+int alloc_initial_arrays(DirModel *m);                         /* 0 or -ENOMEM (all three arrays released) */
+void DirModel_invalidate_stats(DirModel *m);                   /* stats dropped, selections kept */
+void reset_entry_stats(DirModel *m);                           /* stats and selections dropped */
+void close_stream_resources(DirModel *m);                      /* streaming fd and buffer released */
+const char *DirModel_entry_name(const DirModel *m, const FileEntry *e);   /* NULL for NULL arguments */
 
 /* ---- lazy stat, selection and lookup (dir_model_stat.c, dir_model_select.c) ---- */
 FileEntry *DirModel_get_entry(DirModel *m, intptr_t idx);      /* visible index -> entry through order[], or NULL */

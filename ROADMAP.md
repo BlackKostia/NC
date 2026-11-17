@@ -12,7 +12,7 @@
 - **ООП-рантайм** ([oop.inc](include/oop.inc), [oop_rt.s](src/core/oop_rt.s), [classes.inc](include/classes.inc)): `Object`, `ScreenBuffer`, `DirModel`, `App`, `Widget` → `HeaderBar`, `FunctionBar`, `StatusBar`, `FilePane`, `PreviewPane`, `Dialog` → `ConfirmDialog`, `InputDialog`, `ViewerDialog`, `HelpDialog`.
 - **Графіка та ввід**: 24-біт TrueColor diff-рендер ([screen.s](src/tui/screen.s)), 3 теми ([theme.s](src/tui/theme.s)), повний декодер клавіатури (включно з `Alt + UTF-8`) і миші `SGR 1006` ([input.s](src/tui/input.s)).
 - **Двомовність (UA / EN)** ([i18n_en.lang](src/tui/i18n_en.lang)): `--lang ua|en`, автовизначення `LC_ALL`/`LC_MESSAGES`/`LANG`, миттєве перемикання `Alt+L` (`Alt+д`) або кнопкою у шапці, динамічні UTF-8 хіт-зони (`utf8_display_width`).
-- **Файлова підсистема** ([dir_model.s](src/fs/dir_model.s), [file_ops.s](src/fs/file_ops.s)): `getdents64`, `newfstatat`, QuickSort, живий фільтр, рекурсивні `copy`/`move`/`delete`, Text/Hex viewer і live preview.
+- **Файлова підсистема** ([dir_model.c](src/fs/dir_model.c), [file_ops.s](src/fs/file_ops.s)): `getdents64`, `newfstatat`, QuickSort, живий фільтр, рекурсивні `copy`/`move`/`delete`, Text/Hex viewer і live preview.
 - **Автотести** ([test_pty.py](tests/test_pty.py)): 50 тестових модулів у `tests/` (PTY, ФС-надійність, `io_uring`, продуктивність, fault-injection, PAL).
 
 ---
@@ -59,7 +59,7 @@
 
 ### 1.5 Рекурсивний пошук у віртуальну панель
 - **Статус (`v1.6.0`)**: ✅ реалізовано (`Ctrl+F` -> `SearchDialog` ([search_dialog.s](src/ui/search_dialog.s)) з полями маски імені та вмісту `grep`; рекурсивний пошук у [dir_search.s](src/fs/dir_search.s) / [dir_search_match.s](src/fs/dir_search_match.s) у віртуальну панель `DirModel.virtual_mode = 1` із бейджем `[Search]`/`[Пошук]` та переходом `Enter` до оригіналу).
-- **Файли**: [dir_model.s](src/fs/dir_model.s), [dialogs.s](src/ui/dialogs.s).
+- **Файли**: [dir_model.c](src/fs/dir_model.c), [dialogs.s](src/ui/dialogs.s).
 - **Можливості**: пошук за маскою імені та за вмістом файлу (`grep`), завантаження результатів безпосередньо у **віртуальну панель** (`DirModel` у режимі `VIRTUAL_SEARCH`) із переходом до оригіналу по `Enter`.
 
 ### 1.6 Кошик (`freedesktop Trash`), `Undo` (`Ctrl+Z`) та розширені атрибути
@@ -96,7 +96,7 @@
 - **Прогрес довгого підрахунку** ([du_parallel.s](src/fs/du_parallel.s), [app_du.s](src/app/app_du.s), [du_progress_dlg.s](src/ui/du_progress_dlg.s)): теки рахують робочі потоки, головний потік кожні ~100 мс оновлює вікно «Аналіз розміру тек» (з'являється після `DUOP_DU_PROGRESS_MS`, типово 300 мс): готові теки / усього, смуга, переглянуті теки · файли · байти; `Esc` скасовує обхід без запису часткових розмірів у кеш. Тести: [test_du_progress.py](tests/test_du_progress.py) (DP1–DP3). ✅
 
 ### 2.4 Віртуальна файлова система архівів (VFS) ✅
-- **Файли**: [dir_model.s](src/fs/dir_model.s) + модуль розпакування (`src/fs/inflate.s`, `src/fs/archive_vfs.s`).
+- **Файли**: [dir_model.c](src/fs/dir_model.c) + модуль розпакування (`src/fs/inflate.s`, `src/fs/archive_vfs.s`).
 - **Поетапно**:
   1. підтримка `.tar` (просте читання 512-байтних заголовків POSIX/ustar); ✅
   2. компактний `inflate`-модуль (~420 рядків) для прозорої навігації по `.tar.gz` та `.zip` як по звичайних директоріях. ✅
@@ -209,7 +209,7 @@
 | `src/core/config.s` *(новий)* | Парсер `~/.config/duop/duoprc`, біндинги клавіш, кастомні теми, асоціації та User Menu |
 | [src/app/app.s](src/app/app.s) | Єдиний цикл `poll`/`ppoll` (`STDIN_FD`, `inotify`, фонові воркери, `git`), `CommandPalette`, `Undo` |
 | [src/fs/file_ops.s](src/fs/file_ops.s) | `copy_file_range`, асинхронна черга задач `TaskQueue`, `XDG Trash`, `Undo`-журнал, `chmod`/`chown`/`link` |
-| [src/fs/dir_model.s](src/fs/dir_model.s) | Віртуальні панелі (пошук, `.tar`/`.zip` VFS, `ncdu`-дерево), кешування Git-статусу |
+| [src/fs/dir_model.c](src/fs/dir_model.c) | Віртуальні панелі (пошук, `.tar`/`.zip` VFS, `ncdu`-дерево), кешування Git-статусу |
 | [src/ui/dialogs.s](src/ui/dialogs.s) | `ProgressDialog`, діалоги конфліктів, `ChmodDialog`, `CommandPalette`, `FuzzyDialog`, Hex-edit, `BulkRename` |
 | [src/ui/file_pane.s](src/ui/file_pane.s) | Смужка вкладок (`Tabs`), колонка Git-статусів, смужки розміру `ncdu`, підсвітка `DirDiff` |
 | [src/ui/preview_pane.s](src/ui/preview_pane.s) | `Kitty f=100` / `Sixel` / half-block прев'ю, таблична підсвітка синтаксису, `ELF64`-інспектор |

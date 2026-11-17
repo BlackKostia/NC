@@ -45,7 +45,6 @@ VER_INC := $(BUILD)/version.inc
 
 SRCS := \
 	src/main.s \
-	src/fs/dir_model.s \
 	src/fs/dir_model_load.s \
 	src/fs/dir_model_stream.s \
 	src/fs/dir_model_filter.s \
@@ -228,6 +227,7 @@ C_SRCS := \
 	src/fs/dir_sort_radix.c \
 	src/fs/dir_model_stat.c \
 	src/fs/dir_model_select.c \
+	src/fs/dir_model.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -408,6 +408,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_img_core.py
 	python3 tests/test_c_dir_sort.py
 	python3 tests/test_c_dir_model_stat.py
+	python3 tests/test_c_dir_model.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py
