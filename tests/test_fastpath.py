@@ -263,7 +263,7 @@ def test_prefix_sort_and_filter_narrowing() -> None:
 
 
 def test_static_contracts() -> None:
-    mem = open(os.path.join(REPO_ROOT, "src/core/memory.s"), encoding="utf-8").read()
+    mem = open(os.path.join(REPO_ROOT, "src/core/memory.c"), encoding="utf-8").read()
     mk = open(os.path.join(REPO_ROOT, "Makefile"), encoding="utf-8").read()
     tgt = open(os.path.join(REPO_ROOT, "include/os/linux/x86_64/pal_target.inc"), encoding="utf-8").read()
     assert "src/os/$(OS)/$(ARCH)/pal_simd.s" in mk, "SIMD primitives must live in PAL pal_simd.s"

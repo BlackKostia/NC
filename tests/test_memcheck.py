@@ -52,8 +52,8 @@ def test_leak_and_badfree_reporting():
             cwd=ROOT, capture_output=True, text=True, timeout=10,
         )
         assert res.returncode != 0, "Expected non-zero exit when leaks/bad_frees exist"
-        assert "128" in res.stdout and "memory.s" in res.stdout, (
-            f"Expected resolved memory.s location in report:\n{res.stdout}"
+        assert "128" in res.stdout and "memory.c" in res.stdout, (
+            f"Expected resolved memory.c location in report:\n{res.stdout}"
         )
         print("[PASS] MC3. Leak & bad-free log parser resolves caller RIP to .s file:line via addr2line")
     finally:

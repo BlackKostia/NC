@@ -71,9 +71,15 @@ intptr_t os_prctl(int op, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5
 intptr_t os_prlimit64(int pid, int resource, const void *new_limit, void *old_limit);
 intptr_t os_tgkill(int tgid, int tid, int sig);
 intptr_t os_mmap(void *addr, size_t len, int prot, int flags, int fd, int64_t off);
+intptr_t os_munmap_raw(void *addr, size_t len);                       /* plain munmap, no SIGBUS-registry update */
 intptr_t os_sigaltstack(const void *ss, void *old_ss);
 intptr_t os_rt_sigaction(int sig, const void *act, void *old, size_t sigsetsize);
 intptr_t os_rt_sigprocmask(int how, const void *set, void *old, size_t sigsetsize);
+
+/* Memory-check hooks (src/core/memcheck.s, MEMCHECK builds only) */
+void mc_on_alloc(void *p, size_t size, void *caller);
+void mc_on_free(void *p, void *caller);
+void mc_on_realloc(void *old_p, void *new_p, size_t size, void *caller);
 
 /* ---- Normalised PAL (src/os/<os>/<arch>/pal_os.s and siblings) ---- */
 int       os_statat(int dirfd, const char *path, FileStat *out, int follow_symlinks);

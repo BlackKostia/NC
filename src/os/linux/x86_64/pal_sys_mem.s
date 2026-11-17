@@ -14,6 +14,7 @@
 .endm
 
 PAL_SYS os_mmap, OS_SYS_mmap
+PAL_SYS os_munmap_raw, OS_SYS_munmap
 PAL_SYS os_sigaltstack, OS_SYS_sigaltstack
 PAL_SYS os_rt_sigaction, OS_SYS_rt_sigaction
 PAL_SYS os_rt_sigprocmask, OS_SYS_rt_sigprocmask

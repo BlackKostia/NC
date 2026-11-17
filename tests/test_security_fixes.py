@@ -261,6 +261,7 @@ def test_sigbus_handler_only_patches_registered_mappings():
             "ld", o_path,
             os.path.join(ROOT, "build/os/linux/x86_64/pal_os.o"),
             os.path.join(ROOT, "build/os/linux/x86_64/pal_file.o"),
+            os.path.join(ROOT, "build/os/linux/x86_64/pal_sys_mem.o"),
             os.path.join(ROOT, "build/os/linux/x86_64/pal_fault.o"),
             os.path.join(ROOT, "build/os/linux/x86_64/pal_simd.o"),
             os.path.join(ROOT, "build/core/try_rt.o"),

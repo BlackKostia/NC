@@ -49,6 +49,40 @@ def test_abi_cross_is_not_vacuous() -> None:
     assert res.returncode == 1 and "O_CREAT" in res.stderr, res.stderr
 
 
+def test_pal_header_constants_match_inc() -> None:
+    """include/duop_pal.h (portable C view) must equal each target's pal_target.inc and so its kernel headers."""
+    import importlib.util
+    import tempfile
+    spec = importlib.util.spec_from_file_location("abi_cross", CROSS)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    names = sorted(set(re.findall(r"^#define (\w+) ", (ROOT / "include/duop_pal.h").read_text(), re.M)))
+    body = "".join(f'    __asm__(".globl pal__{n}\\n.set pal__{n}, %c0" :: "i"((long long)({n})));\n' for n in names)
+    checked = 0
+    for arch, (triple, _root, extra) in mod.TARGETS.items():
+        if arch == "arm":
+            continue
+        with tempfile.TemporaryDirectory() as tmp:
+            src, obj = Path(tmp) / "p.c", Path(tmp) / "p.o"
+            src.write_text('#include "duop_pal.h"\nvoid probe(void)\n{\n' + body + "}\n")
+            cc = ["clang", f"--target={triple}", *extra, "-O1", "-Wno-unused-command-line-argument"]
+            subprocess.run([*cc, "-I", str(ROOT / "include"), "-c", str(src), "-o", str(obj)], check=True, capture_output=True)
+            nm = subprocess.run(["nm", str(obj)], capture_output=True, text=True).stdout
+        facts = {}
+        for line in nm.splitlines():
+            m = re.match(r"([0-9a-fA-F]+)\s+[Aa]\s+pal__(\w+)", line)
+            if m:
+                v = int(m.group(1), 16)
+                facts[m.group(2)] = v - (1 << 64) if v >= 1 << 63 else v
+        assert set(facts) == set(names), f"{arch}: probe lost {set(names) - set(facts)}"
+        inc = mod.pal_equs(ROOT / f"include/os/linux/{arch}/pal_target.inc")
+        for n, v in facts.items():
+            if n in inc:
+                assert inc[n] == v, f"{arch}: duop_pal.h {n}={v} but pal_target.inc has {inc[n]}"
+                checked += 1
+    assert checked > 60, f"too few constants cross-checked ({checked})"
+
+
 def main() -> None:
     test_native_and_cross_tables_agree()
     print("[PASS] A1. native/cross ABI tables agree on x86_64")
@@ -58,6 +92,8 @@ def main() -> None:
     print("[PASS] A3. aarch64 O_NOFOLLOW != O_DIRECT")
     test_abi_cross_is_not_vacuous()
     print("[PASS] A4. mismatch is detected")
+    test_pal_header_constants_match_inc()
+    print("[PASS] A5. duop_pal.h constants equal pal_target.inc on x86_64 and aarch64")
     print("ALL ABI CROSS TESTS PASSED.")
 
 

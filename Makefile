@@ -16,15 +16,15 @@ ifeq ($(ARCH),aarch64)
 AS      := aarch64-linux-gnu-as
 LD      := aarch64-linux-gnu-ld
 CC      := clang
-CTARGET := --target=aarch64-linux-gnu -mno-outline-atomics
+CTARGET := --target=aarch64-linux-gnu -mno-outline-atomics -Wno-unused-command-line-argument
 endif
 ASFLAGS := -I $(PAL_INC) -I include -I $(BUILD) -g --strip-local-absolute
 LDFLAGS := -z noexecstack --gc-sections
 # Freestanding C23 (docs/HYBRID_PORTABILITY_PLAN.md "ABI-прапорці збірки"); no libc, no PIE/CET/unwind tables
 CFLAGS  := $(CTARGET) -std=gnu2x -Os -ffreestanding -fno-pic -fno-pie \
 	-fcf-protection=none -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-ident \
-	-funsigned-char -fno-strict-aliasing -fno-common -ffunction-sections -fdata-sections -Wno-unused-command-line-argument \
-	-Wall -Wextra -Werror -Wframe-larger-than=4096 -I include -I $(BUILD)
+	-funsigned-char -fno-strict-aliasing -fno-common -ffunction-sections -fdata-sections \
+	-g -Wall -Wextra -Werror -Wframe-larger-than=4096 -I include -I $(BUILD)
 ifneq ($(ARCH),aarch64)
 CFLAGS  += -fno-stack-clash-protection
 endif
@@ -37,13 +37,13 @@ ifeq ($(MEMCHECK),1)
 TARGET  := duop_memcheck
 BUILD   := build_mc
 ASFLAGS += --defsym MEMCHECK=1
+CFLAGS  += -DMEMCHECK=1
 endif
 
 VER_INC := $(BUILD)/version.inc
 
 SRCS := \
 	src/main.s \
-	src/core/memory.s \
 	src/core/memcheck.s \
 	src/core/oop_rt.s \
 	src/core/tmpfile.s \
@@ -239,6 +239,7 @@ C_SRCS := \
 	src/core/string_path.c \
 	src/core/string_format.c \
 	src/core/string_datetime.c \
+	src/core/memory.c \
 	src/core/syscall.c \
 	src/core/try_rt.c \
 	src/core/mem_prims.c \
@@ -335,6 +336,7 @@ test: $(TARGET)
 	python3 tests/test_c_inflate.py
 	python3 tests/test_c_string.py
 	python3 tests/test_c_syscall.py
+	python3 tests/test_c_memory.py
 	python3 tests/test_pty.py
 	python3 tests/test_fs_reliability.py
 	python3 tests/test_performance_dir.py

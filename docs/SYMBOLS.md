@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 21
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 820
+- **Exported `.global` Symbols**: 811
 
 ## Structs (`include/*.inc`)
 
@@ -272,16 +272,6 @@
   - `mc_on_free` — void mc_on_free(void *ptr, uint64_t caller)
   - `mc_on_realloc` — void mc_on_realloc(void *old_ptr, void *new_ptr, size_t new_size, uint64_t caller)
   - `mc_report` — void mc_report(void)
-- **`src/core/memory.s`**
-  - `mem_alloc` — rdi = size -> returns rax = zeroed 16-byte aligned pointer, or 0 on error
-  - `mem_free` — void mem_free(void *ptr) -- safe on NULL
-  - `mem_realloc` — rdi = ptr, rsi = new_size -> returns rax = new ptr, or 0 on failure (old block intact)
-  - `mem_copy` — void mem_copy(void *dst, const void *src, size_t len)  (clobbers rcx, rdi, rsi)
-  - `mem_move` — void mem_move(void *dst, const void *src, size_t len)  (overlap-safe)
-  - `mem_set` — void mem_set(void *dst, int byte, size_t len)
-  - `mem_zero` — void mem_zero(void *dst, size_t len)
-  - `mem_cmp` — int mem_cmp(const void *a, const void *b, size_t len)
-  - `mem_slab_arena_count` — int mem_slab_arena_count(void)
 - **`src/core/oop_rt.s`**
   - `Object_vtbl`
   - `Widget_vtbl`

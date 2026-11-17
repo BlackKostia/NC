@@ -225,6 +225,7 @@ def test_m7_mem_alloc_big_overflow_guard() -> None:
              os.path.join(REPO_ROOT, "build/core/memcheck.o"),
              os.path.join(REPO_ROOT, "build/os/linux/x86_64/pal_os.o"),
              os.path.join(REPO_ROOT, "build/os/linux/x86_64/pal_file.o"),
+             os.path.join(REPO_ROOT, "build/os/linux/x86_64/pal_sys_mem.o"),
              os.path.join(REPO_ROOT, "build/os/linux/x86_64/pal_simd.o"),
              os.path.join(REPO_ROOT, "build/os/linux/x86_64/pal_fault.o"),
              "-o", exe],
