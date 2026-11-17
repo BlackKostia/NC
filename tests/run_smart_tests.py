@@ -124,6 +124,8 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/tui/i18n*", ("tests/test_lang_packs.py", "tests/test_i18n_hook.py", "tests/test_c_i18n.py", "tests/test_c_i18n_table.py")),
     ("include/duop_app.h", ("tests/test_c_app_api.py",)),
     ("src/app/*", ("tests/test_c_app_api.py",)),
+    ("tests/c_harness.py", ("tests/test_c_harness_utils.py", "tests/test_c_i18n_table.py", "tests/test_c_syscall.py", "tests/test_c_hash.py")),
+    ("tests/harness/script_cli.h", ("tests/test_c_harness_utils.py",)),
     ("tools/gen_i18n.py", ("tests/test_c_i18n_table.py", "tests/test_c_i18n.py", "tests/test_i18n_hook.py")),
     ("lang/*", ("tests/test_lang_packs.py", "tests/test_i18n_hook.py")),
     ("src/tui/kbd_*", ("tests/test_kbd_layout.py",)),
