@@ -401,8 +401,8 @@
 - **`src/fs/dir_cache_fetch.s`**
   - `dircache_fetch` — snapshot is dropped.
   - `dircache_invalidate` — void dircache_invalidate(const char *path) -- drop a snapshot (e.g. on inotify events)
-- **`src/fs/dir_diff.s`**
-  - `dir_diff_mark` — int dir_diff_mark(DirModel *active, DirModel *other) -> number of differing entries
+- **`src/fs/dir_diff.c`**
+  - `dir_diff_mark` — `int dir_diff_mark(DirModel *active, DirModel *other)`
 - **`src/fs/dir_fuzzy.s`**
   - `fuzzy_score` — int fuzzy_score(const char *query, const char *cand, uint64_t *out_mask)
   - `dfc_walk` — void dfc_walk(ctx *ctx, const char *dir_abs, const char *rel_pfx, int depth)

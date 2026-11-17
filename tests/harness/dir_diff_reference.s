@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/dir_diff.c replaced (tests/test_c_fs_small.py diffs against it)
 # Dir Diff helper: marks entries in active DirModel that are missing or differ in size
 # compared to the opposite DirModel.
 
