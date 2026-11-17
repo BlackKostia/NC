@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 21
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 811
+- **Exported `.global` Symbols**: 804
 
 ## Structs (`include/*.inc`)
 
@@ -258,8 +258,8 @@
   - `sha256_init` — `void sha256_init(ShaCtx *c)`
   - `sha256_update` — `void sha256_update(ShaCtx *c, const uint8_t *p, size_t n)`
   - `sha256_final_hex` — `void sha256_final_hex(ShaCtx *c, char *out)`
-- **`src/core/hash_file.s`**
-  - `hash_file` — int hash_file(const char *path, uint32_t *out_crc32, char *out_sha_hex65)
+- **`src/core/hash_file.c`**
+  - `hash_file` — `intptr_t hash_file(const char *path, uint32_t *out_crc32, char *out_sha_hex65)`
 - **`src/core/mem_prims.c`**
   - `memcpy` — `void *memcpy(void *restrict dst, const void *restrict src, size_t n)`
   - `memmove` — `void *memmove(void *dst, const void *src, size_t n)`
@@ -272,22 +272,15 @@
   - `mc_on_free` — void mc_on_free(void *ptr, uint64_t caller)
   - `mc_on_realloc` — void mc_on_realloc(void *old_ptr, void *new_ptr, size_t new_size, uint64_t caller)
   - `mc_report` — void mc_report(void)
-- **`src/core/oop_rt.s`**
-  - `Object_vtbl`
-  - `Widget_vtbl`
-  - `Object_alloc` — void *Object_alloc(const void *vtbl, size_t size)
-  - `Object_free` — void Object_free(Object *obj)
-  - `Object_is_instance` — int Object_is_instance(const Object *obj, const void *target_vtbl)
-  - `Object_get_class_name` — const char *Object_get_class_name(const Object *obj)
-  - `Object_dtor` — void Object_dtor(Object *this)
-  - `Widget_init` — void Widget_init(Widget *this, void *parent, int id)
-  - `Widget_dtor` — void Widget_dtor(Widget *this)
-  - `Widget_layout` — rdi=this, esi=x, edx=y, ecx=w, r8d=h
-  - `Widget_render` — void Widget_render(Widget *this, ScreenBuffer *scr, Theme *theme)
-  - `Widget_on_key` — int Widget_on_key(Widget *this, Event *evt)
-  - `Widget_on_mouse` — int Widget_on_mouse(Widget *this, Event *evt)
-  - `Widget_on_focus` — void Widget_on_focus(Widget *this, int gained)
-  - `Widget_hit_test` — int Widget_hit_test(Widget *this, int mx, int my)
+- **`src/core/oop_rt.c`**
+  - `Object_alloc` — `void *Object_alloc(const ObjectVtbl *vtbl, size_t size)`
+  - `Object_free` — `void Object_free(Object *obj)`
+  - `Object_is_instance` — `int Object_is_instance(const Object *obj, const ObjectVtbl *target)`
+  - `Object_get_class_name` — `const char *Object_get_class_name(const Object *obj)`
+  - `Widget_init` — `void Widget_init(Widget *self, void *parent, int id)`
+  - `Widget_layout` — `void Widget_layout(Widget *self, int x, int y, int w, int h)`
+  - `Widget_on_focus` — `void Widget_on_focus(Widget *self, int gained)`
+  - `Widget_hit_test` — `int Widget_hit_test(Widget *self, int mx, int my)`
 - **`src/core/string.c`**
   - `str_len` — `size_t str_len(const char *s)`
   - `str_copy` — `size_t str_copy(char *dst, const char *src, size_t cap)`
@@ -322,12 +315,12 @@
   - `sys_exec_argv` — `int sys_exec_argv(const char *exe, char **argv, char **envp)`
   - `sys_exec_argv_bg` — `int sys_exec_argv_bg(const char *exe, char **argv, char **envp)`
   - `sys_open_external` — `int sys_open_external(const char *path, char **envp)`
-- **`src/core/tmpfile.s`**
-  - `tmp_ensure_dir` — Creates/validates a private 0700 directory /tmp/duop-<uid>-<pid>[-n].
-  - `tmp_open_unique` — int tmp_open_unique(const char *prefix, const char *suffix, char *out_path, int cap) -> fd >= 0 or -1
-  - `tmp_make_path` — int tmp_make_path(const char *prefix, const char *suffix, char *out_path, int cap) -> 0 ok, -1 err
-  - `tmp_open_atomic` — int tmp_open_atomic(const char *final_path, char *tmp_buf, int mode)
-  - `tmp_commit_atomic` — int tmp_commit_atomic(int fd, const char *tmp_buf, const char *final_path, int64_t write_rc)
+- **`src/core/tmpfile.c`**
+  - `tmp_ensure_dir` — `int tmp_ensure_dir(char *out_dir, int cap)`
+  - `tmp_open_unique` — `intptr_t tmp_open_unique(const char *prefix, const char *suffix, char *out_path, int cap)`
+  - `tmp_make_path` — `int tmp_make_path(const char *prefix, const char *suffix, char *out_path, int cap)`
+  - `tmp_open_atomic` — `intptr_t tmp_open_atomic(const char *final_path, char *tmp_buf, int mode)`
+  - `tmp_commit_atomic` — `intptr_t tmp_commit_atomic(int fd, const char *tmp_buf, const char *final_path, int64_t write_rc)`
 - **`src/core/try_rt.c`**
   - `os_fault_guard_install` — `void os_fault_guard_install(void)`
 - **`src/core/utf8.c`**

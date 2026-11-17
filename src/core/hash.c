@@ -1,17 +1,9 @@
 /* src/core/hash.c - IEEE 802.3 CRC32 and FIPS 180-4 SHA-256 (freestanding C23; replaces hash.s).
  *
  * crc32_update works on the raw running value (callers seed 0xFFFFFFFF and invert at the end).
- * ShaCtx keeps the 112-byte layout of the assembly version; hash_file.s still embeds it on its stack.
+ * ShaCtx (duop_hash.h) keeps the 112-byte layout of the assembly version.
  */
-#include "duop_abi.h"
-
-typedef struct ShaCtx {
-    uint32_t state[8];
-    uint64_t total;
-    uint32_t buflen, pad;
-    uint8_t  buf[64];
-} ShaCtx;
-_Static_assert(sizeof(ShaCtx) == 112 && offsetof(ShaCtx, buf) == 48, "ShaCtx layout shared with hash_file.s");
+#include "duop_hash.h"
 
 static const uint32_t crc_nibble[16] = {
     0x00000000, 0x1db71064, 0x3b6e20c8, 0x26d930ac, 0x76dc4190, 0x6b6b51f4, 0x4db26158, 0x5005713c,

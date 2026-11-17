@@ -1,11 +1,5 @@
 /* Freestanding harness: reads stdin, feeds it in argv[1]-byte chunks to crc32/sha256, prints "<crc32 hex> <sha256 hex>". */
-#include "duop_abi.h"
-
-typedef struct ShaCtx { uint32_t state[8]; uint64_t total; uint32_t buflen, pad; uint8_t buf[64]; } ShaCtx;
-uint32_t crc32_update(uint32_t crc, const uint8_t *buf, size_t len);
-void sha256_init(ShaCtx *c);
-void sha256_update(ShaCtx *c, const uint8_t *p, size_t n);
-void sha256_final_hex(ShaCtx *c, char *out);
+#include "duop_hash.h"
 
 static uint8_t g_in[(4u << 20) + 16];
 

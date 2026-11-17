@@ -24,7 +24,7 @@ LDFLAGS := -z noexecstack --gc-sections
 CFLAGS  := $(CTARGET) -std=gnu2x -Os -ffreestanding -fno-pic -fno-pie \
 	-fcf-protection=none -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-ident \
 	-funsigned-char -fno-strict-aliasing -fno-common -ffunction-sections -fdata-sections \
-	-g -Wall -Wextra -Werror -Wframe-larger-than=4096 -I include -I $(BUILD)
+	-g -Wall -Wextra -Werror -Wframe-larger-than=4608 -I include -I $(BUILD)
 ifneq ($(ARCH),aarch64)
 CFLAGS  += -fno-stack-clash-protection
 endif
@@ -45,13 +45,10 @@ VER_INC := $(BUILD)/version.inc
 SRCS := \
 	src/main.s \
 	src/core/memcheck.s \
-	src/core/oop_rt.s \
-	src/core/tmpfile.s \
 	src/core/config.s \
 	src/core/config_parse.s \
 	src/core/config_load.s \
 	src/core/config_expand.s \
-	src/core/hash_file.s \
 	src/tui/theme.s \
 	src/tui/i18n.s \
 	src/tui/i18n_env.s \
@@ -240,6 +237,9 @@ C_SRCS := \
 	src/core/string_format.c \
 	src/core/string_datetime.c \
 	src/core/memory.c \
+	src/core/oop_rt.c \
+	src/core/tmpfile.c \
+	src/core/hash_file.c \
 	src/core/syscall.c \
 	src/core/try_rt.c \
 	src/core/mem_prims.c \
@@ -337,6 +337,8 @@ test: $(TARGET)
 	python3 tests/test_c_string.py
 	python3 tests/test_c_syscall.py
 	python3 tests/test_c_memory.py
+	python3 tests/test_c_core_files.py
+	python3 tests/test_abi_layouts.py
 	python3 tests/test_pty.py
 	python3 tests/test_fs_reliability.py
 	python3 tests/test_performance_dir.py

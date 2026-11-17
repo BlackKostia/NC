@@ -105,8 +105,8 @@ def test_m4_atomic_state_and_trashinfo_writes() -> None:
         txt = open(os.path.join(REPO_ROOT, rel)).read()
         assert "O_TRUNC" not in txt, f"{rel} still uses O_TRUNC in place!"
         assert "tmp_commit_atomic" in txt, f"{rel} must commit via tmp_commit_atomic!"
-    tf = open(os.path.join(REPO_ROOT, "src/core/tmpfile.s")).read()
-    assert "OS_FSYNC" in tf and "OS_RENAMEAT" in tf, "tmp_commit_atomic missing fsync/rename"
+    tf = open(os.path.join(REPO_ROOT, "src/core/tmpfile.c")).read()
+    assert "os_fsync" in tf and "os_renameat2" in tf, "tmp_commit_atomic missing fsync/rename"
 
     if shutil.which("strace"):
         with tempfile.TemporaryDirectory(prefix="duop_m4_") as tmp:
@@ -123,7 +123,7 @@ def test_m4_atomic_state_and_trashinfo_writes() -> None:
             env["HOME"] = home
             env["XDG_DATA_HOME"] = os.path.join(home, ".local/share")
             proc = subprocess.Popen(
-                ["strace", "-e", "trace=openat,fsync,renameat", "-o", trace_log,
+                ["strace", "-e", "trace=openat,fsync,renameat,renameat2", "-o", trace_log,
                  BINARY, "--lang", "en", work, work],
                 stdin=slave, stdout=slave, stderr=slave, env=env, close_fds=True,
             )
@@ -141,8 +141,8 @@ def test_m4_atomic_state_and_trashinfo_writes() -> None:
                     proc.kill()
                     proc.wait()
             trace = open(trace_log).read()
-            assert "frecency.tmp" in trace and "fsync(" in trace and "renameat(" in trace, (
-                f"Expected atomic temp+fsync+renameat for frecency:\n{trace}"
+            assert "frecency.tmp" in trace and "fsync(" in trace and ("renameat2(" in trace or "renameat(" in trace), (
+                f"Expected atomic temp+fsync+renameat(2) for frecency:\n{trace}"
             )
     print("[PASS] M4. State files and trashinfo use atomic temp + fsync + rename")
 

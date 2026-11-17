@@ -127,6 +127,11 @@ def effects(mn: str, ops: str) -> tuple:
         return rd | (dregs if base.startswith("cmov") else set()), dregs | ({"rax", "rdx"} if base == "rdtsc" else set())
     if base in ("xor", "sub", "sbb") and len(o) == 2 and o[0] == o[1]:
         return set(), dregs
+    # `or r, -1` / `and r, 0` give a constant whatever r held: compilers emit them as size-optimised `mov r, -1` / `xor`
+    if base == "or" and len(o) == 2 and o[1].lower() in ("0xffffffff", "0xffffffffffffffff", "-0x1") and "[" not in o[0]:
+        return set(), dregs
+    if base == "and" and len(o) == 2 and o[1].lower() == "0x0" and "[" not in o[0]:
+        return set(), dregs
     if base == "imul" and len(o) == 3:
         return rd, dregs
     return rd | dregs, dregs                    # read-modify-write
