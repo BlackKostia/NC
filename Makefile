@@ -47,7 +47,6 @@ SRCS := \
 	src/main.s \
 	src/fs/pkg_archive.s \
 	src/fs/pkg_manager.s \
-	src/fs/pkg_verify.s \
 	src/fs/pkg_actions.s \
 	src/fs/pkg_popup.s \
 	src/fs/pkg_preview.s \
@@ -227,6 +226,7 @@ C_SRCS := \
 	src/fs/task_worker.c \
 	src/fs/task_control.c \
 	src/fs/task_conflict.c \
+	src/fs/pkg_verify.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -416,6 +416,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_task.py
 	python3 tests/test_c_task_control.py
 	python3 tests/test_c_task_conflict.py
+	python3 tests/test_c_pkg_verify.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

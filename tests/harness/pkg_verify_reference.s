@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/pkg_verify.c replaced (tests/test_c_pkg_verify.py diffs against it)
 # src/fs/pkg_verify.s - Package file-hash recording & verification for Duop
 .intel_syntax noprefix
 .include "pal.inc"
