@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/pkg_actions.c replaced (tests/test_c_pkg_actions.py diffs against it)
 # src/fs/pkg_actions.s - Declarative package actions & safe argv builder
 .intel_syntax noprefix
 .include "pal.inc"

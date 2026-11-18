@@ -544,14 +544,14 @@
   - `nav_hist_push` — `void nav_hist_push(NavTab *tab, const char *path)`
   - `nav_hist_back` — `const char *nav_hist_back(NavTab *tab)`
   - `nav_hist_fwd` — `const char *nav_hist_fwd(NavTab *tab)`
-- **`src/fs/pkg_actions.s`**
-  - `pkg_action_parse` — void pkg_action_parse(const char *buf, int len, PkgAction *out)
-  - `pkg_actions_scan` — int pkg_actions_scan(char **envp, PkgAction *out, int max) -> count
-  - `pkg_action_find` — int pkg_action_find(char **envp, const char *name, PkgAction *out) -> 0 ok, -1 err
-  - `pkg_action_build_argv` — int pkg_action_build_argv(PkgAction *act, const char **ctx, char *str_buf, int buf_cap, char **argv_out, int max_args)
-  - `pkg_menu_refresh` — int pkg_menu_refresh(char **envp) -> count of menu-enabled packages
-  - `pkg_menu_count` — int pkg_menu_count(void)
-  - `pkg_menu_get` — PkgAction *pkg_menu_get(int idx) -> ptr or NULL
+- **`src/fs/pkg_actions.c`**
+  - `pkg_action_parse` — `void pkg_action_parse(const char *buf, int len, PkgAction *out)`
+  - `pkg_action_find` — `int pkg_action_find(char **envp, const char *name, PkgAction *out)`
+  - `pkg_actions_scan` — `int pkg_actions_scan(char **envp, PkgAction *out, int max)`
+  - `pkg_action_build_argv` — `int pkg_action_build_argv(PkgAction *act, const char **ctx, char *str_buf, int buf_cap, char **argv_out, int max_args)`
+  - `pkg_menu_refresh` — `int pkg_menu_refresh(char **envp)`
+  - `pkg_menu_count` — `int pkg_menu_count(void)`
+  - `pkg_menu_get` — `PkgAction *pkg_menu_get(int idx)`
 - **`src/fs/pkg_archive.c`**
   - `pkg_mkdir_p` — `void pkg_mkdir_p(const char *path)`
   - `pkg_write_file` — `int pkg_write_file(const char *path, const void *buf, uint64_t len)`

@@ -46,3 +46,17 @@ ArcCtx *pkg_load_archive(const char *path);                    /* read (<= ARC_M
 ArcCtx *pkg_load_archive_sha(const char *path, char *out_sha_hex65);   /* the same, with the SHA-256 of the bytes read */
 void pkg_free_archive(ArcCtx *ctx);
 int pkg_extract_entry_to(ArcCtx *ctx, ArcEntry *ent, const char *dest_path);   /* 0 / -1 */
+
+/* a declarative action of a package manifest (layout of the assembler's PKGA_*: 576 bytes) */
+typedef struct PkgAction {
+    char name[64], exec[64], menu[64], args[128], scope[16], mode[16], dir[160], ext[64];
+} PkgAction;
+_Static_assert(sizeof(PkgAction) == 576 && offsetof(PkgAction, args) == 192 && offsetof(PkgAction, dir) == 352 &&
+               offsetof(PkgAction, ext) == 512, "PkgAction layout of the assembler");
+void pkg_action_parse(const char *buf, int len, PkgAction *out);
+int pkg_action_find(char **envp, const char *name, PkgAction *out);   /* the action of an installed package: 0 / -1 */
+int pkg_actions_scan(char **envp, PkgAction *out, int max);    /* installed packages with an exec: count */
+int pkg_action_build_argv(PkgAction *act, const char **ctx, char *str_buf, int buf_cap, char **argv_out, int max_args);   /* argc / -1 */
+int pkg_menu_refresh(char **envp);                             /* the cached menu-enabled actions (at most 16): count */
+int pkg_menu_count(void);
+PkgAction *pkg_menu_get(int idx);                              /* NULL outside 0 .. count - 1 */
