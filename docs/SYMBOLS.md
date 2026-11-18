@@ -484,10 +484,10 @@
   - `copy_dir_fd` — `intptr_t copy_dir_fd(int sfd, int dfd, int depth)`
   - `copy_subdir` — `intptr_t copy_subdir(int sdir, const char *name, int ddir, int depth)`
   - `fs_copy_recursive` — `intptr_t fs_copy_recursive(const char *src_path, const char *dst_path)`
-- **`src/fs/file_ops_delete.s`**
-  - `fs_delete_recursive` — Symlinks are removed, never followed (O_NOFOLLOW on every directory open).
-  - `fs_move_recursive` — int fs_move_recursive(const char *src_path, const char *dst_path)
-  - `fs_read_file_head` — int fs_read_file_head(const char *path, void *buf, size_t max_bytes, size_t *out_read)
+- **`src/fs/file_ops_delete.c`**
+  - `fs_delete_recursive` — `intptr_t fs_delete_recursive(const char *path)`
+  - `fs_move_recursive` — `intptr_t fs_move_recursive(const char *src_path, const char *dst_path)`
+  - `fs_read_file_head` — `intptr_t fs_read_file_head(const char *path, void *buf, size_t max_bytes, size_t *out_read)`
 - **`src/fs/file_ops_overwrite.c`**
   - `fo_overwrite_open` — `intptr_t fo_overwrite_open(int dfd, const char *name, uint32_t mode, char *out_tmp)`
   - `fo_overwrite_commit` — `intptr_t fo_overwrite_commit(int dfd, const char *tmp, const char *name)`

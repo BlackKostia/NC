@@ -45,7 +45,6 @@ VER_INC := $(BUILD)/version.inc
 
 SRCS := \
 	src/main.s \
-	src/fs/file_ops_delete.s \
 	src/fs/task.s \
 	src/fs/task_worker.s \
 	src/fs/task_control.s \
@@ -227,6 +226,7 @@ C_SRCS := \
 	src/fs/dir_model_stream.c \
 	src/fs/file_ops.c \
 	src/fs/file_ops_copy.c \
+	src/fs/file_ops_delete.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -412,6 +412,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_dir_model_load.py
 	python3 tests/test_c_file_ops.py
 	python3 tests/test_c_file_ops_copy.py
+	python3 tests/test_c_file_ops_delete.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

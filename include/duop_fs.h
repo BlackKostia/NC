@@ -161,7 +161,9 @@ intptr_t fs_copy_file(const char *src_path, const char *dst_path);
 intptr_t copy_reg_at(int sdir, const char *sname, int ddir, const char *dname);   /* one non-dir, non-link entry; partial targets removed */
 intptr_t copy_dir_fd(int sfd, int dfd, int depth);             /* every entry of sfd into dfd (depth < MAX_DIR_DEPTH) */
 intptr_t copy_subdir(int sdir, const char *name, int ddir, int depth);
-int fs_delete_recursive(const char *path);                                  /* 0, or -errno */
+intptr_t fs_delete_recursive(const char *path);               /* file / symlink (not followed) / tree: 0, or -errno */
+intptr_t fs_move_recursive(const char *src_path, const char *dst_path);     /* rename, or copy + delete across file systems */
+intptr_t fs_read_file_head(const char *path, void *buf, size_t max_bytes, size_t *out_read);   /* 0 or -errno of the open */
 
 /* ---- navigation state: tab history, bookmarks, frecency (nav_state.c, nav_persist.c) ---- */
 #define NAV_TAB_MAX 8                  /* tabs per pane */

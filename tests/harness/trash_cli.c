@@ -53,7 +53,7 @@ intptr_t fs_copy_recursive(const char *src, const char *dst)
     return 0;
 }
 
-int fs_delete_recursive(const char *path)
+intptr_t fs_delete_recursive(const char *path)
 {
     return g_force_delete ? g_force_delete : fs_delete_recursive_real(path);
 }
