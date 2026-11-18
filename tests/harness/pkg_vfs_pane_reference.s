@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/pkg_vfs_pane.c replaced (tests/test_c_pkg_vfs_pane.py diffs against it)
 # src/fs/pkg_vfs_pane.s - Interactive FilePane VFS provider (virtual_mode = 3)
 .intel_syntax noprefix
 .include "pal.inc"

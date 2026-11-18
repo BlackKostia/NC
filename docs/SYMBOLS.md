@@ -593,11 +593,11 @@
   - `pkg_verify` — `int pkg_verify(char **envp, const char *name)`
 - **`src/fs/pkg_vfs.c`**
   - `pkg_vfs_list_stdout` — `int pkg_vfs_list_stdout(char **envp, const char *uri)`
-- **`src/fs/pkg_vfs_pane.s`**
-  - `pkg_vfs_find_by_uri` — int pkg_vfs_find_by_uri(char **envp, const char *uri, char *exe_out) -> 0 ok, -1 err
-  - `pkg_vfs_load_dir` — int pkg_vfs_load_dir(char **envp, DirModel *model, const char *uri) -> 0 ok, -1 err
-  - `pkg_vfs_parent_uri` — int pkg_vfs_parent_uri(const char *uri, char *out, int cap) -> 1 has parent, 0 exit VFS
-  - `pkg_vfs_read_uri` — int pkg_vfs_read_uri(char **envp, const char *uri, char *out_tmp_path, int cap) -> 0 ok, -1 err
+- **`src/fs/pkg_vfs_pane.c`**
+  - `pkg_vfs_find_by_uri` — `int pkg_vfs_find_by_uri(char **envp, const char *uri, char *exe_out)`
+  - `pkg_vfs_load_dir` — `int pkg_vfs_load_dir(char **envp, DirModel *model, const char *uri)`
+  - `pkg_vfs_parent_uri` — `int pkg_vfs_parent_uri(const char *uri, char *out, int cap)`
+  - `pkg_vfs_read_uri` — `int pkg_vfs_read_uri(char **envp, const char *uri, char *out_tmp_path, int cap)`
 - **`src/fs/preview_helper.c`**
   - `pv_make_thumb` — `size_t pv_make_thumb(const char *path, const uint8_t *head, size_t head_len, const PvThumbReq *req, uint8_t *out, size_t cap)`
   - `pv_helper_main` — `void pv_helper_main(int req_fd, int resp_fd)`

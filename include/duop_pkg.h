@@ -60,3 +60,8 @@ int pkg_action_build_argv(PkgAction *act, const char **ctx, char *str_buf, int b
 int pkg_menu_refresh(char **envp);                             /* the cached menu-enabled actions (at most 16): count */
 int pkg_menu_count(void);
 PkgAction *pkg_menu_get(int idx);                              /* NULL outside 0 .. count - 1 */
+/* a VFS provider package as a pane (virtual_mode 3) - src/fs/pkg_vfs_pane.c */
+int pkg_vfs_find_by_uri(char **envp, const char *uri, char *exe_out);   /* exe_out: PATH_MAX bytes; 0 / -1 */
+int pkg_vfs_load_dir(char **envp, DirModel *model, const char *uri);      /* the provider's LIST as the model: 0 / -1 */
+int pkg_vfs_parent_uri(const char *uri, char *out, int cap);              /* 1: out is the parent; 0: leave the VFS */
+int pkg_vfs_read_uri(char **envp, const char *uri, char *out_tmp_path, int cap);   /* the provider's READ into a temp file: 0 / -1 */
