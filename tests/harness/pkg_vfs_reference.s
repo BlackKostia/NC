@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/pkg_vfs.c replaced (tests/test_c_pkg_vfs.py diffs against it)
 # src/fs/pkg_vfs.s - Out-of-process VFS provider (kind=vfs, vfs_scheme=...)
 .intel_syntax noprefix
 .include "pal.inc"

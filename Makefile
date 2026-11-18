@@ -47,7 +47,6 @@ SRCS := \
 	src/main.s \
 	src/fs/pkg_popup.s \
 	src/fs/pkg_preview.s \
-	src/fs/pkg_vfs.s \
 	src/fs/pkg_vfs_pane.s \
 	src/ui/header_bar.s \
 	src/ui/header_bar_render.s \
@@ -227,6 +226,7 @@ C_SRCS := \
 	src/fs/pkg_manager.c \
 	src/fs/pkg_cli.c \
 	src/fs/pkg_actions.c \
+	src/fs/pkg_vfs.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -423,6 +423,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_pkg_manager.py
 	python3 tests/test_c_pkg_cli.py
 	python3 tests/test_c_pkg_actions.py
+	python3 tests/test_c_pkg_vfs.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

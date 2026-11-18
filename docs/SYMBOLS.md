@@ -591,8 +591,8 @@
   - `pkg_hashes_append` — `void pkg_hashes_append(const char *file_path, char *buf, uint64_t *len_ptr)`
   - `pkg_hashes_write` — `int pkg_hashes_write(const char *pkg_dir, const char *buf, uint64_t len)`
   - `pkg_verify` — `int pkg_verify(char **envp, const char *name)`
-- **`src/fs/pkg_vfs.s`**
-  - `pkg_vfs_list_stdout` — int pkg_vfs_list_stdout(char **envp, const char *uri) -> 0 ok, -1 err
+- **`src/fs/pkg_vfs.c`**
+  - `pkg_vfs_list_stdout` — `int pkg_vfs_list_stdout(char **envp, const char *uri)`
 - **`src/fs/pkg_vfs_pane.s`**
   - `pkg_vfs_find_by_uri` — int pkg_vfs_find_by_uri(char **envp, const char *uri, char *exe_out) -> 0 ok, -1 err
   - `pkg_vfs_load_dir` — int pkg_vfs_load_dir(char **envp, DirModel *model, const char *uri) -> 0 ok, -1 err
