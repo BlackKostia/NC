@@ -48,7 +48,7 @@
    - Усі цільові директорії та файли створюються через `openat` з `O_NOFOLLOW` (захист від symlink-перезапису).
 2. **Інтеграція з `F5` та `TaskWorker`:**
    - Коли активна панель у `virtual_mode == 2` (`Archive VFS`), `F5` запускає фоновий `TaskWorker` (або прогрес-діалог `ProgressDialog`) для витягування вибраних/позначених записів або префікса директорії `sub_dir/` у `other_pane.model.path`.
-   - Підтримка конфліктів (Overwrite / Skip / Rename) через існуючу логіку [task_conflict.s](file:///home/chessplayer/DEV/NC/src/fs/task_conflict.s).
+   - Підтримка конфліктів (Overwrite / Skip / Rename) через існуючу логіку [task_conflict.c](../src/fs/task_conflict.c).
    - Відновлення базових прав доступу (`fchmod` для файлів із `.tar` або POSIX external attributes у `.zip`).
 3. **Перевірка цілісності (CRC32):**
    - При витягуванні запису з `.zip` звіряти обчислений `crc32_update` із полем `crc32` у заголовку; при невідповідності — видаляти пошкоджений результат і показувати локалізовану помилку в `StatusBar`.

@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 717
+- **Exported `.global` Symbols**: 716
 
 ## Structs (`include/*.inc`)
 
@@ -614,13 +614,12 @@
   - `fs_progress_item` — `void fs_progress_item(void)`
   - `fs_progress_cancelled` — `int fs_progress_cancelled(void)`
   - `task_measure` — `int task_measure(const char *path)`
-- **`src/fs/task_conflict.s`**
-  - `g_copy_had_skip`
-  - `fs_task_resolve_conflict` — int fs_task_resolve_conflict(int dst_dfd, const char *dst_rel, uint64_t src_sz, uint64_t dst_sz, char *out_name)
-  - `fs_task_check_conflict` — int fs_task_check_conflict(char *out_name, uint64_t *out_src_sz, uint64_t *out_dst_sz)
-  - `fs_task_reply_conflict` — void fs_task_reply_conflict(int action, int for_all)
-  - `fo_resolve_eexist_open` — Returns: fd >= 0 (edx = 1: temp file to rename over the target), -2 = SKIP, -9999 = same file, or -errno.
-  - `fo_move_check_conflict` — int fo_move_check_conflict(const char *src, const char *dst, char *out_ren)
+- **`src/fs/task_conflict.c`**
+  - `fs_task_resolve_conflict` — `intptr_t fs_task_resolve_conflict(int dst_dfd, const char *dst_rel, uint64_t src_sz, uint64_t dst_sz, char *out_name)`
+  - `fs_task_check_conflict` — `int fs_task_check_conflict(char *out_name, uint64_t *out_src_sz, uint64_t *out_dst_sz)`
+  - `fs_task_reply_conflict` — `void fs_task_reply_conflict(int action, int for_all)`
+  - `fo_resolve_eexist_open` — `FoOpenResult fo_resolve_eexist_open(int dst_dfd, const char *dst_rel, const FileStat *src_st, char *out_ren)`
+  - `fo_move_check_conflict` — `intptr_t fo_move_check_conflict(const char *src, const char *dst, char *out_ren)`
 - **`src/fs/task_control.c`**
   - `fs_task_poll` — `int fs_task_poll(int64_t *out_result)`
   - `fs_task_snapshot` — `void fs_task_snapshot(TaskSnap *out)`

@@ -9,15 +9,15 @@
  *   K <s|o>               copy conflict policy of the EXDEV path: skip (sets g_copy_had_skip) / overwrite through a temp file
  *   S <nr> <errno>        (x86_64) seccomp: system call nr fails with errno from now on (renameat2 316 -> EXDEV 18) */
 #include "script_cli.h"
-#include "duop_fs.h"
+#include "duop_task.h"
 #include "duop_pal.h"
 
-void *g_fs_progress;
+TaskShared *g_fs_progress;
 int g_copy_had_skip;
 static uint64_t g_items, g_begins;
 static int64_t g_cancel_in;
 static char g_move_policy = 'o', g_copy_policy = 's';
-static int g_worker_token;
+static TaskShared g_worker_token;
 
 void fs_progress_begin(const char *path) { (void)path; g_begins++; }
 void fs_progress_item(void) { g_items++; }

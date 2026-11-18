@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/task_conflict.c replaced (tests/test_c_task_conflict.py diffs against it)
 # src/fs/task_conflict.s - Background task conflict detection, resolution & unique naming
 .intel_syntax noprefix
 

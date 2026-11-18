@@ -3,19 +3,13 @@
  *
  * The delete is fd-relative and d_type driven like the copy engine; symlinks are removed, never followed (O_NOFOLLOW on every
  * directory open); depth is bounded by MAX_DIR_DEPTH. */
-#include "duop_fs.h"
+#include "duop_task.h"
 #include "duop_pal.h"
 #include "duop_sys.h"
 
 #define MAX_DIR_DEPTH 512
 #define DENTS_CAP 32752
-#define CONFLICT_ACT_SKIP 2
-#define CONFLICT_ACT_RENAME 3
 
-extern void *g_fs_progress;        /* TaskShared of the background worker, NULL in the UI process (task.s) */
-extern int g_copy_had_skip;        /* set by the conflict policy when a copy skipped an item (task_conflict.s) */
-void fs_progress_begin(const char *path);
-intptr_t fo_move_check_conflict(const char *src, const char *dst, char *out_ren);
 
 /* one entry of dfd: a directory is emptied first, then removed */
 static intptr_t ddf_entry(int dfd, const char *name, uint8_t type, int depth);
@@ -111,7 +105,7 @@ intptr_t fs_move_recursive(const char *src_path, const char *dst_path)
     g_copy_had_skip = 0;
     r = fs_copy_recursive(src_path, dst);
     if (r < 0 || g_copy_had_skip) return r;
-    void *progress = g_fs_progress;
+    TaskShared *progress = g_fs_progress;
     g_fs_progress = nullptr;
     r = fs_delete_recursive(src_path);
     g_fs_progress = progress;

@@ -8,10 +8,10 @@
  *   P <s|x|o|i|e>   conflict policy: skip, same file (-9999), crash-safe overwrite (temp file), in place (O_TRUNC), -EIO
  *   S <nr> <errno>  (x86_64) seccomp: system call nr fails with errno from now on (e.g. fsync 74 -> EIO) */
 #include "script_cli.h"
-#include "duop_fs.h"
+#include "duop_task.h"
 #include "duop_pal.h"
 
-void *g_fs_progress;
+TaskShared *g_fs_progress;
 static uint64_t g_items, g_bytes, g_begins;
 static int64_t g_cancel_in;
 static char g_policy = 's';
@@ -65,7 +65,7 @@ extern intptr_t ref_fs_copy_file(const char *, const char *);
 
 static bool g_ref;
 static char g_base[PATH_MAX], g_p1[PATH_MAX], g_p2[PATH_MAX];
-static int g_worker_token;
+static TaskShared g_worker_token;
 
 static const char *at(const char *p, char *buf)
 {

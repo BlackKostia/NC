@@ -5,7 +5,7 @@
  * resolution from the root), d_type driven (an entry is stat'ed only when the kernel reports DT_UNKNOWN), depth bounded by
  * MAX_DIR_DEPTH, never descending into the destination root. An existing target goes through the conflict policy
  * (fo_resolve_eexist_open: skip, crash-safe overwrite through a temp file, ...); a failed or canceled copy removes what it created. */
-#include "duop_fs.h"
+#include "duop_task.h"
 #include "duop_pal.h"
 #include "duop_string.h"
 
@@ -14,9 +14,6 @@
 #define FO_SAME_FILE (-9999)
 #define FO_SKIP (-2)
 
-extern void *g_fs_progress;        /* TaskShared of the background worker, NULL in the UI process (task.s) */
-void fs_progress_begin(const char *path);
-FoOpenResult fo_resolve_eexist_open(int dst_dfd, const char *dst_rel, const FileStat *src_st, char *out_ren);
 
 static uint64_t g_copy_root_dev, g_copy_root_ino;   /* the destination root of the running copy */
 

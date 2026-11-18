@@ -45,7 +45,6 @@ VER_INC := $(BUILD)/version.inc
 
 SRCS := \
 	src/main.s \
-	src/fs/task_conflict.s \
 	src/fs/pkg_archive.s \
 	src/fs/pkg_manager.s \
 	src/fs/pkg_verify.s \
@@ -227,6 +226,7 @@ C_SRCS := \
 	src/fs/task.c \
 	src/fs/task_worker.c \
 	src/fs/task_control.c \
+	src/fs/task_conflict.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -415,6 +415,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_file_ops_delete.py
 	python3 tests/test_c_task.py
 	python3 tests/test_c_task_control.py
+	python3 tests/test_c_task_conflict.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

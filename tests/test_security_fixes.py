@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """TDD regression tests for security fixes:
 1. Archive VFS OOB read / heap disclosure in .zip and .tar parsing & extraction.
-2. Copy overwrite following symlinks in task_conflict.s (O_NOFOLLOW).
+2. Copy overwrite following symlinks in task_conflict.c (O_NOFOLLOW).
 3. Global SIGBUS handler masking non-mapping SIGBUS / infinite loop.
 """
 import os

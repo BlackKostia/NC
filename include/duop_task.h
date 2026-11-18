@@ -71,6 +71,17 @@ int fs_task_toggle_pause(void);                                /* the new paused
 void fs_task_cancel(void);
 void fs_task_shutdown(void);                                   /* cancel, reap, SIGKILL after the grace time */
 
+/* conflicts (task_conflict.c) */
+#define CONFLICT_ACT_OVERWRITE 1
+#define CONFLICT_ACT_SKIP 2
+#define CONFLICT_ACT_RENAME 3
+extern int g_copy_had_skip;                                    /* a copy skipped an item: a move keeps its source */
+intptr_t fs_task_resolve_conflict(int dst_dfd, const char *dst_rel, uint64_t src_sz, uint64_t dst_sz, char *out_name);
+int fs_task_check_conflict(char *out_name, uint64_t *out_src_sz, uint64_t *out_dst_sz);   /* UI: 1 while the worker waits */
+void fs_task_reply_conflict(int action, int for_all);
+FoOpenResult fo_resolve_eexist_open(int dst_dfd, const char *dst_rel, const FileStat *src_st, char *out_ren);
+intptr_t fo_move_check_conflict(const char *src, const char *dst, char *out_ren);
+
 /* the worker (task_worker.c) */
 intptr_t fs_task_start(const TaskJob *job);                    /* forks the worker: 0 (the caller may free job), -EBUSY, -errno */
 int fs_task_is_active(void);
