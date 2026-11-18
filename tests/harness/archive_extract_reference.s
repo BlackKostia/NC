@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/archive_parse.c + archive_vfs.c replaced (tests/test_c_archive.py diffs against it)
 # src/fs/archive_vfs.s - Virtual File System for .tar, .tar.gz, .zip archives — archive extract (split from archive_vfs.s)
 
 .intel_syntax noprefix

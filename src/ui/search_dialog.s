@@ -33,8 +33,11 @@ str_SearchDialog: .asciz "SearchDialog"
 .global SearchDialog_layout
 .global SearchDialog_render
 
+.section .rodata
+.balign 8
 SearchDialog_vtbl:
     DIALOG_VTBL_SLOTS str_SearchDialog, Dialog_vtbl, SearchDialog._size, Dialog_dtor, SearchDialog_layout, SearchDialog_render, SearchDialog_on_key, SearchDialog_on_mouse, Widget_on_focus, Widget_hit_test, Dialog_on_confirm, Dialog_on_cancel
+.section .text
 
 # ==============================================================================
 # SearchDialog *SearchDialog_new(App *app)

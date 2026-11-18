@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/archive_parse.c + archive_vfs.c replaced (tests/test_c_archive.py diffs against it)
 # src/fs/archive_vfs.s - Virtual File System for .tar, .tar.gz, .zip archives
 
 # ArcEntry (288 bytes): [0..255]=name, [256]=off(8), [264]=size(8), [272]=comp_size(8), [280]=method(4), [284]=is_dir(4)

@@ -96,7 +96,7 @@
 - **Прогрес довгого підрахунку** ([du_parallel.s](src/fs/du_parallel.s), [app_du.s](src/app/app_du.s), [du_progress_dlg.s](src/ui/du_progress_dlg.s)): теки рахують робочі потоки, головний потік кожні ~100 мс оновлює вікно «Аналіз розміру тек» (з'являється після `DUOP_DU_PROGRESS_MS`, типово 300 мс): готові теки / усього, смуга, переглянуті теки · файли · байти; `Esc` скасовує обхід без запису часткових розмірів у кеш. Тести: [test_du_progress.py](tests/test_du_progress.py) (DP1–DP3). ✅
 
 ### 2.4 Віртуальна файлова система архівів (VFS) ✅
-- **Файли**: [dir_model.c](src/fs/dir_model.c) + модуль розпакування (`src/fs/inflate.s`, `src/fs/archive_vfs.s`).
+- **Файли**: [dir_model.c](src/fs/dir_model.c) + модуль розпакування (`src/fs/inflate.c`, `src/fs/archive_parse.c`, `src/fs/archive_vfs.c`).
 - **Поетапно**:
   1. підтримка `.tar` (просте читання 512-байтних заголовків POSIX/ustar); ✅
   2. компактний `inflate`-модуль (~420 рядків) для прозорої навігації по `.tar.gz` та `.zip` як по звичайних директоріях. ✅

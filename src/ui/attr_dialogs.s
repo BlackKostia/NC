@@ -34,8 +34,11 @@ str_rwx_chars:   .ascii "rwxrwxrwx"
 .global ChmodDialog_layout
 .global cd_draw_bits
 
+.section .rodata
+.balign 8
 ChmodDialog_vtbl:
     DIALOG_VTBL_SLOTS str_ChmodDialog, Dialog_vtbl, ChmodDialog._size, Dialog_dtor, ChmodDialog_layout, ChmodDialog_render, ChmodDialog_on_key, ChmodDialog_on_mouse, Widget_on_focus, Widget_hit_test, Dialog_on_confirm, Dialog_on_cancel
+.section .text
 
 # ChmodDialog *ChmodDialog_new(App *app, const char *path)
 ChmodDialog_new:

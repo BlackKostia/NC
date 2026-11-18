@@ -18,8 +18,11 @@ str_hex_tbl:    .ascii "0123456789abcdef"
 
 .section .text
 .global InfoDialog_vtbl
+.section .rodata
+.balign 8
 InfoDialog_vtbl:
     DIALOG_VTBL_SLOTS str_InfoDialog, Dialog_vtbl, InfoDialog._size, Dialog_dtor, InfoDialog_layout, InfoDialog_render, InfoDialog_on_key, Dialog_on_mouse, Widget_on_focus, Widget_hit_test, Dialog_on_cancel, Dialog_on_cancel
+.section .text
 
 .global InfoDialog_new
 .global InfoDialog_layout

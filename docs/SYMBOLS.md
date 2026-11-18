@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 716
+- **Exported `.global` Symbols**: 714
 
 ## Structs (`include/*.inc`)
 
@@ -380,19 +380,17 @@
 
 ### Filesystem & Codecs (`src/fs/`)
 
-- **`src/fs/archive_extract.s`**
-  - `arc_enter_model` — int arc_enter_model(DirModel *m, const FileEntry *ent) -> 1 if handled, 2 if '..' nav_up, 0 otherwise
-  - `arc_extract_entry` — int arc_extract_entry(DirModel *m, const FileEntry *ent, char *out_tmp_path) -> 0 on ok, -1 on err
-  - `arc_zip64_eocd` — (cd_off in rax, total_entries in rdx) arc_zip64_eocd(r12=rdi, r13=rsi, eocd_off=rdx, cd_off=rcx, total=r8)
-  - `arc_zip64_extra` — Apply ZIP64 Extra Field (0x0001) to entry [rdi] using CD at r12+r15, fname=rcx, extra=r10
-- **`src/fs/archive_vfs.s`**
-  - `arc_is_archive` — int arc_is_archive(const char *name) -> 1=tar, 2=tar.gz/tgz, 3=zip, 0=none
-  - `arc_parse_tar` — void arc_parse_tar(ArcCtx *ctx)
-  - `arc_parse_zip` — void arc_parse_zip(ArcCtx *ctx)
-  - `arc_ungzip` — void *arc_ungzip(const uint8_t *src, uint64_t src_len, uint64_t *out_len)
-  - `arc_populate` — void arc_populate(DirModel *m)
-  - `arc_free_ctx` — void arc_free_ctx(DirModel *m)
-  - `arc_nav_up_model` — int arc_nav_up_model(DirModel *m) -> -1 if not arc, else cursor (>=0)
+- **`src/fs/archive_parse.c`**
+  - `arc_is_archive` — `int arc_is_archive(const char *name)`
+  - `arc_parse_tar` — `void arc_parse_tar(ArcCtx *ctx)`
+  - `arc_parse_zip` — `void arc_parse_zip(ArcCtx *ctx)`
+  - `arc_ungzip` — `void *arc_ungzip(const uint8_t *src, uint64_t len, uint64_t *out_len)`
+- **`src/fs/archive_vfs.c`**
+  - `arc_populate` — `void arc_populate(DirModel *m)`
+  - `arc_free_ctx` — `void arc_free_ctx(DirModel *m)`
+  - `arc_nav_up_model` — `int arc_nav_up_model(DirModel *m)`
+  - `arc_enter_model` — `int arc_enter_model(DirModel *m, const FileEntry *ent)`
+  - `arc_extract_entry` — `int arc_extract_entry(DirModel *m, const FileEntry *ent, char *out_tmp_path)`
 - **`src/fs/dir_cache.c`**
   - `dircache_store` — `int dircache_store(DirModel *m)`
   - `dircache_fetch` — `int dircache_fetch(DirModel *m, const FileStat *st)`
