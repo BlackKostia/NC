@@ -1,0 +1,224 @@
+#!/usr/bin/env python3
+"""duop-inspect: File Integrity (CRC32/MD5/SHA-256), Entropy, Magic & Open-FD Lock Inspector."""
+
+from __future__ import annotations
+
+import hashlib
+import math
+import os
+import stat
+import sys
+import time
+import zlib
+
+RST = "\x1b[0m"
+BOLD = "\x1b[1m"
+FG_BLUE = "\x1b[38;2;122;162;247m"
+FG_CYAN = "\x1b[38;2;125;207;255m"
+FG_GREEN = "\x1b[38;2;158;206;106m"
+FG_YELLOW = "\x1b[38;2;224;175;104m"
+FG_RED = "\x1b[38;2;247;118;142m"
+FG_MUTED = "\x1b[38;2;169;177;214m"
+FG_DIM = "\x1b[38;2;86;95;137m"
+
+MAGIC_SIGNATURES: tuple[tuple[bytes, str], ...] = (
+    (b"\x7fELF", "ELF executable / object"),
+    (b"\x89PNG\r\n\x1a\n", "PNG image"),
+    (b"\xff\xd8\xff", "JPEG image"),
+    (b"GIF87a", "GIF87a image"),
+    (b"GIF89a", "GIF89a image"),
+    (b"PK\x03\x04", "ZIP archive"),
+    (b"\x1f\x8b\x08", "GZIP stream"),
+    (b"%PDF-", "PDF document"),
+    (b"SQLite format 3\x00", "SQLite 3 database"),
+    (b"#!", "Executable script (shebang)"),
+)
+
+
+def fmt_bytes(n: int) -> str:
+    units = ("B", "KiB", "MiB", "GiB", "TiB")
+    val = float(n)
+    for u in units:
+        if val < 1024.0 or u == units[-1]:
+            return f"{n} B" if u == "B" else f"{val:.2f} {u} ({n:,} B)"
+        val /= 1024.0
+    return f"{n} B"
+
+
+def detect_magic(head: bytes) -> str:
+    for sig, label in MAGIC_SIGNATURES:
+        if head.startswith(sig):
+            return label
+    if not head:
+        return "Empty file"
+    if b"\x00" not in head:
+        try:
+            head.decode("utf-8")
+            return "UTF-8 text"
+        except UnicodeDecodeError:
+            pass
+    return "Binary data"
+
+
+def analyze_file(path: str, max_hash_bytes: int = 256 * 1024 * 1024) -> dict[str, object]:
+    crc = 0
+    md5 = hashlib.md5()
+    sha256 = hashlib.sha256()
+    counts = [0] * 256
+    total = 0
+    head = b""
+    truncated = False
+
+    with open(path, "rb") as f:
+        while True:
+            chunk = f.read(65536)
+            if not chunk:
+                break
+            if not head:
+                head = chunk[:64]
+            crc = zlib.crc32(chunk, crc)
+            md5.update(chunk)
+            sha256.update(chunk)
+            for b in chunk:
+                counts[b] += 1
+            total += len(chunk)
+            if total >= max_hash_bytes:
+                truncated = True
+                break
+
+    entropy = 0.0
+    if total > 0:
+        for c in counts:
+            if c:
+                p = c / total
+                entropy -= p * math.log2(p)
+
+    return {
+        "crc32": f"{crc & 0xFFFFFFFF:08x}",
+        "md5": md5.hexdigest(),
+        "sha256": sha256.hexdigest(),
+        "entropy": entropy,
+        "magic": detect_magic(head),
+        "hashed_bytes": total,
+        "truncated": truncated,
+    }
+
+
+def find_proc_locks(dev: int, ino: int, limit: int = 12) -> list[tuple[str, str]]:
+    """Best-effort scan of /proc/<pid>/fd for processes holding the target inode."""
+    holders: list[tuple[str, str]] = []
+    self_pid = str(os.getpid())
+    try:
+        pids = os.listdir("/proc")
+    except OSError:
+        return holders
+
+    for pid in pids:
+        if not pid.isdigit() or pid == self_pid:
+            continue
+        fd_dir = f"/proc/{pid}/fd"
+        try:
+            fds = os.listdir(fd_dir)
+        except OSError:
+            continue
+        matched = False
+        for fd in fds:
+            try:
+                st = os.stat(f"{fd_dir}/{fd}")
+                if st.st_dev == dev and st.st_ino == ino:
+                    matched = True
+                    break
+            except OSError:
+                continue
+        if matched:
+            comm = "?"
+            try:
+                with open(f"/proc/{pid}/comm", "r", encoding="utf-8", errors="replace") as f:
+                    comm = f.read().strip() or "?"
+            except OSError:
+                pass
+            holders.append((pid, comm))
+            if len(holders) >= limit:
+                break
+    return holders
+
+
+def entropy_bar(ent: float) -> str:
+    filled = max(0, min(20, int(round((ent / 8.0) * 20))))
+    if ent < 4.5:
+        color, tag = FG_GREEN, "Text / Low"
+    elif ent < 7.2:
+        color, tag = FG_YELLOW, "Structured / Code"
+    else:
+        color, tag = FG_RED, "Packed / Encrypted"
+    bar = f"{color}{'█' * filled}{FG_DIM}{'░' * (20 - filled)}{RST}"
+    return f"{bar} {BOLD}{ent:.2f}{RST} bits/byte ({color}{tag}{RST})"
+
+
+def row(label: str, value: str) -> None:
+    print(f"  {FG_CYAN}{label:<12}{RST} {value}")
+
+
+def main() -> int:
+    if len(sys.argv) < 2 or not sys.argv[1]:
+        print(f"{FG_RED}Помилка: не передано шлях до файлу.{RST}")
+        input("Натисніть Enter для повернення в Duop...")
+        return 1
+
+    target = sys.argv[1]
+    if not os.path.lexists(target):
+        print(f"{FG_RED}Шлях не знайдено: {target}{RST}")
+        input("Натисніть Enter для повернення в Duop...")
+        return 1
+
+    st_link = os.lstat(target)
+    is_link = stat.S_ISLNK(st_link.st_mode)
+    st = os.stat(target) if not is_link or os.path.exists(target) else st_link
+
+    kind = "Symlink" if is_link else ("Directory" if stat.S_ISDIR(st.st_mode) else "Regular file" if stat.S_ISREG(st.st_mode) else "Special")
+    perms = f"{stat.filemode(st_link.st_mode)} ({stat.S_IMODE(st_link.st_mode):04o})"
+    mtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(st.st_mtime))
+
+    print(f"\n{FG_BLUE}{BOLD}╭─ Duop File Inspector ───────────────────────────────────────────────╮{RST}")
+    row("Name:", f"{BOLD}{os.path.basename(target) or target}{RST}")
+    row("Path:", f"{FG_MUTED}{target}{RST}")
+    row("Type:", kind + (f" -> {os.readlink(target)}" if is_link else ""))
+    row("Size:", fmt_bytes(st.st_size))
+    row("Mode:", perms)
+    row("Owner:", f"uid={st.st_uid}  gid={st.st_gid}  inode={st.st_ino}  nlink={st.st_nlink}")
+    row("Modified:", mtime)
+
+    if stat.S_ISREG(st.st_mode):
+        info = analyze_file(target)
+        note = f" {FG_YELLOW}(перші 256 MiB){RST}" if info["truncated"] else ""
+        print(f"{FG_DIM}  ───────────────────────────────────────────────────────────────────{RST}")
+        row("Magic:", f"{FG_GREEN}{info['magic']}{RST}{note}")
+        row("Entropy:", entropy_bar(float(info["entropy"])))
+        row("CRC32:", str(info["crc32"]))
+        row("MD5:", str(info["md5"]))
+        row("SHA-256:", f"{BOLD}{info['sha256']}{RST}")
+    elif stat.S_ISDIR(st.st_mode):
+        try:
+            cnt = sum(1 for _ in os.scandir(target))
+            row("Entries:", f"{cnt:,}")
+        except OSError as e:
+            row("Entries:", f"{FG_RED}{e}{RST}")
+
+    locks = find_proc_locks(st.st_dev, st.st_ino)
+    print(f"{FG_DIM}  ───────────────────────────────────────────────────────────────────{RST}")
+    if locks:
+        lock_str = ", ".join(f"{FG_YELLOW}{pid}{RST} ({comm})" for pid, comm in locks)
+        row("Open FDs:", lock_str)
+    else:
+        row("Open FDs:", f"{FG_DIM}жоден доступний процес не тримає файл відкритим{RST}")
+
+    print(f"{FG_BLUE}{BOLD}╰─────────────────────────────────────────────────────────────────────╯{RST}")
+    try:
+        input(f"\n{FG_MUTED}Натисніть Enter для повернення в Duop...{RST}")
+    except EOFError:
+        pass
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
