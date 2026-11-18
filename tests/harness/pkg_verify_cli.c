@@ -47,7 +47,7 @@ extern int ref_pkg_hashes_write(const char *, const char *, uint64_t);
 #endif
 
 static bool g_ref;
-static char g_buf[8192 + 512];
+static char g_buf[PKG_LIST_CAP + 512];
 
 static int sc_split(char *line, char **f, int max)
 {
@@ -74,7 +74,13 @@ static void cmd_append(char **f, int n, int first)
     int64_t beyond = 0;                                                /* bytes written past len (must stay 0) */
     for (size_t i = len < sizeof g_buf ? len : sizeof g_buf; i < sizeof g_buf; i++) beyond += g_buf[i] != '#';
     sc_put(" len="); sc_num((int64_t)len); sc_put(" beyond="); sc_num(beyond); sc_put(" buf=");
-    if (len <= sizeof g_buf) { char c = g_buf[len]; g_buf[len] = 0; sc_esc(g_buf); g_buf[len] = c; }
+    if (len <= 65536) { char c = g_buf[len]; g_buf[len] = 0; sc_esc(g_buf); g_buf[len] = c; }
+    else if (len <= sizeof g_buf) {                                     /* a long list: its last 300 bytes */
+        char c = g_buf[len];
+        g_buf[len] = 0;
+        sc_put("..."); sc_esc(g_buf + len - 300);
+        g_buf[len] = c;
+    }
     if (first == 2) { sc_put(" w="); sc_num(CALL(pkg_hashes_write, f[1], g_buf, len)); }
 }
 
@@ -87,8 +93,8 @@ int duop_main(int argc, char **argv, char **envp, const uintptr_t *auxv)
     (void)str_copy(g_root, r ? r : "/nonexistent", PATH_MAX);
     char *script = sc_read_all();
     for (char *line; (line = sc_next_line(&script));) {
-        char *f[64];
-        int n = sc_split(line, f, 64);
+        char *f[128];
+        int n = sc_split(line, f, 128);
         if (!n) continue;
         switch (f[0][0]) {
         case 'V': sc_put("V "); sc_esc(n > 1 ? f[1] : ""); sc_put(" ="); sc_num(CALL(pkg_verify, envp, n > 1 ? f[1] : "")); break;

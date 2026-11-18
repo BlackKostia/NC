@@ -8,7 +8,7 @@
 #include "duop_hash.h"
 #include "duop_string.h"
 
-#define PKG_HASHES_CAP 8192        /* the hash list buffer of the installer and of the check */
+#define PKG_HASHES_CAP PKG_LIST_CAP   /* the hash list buffer of the installer and of the check */
 
 static const char pkv_hashes_file[] = "hashes.sha256";
 

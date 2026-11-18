@@ -14,7 +14,8 @@ PM2 defects of the asm, fixed:
       or were misread (the C is checked against the expected set of 120 packages)
     - a download always got a ".tar.gz" temp name, so a .zip or .tar URL could never be installed; a failed download left its
       temp file behind
-    - a files.list line that did not fit 8 KiB was cut or left without its newline (the C records whole lines only)
+    - files.list and the hash list were capped at 8 KiB: a line was cut, the rest of the package's activations were orphaned on
+      removal and its files unverified (the C holds PKG_LIST_CAP: one line per archive entry always fits)
     - a reinstall overwrote files.list, so the *.lang / *.layout files of the old version were never removed (the C deletes them
       before installing the new one); a sha256 / files.list / hashes.sha256 that could not be written still reported success
 PM3 qemu-aarch64: the C module gives the x86_64 results; PM4 mutation check
@@ -131,6 +132,7 @@ def archives(arc: Path) -> dict[str, str]:
         "noname.tar.gz": tar_bytes([("manifest.ini", b"version=1\n")], gz=True),
         "big.tar.gz": tar_bytes([("manifest.ini", b"# " + b"c" * 5000 + b"\nname=late\n")], gz=True),
         "corrupt.tar.gz": b"\x1f\x8b\x08\x00" + b"\0" * 40,
+        "many.tar": tar_bytes([("manifest.ini", manifest("many"))] + [(f"{'l' * 88}{i:02d}.lang", b"x") for i in range(80)]),
     }
     for name, data in pk.items():
         (arc / name).write_bytes(data)
@@ -251,15 +253,18 @@ def test_files_list(exe: Path, t: Path) -> None:
     (d / "arc" / "many.tar").write_bytes(tar_bytes(files))
     assert run(exe, "c", f"I {d}/arc/many.tar -\n", d) == "I r=0\n"
     text = (d / "pkgs" / "many" / "files.list").read_text()
-    lines = text.split("\n")
-    assert text.endswith("\n") and len(text) < 8190 and all(ln.endswith(".lang") for ln in lines[:-1]), text[-300:]
-    assert all(Path(ln).is_file() for ln in lines[:-1]) and 20 < len(lines) - 1 < 80
+    lines = text.split("\n")[:-1]
+    hashes = (d / "pkgs" / "many" / "hashes.sha256").read_text().splitlines()
+    assert text.endswith("\n") and len(text) > 8192 and len(lines) == 80 and all(Path(ln).is_file() for ln in lines), text[-300:]
+    assert len(hashes) == 81 and len("\n".join(hashes)) > 8192, len(hashes)                 # every file, manifest included
+    assert run(exe, "c", "D many\n", d) == "D r=0\n" and not any((d / "lang").glob("l*.lang")), "activations left behind"
     r = tree(t / "pm2" / "fr")
     (r / "arc" / "many.tar").write_bytes(tar_bytes(files))
     assert run(exe, "ref", f"I {r}/arc/many.tar -\n", r) == "I r=0\n"
     cut = (r / "pkgs" / "many" / "files.list").read_text()
     assert not cut.endswith("\n") and not cut.endswith(".lang"), cut[-120:]              # the asm: a cut path, no newline
-    print(f"[PASS] PM2c. fixed: files.list keeps whole lines only ({len(lines) - 1} of 80 activations fit 8 KiB)")
+    print(f"[PASS] PM2c. fixed: files.list and hashes.sha256 record all 80 activations / 81 files ({len(text)} bytes) and "
+          "the removal deletes them all (asm: cut at 8 KiB, a cut path without newline, the rest orphaned and unverified)")
 
 
 def test_reinstall(exe: Path, t: Path) -> None:
@@ -295,8 +300,9 @@ MUTANTS = [
     ("list empty name", "if (out[n].name[0]) n++;", "n++;"),
     ("activate layout", '".layout") ? pkm_dir_lay', '".layoutx") ? pkm_dir_lay'),
     ("activate newline", "files[at + dl] = '\\n';", "files[at + dl] = ' ';"),
+    ("list cap", "if (at + dl < PKG_LIST_CAP - 2) {", "if (at + dl < 8190) {"),
     ("parent dir", "    pkg_mkdir_p(buf);\n}", "}"),
-    ("hashes", "        pkg_hashes_append(dst, lists + PKM_LIST_CAP, &lens[1]);\n", ""),
+    ("hashes", "        pkg_hashes_append(dst, lists + PKG_LIST_CAP, &lens[1]);\n", ""),
     ("manifest any depth", "path_basename(ctx->entries[i].name)", "ctx->entries[i].name"),
     ("manifest unlinked", "    (void)os_unlinkat(AT_FDCWD, tmp, 0);\n    if (r < 0)", "    if (r < 0)"),
     ("unsafe name", "return pkm_safe_name(pe->name) ? 0 : -1;", "return pe->name[0] ? 0 : -1;"),
@@ -347,6 +353,7 @@ def c_reference(exe: Path, t: Path, arch: str = "x86_64") -> str:
     o += run(exe, "c", "I http://h/beta.zip -\nI http://h/fail.tar.gz -\nT\n", d, arch=arch)
     o += run(exe, "c", "R\n", d, {"DUOP_PKG_DIR": "/" + "r" * 4095}, arch)
     o += run(exe, "c", f"I {d}/arc/alpha.tar.gz -\nI {d}/arc/alpha2.tar.gz -\n", d, arch=arch)
+    o += run(exe, "c", f"I {d}/arc/many.tar -\n", d, arch=arch)
     (d / "pkgs" / "longname-package-x" / "sha256").mkdir(parents=True)
     o += run(exe, "c", f"I {d}/arc/longname.tar.gz -\n", d, arch=arch)
     return o.replace(str(d), "<T>") + "\n".join(map(str, snapshot(d)))

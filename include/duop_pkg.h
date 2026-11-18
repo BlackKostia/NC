@@ -12,7 +12,9 @@
 int pkg_fetch_url(char **envp, const char *url, const char *dest_path);
 
 /* ---- file hashes of installed packages (pkg_verify.c) ---- */
-void pkg_hashes_append(const char *file_path, char *buf, uint64_t *len_ptr);   /* "<sha256> <path>\n" while it fits 8 KiB */
+/* files.list and hashes.sha256 of a package: one line per archive entry at most, so a whole archive always fits */
+#define PKG_LIST_CAP ((uint64_t)ARC_MAX_ENTRIES * (PATH_MAX + 72))
+void pkg_hashes_append(const char *file_path, char *buf, uint64_t *len_ptr);   /* "<sha256> <path>\n" while it fits PKG_LIST_CAP */
 int pkg_hashes_write(const char *pkg_dir, const char *buf, uint64_t len);       /* <pkg_dir>/hashes.sha256: 0 / -1 */
 int pkg_verify(char **envp, const char *name);                 /* every recorded file unchanged, manifest included: 0, else -1 */
 

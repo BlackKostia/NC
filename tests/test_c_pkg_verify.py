@@ -3,8 +3,9 @@
 pkg_verify of installed packages.
 
 PV1 differential (x86_64): verification of an intact package, of tampered / missing / extra-byte files, of hash lists with upper-
-    case hex, bad hex, a short line, a missing space, no trailing newline, no manifest entry, more than 8 KiB, an empty list, of a
-    missing or short "sha256", of unsafe names; building lists file by file up to the 8 KiB limit (a line that does not fit is not
+    case hex, bad hex, a short line, a missing space, no trailing newline, no manifest entry, an empty list, of a
+    missing or short "sha256", of unsafe names; building lists file by file (PV1b, C only: lists beyond the 8 KiB of the asm, up
+    to PKG_LIST_CAP, where a line that does not fit is not
     recorded), with unreadable files skipped, and writing them; results, buffers and files
 PV2 qemu-aarch64: the C module gives the x86_64 results; PV3 mutation check
 """
@@ -91,15 +92,19 @@ def tree(root: Path) -> tuple[Path, list[str]]:
     return root, files
 
 
-def scripts(root: Path, files: list[str]) -> str:
-    names = ["ok", "tampered", "missing", "upper", "badhex", "short", "nospace", "nonl", "nomanifest", "empty", "huge", "nosha", "shortsha",
+CAP = 1024 * (4096 + 72)                                                  # PKG_LIST_CAP: ARC_MAX_ENTRIES lines of PATH_MAX + 72
+
+
+def scripts(root: Path, files: list[str], fixed: bool = False) -> str:
+    """The calls both implementations answer alike; with fixed, also those beyond the 8 KiB of the asm (C only)."""
+    names = ["ok", "tampered", "missing", "upper", "badhex", "short", "nospace", "nonl", "nomanifest", "empty", "nosha", "shortsha",
              "badsha", "sha63", "", ".", "..", "a/b", "ok/.", "nope"]
     s = "".join(f"V {n}\n" for n in names)
     s += "A " + " ".join(files[:20]) + "\n"
-    s += "A " + " ".join(files) + "\n"                                    # beyond 8 KiB: the rest is not recorded
-    edge = 8192 - 66 - len(files[0])                                      # the line ends exactly at the cap / one byte before
-    s += "A +8000 " + " ".join(files[:3]) + "\n" + "".join(f"A +{edge + k} {files[0]}\n" for k in (-1, 0, 1))
     s += f"H {root / 'out'} " + " ".join(files[:10]) + "\n"
+    if fixed:
+        edge = CAP - 66 - len(files[0])                                   # the line ends exactly at the cap / one byte before
+        s += "V huge\nA " + " ".join(files) + "\n" + "".join(f"A +{edge + k} {files[0]}\n" for k in (-1, 0, 1))
     return s
 
 
@@ -110,10 +115,10 @@ def run(exe: Path, impl: str, root: Path, script: str, arch: str = "x86_64") -> 
     return res.stdout.decode(errors="backslashreplace")
 
 
-def one(exe: Path, t: Path, impl: str, arch: str = "x86_64") -> tuple[str, bytes]:
+def one(exe: Path, t: Path, impl: str, arch: str = "x86_64", fixed: bool = False) -> tuple[str, bytes]:
     root, files = tree(t / f"{impl[0]}_{arch[:3]}")                     # equal path lengths: the root is masked afterwards
     (root / "out").mkdir()
-    out = run(exe, impl, root, scripts(root, files), arch)
+    out = run(exe, impl, root, scripts(root, files, fixed), arch)
     written = (root / "out" / "hashes.sha256").read_bytes()
     (root / "files" / "noread").chmod(0o644)
     return out.replace(str(root), "@@"), written.replace(str(root).encode(), b"@@")
@@ -125,15 +130,31 @@ def test_differential(exe: Path, t: Path) -> tuple[str, bytes]:
     assert a[1] == b[1], "the written hash lists differ"
     vs = {ln.split()[1]: ln.split()[-1] for ln in b[0].splitlines() if ln.startswith("V ") and len(ln.split()) == 3}
     assert vs["ok"] == "=0" and vs["upper"] == "=0" and all(v == "=-1" for k, v in vs.items() if k not in ("ok", "upper")), vs
-    lens = [ln.split()[1] for ln in b[0].splitlines() if ln.startswith("A ")]
-    assert lens[-3] == "len=8191" and "len=8192" not in lens[-2:] and lens[-2] != lens[-1], ("a line fits up to 8191 bytes", lens[-3:])
     print(f"[PASS] PV1. pkg_verify / hashes identical to the asm ({len(b[0].splitlines())} calls: intact, tampered, malformed lists, "
-          "8 KiB limit, sha256 file, unsafe names, appends near the limit, the written list)")
+          "sha256 file, unsafe names, the written list)")
     return b
 
 
+def test_fixed(exe: Path, t: Path) -> tuple[str, bytes]:
+    """Lists beyond 8 KiB: the asm dropped lines (installer) and read a cut list (check); the C holds PKG_LIST_CAP."""
+    res = {impl: one(exe, t, impl, fixed=True) for impl in ("ref", "c")}
+    tail = {impl: res[impl][0].splitlines()[-5:] for impl in res}
+    _, files = tree(t / "model")
+    want = sum(66 + len(f) for f in files if not f.endswith(("noread", "missing")))   # "model" is as long as "c_x86"
+    assert tail["ref"][0] == "V huge =-1" and tail["c"][0] == "V huge =0", tail
+    assert tail["c"][1].startswith(f"A len={want} beyond=0 ") and not tail["ref"][1].startswith(f"A len={want} "), (want, tail)
+    assert want > 8192, "the list must exceed the 8 KiB of the asm"
+    edge = CAP - 66 - len(files[0])
+    lens = [ln.split()[1] for ln in tail["c"][2:]]
+    assert lens == [f"len={CAP - 1}", f"len={edge}", f"len={edge + 1}"], ("a line fits up to PKG_LIST_CAP - 1 bytes", lens)
+    print(f"[PASS] PV1b. fixed: hash lists hold every file ({want} bytes for 80 files; asm: cut at 8 KiB, so large packages were "
+          "partly recorded and a long list failed the check)")
+    return res["c"]
+
+
 MUTANTS = [
-    ("cap", "#define PKG_HASHES_CAP 8192", "#define PKG_HASHES_CAP 8193"),
+    ("cap", "#define PKG_HASHES_CAP PKG_LIST_CAP", "#define PKG_HASHES_CAP (PKG_LIST_CAP + 1)"),
+    ("check reads 8 KiB", "fs_read_file_head(path, buf, PKG_HASHES_CAP, &got)", "fs_read_file_head(path, buf, 8192, &got)"),
     ("fit bound", "if (at + n + 66 >= PKG_HASHES_CAP) return;", "if (at + n + 66 > PKG_HASHES_CAP) return;"),
     ("unreadable recorded", "if (hash_file(file_path, &crc, hex) < 0) return;", "(void)hash_file(file_path, &crc, hex);"),
     ("hex upper rejected", "        c |= 0x20;\n", ""),
@@ -163,7 +184,7 @@ def test_mutants(t: Path, expect: tuple[str, bytes]) -> None:
             mt.mkdir()
             (mt / "pkg_verify.c").write_text(src.replace(old, new, 1))
             try:
-                noticed[name] = one(build("x86_64", mt, str(mt / "pkg_verify.c")), mt.parent / f"x{i:02d}", "c") != expect
+                noticed[name] = one(build("x86_64", mt, str(mt / "pkg_verify.c")), mt.parent / f"x{i:02d}", "c", fixed=True) != expect
             except (subprocess.CalledProcessError, subprocess.TimeoutExpired, AssertionError, OSError):
                 noticed[name] = True
         return go
@@ -178,9 +199,10 @@ def main() -> None:
     with H.workdir() as d:
         t = Path(d).resolve()
         exe = build("x86_64", t / "x86")
-        expect = test_differential(exe, t / "x00")
+        test_differential(exe, t / "x00")
+        expect = test_fixed(exe, t / "x01")
         if H.available("aarch64"):
-            assert one(build("aarch64", t / "a64"), t / "x99", "c", "aarch64") == expect, "qemu-aarch64 differs"
+            assert one(build("aarch64", t / "a64"), t / "x99", "c", "aarch64", fixed=True) == expect, "qemu-aarch64 differs"
             print("[PASS] PV2. qemu-aarch64: the C module gives the x86_64 results")
         else:
             print("[SKIP] PV2: aarch64 toolchain/qemu not installed")

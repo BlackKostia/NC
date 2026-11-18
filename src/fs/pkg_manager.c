@@ -11,7 +11,6 @@
 #include "duop_string.h"
 #include "duop_sys.h"
 
-#define PKM_LIST_CAP 8192          /* files.list and the hash list of an install (each half of one block) */
 #define PKM_MANIFEST_MAX 4096
 #define PKM_DIRBUF 16384
 #define PKM_ACTIVATE_MAX 524288    /* a *.lang / *.layout file copied out of the package */
@@ -102,8 +101,8 @@ static void pkm_activate_file(const char *root, const char *src, const char *bas
     size_t got;
     if (pkm_safe_name(base) && path_join(dst, dir, base, PATH_MAX) >= 0 && (data = mem_alloc(PKM_ACTIVATE_MAX)) &&
         fs_read_file_head(src, data, PKM_ACTIVATE_MAX, &got) >= 0 && pkg_write_file(dst, data, got) == 0) {
-        size_t at = str_len(files), dl = str_len(dst);
-        if (at + dl < PKM_LIST_CAP - 2) {
+        uint64_t at = *files_len, dl = str_len(dst);
+        if (at + dl < PKG_LIST_CAP - 2) {
             mem_copy(files + at, dst, dl);
             files[at + dl] = '\n';
             files[at + dl + 1] = 0;
@@ -134,7 +133,7 @@ static void pkm_extract_all(ArcCtx *ctx, const char *pkg_dir, const char *root, 
         if (!rel || path_join(dst, pkg_dir, rel, PATH_MAX) < 0) continue;
         pkm_ensure_parent(dst);
         if (pkg_extract_entry_to(ctx, e, dst) != 0) continue;
-        pkg_hashes_append(dst, lists + PKM_LIST_CAP, &lens[1]);
+        pkg_hashes_append(dst, lists + PKG_LIST_CAP, &lens[1]);
         pkm_activate_file(root, dst, path_basename(rel), lists, &lens[0]);
     }
 }
@@ -165,11 +164,11 @@ static bool pkm_safe_unlink_entry(const char *root, const char *line)
     return *p == '/' && pkm_safe_name(p + 1);
 }
 
-/* the activated files recorded in <dir>/files.list deleted (complete lines only); buf: PKM_LIST_CAP bytes */
+/* the activated files recorded in <dir>/files.list deleted (complete lines only); buf: PKG_LIST_CAP bytes */
 static void pkm_unlink_listed(const char *root, const char *dir, char *path, char *buf)
 {
     size_t got;
-    if (path_join(path, dir, "files.list", PATH_MAX) < 0 || fs_read_file_head(path, buf, PKM_LIST_CAP, &got) < 0) return;
+    if (path_join(path, dir, "files.list", PATH_MAX) < 0 || fs_read_file_head(path, buf, PKG_LIST_CAP, &got) < 0) return;
     for (char *p = buf, *end = buf + got; p < end;) {
         char *nl = p;
         while (nl < end && *nl != '\n') nl++;
@@ -183,7 +182,7 @@ static void pkm_unlink_listed(const char *root, const char *dir, char *path, cha
 /* the package of ctx installed: files, sha256, files.list and hashes.sha256 written; 0, or -1 when any of them failed */
 static int pkm_install_from_ctx(char **envp, ArcCtx *ctx, const char *sha_hex)
 {
-    char *mem = mem_alloc(4 * PATH_MAX + PKM_MANIFEST_MAX + 2 * PKM_LIST_CAP);
+    char *mem = mem_alloc(4 * PATH_MAX + PKM_MANIFEST_MAX + 2 * PKG_LIST_CAP);
     if (!mem) return -1;
     char *root = mem, *dir = mem + PATH_MAX, *path = mem + 2 * PATH_MAX, *dst = mem + 3 * PATH_MAX;
     char *man = mem + 4 * PATH_MAX, *lists = man + PKM_MANIFEST_MAX;
@@ -200,8 +199,8 @@ static int pkm_install_from_ctx(char **envp, ArcCtx *ctx, const char *sha_hex)
     pkm_extract_all(ctx, dir, root, lists, lens, dst);
     r = 0;
     if (path_join(path, dir, "sha256", PATH_MAX) < 0 || pkg_write_file(path, sha_hex, 64) != 0) r = -1;
-    if (path_join(path, dir, "files.list", PATH_MAX) < 0 || pkg_write_file(path, lists, str_len(lists)) != 0) r = -1;
-    if (pkg_hashes_write(dir, lists + PKM_LIST_CAP, lens[1]) != 0) r = -1;
+    if (path_join(path, dir, "files.list", PATH_MAX) < 0 || pkg_write_file(path, lists, lens[0]) != 0) r = -1;
+    if (pkg_hashes_write(dir, lists + PKG_LIST_CAP, lens[1]) != 0) r = -1;
 out:
     mem_free(mem);
     return r;
@@ -239,7 +238,7 @@ clean:
 int pkg_remove(char **envp, const char *name)
 {
     if (!pkm_safe_name(name)) return -1;
-    char *mem = mem_alloc(3 * PATH_MAX + PKM_LIST_CAP);
+    char *mem = mem_alloc(3 * PATH_MAX + PKG_LIST_CAP);
     if (!mem) return -1;
     char *root = mem, *dir = mem + PATH_MAX, *path = mem + 2 * PATH_MAX, *buf = mem + 3 * PATH_MAX;
     int r = -1;
