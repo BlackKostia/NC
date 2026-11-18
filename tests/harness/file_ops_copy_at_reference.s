@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/file_ops_copy.c replaced (tests/test_c_file_ops_copy.py diffs against it)
 # Filesystem Operations: mkdir, touch, rename, copy, move, delete (recursive), file read — file ops copy at (split from file_ops.s)
 
 .intel_syntax noprefix

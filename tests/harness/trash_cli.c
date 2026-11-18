@@ -37,7 +37,7 @@ intptr_t fs_rename_noreplace(const char *o, const char *n)
     return os_renameat2(AT_FDCWD, o, AT_FDCWD, n, RENAME_NOREPLACE);
 }
 
-int fs_copy_recursive(const char *src, const char *dst)
+intptr_t fs_copy_recursive(const char *src, const char *dst)
 {
     if (g_force_copy) return g_force_copy;
     FileStat st;

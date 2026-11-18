@@ -13,7 +13,7 @@ import run_smart_tests as rsm  # noqa: E402
 
 
 def test_file_ops_selects_only_fs_and_reliability() -> None:
-    full, tests = rsm.select_tests(["src/fs/file_ops_copy.s"])
+    full, tests = rsm.select_tests(["src/fs/file_ops_copy.c"])
     assert not full
     assert "tests/test_fs_reliability.py" in tests
     assert "tests/test_bg_tasks.py" in tests

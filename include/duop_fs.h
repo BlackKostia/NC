@@ -154,7 +154,13 @@ intptr_t copy_data(int sfd, int dfd, int is_regular);         /* reflink / copy_
 void fs_progress_bytes(uint64_t n);                            /* progress hooks of the background worker (task.s) */
 int fs_progress_cancelled(void);
 void fs_progress_item(void);                                                /* one more item done in the running copy / delete */
-int fs_copy_recursive(const char *src_path, const char *dst_path);          /* 0, or -errno */
+
+/* ---- the recursive copy engine (file_ops_copy.c) ---- */
+intptr_t fs_copy_recursive(const char *src_path, const char *dst_path);     /* file / symlink / tree: 0, or -errno (-9999: into itself) */
+intptr_t fs_copy_file(const char *src_path, const char *dst_path);
+intptr_t copy_reg_at(int sdir, const char *sname, int ddir, const char *dname);   /* one non-dir, non-link entry; partial targets removed */
+intptr_t copy_dir_fd(int sfd, int dfd, int depth);             /* every entry of sfd into dfd (depth < MAX_DIR_DEPTH) */
+intptr_t copy_subdir(int sdir, const char *name, int ddir, int depth);
 int fs_delete_recursive(const char *path);                                  /* 0, or -errno */
 
 /* ---- navigation state: tab history, bookmarks, frecency (nav_state.c, nav_persist.c) ---- */

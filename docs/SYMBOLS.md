@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 732
+- **Exported `.global` Symbols**: 730
 
 ## Structs (`include/*.inc`)
 
@@ -480,13 +480,10 @@
   - `fs_rename_noreplace` — `intptr_t fs_rename_noreplace(const char *old_path, const char *new_path)`
   - `path_is_same_or_descendant` — `int path_is_same_or_descendant(const char *src, const char *dst)`
   - `copy_data` — `intptr_t copy_data(int sfd, int dfd, int is_regular)`
-- **`src/fs/file_ops_copy.s`**
-  - `copy_subdir` — Internal: int copy_subdir(int sdir, const char *name, int ddir, int depth)
-  - `fs_copy_file` — int fs_copy_file(const char *src_path, const char *dst_path)
-  - `fs_copy_recursive` — int fs_copy_recursive(const char *src_path, const char *dst_path)
-- **`src/fs/file_ops_copy_at.s`**
-  - `copy_reg_at` — being truncated. A canceled copy unlinks its partial destination.
-  - `copy_dir_fd` — Internal: int copy_dir_fd(int sfd, int dfd, int depth) -- copies every entry of sfd into dfd
+- **`src/fs/file_ops_copy.c`**
+  - `copy_dir_fd` — `intptr_t copy_dir_fd(int sfd, int dfd, int depth)`
+  - `copy_subdir` — `intptr_t copy_subdir(int sdir, const char *name, int ddir, int depth)`
+  - `fs_copy_recursive` — `intptr_t fs_copy_recursive(const char *src_path, const char *dst_path)`
 - **`src/fs/file_ops_delete.s`**
   - `fs_delete_recursive` — Symlinks are removed, never followed (O_NOFOLLOW on every directory open).
   - `fs_move_recursive` — int fs_move_recursive(const char *src_path, const char *dst_path)
