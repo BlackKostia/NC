@@ -38,5 +38,3 @@ size_t pv_make_thumb(const char *path, const uint8_t *head, size_t head_len, con
 
 /* other layers */
 int pkg_preview_try(char **envp, const char *path, char *out, int max_len);   /* bytes, or -1 when path is no package */
-int os_set_pdeathsig(int expected_ppid, int sig);                        /* 1 parent alive, 0 it died in the race */
-void os_uring_atfork_reset(void);

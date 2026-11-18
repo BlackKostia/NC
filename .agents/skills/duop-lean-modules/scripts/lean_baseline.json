@@ -12,7 +12,6 @@
     "src/app/app_close_dialog.s:App_close_dialog": 122,
     "src/app/app_ext_keys.s:app_handle_ext_key": 95,
     "src/app/app_keys.s:handle_key": 186,
-    "src/fs/task.s:measure_dir_fd": 85,
     "src/main.s:_start": 190,
     "src/os/linux/x86_64/pal_simd.s:os_str_contains_ci_fast": 92,
     "src/os/linux/x86_64/pal_uring.s:os_batch_stat": 209,

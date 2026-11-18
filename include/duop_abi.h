@@ -139,6 +139,10 @@ int       os_watch_next(const void *buf, size_t len, size_t *pos, int *wd, uint3
 int       os_poll_out(int fd, int timeout_ms);     /* >0 writable, 0 timeout, -errno */
 void      os_sig_reset_pipe(void);                  /* SIG_DFL for SIGPIPE in a forked child */
 void      os_mark_child_forked(void);               /* reset the child's TRY owner and inherited slot */
+int       os_set_pdeathsig(int expected_ppid, int sig);   /* 1 parent alive, 0 it died in the race (the child then exits) */
+int       os_parent_alive(int expected_ppid);       /* 1 while getppid() == expected_ppid */
+void      os_raise_nofile(int want);                /* RLIMIT_NOFILE soft limit raised towards want */
+void      os_uring_atfork_reset(void);              /* drop the inherited io_uring mappings / fd in a forked child */
 void      os_signals_install(void (*on_winch)(void), void (*on_int)(void), void (*on_term)(void));
 void      os_fault_guard_install_slot(void **try_frame_slot);
 

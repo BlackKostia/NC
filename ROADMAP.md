@@ -49,7 +49,7 @@
   - **вкладки у кожній панелі** (`Ctrl+T` — нова, `Ctrl+W` — закрити, клік мишею по смужці вкладок, середній клік для закриття).
 
 ### 1.4 Асинхронні файлові операції, `copy_file_range` і діалоги прогресу/конфліктів
-- **Статус (`v1.2.0`–`v1.6.0`)**: ✅ фоновий `fork`-воркер ([task.s](src/fs/task.s)) зі спільною `MAP_SHARED`-сторінкою прогресу (seqlock для імені файлу) та `pipe2(O_CLOEXEC)`-пробудженням циклу подій через `ppoll` ([input.s](src/tui/input.s)); ✅ `FICLONE` + `copy_file_range` + 256 КіБ буфер у [file_ops.c](src/fs/file_ops.c); ✅ `ProgressDialog` ([progress_dialog.s](src/ui/progress_dialog.s)); ✅ інтерактивний діалог конфліктів `ConflictDialog` ([conflict_dialog.s](src/ui/conflict_dialog.s): `Перезаписати`/`Пропустити`/`Перейменувати`/`Для всіх`).
+- **Статус (`v1.2.0`–`v1.6.0`)**: ✅ фоновий `fork`-воркер ([task.c](src/fs/task.c)) зі спільною `MAP_SHARED`-сторінкою прогресу (seqlock для імені файлу) та `pipe2(O_CLOEXEC)`-пробудженням циклу подій через `ppoll` ([input.s](src/tui/input.s)); ✅ `FICLONE` + `copy_file_range` + 256 КіБ буфер у [file_ops.c](src/fs/file_ops.c); ✅ `ProgressDialog` ([progress_dialog.s](src/ui/progress_dialog.s)); ✅ інтерактивний діалог конфліктів `ConflictDialog` ([conflict_dialog.s](src/ui/conflict_dialog.s): `Перезаписати`/`Пропустити`/`Перейменувати`/`Для всіх`).
 - **Файли**: [file_ops.c](src/fs/file_ops.c), [dialogs.s](src/ui/dialogs.s), [classes.inc](include/classes.inc) (`TaskQueue`), [pal.inc](include/pal.inc), [pal_target.inc](include/os/linux/x86_64/pal_target.inc).
 - **Архітектура**:
   - фонова черга задач у окремому процесі (`fork`/`clone(SIGCHLD)` + двосторонні `pipe2`) замість спільного `CLONE_VM`, що гарантує відсутність data race у алокаторі [memory.s](src/core/memory.s) та глобальних буферах;

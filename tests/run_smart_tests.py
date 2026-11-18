@@ -47,6 +47,8 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/fs/file_ops_delete*", ("tests/test_c_file_ops_delete.py", "tests/test_fs_reliability.py", "tests/test_bg_tasks.py", "tests/test_c_trash.py")),
     ("src/fs/file_ops.c", ("tests/test_c_file_ops.py", "tests/test_fs_reliability.py", "tests/test_bg_tasks.py", "tests/test_copy_overwrite_atomic.py")),
     ("src/fs/file_ops*", ("tests/test_fs_reliability.py", "tests/test_bg_tasks.py", "tests/test_reliability_audit.py", "tests/test_copy_overwrite_atomic.py")),
+    ("src/fs/task.c", ("tests/test_c_task.py", "tests/test_bg_tasks.py", "tests/test_fs_reliability.py")),
+    ("src/fs/task_worker*", ("tests/test_c_task.py", "tests/test_bg_tasks.py", "tests/test_fs_reliability.py")),
     ("src/fs/task*", ("tests/test_fs_reliability.py", "tests/test_bg_tasks.py", "tests/test_reliability_audit.py", "tests/test_copy_overwrite_atomic.py")),
     ("src/app/app_task*", ("tests/test_fs_reliability.py", "tests/test_bg_tasks.py", "tests/test_reliability_audit.py")),
     ("src/ui/progress_dialog*", ("tests/test_bg_tasks.py",)),

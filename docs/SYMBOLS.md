@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 730
+- **Exported `.global` Symbols**: 722
 
 ## Structs (`include/*.inc`)
 
@@ -608,14 +608,12 @@
   - `fs_preview_stop` — `void fs_preview_stop(void)`
   - `fs_preview_request` — `int fs_preview_request(const char *path, uint32_t dims, uint32_t mode, uint32_t bg)`
   - `fs_preview_receive` — `int fs_preview_receive(void *buf, size_t cap, uint32_t *out_seq, size_t *out_len, size_t *out_tlen)`
-- **`src/fs/task.s`**
-  - `fs_progress_begin` — Publishes basename(path) as the current item using the TaskShared.seq seqlock.
-  - `fs_progress_bytes` — void fs_progress_bytes(uint64_t n) -- preserves every register
-  - `fs_progress_item` — void fs_progress_item(void) -- preserves every register
-  - `fs_progress_cancelled` — int fs_progress_cancelled(void) -- eax = 1 when cancel requested or parent died; clobbers only rax
-  - `task_measure` — Returns 0 or -ECANCELED.
-  - `g_fs_progress`
-  - `g_measure_bytes`
+- **`src/fs/task.c`**
+  - `fs_progress_begin` — `void fs_progress_begin(const char *path)`
+  - `fs_progress_bytes` — `void fs_progress_bytes(uint64_t n)`
+  - `fs_progress_item` — `void fs_progress_item(void)`
+  - `fs_progress_cancelled` — `int fs_progress_cancelled(void)`
+  - `task_measure` — `int task_measure(const char *path)`
 - **`src/fs/task_conflict.s`**
   - `g_copy_had_skip`
   - `fs_task_resolve_conflict` — int fs_task_resolve_conflict(int dst_dfd, const char *dst_rel, uint64_t src_sz, uint64_t dst_sz, char *out_name)
@@ -634,14 +632,8 @@
   - `g_task_cancel_at`
   - `g_task_pid`
   - `g_task_paused`
-- **`src/fs/task_worker.s`**
-  - `g_task_parent_pid`
-  - `fs_task_start` — Forks the worker. Returns 0 (caller keeps and may free `job`), -EBUSY, or -errno.
-  - `fs_task_is_active` — int fs_task_is_active(void)
-  - `fs_task_wake_fd` — int fs_task_wake_fd(void) -> read end that hangs up when the worker exits, or -1
-  - `g_task_start_ms`
-  - `g_task_wake_fd`
-  - `g_task_op`
+- **`src/fs/task_worker.c`**
+  - `fs_task_start` — `intptr_t fs_task_start(const TaskJob *job)`
 - **`src/fs/trash_dirs.c`**
   - `tu_get_data_home` — `void tu_get_data_home(const char *const *envp, char *dst, size_t cap)`
   - `tu_mkdir_p_base` — `void tu_mkdir_p_base(const char *data_home)`

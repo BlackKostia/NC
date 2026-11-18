@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/task.c + task_worker.c replaced (tests/test_c_task.py diffs against it)
 # Background Task Worker: fork-isolated copy / move / delete with shared-memory progress
 #
 # The UI process forks one worker per batch. The worker owns a private copy of the address
