@@ -59,7 +59,7 @@ def test_deterministic_and_complete(tmp: Path) -> dict:
     missing = asm_struct_names() - gen - hand_written()
     assert not missing, f"asm structs neither generated nor hand-written: {sorted(missing)}"
     assert not (gen & hand_written()), f"generated twice (hand-written wins): {sorted(gen & hand_written())}"
-    for must in ("App", "FilePane", "Dialog", "HitZone", "Rect", "ConflictDialog", "TaskSnap", "HeaderBar"):   # TaskShared: duop_task.h
+    for must in ("App", "FilePane", "Dialog", "HitZone", "Rect", "ConflictDialog", "DCSlot", "HeaderBar"):   # TaskShared / TaskSnap: duop_task.h
         assert must in gen, f"{must} must be generated"
     print(f"[PASS] G1. deterministic; {len(gen)} structs generated, {len(asm_struct_names() & hand_written())} stay hand-written")
     return layout

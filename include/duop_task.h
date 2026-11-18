@@ -39,6 +39,18 @@ typedef struct TaskJob {
     char names[];
 } TaskJob;
 
+/* the UI's consistent snapshot of the running task */
+typedef struct TaskSnap {
+    uint64_t total_bytes, total_files, done_bytes, done_files;
+    uint64_t elapsed_ms;                 /* active time (pauses excluded) */
+    uint64_t speed_bps;                  /* bytes per second (0 = unknown) */
+    uint64_t eta_sec;                    /* seconds remaining (UINT64_MAX = unknown) */
+    uint32_t op, phase, paused;
+    uint32_t percent;                    /* 0..100 */
+    uint32_t canceling, pad;
+    char cur_name[TASK_NAME_MAX];
+} TaskSnap;
+
 extern TaskShared *g_fs_progress;        /* worker: the page receiving the fs_progress_* hooks (UI: NULL) */
 extern int g_measure_bytes;              /* worker: the scan needs regular-file sizes (copy / move) */
 extern int g_task_parent_pid;            /* worker: the UI process (a dead parent cancels) */
@@ -51,6 +63,13 @@ extern TaskShared *g_task_shm;
 /* worker-side progress hooks (task.c): no-ops in the UI process */
 void fs_progress_begin(const char *path);                      /* basename -> cur_name under the seqlock */
 int task_measure(const char *path);                            /* adds the tree's entries / bytes to the totals: 0 or -ECANCELED */
+
+/* the UI side (task_control.c) */
+int fs_task_poll(int64_t *out_result);                         /* 1 once reaped (result stored), else 0 */
+void fs_task_snapshot(TaskSnap *out);
+int fs_task_toggle_pause(void);                                /* the new paused state */
+void fs_task_cancel(void);
+void fs_task_shutdown(void);                                   /* cancel, reap, SIGKILL after the grace time */
 
 /* the worker (task_worker.c) */
 intptr_t fs_task_start(const TaskJob *job);                    /* forks the worker: 0 (the caller may free job), -EBUSY, -errno */

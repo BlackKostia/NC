@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/task_control.c replaced (tests/test_c_task_control.py diffs against it)
 # Background Task Worker: fork-isolated copy / move / delete with shared-memory progress — task control (split from task.s)
 
 .intel_syntax noprefix

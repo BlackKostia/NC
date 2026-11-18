@@ -79,6 +79,8 @@
 
 #define SIGKILL 9                             /* process control: pkg_fetch_url kills a timed-out helper */
 #define SIGTERM 15
+#define SIGCONT 18                            /* pause / resume of the background worker */
+#define SIGSTOP 19
 #define WNOHANG 1
 
 #define OS_AT_EXECFN 31                       /* auxv: path given to execve */

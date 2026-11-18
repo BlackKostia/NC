@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 722
+- **Exported `.global` Symbols**: 717
 
 ## Structs (`include/*.inc`)
 
@@ -621,17 +621,12 @@
   - `fs_task_reply_conflict` — void fs_task_reply_conflict(int action, int for_all)
   - `fo_resolve_eexist_open` — Returns: fd >= 0 (edx = 1: temp file to rename over the target), -2 = SKIP, -9999 = same file, or -errno.
   - `fo_move_check_conflict` — int fo_move_check_conflict(const char *src, const char *dst, char *out_ren)
-- **`src/fs/task_control.s`**
-  - `fs_task_poll` — worker checked the flag just before entering a blocking syscall.
-  - `fs_task_snapshot` — Copies counters, computes percent / speed / ETA (pauses excluded) and a torn-free name.
-  - `fs_task_toggle_pause` — int fs_task_toggle_pause(void) -> new paused state (0/1)
-  - `fs_task_cancel` — void fs_task_cancel(void) -- cooperative flag + SIGCONT + SIGTERM (interrupts blocking I/O)
-  - `fs_task_shutdown` — so no orphan keeps writing files once Duop has quit.
-  - `g_task_shm`
-  - `g_task_pause_ms`
-  - `g_task_cancel_at`
-  - `g_task_pid`
-  - `g_task_paused`
+- **`src/fs/task_control.c`**
+  - `fs_task_poll` — `int fs_task_poll(int64_t *out_result)`
+  - `fs_task_snapshot` — `void fs_task_snapshot(TaskSnap *out)`
+  - `fs_task_toggle_pause` — `int fs_task_toggle_pause(void)`
+  - `fs_task_cancel` — `void fs_task_cancel(void)`
+  - `fs_task_shutdown` — `void fs_task_shutdown(void)`
 - **`src/fs/task_worker.c`**
   - `fs_task_start` — `intptr_t fs_task_start(const TaskJob *job)`
 - **`src/fs/trash_dirs.c`**
