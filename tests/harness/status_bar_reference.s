@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/ui/status_bar.c replaced (tests/test_c_status_bar.py diffs against it)
 # StatusBar Widget (Inherits from Widget)
 # Shows temporary status notifications, background task progress, active filter indicator,
 # or detailed entry info.

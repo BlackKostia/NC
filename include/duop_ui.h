@@ -17,6 +17,13 @@
 #include "duop_abi.h"
 #include "duop_oop.h"
 
+/* StatusBar message kinds (classes.inc MSG_*) and the message size (config.inc STATUS_MAX) */
+#define MSG_INFO 0
+#define MSG_OK 1
+#define MSG_WARN 2
+#define MSG_ERR 3
+#define STATUS_MAX 512
+
 /* Dialog.result / App_close_dialog codes (include/config.inc) */
 #define DLG_OPEN 0
 #define DLG_OK 1

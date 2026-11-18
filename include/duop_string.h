@@ -25,3 +25,5 @@ size_t      format_size(int64_t bytes, char *buf);                    /* "512 B"
 void        format_perms(uint32_t mode, char *buf);                   /* "drwxr-xr-x" + NUL (11 bytes) */
 void        format_datetime(int64_t epoch_sec, char *buf);            /* "YYYY-MM-DD HH:MM" UTC, minute-cached; buf >= 20 */
 void        format_datetime_raw(int64_t epoch_sec, char *buf);        /* same, uncached */
+int         utf8_display_width(const char *s);                         /* terminal columns of a UTF-8 string (src/core/utf8.c) */
+int         utf8_encode(uint32_t cp, char *out);                       /* bytes of cp as UTF-8 (1..4) */

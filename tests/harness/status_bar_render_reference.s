@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/ui/status_bar.c replaced (tests/test_c_status_bar.py diffs against it)
 # StatusBar Widget (Inherits from Widget) — status bar render (split from status_bar.s)
 
 .intel_syntax noprefix

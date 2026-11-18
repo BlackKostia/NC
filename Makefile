@@ -49,8 +49,6 @@ SRCS := \
 	src/ui/header_bar_render.s \
 	src/ui/header_bar_git.s \
 	src/ui/function_bar.s \
-	src/ui/status_bar.s \
-	src/ui/status_bar_render.s \
 	src/ui/file_pane.s \
 	src/ui/file_pane_layout.s \
 	src/ui/file_pane_render.s \
@@ -227,6 +225,7 @@ C_SRCS := \
 	src/fs/pkg_vfs_pane.c \
 	src/fs/pkg_popup.c \
 	src/fs/pkg_preview.c \
+	src/ui/status_bar.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -282,7 +281,7 @@ $(BUILD)/%.o: src/%.s $(INCS) $(VER_INC)
 	@mkdir -p $(dir $@)
 	$(AS) $(ASFLAGS) $< -o $@
 
-$(BUILD)/%.o: src/%.c $(wildcard include/*.h) | $(BUILD)/version.h $(BUILD)/i18n_slots.h
+$(BUILD)/%.o: src/%.c $(wildcard include/*.h) | $(BUILD)/version.h $(BUILD)/i18n_slots.h $(BUILD)/duop_classes.h
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
 
@@ -320,7 +319,7 @@ $(HB)/%.o: src/%.s $(INCS)
 	@mkdir -p $(dir $@)
 	$(AS) $(ASFLAGS) $< -o $@
 
-$(HB)/%.o: src/%.c $(wildcard include/*.h) | $(BUILD)/version.h $(BUILD)/i18n_slots.h
+$(HB)/%.o: src/%.c $(wildcard include/*.h) | $(BUILD)/version.h $(BUILD)/i18n_slots.h $(BUILD)/duop_classes.h
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
 
@@ -426,6 +425,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_pkg_vfs.py
 	python3 tests/test_c_pkg_vfs_pane.py
 	python3 tests/test_c_pkg_popup.py
+	python3 tests/test_c_status_bar.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py
