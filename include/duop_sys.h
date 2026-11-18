@@ -26,6 +26,8 @@ int         sys_exec_argv_bg(const char *exe, char **argv, char **envp);
 int         sys_open_external(const char *path, char **envp);         /* 0 launched, -1 without a GUI display */
 void        os_fault_guard_install(void);
 
+int         tmp_ensure_dir(char *out_dir, int cap);                     /* the private temp directory: 0 / -1 */
+DUOP_NODISCARD int         tmp_make_path(const char *prefix, const char *suffix, char *out_path, int cap);   /* created and closed: 0 / -1 */
 DUOP_NODISCARD intptr_t    tmp_open_unique(const char *prefix, const char *suffix, char *out_path, int cap);   /* $TMPDIR/duop-<uid>/<prefix>XXXX<suffix>: fd or -errno */
 /* crash-safe writes (src/core/tmpfile.c): open <final>.tmp.<hex> exclusively, then fsync + rename it over final */
 DUOP_NODISCARD intptr_t    tmp_open_atomic(const char *final_path, char *tmp_buf, int mode);   /* tmp_buf: PATH_MAX bytes; fd or -errno */

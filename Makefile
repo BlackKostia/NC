@@ -45,7 +45,6 @@ VER_INC := $(BUILD)/version.inc
 
 SRCS := \
 	src/main.s \
-	src/fs/pkg_manager.s \
 	src/fs/pkg_actions.s \
 	src/fs/pkg_popup.s \
 	src/fs/pkg_preview.s \
@@ -227,6 +226,7 @@ C_SRCS := \
 	src/fs/archive_parse.c \
 	src/fs/archive_vfs.c \
 	src/fs/pkg_archive.c \
+	src/fs/pkg_manager.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -420,6 +420,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_pkg_registry.py
 	python3 tests/test_c_archive.py
 	python3 tests/test_c_pkg_archive.py
+	python3 tests/test_c_pkg_manager.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

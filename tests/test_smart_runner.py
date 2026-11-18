@@ -23,13 +23,14 @@ def test_file_ops_selects_only_fs_and_reliability() -> None:
 
 
 def test_pkg_change_selects_only_pkg_suites() -> None:
-    full, tests = rsm.select_tests(["src/fs/pkg_manager.s"])
+    full, tests = rsm.select_tests(["src/fs/pkg_manager.c"])
     assert not full
     assert tests == [
+        "tests/test_c_stack_align.py",
+        "tests/test_c_pkg_manager.py",
         "tests/test_pkg_manager.py",
         "tests/test_pkg_extensions.py",
         "tests/test_pkg_improvements.py",
-        "tests/test_reliability_audit.py",
     ]
 
 

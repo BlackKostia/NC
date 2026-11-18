@@ -33,6 +33,8 @@ int pkg_install_archive(char **envp, const char *path_or_url, const char *expect
 void pkg_mkdir_p(const char *path);
 void pkg_get_root(char **envp, char *out, int cap);
 int pkm_safe_name(const char *s);                              /* 1: a plain package name */
+const char *pkm_safe_relpath(const char *p);                  /* p without leading "./", or NULL: empty, absolute, ".." */
+int pkg_remove(char **envp, const char *name);                 /* activated files and <root>/<name> deleted: 0 / -1 */
 int pkg_write_file(const char *path, const void *buf, uint64_t len);   /* 0 / -1 */
 int pkg_ensure_exec(const char *path);                         /* a regular file (not a symlink), made 0755 if no x bit: 0 / -1 */
 void pkg_parse_manifest(const char *buf, int len, PkgEntry *out);   /* name / version / kind / description of "key = value" lines */

@@ -565,13 +565,13 @@
   - `pkg_cli_dispatch` — int pkg_cli_dispatch(int argc, char **argv, char **envp) -> exit code
 - **`src/fs/pkg_fetch.c`**
   - `pkg_fetch_url` — `int pkg_fetch_url(char **envp, const char *url, const char *dest_path)`
-- **`src/fs/pkg_manager.s`**
-  - `pkg_get_root` — void pkg_get_root(char **envp, char *out, int cap)
-  - `pkg_list` — int pkg_list(char **envp, PkgEntry *out, int max) -> count
-  - `pkg_install_archive` — int pkg_install_archive(char **envp, const char *path_or_url, const char *expected_sha256) -> 0 ok, <0 err
-  - `pkg_remove` — int pkg_remove(char **envp, const char *name) -> 0 ok, -1 err
-  - `pkm_safe_name` — int pkm_safe_name(const char *s) -> 1 safe, 0 unsafe
-  - `pkm_safe_relpath`
+- **`src/fs/pkg_manager.c`**
+  - `pkg_get_root` — `void pkg_get_root(char **envp, char *out, int cap)`
+  - `pkm_safe_name` — `int pkm_safe_name(const char *s)`
+  - `pkm_safe_relpath` — `const char *pkm_safe_relpath(const char *p)`
+  - `pkg_list` — `int pkg_list(char **envp, PkgEntry *out, int max)`
+  - `pkg_install_archive` — `int pkg_install_archive(char **envp, const char *path_or_url, const char *expected_sha256)`
+  - `pkg_remove` — `int pkg_remove(char **envp, const char *name)`
 - **`src/fs/pkg_popup.s`**
   - `pkg_popup_refresh` — int pkg_popup_refresh(char **envp, int is_dir, const char *entry_name) -> count
   - `pkg_popup_count`

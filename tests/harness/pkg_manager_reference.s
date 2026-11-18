@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/pkg_manager.c replaced (tests/test_c_pkg_manager.py diffs against it)
 # src/fs/pkg_manager.s - Package install, list, verify & remove for Duop
 .intel_syntax noprefix
 .include "pal.inc"
