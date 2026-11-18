@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/pkg_archive.c replaced (tests/test_c_pkg_archive.py diffs against it)
 # src/fs/pkg_archive.s - Archive & manifest helpers for Duop Package Manager
 .intel_syntax noprefix
 .include "pal.inc"

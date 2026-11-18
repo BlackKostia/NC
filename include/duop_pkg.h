@@ -1,6 +1,7 @@
 /* include/duop_pkg.h - C view of the package-manager part of the filesystem layer (src/fs/pkg_*.c). */
 #pragma once
 #include "duop_fs.h"
+#include "duop_arc.h"
 
 #define PKG_FETCH_TIMEOUT_MS 60000   /* a download helper still running after this is killed */
 #define PKG_FETCH_POLL_MS 50         /* wake-up interval while waiting for the helper */
@@ -33,3 +34,9 @@ void pkg_mkdir_p(const char *path);
 void pkg_get_root(char **envp, char *out, int cap);
 int pkm_safe_name(const char *s);                              /* 1: a plain package name */
 int pkg_write_file(const char *path, const void *buf, uint64_t len);   /* 0 / -1 */
+int pkg_ensure_exec(const char *path);                         /* a regular file (not a symlink), made 0755 if no x bit: 0 / -1 */
+void pkg_parse_manifest(const char *buf, int len, PkgEntry *out);   /* name / version / kind / description of "key = value" lines */
+ArcCtx *pkg_load_archive(const char *path);                    /* read (<= ARC_MAX_FILE) and indexed, or NULL */
+ArcCtx *pkg_load_archive_sha(const char *path, char *out_sha_hex65);   /* the same, with the SHA-256 of the bytes read */
+void pkg_free_archive(ArcCtx *ctx);
+int pkg_extract_entry_to(ArcCtx *ctx, ArcEntry *ent, const char *dest_path);   /* 0 / -1 */

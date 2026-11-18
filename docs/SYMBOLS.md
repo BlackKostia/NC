@@ -552,15 +552,15 @@
   - `pkg_menu_refresh` — int pkg_menu_refresh(char **envp) -> count of menu-enabled packages
   - `pkg_menu_count` — int pkg_menu_count(void)
   - `pkg_menu_get` — PkgAction *pkg_menu_get(int idx) -> ptr or NULL
-- **`src/fs/pkg_archive.s`**
-  - `pkg_mkdir_p` — void pkg_mkdir_p(const char *path)
-  - `pkg_write_file` — int pkg_write_file(const char *path, const void *buf, uint64_t len) -> 0 ok, -1 err
-  - `pkg_parse_manifest` — void pkg_parse_manifest(const char *buf, int len, PkgEntry *out)
-  - `pkg_load_archive` — ArcCtx *pkg_load_archive(const char *path)
-  - `pkg_load_archive_sha` — ArcCtx *pkg_load_archive_sha(const char *path, char *out_sha_hex65)
-  - `pkg_free_archive` — void pkg_free_archive(ArcCtx *ctx)
-  - `pkg_extract_entry_to` — int pkg_extract_entry_to(ArcCtx *ctx, ArcEntry *ent, const char *dest_path) -> 0 ok, -1 err
-  - `pkg_ensure_exec` — int pkg_ensure_exec(const char *path) -> 0 ok (S_ISREG + 0755), -1 err/symlink
+- **`src/fs/pkg_archive.c`**
+  - `pkg_mkdir_p` — `void pkg_mkdir_p(const char *path)`
+  - `pkg_write_file` — `int pkg_write_file(const char *path, const void *buf, uint64_t len)`
+  - `pkg_ensure_exec` — `int pkg_ensure_exec(const char *path)`
+  - `pkg_parse_manifest` — `void pkg_parse_manifest(const char *buf, int len, PkgEntry *out)`
+  - `pkg_free_archive` — `void pkg_free_archive(ArcCtx *ctx)`
+  - `pkg_load_archive_sha` — `ArcCtx *pkg_load_archive_sha(const char *path, char *out_sha_hex65)`
+  - `pkg_load_archive` — `ArcCtx *pkg_load_archive(const char *path)`
+  - `pkg_extract_entry_to` — `int pkg_extract_entry_to(ArcCtx *ctx, ArcEntry *ent, const char *dest_path)`
 - **`src/fs/pkg_cli.s`**
   - `pkg_cli_dispatch` — int pkg_cli_dispatch(int argc, char **argv, char **envp) -> exit code
 - **`src/fs/pkg_fetch.c`**
