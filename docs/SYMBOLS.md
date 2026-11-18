@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 733
+- **Exported `.global` Symbols**: 732
 
 ## Structs (`include/*.inc`)
 
@@ -473,14 +473,13 @@
   - `du_links_cleanup` — `void du_links_cleanup(void)`
 - **`src/fs/du_parallel.c`**
   - `du_parallel_walk` — `void du_parallel_walk(int dfd, DuWorkItem *items, int count)`
-- **`src/fs/file_ops.s`**
-  - `fs_errno_message` — const char *fs_errno_message(int neg_errno)
-  - `fs_mkdir` — int fs_mkdir(const char *path)
-  - `fs_touch` — int fs_touch(const char *path)
-  - `fs_rename` — int fs_rename(const char *old_path, const char *new_path)
-  - `fs_rename_noreplace` — Uses renameat2(RENAME_NOREPLACE); on a kernel/filesystem without it the target is looked at first.
-  - `path_is_same_or_descendant` — Returns 1 if dst == src (ignoring trailing '/') or dst is strictly inside src/
-  - `copy_data` — Returns 0, -errno, or -ECANCELED. Reports bytes through fs_progress_bytes.
+- **`src/fs/file_ops.c`**
+  - `fs_errno_message` — `const char *fs_errno_message(int neg_errno)`
+  - `fs_touch` — `intptr_t fs_touch(const char *path)`
+  - `fs_rename` — `intptr_t fs_rename(const char *old_path, const char *new_path)`
+  - `fs_rename_noreplace` — `intptr_t fs_rename_noreplace(const char *old_path, const char *new_path)`
+  - `path_is_same_or_descendant` — `int path_is_same_or_descendant(const char *src, const char *dst)`
+  - `copy_data` — `intptr_t copy_data(int sfd, int dfd, int is_regular)`
 - **`src/fs/file_ops_copy.s`**
   - `copy_subdir` — Internal: int copy_subdir(int sdir, const char *name, int ddir, int depth)
   - `fs_copy_file` — int fs_copy_file(const char *src_path, const char *dst_path)

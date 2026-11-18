@@ -143,7 +143,16 @@ void undo_push(int kind, const char *orig_path, const char *cur_path, const char
 int undo_pop_and_apply(void);                                           /* 1 undone, 0 nothing to undo, -errno (-EEXIST keeps the entry) */
 
 /* ---- file operations still in assembly (file_ops*.s) ---- */
+/* ---- small file operations and the copy data path (file_ops.c) ---- */
+const char *fs_errno_message(int neg_errno);                   /* localised text of a -errno result (-9999: same file) */
+intptr_t fs_mkdir(const char *path);                           /* 0755: 0 or -errno */
+intptr_t fs_touch(const char *path);                           /* a new empty file (O_EXCL): 0 or -errno */
+intptr_t fs_rename(const char *old_path, const char *new_path);
 intptr_t fs_rename_noreplace(const char *old_path, const char *new_path);   /* 0, or -errno (-EEXIST: target exists) */
+int path_is_same_or_descendant(const char *src, const char *dst);          /* 1: dst is src or inside it */
+intptr_t copy_data(int sfd, int dfd, int is_regular);         /* reflink / copy_file_range / read-write: 0, -errno, -ECANCELED */
+void fs_progress_bytes(uint64_t n);                            /* progress hooks of the background worker (task.s) */
+int fs_progress_cancelled(void);
 void fs_progress_item(void);                                                /* one more item done in the running copy / delete */
 int fs_copy_recursive(const char *src_path, const char *dst_path);          /* 0, or -errno */
 int fs_delete_recursive(const char *path);                                  /* 0, or -errno */

@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/file_ops.c replaced (tests/test_c_file_ops.py diffs against it)
 # Filesystem Operations: mkdir, touch, rename, copy, move, delete (recursive), file read
 # fd-relative, d_type-driven, zero-copy (FICLONE / copy_file_range) copy & delete engine.
 # Copy / delete report progress and honor cancellation through fs_progress_* hooks

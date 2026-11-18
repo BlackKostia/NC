@@ -12,7 +12,7 @@
 - **ООП-рантайм** ([oop.inc](include/oop.inc), [oop_rt.s](src/core/oop_rt.s), [classes.inc](include/classes.inc)): `Object`, `ScreenBuffer`, `DirModel`, `App`, `Widget` → `HeaderBar`, `FunctionBar`, `StatusBar`, `FilePane`, `PreviewPane`, `Dialog` → `ConfirmDialog`, `InputDialog`, `ViewerDialog`, `HelpDialog`.
 - **Графіка та ввід**: 24-біт TrueColor diff-рендер ([screen.s](src/tui/screen.s)), 3 теми ([theme.s](src/tui/theme.s)), повний декодер клавіатури (включно з `Alt + UTF-8`) і миші `SGR 1006` ([input.s](src/tui/input.s)).
 - **Двомовність (UA / EN)** ([i18n_en.lang](src/tui/i18n_en.lang)): `--lang ua|en`, автовизначення `LC_ALL`/`LC_MESSAGES`/`LANG`, миттєве перемикання `Alt+L` (`Alt+д`) або кнопкою у шапці, динамічні UTF-8 хіт-зони (`utf8_display_width`).
-- **Файлова підсистема** ([dir_model.c](src/fs/dir_model.c), [file_ops.s](src/fs/file_ops.s)): `getdents64`, `newfstatat`, QuickSort, живий фільтр, рекурсивні `copy`/`move`/`delete`, Text/Hex viewer і live preview.
+- **Файлова підсистема** ([dir_model.c](src/fs/dir_model.c), [file_ops.c](src/fs/file_ops.c)): `getdents64`, `newfstatat`, QuickSort, живий фільтр, рекурсивні `copy`/`move`/`delete`, Text/Hex viewer і live preview.
 - **Автотести** ([test_pty.py](tests/test_pty.py)): 50 тестових модулів у `tests/` (PTY, ФС-надійність, `io_uring`, продуктивність, fault-injection, PAL).
 
 ---
@@ -49,8 +49,8 @@
   - **вкладки у кожній панелі** (`Ctrl+T` — нова, `Ctrl+W` — закрити, клік мишею по смужці вкладок, середній клік для закриття).
 
 ### 1.4 Асинхронні файлові операції, `copy_file_range` і діалоги прогресу/конфліктів
-- **Статус (`v1.2.0`–`v1.6.0`)**: ✅ фоновий `fork`-воркер ([task.s](src/fs/task.s)) зі спільною `MAP_SHARED`-сторінкою прогресу (seqlock для імені файлу) та `pipe2(O_CLOEXEC)`-пробудженням циклу подій через `ppoll` ([input.s](src/tui/input.s)); ✅ `FICLONE` + `copy_file_range` + 256 КіБ буфер у [file_ops.s](src/fs/file_ops.s); ✅ `ProgressDialog` ([progress_dialog.s](src/ui/progress_dialog.s)); ✅ інтерактивний діалог конфліктів `ConflictDialog` ([conflict_dialog.s](src/ui/conflict_dialog.s): `Перезаписати`/`Пропустити`/`Перейменувати`/`Для всіх`).
-- **Файли**: [file_ops.s](src/fs/file_ops.s), [dialogs.s](src/ui/dialogs.s), [classes.inc](include/classes.inc) (`TaskQueue`), [pal.inc](include/pal.inc), [pal_target.inc](include/os/linux/x86_64/pal_target.inc).
+- **Статус (`v1.2.0`–`v1.6.0`)**: ✅ фоновий `fork`-воркер ([task.s](src/fs/task.s)) зі спільною `MAP_SHARED`-сторінкою прогресу (seqlock для імені файлу) та `pipe2(O_CLOEXEC)`-пробудженням циклу подій через `ppoll` ([input.s](src/tui/input.s)); ✅ `FICLONE` + `copy_file_range` + 256 КіБ буфер у [file_ops.c](src/fs/file_ops.c); ✅ `ProgressDialog` ([progress_dialog.s](src/ui/progress_dialog.s)); ✅ інтерактивний діалог конфліктів `ConflictDialog` ([conflict_dialog.s](src/ui/conflict_dialog.s): `Перезаписати`/`Пропустити`/`Перейменувати`/`Для всіх`).
+- **Файли**: [file_ops.c](src/fs/file_ops.c), [dialogs.s](src/ui/dialogs.s), [classes.inc](include/classes.inc) (`TaskQueue`), [pal.inc](include/pal.inc), [pal_target.inc](include/os/linux/x86_64/pal_target.inc).
 - **Архітектура**:
   - фонова черга задач у окремому процесі (`fork`/`clone(SIGCHLD)` + двосторонні `pipe2`) замість спільного `CLONE_VM`, що гарантує відсутність data race у алокаторі [memory.s](src/core/memory.s) та глобальних буферах;
   - zero-copy копіювання через `SYS_copy_file_range` (миттєвий reflink на `btrfs`/`xfs`, без копіювання байтів через user-space) з fallback на `read`/`write`;
@@ -64,7 +64,7 @@
 
 ### 1.6 Кошик (`freedesktop Trash`), `Undo` (`Ctrl+Z`) та розширені атрибути
 - **Статус (`v1.6.0`)**: ✅ реалізовано: `Del` -> `$XDG_DATA_HOME/Trash` (`files/` + `info/*.trashinfo`) + 16-рівневий стек `Undo` (`Ctrl+Z`: скасування перейменування та видалення в кошик) у [trash_undo.s](src/fs/trash_undo.s); `ChmodDialog`/`chown` (`Alt+A`, клікабельні біти `rwx` + `uid:gid`) у [attr_dialogs.s](src/ui/attr_dialogs.s); `symlink` (`Alt+S`) / `hardlink` (`Alt+H`); панель детальної інформації (`Alt+I` — `inode`, `nlink`, `uid:gid`, `CRC32`, `SHA-256`) у [info_dialog.s](src/ui/info_dialog.s) та [hash.s](src/core/hash.s).
-- **Файли**: [file_ops.s](src/fs/file_ops.s), [dialogs.s](src/ui/dialogs.s), [app.s](src/app/app.s).
+- **Файли**: [file_ops.c](src/fs/file_ops.c), [dialogs.s](src/ui/dialogs.s), [app.s](src/app/app.s).
 - **Кошик + Undo**: переміщення видалених файлів у `$XDG_DATA_HOME/Trash` (`files/` + `info/*.trashinfo`) із можливістю відкату останньої операції (`Ctrl+Z`: перейменування, переміщення, видалення в кошик).
 - **Атрибути та посилання**:
   - `ChmodDialog` / `chown` (клікабельні біти `rwx`, вісімкове представлення);
@@ -208,7 +208,7 @@
 | [src/main.s](src/main.s) | Обробка `--choosedir=FILE`, старт конфігу та CLI-прапорців |
 | `src/core/config.s` *(новий)* | Парсер `~/.config/duop/duoprc`, біндинги клавіш, кастомні теми, асоціації та User Menu |
 | [src/app/app.s](src/app/app.s) | Єдиний цикл `poll`/`ppoll` (`STDIN_FD`, `inotify`, фонові воркери, `git`), `CommandPalette`, `Undo` |
-| [src/fs/file_ops.s](src/fs/file_ops.s) | `copy_file_range`, асинхронна черга задач `TaskQueue`, `XDG Trash`, `Undo`-журнал, `chmod`/`chown`/`link` |
+| [src/fs/file_ops.c](src/fs/file_ops.c) | `copy_file_range`, асинхронна черга задач `TaskQueue`, `XDG Trash`, `Undo`-журнал, `chmod`/`chown`/`link` |
 | [src/fs/dir_model.c](src/fs/dir_model.c) | Віртуальні панелі (пошук, `.tar`/`.zip` VFS, `ncdu`-дерево), кешування Git-статусу |
 | [src/ui/dialogs.s](src/ui/dialogs.s) | `ProgressDialog`, діалоги конфліктів, `ChmodDialog`, `CommandPalette`, `FuzzyDialog`, Hex-edit, `BulkRename` |
 | [src/ui/file_pane.s](src/ui/file_pane.s) | Смужка вкладок (`Tabs`), колонка Git-статусів, смужки розміру `ncdu`, підсвітка `DirDiff` |
