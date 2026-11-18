@@ -572,15 +572,15 @@
   - `pkg_list` — `int pkg_list(char **envp, PkgEntry *out, int max)`
   - `pkg_install_archive` — `int pkg_install_archive(char **envp, const char *path_or_url, const char *expected_sha256)`
   - `pkg_remove` — `int pkg_remove(char **envp, const char *name)`
-- **`src/fs/pkg_popup.s`**
-  - `pkg_popup_refresh` — int pkg_popup_refresh(char **envp, int is_dir, const char *entry_name) -> count
-  - `pkg_popup_count`
-  - `pkg_popup_label`
-  - `pkg_popup_get`
-  - `pkg_action_has_marked` — int pkg_action_has_marked(PkgAction *act) -> 1 yes, 0 no
-  - `pkg_write_marked_list` — int pkg_write_marked_list(DirModel *model, const char *fallback_path, char *out_tmp_path, int cap)
-- **`src/fs/pkg_preview.s`**
-  - `pkg_preview_try` — int pkg_preview_try(char **envp, const char *filepath, char *out_buf, int max_len) -> bytes or -1
+- **`src/fs/pkg_popup.c`**
+  - `pkg_popup_refresh` — `int pkg_popup_refresh(char **envp, int is_dir, const char *entry_name)`
+  - `pkg_popup_count` — `int pkg_popup_count(void)`
+  - `pkg_popup_get` — `PkgAction *pkg_popup_get(int idx)`
+  - `pkg_popup_label` — `const char *pkg_popup_label(int idx)`
+  - `pkg_action_has_marked` — `int pkg_action_has_marked(PkgAction *act)`
+  - `pkg_write_marked_list` — `int pkg_write_marked_list(DirModel *model, const char *fallback_path, char *out_tmp_path, int cap)`
+- **`src/fs/pkg_preview.c`**
+  - `pkg_preview_try` — `int pkg_preview_try(char **envp, const char *filepath, char *out_buf, int max_len)`
 - **`src/fs/pkg_registry.c`**
   - `pkg_registry_update` — `int pkg_registry_update(char **envp)`
   - `pkg_registry_list` — `int pkg_registry_list(char **envp, PkgRegEntry *out, int max)`

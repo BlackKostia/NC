@@ -119,6 +119,7 @@
 .equ SIGCONT,                 18
 .equ SIGSTOP,                 19
 .equ WNOHANG,                 1
+.equ PR_SET_NO_NEW_PRIVS,     38
 .equ SS_DISABLE,              2
 
 // --- Portable directory-watch event bits (Linux inotify values) ---

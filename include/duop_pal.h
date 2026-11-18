@@ -82,6 +82,7 @@
 #define SIGCONT 18                            /* pause / resume of the background worker */
 #define SIGSTOP 19
 #define WNOHANG 1
+#define PR_SET_NO_NEW_PRIVS 38                /* prctl: a previewer child gains no privileges by exec */
 
 #define OS_AT_EXECFN 31                       /* auxv: path given to execve */
 

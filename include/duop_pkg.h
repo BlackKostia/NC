@@ -65,3 +65,10 @@ int pkg_vfs_find_by_uri(char **envp, const char *uri, char *exe_out);   /* exe_o
 int pkg_vfs_load_dir(char **envp, DirModel *model, const char *uri);      /* the provider's LIST as the model: 0 / -1 */
 int pkg_vfs_parent_uri(const char *uri, char *out, int cap);              /* 1: out is the parent; 0: leave the VFS */
 int pkg_vfs_read_uri(char **envp, const char *uri, char *out_tmp_path, int cap);   /* the provider's READ into a temp file: 0 / -1 */
+/* the package actions of the popup menu (at most 8) and the {marked_file} list - src/fs/pkg_popup.c */
+int pkg_popup_refresh(char **envp, int is_dir, const char *entry_name);   /* the matching menu actions: count */
+int pkg_popup_count(void);
+const char *pkg_popup_label(int idx);                          /* its menu text, or NULL */
+PkgAction *pkg_popup_get(int idx);                             /* NULL outside 0 .. count - 1 */
+int pkg_action_has_marked(PkgAction *act);                     /* 1 when args uses {marked_file} */
+int pkg_write_marked_list(DirModel *model, const char *fallback_path, char *out_tmp_path, int cap);   /* 0 / -1 */

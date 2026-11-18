@@ -63,4 +63,11 @@
     syscall
 .endm
 
+
+# pty / session (moved from pal_target.inc: header budget)
+.equ OS_SYS_setsid, 112
+.equ OS_TIOCSPTLCK, 0x40045431
+.equ OS_TIOCGPTN,   0x80045430
+.equ OS_TIOCSCTTY,  0x540E
+.equ OS_TIOCSWINSZ, 0x5414
 .endif

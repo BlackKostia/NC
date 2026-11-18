@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/pkg_popup.c + pkg_preview.c replaced (tests/test_c_pkg_popup.py diffs against it)
 # src/fs/pkg_preview.s - External package previewer (preview_ext + preview_exec)
 .intel_syntax noprefix
 .include "pal.inc"

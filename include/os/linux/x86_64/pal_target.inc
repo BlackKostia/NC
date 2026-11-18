@@ -138,6 +138,7 @@
 .equ SIGCONT,               18
 .equ SIGSTOP,               19
 .equ WNOHANG,               1
+.equ PR_SET_NO_NEW_PRIVS,   38
 
 # --- Linux Kernel ABI Struct Offsets (only used inside src/os/linux/x86_64/) ---
 .equ TCGETS,                0x5401
@@ -386,11 +387,6 @@
     mov eax, OS_SYS_mmap
     syscall
 .endm
-.equ OS_SYS_setsid, 112
-.equ OS_TIOCSPTLCK, 0x40045431
-.equ OS_TIOCGPTN,   0x80045430
-.equ OS_TIOCSCTTY,  0x540E
-.equ OS_TIOCSWINSZ, 0x5414
 .macro OS_SETSID; mov eax, OS_SYS_setsid; syscall; .endm
 .macro OS_GETPID; mov eax, OS_SYS_getpid; syscall; .endm
 .macro OS_GETUID; mov eax, OS_SYS_getuid; syscall; .endm
