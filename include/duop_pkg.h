@@ -15,7 +15,21 @@ void pkg_hashes_append(const char *file_path, char *buf, uint64_t *len_ptr);   /
 int pkg_hashes_write(const char *pkg_dir, const char *buf, uint64_t len);       /* <pkg_dir>/hashes.sha256: 0 / -1 */
 int pkg_verify(char **envp, const char *name);                 /* every recorded file unchanged, manifest included: 0, else -1 */
 
+/* ---- the registry (pkg_registry.c): <root>/registry.tsv, one tab-separated package per line ---- */
+typedef struct PkgRegEntry { char name[64], version[32], kind[16], sha256[80], url[192], desc[128]; } PkgRegEntry;
+_Static_assert(sizeof(PkgRegEntry) == 512, "PKGR_SIZE of the assembler");
+int pkg_registry_update(char **envp);                          /* DUOP_PKG_REGISTRY (URL or file) -> registry.tsv: 0 / -1 */
+int pkg_registry_list(char **envp, PkgRegEntry *out, int max); /* entries read */
+int pkg_registry_find(char **envp, const char *name, PkgRegEntry *out);   /* 0 / -1 (among the first 64) */
+int pkg_registry_upgrade(char **envp);                         /* installed packages with a newer version reinstalled: 0 / -1 */
+int pkg_semver_cmp(const char *a, const char *b);              /* -1 / 0 / 1 over major.minor.patch */
+
 /* ---- still in assembly (pkg_manager.s, pkg_archive.s) ---- */
+typedef struct PkgEntry { char name[64], version[32], kind[16], desc[112], rest[72]; } PkgEntry;   /* an installed package */
+_Static_assert(sizeof(PkgEntry) == 296, "PKG_ENTRY_SZ of the assembler");
+int pkg_list(char **envp, PkgEntry *out, int max);             /* installed packages */
+int pkg_install_archive(char **envp, const char *path_or_url, const char *expected_sha256);   /* 0, else < 0 */
+void pkg_mkdir_p(const char *path);
 void pkg_get_root(char **envp, char *out, int cap);
 int pkm_safe_name(const char *s);                              /* 1: a plain package name */
 int pkg_write_file(const char *path, const void *buf, uint64_t len);   /* 0 / -1 */

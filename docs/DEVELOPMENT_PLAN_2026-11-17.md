@@ -123,7 +123,7 @@ flowchart LR
 - **`[NEW] src/core/ed25519.c`**
   - Компактна freestanding реалізація перевірки підпису **Ed25519** (~350–450 рядків C23 без `libc`, без heap-алокацій).
   - Вбудований у `.rodata` публічний ключ проєкту; при `duop pkg update` перевіряється `registry.tsv.sig` перед парсингом `registry.tsv`.
-- **`[MODIFY]` [src/fs/pkg_verify.c](../src/fs/pkg_verify.c) & [src/fs/pkg_registry.s](../src/fs/pkg_registry.s)**
+- **`[MODIFY]` [src/fs/pkg_verify.c](../src/fs/pkg_verify.c) & [src/fs/pkg_registry.c](../src/fs/pkg_registry.c)**
   - Обов'язкова перевірка підпису реєстру з локалізованим повідомленням у `StatusBar`/CLI при невідповідності.
 
 ### 3.2 Офіційні VFS-провайдери (`virtual_mode = 3`) та `FROM scratch` образ

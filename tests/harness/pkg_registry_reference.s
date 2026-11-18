@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/pkg_registry.c replaced (tests/test_c_pkg_registry.py diffs against it)
 # src/fs/pkg_registry.s - Package Registry (update, list, find, upgrade)
 .intel_syntax noprefix
 .include "pal.inc"

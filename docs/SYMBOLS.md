@@ -583,12 +583,12 @@
   - `pkg_write_marked_list` — int pkg_write_marked_list(DirModel *model, const char *fallback_path, char *out_tmp_path, int cap)
 - **`src/fs/pkg_preview.s`**
   - `pkg_preview_try` — int pkg_preview_try(char **envp, const char *filepath, char *out_buf, int max_len) -> bytes or -1
-- **`src/fs/pkg_registry.s`**
-  - `pkg_registry_update` — int pkg_registry_update(char **envp) -> 0 ok, -1 err
-  - `pkg_registry_list` — int pkg_registry_list(char **envp, PkgRegEntry *out, int max) -> count
-  - `pkg_registry_find` — int pkg_registry_find(char **envp, const char *name, PkgRegEntry *out) -> 0 ok, -1 err
-  - `pkg_registry_upgrade` — int pkg_registry_upgrade(char **envp) -> 0 ok, -1 err
-  - `pkg_semver_cmp` — int pkg_semver_cmp(const char *a, const char *b) -> -1 (a<b), 0 (a==b), 1 (a>b)
+- **`src/fs/pkg_registry.c`**
+  - `pkg_registry_update` — `int pkg_registry_update(char **envp)`
+  - `pkg_registry_list` — `int pkg_registry_list(char **envp, PkgRegEntry *out, int max)`
+  - `pkg_registry_find` — `int pkg_registry_find(char **envp, const char *name, PkgRegEntry *out)`
+  - `pkg_registry_upgrade` — `int pkg_registry_upgrade(char **envp)`
+  - `pkg_semver_cmp` — `int pkg_semver_cmp(const char *a, const char *b)`
 - **`src/fs/pkg_verify.c`**
   - `pkg_hashes_append` — `void pkg_hashes_append(const char *file_path, char *buf, uint64_t *len_ptr)`
   - `pkg_hashes_write` — `int pkg_hashes_write(const char *pkg_dir, const char *buf, uint64_t len)`

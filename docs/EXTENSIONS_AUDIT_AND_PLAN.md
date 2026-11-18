@@ -54,7 +54,7 @@
 | Пріоритет | Покращення | Статус | Деталі реалізації |
 |---|---|---|---|
 | **P1** | **Інтерактивний VFS у `FilePane` (`virtual_mode = 3`)** | ✅ Реалізовано | `pkg_vfs_pane.s` інтегровано в `Ctrl+G` (`Goto`), `Enter` (`app_open.s`) та `F3` (`app_cmds.s`): `<scheme>://...` завантажує `LIST`, `F3` читає через `READ`, `..` повертає на рівень вище / назад на диск. |
-| **P2** | **SemVer-компаратор у `pkg_registry.s`** | ✅ Реалізовано | `pkg_semver_cmp(a, b)` виконує числове порівняння `major.minor.patch`; `pkg_registry_upgrade` оновлює лише коли `registry_ver > installed_ver`. |
+| **P2** | **SemVer-компаратор у `pkg_registry.c`** | ✅ Реалізовано | `pkg_semver_cmp(a, b)` виконує числове порівняння `major.minor.patch`; `pkg_registry_upgrade` оновлює лише коли `registry_ver > installed_ver`. |
 | **P3** | **Підтримка відносних підкаталогів у пакетах** | ✅ Реалізовано | `pkm_safe_relpath` та `pkm_ensure_parent` у `pkg_manager.s` зберігають `bin/`, `lib/`, `assets/`, відхиляючи `..` і `/`. |
 | **P4** | **Підтримка `mode = bg` та статусного фідбеку** | ✅ Реалізовано | `sys_exec_argv_bg` у `syscall.s` + `App_run_pkg_action` виконують фонові `tool`-пакети без захоплення TTY і показують статус у `StatusBar`. |
 | **P5** | **ANSI SGR-рендер у `PreviewPane` + мінімальна ізоляція** | ✅ Реалізовано | `pv_copy_line_strip_ansi` у `preview_pane.s` очищає SGR escape-послідовності у прев'ю, а `OS_NO_NEW_PRIVS` (`prctl`) ізолює дочірні процеси в `pkg_preview.s`. |
