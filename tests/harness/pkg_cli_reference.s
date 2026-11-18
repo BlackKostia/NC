@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/fs/pkg_cli.c replaced (tests/test_c_pkg_cli.py diffs against it)
 # src/fs/pkg_cli.s - CLI dispatcher for `duop pkg <list|install|remove|verify>`
 .intel_syntax noprefix
 .include "pal.inc"

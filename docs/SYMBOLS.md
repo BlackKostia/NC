@@ -561,8 +561,8 @@
   - `pkg_load_archive_sha` — `ArcCtx *pkg_load_archive_sha(const char *path, char *out_sha_hex65)`
   - `pkg_load_archive` — `ArcCtx *pkg_load_archive(const char *path)`
   - `pkg_extract_entry_to` — `int pkg_extract_entry_to(ArcCtx *ctx, ArcEntry *ent, const char *dest_path)`
-- **`src/fs/pkg_cli.s`**
-  - `pkg_cli_dispatch` — int pkg_cli_dispatch(int argc, char **argv, char **envp) -> exit code
+- **`src/fs/pkg_cli.c`**
+  - `pkg_cli_dispatch` — `int pkg_cli_dispatch(int argc, char **argv, char **envp)`
 - **`src/fs/pkg_fetch.c`**
   - `pkg_fetch_url` — `int pkg_fetch_url(char **envp, const char *url, const char *dest_path)`
 - **`src/fs/pkg_manager.c`**
