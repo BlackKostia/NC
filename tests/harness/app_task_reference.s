@@ -1,3 +1,4 @@
+# Frozen reference oracle: original src/app/app_task.s before migration to src/app/app_task.c.
 # App Background Task Controller
 # Turns the active pane selection into a TaskJob, starts the fork worker (src/fs/task.s),
 # drives periodic snapshots, the deferred ProgressDialog, pause / cancel / hide actions,

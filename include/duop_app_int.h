@@ -37,3 +37,12 @@ FilePane *get_inactive_pane(App *app);
 void App_du_init(App *app);
 void du_toggle(App *app);
 void App_run_expanded_cmd(App *app, const char *tmpl, const char *cur_name, const char *cur_path);
+
+/* app_task.c */
+typedef struct ConflictDialog ConflictDialog;
+void task_status_errno(App *app, int64_t neg_errno);
+void App_task_start(App *app, int op, const char *dst_input);
+void App_task_tick(App *app);
+void App_task_show(App *app);
+void App_task_shutdown(App *app);
+void App_task_conflict_done(App *app, int result, ConflictDialog *dlg);

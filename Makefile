@@ -52,8 +52,6 @@ SRCS := \
 	src/app/app_cmds.s \
 	src/app/app_keys.s \
 	src/app/app_loop.s \
-	src/app/app_task.s \
-	src/app/app_task_tick.s \
 	src/app/app_events.s \
 	src/app/app_attr.s \
 	src/app/app_ext.s \
@@ -216,6 +214,7 @@ C_SRCS := \
 	src/app/app_toggles.c \
 	src/app/app_du.c \
 	src/app/app_cmdline.c \
+	src/app/app_task.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -459,6 +458,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_file_pane.py
 	python3 tests/test_c_app_leaf1.py
 	python3 tests/test_c_app_du_cmd.py
+	python3 tests/test_c_app_task.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

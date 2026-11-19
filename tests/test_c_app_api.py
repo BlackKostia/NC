@@ -64,17 +64,20 @@ def test_declared_symbols_are_defined() -> None:
 
 
 def test_signatures_match_asm_comments() -> None:
-    comments = {}
+    sigs = {}
     for f in ROOT.glob("src/app/*.s"):
         for name, params in re.findall(r"^#\s*void (App_\w+)\(([^)]*)\)", f.read_text(), re.M):
-            comments[name] = [p.strip() for p in params.split(",")]
+            sigs[name] = [p.strip() for p in params.split(",")]
+    for f in ROOT.glob("src/app/*.c"):
+        for name, params in re.findall(r"^void (App_\w+)\(([^)]*)\)", f.read_text(), re.M):
+            sigs[name] = [p.strip() for p in params.split(",")]
     checked = 0
     for name, params in declared().items():
-        if name in comments:
-            assert types(comments[name]) == types(params), (name, comments[name], params)
+        if name in sigs:
+            assert types(sigs[name]) == types(params), (name, sigs[name], params)
             checked += 1
-    assert checked >= 8, checked
-    print(f"[PASS] AA3. {checked} signatures equal the `# void App_x(...)` comments of the assembly")
+    assert checked >= 12, checked
+    print(f"[PASS] AA3. {checked} signatures equal the asm comments and C definitions in src/app")
 
 
 def test_header_compiles() -> None:

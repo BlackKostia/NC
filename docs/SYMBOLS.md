@@ -885,18 +885,17 @@
   - `App_open_selected_entry` — void App_open_selected_entry(App *this, FilePane *pane)
   - `App_reload_panes` — void App_reload_panes(App *this, const char *focus_name_or_null)
   - `reload_both_panes`
-- **`src/app/app_task.s`**
-  - `task_status_errno` — Internal: void task_status_errno(App *app, int64_t neg_errno)
-  - `App_task_start` — heap TaskJob and launches it in the background. Errors are reported in the StatusBar.
-- **`src/app/app_task_tick.s`**
-  - `App_task_tick` — TASK_DLG_DELAY_MS (unless the user sent it to background or another dialog is open).
-  - `App_task_show` — void App_task_show(App *app) -- open the ProgressDialog (Alt+J, status-bar click, auto)
-  - `App_task_hide` — void App_task_hide(App *app) -- send the ProgressDialog to background (task keeps running)
-  - `App_task_toggle_pause` — void App_task_toggle_pause(App *app)
-  - `App_task_cancel` — void App_task_cancel(App *app)
-  - `App_task_confirm_quit` — void App_task_confirm_quit(App *app) -- quit requested while a worker runs
-  - `App_task_shutdown` — void App_task_shutdown(App *app) -- cancel + reap the worker before the UI exits
-  - `App_task_conflict_done` — void App_task_conflict_done(App *app, int result, ConflictDialog *dlg)
+- **`src/app/app_task.c`**
+  - `task_status_errno` — `void task_status_errno(App *app, int64_t neg_errno)`
+  - `App_task_start` — `void App_task_start(App *app, int op, const char *dst_input)`
+  - `App_task_tick` — `void App_task_tick(App *app)`
+  - `App_task_show` — `void App_task_show(App *app)`
+  - `App_task_hide` — `void App_task_hide(App *app)`
+  - `App_task_toggle_pause` — `void App_task_toggle_pause(App *app)`
+  - `App_task_cancel` — `void App_task_cancel(App *app)`
+  - `App_task_confirm_quit` — `void App_task_confirm_quit(App *app)`
+  - `App_task_shutdown` — `void App_task_shutdown(App *app)`
+  - `App_task_conflict_done` — `void App_task_conflict_done(App *app, int result, ConflictDialog *dlg)`
 - **`src/app/app_toggles.c`**
   - `App_cmd_toggle_preview` — `void App_cmd_toggle_preview(App *app)`
   - `App_cmd_toggle_hidden` — `void App_cmd_toggle_hidden(App *app)`

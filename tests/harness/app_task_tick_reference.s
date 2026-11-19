@@ -1,3 +1,4 @@
+# Frozen reference oracle: original src/app/app_task_tick.s before migration to src/app/app_task.c.
 # App Background Task Controller — app task tick (split from app_task.s)
 
 .intel_syntax noprefix
