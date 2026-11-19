@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/app/app_toggles.s (before C23 migration to src/app/app_toggles.c).
 # App Controller Class (Inherits from Object) — app toggles (split from app.s)
 
 .intel_syntax noprefix

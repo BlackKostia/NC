@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/app/app_arc.s (before C23 migration to src/app/app_arc.c).
 # src/app/app_arc.s - App/FilePane UI glue for Archive VFS
 .intel_syntax noprefix
 

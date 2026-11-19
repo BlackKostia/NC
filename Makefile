@@ -50,19 +50,15 @@ SRCS := \
 	src/app/app_open.s \
 	src/app/app_close_dialog.s \
 	src/app/app_cmds.s \
-	src/app/app_toggles.s \
 	src/app/app_keys.s \
 	src/app/app_loop.s \
-	src/app/app_choosedir.s \
 	src/app/app_task.s \
 	src/app/app_task_tick.s \
 	src/app/app_events.s \
-	src/app/app_view.s \
 	src/app/app_attr.s \
 	src/app/app_ext.s \
 	src/app/app_ext_keys.s \
 	src/app/app_du.s \
-	src/app/app_arc.s \
 	src/app/app_menu.s \
 	src/app/app_cmdline.s
 
@@ -216,6 +212,10 @@ C_SRCS := \
 	src/ui/file_pane_rows.c \
 	src/ui/file_pane_render.c \
 	src/ui/file_pane.c \
+	src/app/app_choosedir.c \
+	src/app/app_arc.c \
+	src/app/app_view.c \
+	src/app/app_toggles.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -457,6 +457,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_popup_menu.py
 	python3 tests/test_c_file_pane_render.py
 	python3 tests/test_c_file_pane.py
+	python3 tests/test_c_app_leaf1.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

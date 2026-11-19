@@ -819,10 +819,10 @@
   - `App_new` — App *App_new(const char *left_path, const char *right_path, char **envp, int lang_override)
   - `App_dtor` — void App_dtor(App *this)
   - `App_vtbl`
-- **`src/app/app_arc.s`**
-  - `arc_nav_up` — int arc_nav_up(FilePane *fp) -> 1 if handled
-  - `arc_handle_enter` — int arc_handle_enter(App *app) -> 1 if handled
-  - `arc_extract_selected` — int arc_extract_selected(FilePane *fp, char *out_tmp_path) -> 0 on ok, -1 on err
+- **`src/app/app_arc.c`**
+  - `arc_nav_up` — `int arc_nav_up(FilePane *fp)`
+  - `arc_handle_enter` — `int arc_handle_enter(App *app)`
+  - `arc_extract_selected` — `int arc_extract_selected(FilePane *fp, char *out_tmp_path)`
 - **`src/app/app_attr.s`**
   - `App_cmd_info` — void App_cmd_info(App *this)
   - `App_cmd_chmod` — void App_cmd_chmod(App *this)
@@ -831,9 +831,9 @@
   - `App_cmd_undo` — void App_cmd_undo(App *this)
   - `App_apply_chmod` — void App_apply_chmod(App *this, ChmodDialog *dlg)
   - `App_apply_link` — void App_apply_link(App *this, InputDialog *dlg, int is_hard)
-- **`src/app/app_choosedir.s`**
-  - `App_write_choosedir` — void App_write_choosedir(App *this, const char *out_path)
-  - `app_mouse_hover`
+- **`src/app/app_choosedir.c`**
+  - `App_write_choosedir` — `void App_write_choosedir(App *app, const char *out_path)`
+  - `app_mouse_hover` — `void app_mouse_hover(App *app, Event *evt)`
 - **`src/app/app_close_dialog.s`**
   - `App_close_dialog` — void App_close_dialog(App *this, int result)
   - `App_cmd_help` — ==============================================================================
@@ -897,17 +897,17 @@
   - `App_task_confirm_quit` — void App_task_confirm_quit(App *app) -- quit requested while a worker runs
   - `App_task_shutdown` — void App_task_shutdown(App *app) -- cancel + reap the worker before the UI exits
   - `App_task_conflict_done` — void App_task_conflict_done(App *app, int result, ConflictDialog *dlg)
-- **`src/app/app_toggles.s`**
-  - `App_cmd_toggle_preview`
-  - `App_cmd_toggle_hidden`
-  - `App_cmd_cycle_theme`
-  - `App_cmd_toggle_lang`
-  - `App_cmd_quit`
-  - `App_dispatch_f_action` — void App_dispatch_f_action(App *this, int idx_0_to_9)
-- **`src/app/app_view.s`**
-  - `App_open_viewer` — void App_open_viewer(App *app, const char *path)
-  - `App_view_as_done` — void App_view_as_done(App *app, ViewAsDialog *dlg) -- open the viewer in the chosen mode
-  - `App_cmd_view_mode` — int App_cmd_view_mode(App *app) -- Alt+V: cycle the preview's Image / Hex / Text view
+- **`src/app/app_toggles.c`**
+  - `App_cmd_toggle_preview` — `void App_cmd_toggle_preview(App *app)`
+  - `App_cmd_toggle_hidden` — `void App_cmd_toggle_hidden(App *app)`
+  - `App_cmd_cycle_theme` — `void App_cmd_cycle_theme(App *app)`
+  - `App_cmd_toggle_lang` — `void App_cmd_toggle_lang(App *app)`
+  - `App_cmd_quit` — `void App_cmd_quit(App *app)`
+  - `App_dispatch_f_action` — `void App_dispatch_f_action(App *app, int idx)`
+- **`src/app/app_view.c`**
+  - `App_open_viewer` — `void App_open_viewer(App *app, const char *path)`
+  - `App_view_as_done` — `void App_view_as_done(App *app, ViewAsDialog *dlg)`
+  - `App_cmd_view_mode` — `int App_cmd_view_mode(App *app)`
 - **`src/app/cli_args.c`**
   - `cli_parse` — `void cli_parse(int argc, char **argv, CliArgs *out)`
   - `cli_print_info` — `bool cli_print_info(const CliArgs *args, char **envp)`

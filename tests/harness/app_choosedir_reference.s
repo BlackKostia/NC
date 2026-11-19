@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/app/app_choosedir.s (before C23 migration to src/app/app_choosedir.c).
 # App Controller Class (Inherits from Object) — app choosedir (split from app.s)
 
 .intel_syntax noprefix

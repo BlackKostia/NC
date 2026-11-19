@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/app/app_view.s (before C23 migration to src/app/app_view.c).
 # F3 on a file: images first ask "Open as" (Image / Hex / Text), everything else opens the
 # built-in viewer directly; the dialog's choice opens the viewer in that mode.
 
