@@ -57,3 +57,14 @@ void App_cmd_goto(App *app);
 void App_cmd_newfile(App *app);
 void App_cmd_shell(App *app);
 void app_jump_virtual_entry(App *app, FilePane *pane, const char *full_path);
+
+/* app_attr.c */
+typedef struct ChmodDialog ChmodDialog;
+typedef struct InputDialog InputDialog;
+void App_cmd_info(App *app);
+void App_cmd_chmod(App *app);
+void App_cmd_link(App *app, int is_hard);
+void App_cmd_trash(App *app);
+void App_cmd_undo(App *app);
+void App_apply_chmod(App *app, ChmodDialog *dlg);
+void App_apply_link(App *app, InputDialog *dlg, int is_hard);

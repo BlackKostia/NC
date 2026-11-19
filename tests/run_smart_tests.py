@@ -124,7 +124,7 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/ui/popup_osc52*", ("tests/test_c_ui_leaf1.py", "tests/test_diff_menu_clip.py")),
     ("src/ui/popup_menu*", ("tests/test_c_popup_menu.py", "tests/test_diff_menu_clip.py", "tests/test_pkg_extensions.py")),
     ("src/fs/trash_*", ("tests/test_trash_undo_attr.py", "tests/test_trash_spec.py", "tests/test_c_trash.py")),
-    ("src/app/app_attr*", ("tests/test_trash_undo_attr.py",)),
+    ("src/app/app_attr*", ("tests/test_c_app_attr.py", "tests/test_trash_undo_attr.py")),
     ("src/ui/attr_dialogs*", ("tests/test_trash_undo_attr.py",)),
     ("src/ui/info_dialog*", ("tests/test_trash_undo_attr.py",)),
     ("src/ui/viewer_scrollbar*", ("tests/test_c_viewer_scrollbar.py", "tests/test_viewer_pro.py", "tests/test_nav_viewer.py")),

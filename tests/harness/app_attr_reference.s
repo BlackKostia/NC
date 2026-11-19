@@ -1,3 +1,4 @@
+# Frozen reference oracle: original src/app/app_attr.s before migration to src/app/app_attr.c.
 # src/app/app_attr.s - App commands for File Info, Chmod/Chown, Symlink/Hardlink, Trash & Undo
 .intel_syntax noprefix
 

@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 635
+- **Exported `.global` Symbols**: 633
 
 ## Structs (`include/*.inc`)
 
@@ -823,14 +823,12 @@
   - `arc_nav_up` — `int arc_nav_up(FilePane *fp)`
   - `arc_handle_enter` — `int arc_handle_enter(App *app)`
   - `arc_extract_selected` — `int arc_extract_selected(FilePane *fp, char *out_tmp_path)`
-- **`src/app/app_attr.s`**
-  - `App_cmd_info` — void App_cmd_info(App *this)
-  - `App_cmd_chmod` — void App_cmd_chmod(App *this)
-  - `App_cmd_link` — void App_cmd_link(App *this, int is_hard)
-  - `App_cmd_trash` — void App_cmd_trash(App *this)
-  - `App_cmd_undo` — void App_cmd_undo(App *this)
-  - `App_apply_chmod` — void App_apply_chmod(App *this, ChmodDialog *dlg)
-  - `App_apply_link` — void App_apply_link(App *this, InputDialog *dlg, int is_hard)
+- **`src/app/app_attr.c`**
+  - `App_cmd_link` — `void App_cmd_link(App *app, int is_hard)`
+  - `App_cmd_trash` — `void App_cmd_trash(App *app)`
+  - `App_cmd_undo` — `void App_cmd_undo(App *app)`
+  - `App_apply_chmod` — `void App_apply_chmod(App *app, ChmodDialog *dlg)`
+  - `App_apply_link` — `void App_apply_link(App *app, InputDialog *dlg, int is_hard)`
 - **`src/app/app_choosedir.c`**
   - `App_write_choosedir` — `void App_write_choosedir(App *app, const char *out_path)`
   - `app_mouse_hover` — `void app_mouse_hover(App *app, Event *evt)`
