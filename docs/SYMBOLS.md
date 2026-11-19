@@ -691,8 +691,8 @@
   - `FilePane_layout` — `void FilePane_layout(Widget *self, int x, int y, int w, int h)`
 - **`src/ui/file_pane_mouse.c`**
   - `FilePane_on_mouse` — `int FilePane_on_mouse(Widget *self, void *event)`
-- **`src/ui/file_pane_render.s`**
-  - `FilePane_render` — void FilePane_render(FilePane *this, ScreenBuffer *scr, Theme *theme)
+- **`src/ui/file_pane_render.c`**
+  - `FilePane_render` — `void FilePane_render(Widget *self, void *screen, void *theme)`
 - **`src/ui/file_pane_tabs.c`**
   - `fp_get_active_tab` — `NavTab *fp_get_active_tab(FilePane *self)`
   - `FilePane_nav_to` — `intptr_t FilePane_nav_to(FilePane *self, const char *path)`

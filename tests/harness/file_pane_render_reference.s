@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/ui/file_pane_render.s (before C23 migration to src/ui/file_pane_render.c + file_pane_rows.c).
 # FilePane Widget (Inherits from Widget) — file pane render (split from file_pane.s)
 
 .intel_syntax noprefix

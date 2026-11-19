@@ -110,6 +110,18 @@ typedef struct PopupMenuDialog PopupMenuDialog;
 typedef struct Event Event;
 PopupMenuDialog *PopupMenu_new(App *app, int x, int y);
 int pane_mouse_ext(App *app, Event *evt);
+#define CH_BOX_LT 0x251Cu
+#define CH_BOX_RT 0x2524u
+#define CH_TRI_RIGHT 0x25B8u
+#define CH_SQ_SMALL 0x25AAu
+#define CH_DIAMOND 0x25C6u
+#define CH_ARROW_NE 0x2197u
+#define CH_CHECK 0x2713u
+#define CH_LAQUO 0x00ABu
+#define CH_ELLIPSIS 0x2026u
+void fp_render_rows(FilePane *fp, ScreenBuffer *scr, const Theme *th,
+                    const FilePaneCols *cols, int list_h, int focused);
+void FilePane_render(Widget *self, void *screen, void *theme);
 typedef struct ImgPlace ImgPlace;
 void img_overlay_show(const ImgPlace *p);
 void img_preview_pre_flush(App *app);
