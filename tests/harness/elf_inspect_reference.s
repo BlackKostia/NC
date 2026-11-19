@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/ui/elf_inspect.c replaced (tests/test_c_elf_inspect.py diffs against it)
 # src/ui/elf_inspect.s - ELF64 header & section inspector for PreviewPane
 .intel_syntax noprefix
 

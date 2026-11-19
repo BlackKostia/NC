@@ -54,9 +54,11 @@ void FilePane_ensure_visible(FilePane *self);
 
 typedef struct ScreenBuffer ScreenBuffer;
 typedef struct Theme Theme;
+typedef struct PreviewPane PreviewPane;
 int syntax_detect(const char *path);
 void syntax_draw_line(ScreenBuffer *scr, int x, int y, const char *line, int max_w,
                       const char *path, const Theme *theme, uint32_t bg);
+int elf_preview_try_render(PreviewPane *pv, ScreenBuffer *scr, const Theme *theme);
 
 typedef struct Dialog Dialog;
 

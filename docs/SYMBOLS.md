@@ -705,8 +705,8 @@
 - **`src/ui/du_render.s`**
   - `fp_draw_du_badge` — void fp_draw_du_badge(FilePane *fp, ScreenBuffer *sb)
   - `fp_draw_du_pane` — void fp_draw_du_pane(FilePane *fp, ScreenBuffer *sb, Theme *th)
-- **`src/ui/elf_inspect.s`**
-  - `elf_preview_try_render` — int elf_preview_try_render(PreviewPane *pv, ScreenBuffer *scr, Theme *theme) -> 1 if rendered, 0 else
+- **`src/ui/elf_inspect.c`**
+  - `elf_preview_try_render` — `int elf_preview_try_render(PreviewPane *pv, ScreenBuffer *scr, const Theme *theme)`
 - **`src/ui/file_pane.s`**
   - `FilePane_new` — FilePane *FilePane_new(App *app, const char *initial_path, int id)
   - `FilePane_dtor` — void FilePane_dtor(FilePane *this)
