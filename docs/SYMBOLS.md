@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 642
+- **Exported `.global` Symbols**: 641
 
 ## Structs (`include/*.inc`)
 
@@ -711,15 +711,13 @@
   - `FuzzyDialog_get_selected` — `uintptr_t FuzzyDialog_get_selected(FuzzyDialog *self)`
 - **`src/ui/git_render.c`**
   - `hdr_draw_git_badge` — `void hdr_draw_git_badge(void *hdr, void *scr, const void *theme, int x, int y)`
-- **`src/ui/header_bar.s`**
-  - `HeaderBar_new` — HeaderBar *HeaderBar_new(App *app)
-  - `HeaderBar_layout` — void HeaderBar_layout(HeaderBar *this, int x, int y, int w, int h)
-  - `HeaderBar_vtbl`
+- **`src/ui/header_bar.c`**
+  - `HeaderBar_new` — `HeaderBar *HeaderBar_new(App *app)`
+  - `HeaderBar_layout` — `void HeaderBar_layout(Widget *self, int x, int y, int w, int h)`
+  - `HeaderBar_render` — `void HeaderBar_render(Widget *self, void *screen, void *theme)`
+  - `HeaderBar_on_mouse` — `int HeaderBar_on_mouse(Widget *self, void *event)`
 - **`src/ui/header_bar_git.c`**
   - `hdr_draw_mode_and_git` — `void hdr_draw_mode_and_git(void *hdr, void *scr, const void *theme, const void *ls)`
-- **`src/ui/header_bar_render.s`**
-  - `HeaderBar_render` — void HeaderBar_render(HeaderBar *this, ScreenBuffer *scr, Theme *theme)
-  - `HeaderBar_on_mouse` — int HeaderBar_on_mouse(HeaderBar *this, Event *evt)
 - **`src/ui/hex_edit.c`**
   - `hex_edit_free` — `void hex_edit_free(ViewerDialog *vd)`
   - `hex_edit_on_key` — `int hex_edit_on_key(ViewerDialog *vd, Event *ev)`

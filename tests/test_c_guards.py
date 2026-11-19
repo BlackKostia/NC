@@ -81,7 +81,7 @@ def test_post_edit_and_faultlab_scope() -> None:
         del tmp
     spath = dl.state_file_for({"conversationId": "cg-faultlab"}, ROOT)
     spath.unlink(missing_ok=True)
-    for rel, expect in (("src/ui/header_bar.s", False), ("src/app/app_keys.s", False), ("src/fs/trash_undo.c", True), ("src/core/memory.c", True)):
+    for rel, expect in (("src/ui/header_bar.c", False), ("src/app/app_keys.s", False), ("src/fs/trash_undo.c", True), ("src/core/memory.c", True)):
         payload = {"hookEventName": "PostToolUse", "conversationId": "cg-faultlab", "cwd": str(ROOT),
                    "toolCall": {"name": "edit_file", "args": {"Path": str(ROOT / rel)}}}
         os.environ["DUOP_LEAN_BYPASS"] = "1"

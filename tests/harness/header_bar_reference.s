@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/ui/header_bar.s (before C23 migration to src/ui/header_bar.c).
 # HeaderBar Widget (Inherits from Widget)
 # Displays application brand badge, mode pill, and clickable right-aligned action pills.
 

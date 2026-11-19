@@ -45,8 +45,6 @@ VER_INC := $(BUILD)/version.inc
 
 SRCS := \
 	src/main.s \
-	src/ui/header_bar.s \
-	src/ui/header_bar_render.s \
 	src/ui/file_pane.s \
 	src/ui/file_pane_render.s \
 	src/ui/file_pane_keys.s \
@@ -216,6 +214,7 @@ C_SRCS := \
 	src/ui/preview_pane_render.c \
 	src/ui/term_pane.c \
 	src/ui/function_bar.c \
+	src/ui/header_bar.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -450,6 +449,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_preview_pane.py
 	python3 tests/test_c_term_pane.py
 	python3 tests/test_c_function_bar.py
+	python3 tests/test_c_header_bar.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/ui/header_bar_render.s (before C23 migration to src/ui/header_bar.c).
 # HeaderBar Widget (Inherits from Widget) — header bar render (split from header_bar.s)
 
 .intel_syntax noprefix

@@ -82,6 +82,16 @@ FunctionBar *FunctionBar_new(App *app);
 void FunctionBar_layout(Widget *self, int x, int y, int w, int h);
 void FunctionBar_render(Widget *self, void *screen, void *theme);
 int FunctionBar_on_mouse(Widget *self, void *event);
+enum {
+    HDR_BTN_THEME = 1, HDR_BTN_PREVIEW = 2, HDR_BTN_HIDDEN = 3,
+    HDR_BTN_HELP = 4, HDR_BTN_QUIT = 5, HDR_BTN_LANG = 6,
+};
+typedef struct HeaderBar HeaderBar;
+extern const WidgetVtbl HeaderBar_vtbl;
+HeaderBar *HeaderBar_new(App *app);
+void HeaderBar_layout(Widget *self, int x, int y, int w, int h);
+void HeaderBar_render(Widget *self, void *screen, void *theme);
+int HeaderBar_on_mouse(Widget *self, void *event);
 typedef struct ImgPlace ImgPlace;
 void img_overlay_show(const ImgPlace *p);
 void img_preview_pre_flush(App *app);
