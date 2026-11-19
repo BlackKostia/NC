@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/ui/img_overlay.c replaced (tests/test_c_img_overlay.py diffs against it)
 # Pixel-protocol image overlay (Sixel / Kitty) for one picture at a time. Renderers announce the
 # picture every frame (img_overlay_show); around ScreenBuffer_flush the overlay decides whether
 # to (re)send it: new picture, moved, cells under a Sixel image rewritten, or a dialog closed.

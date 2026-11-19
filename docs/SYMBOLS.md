@@ -760,12 +760,12 @@
   - `hex_edit_on_key` — int hex_edit_on_key(ViewerDialog *vd, Event *ev) -> 1 if handled, 0 else
 - **`src/ui/img_braille.s`**
   - `img_draw_braille` — void img_draw_braille(ScreenBuffer *scr, int bx, int by, int bw, int bh, const ImgView *v)
-- **`src/ui/img_overlay.s`**
-  - `img_overlay_show` — void img_overlay_show(const ImgPlace *p) -- call from render; valid for the current frame only
-  - `img_preview_pre_flush` — void img_preview_pre_flush(App *app)
-  - `img_preview_post_flush` — void img_preview_post_flush(App *app) -- send the picture after the cells were flushed
-  - `img_overlay_kitty_ready` — int img_overlay_kitty_ready(const void *pixels)
-  - `img_overlay_kitty_mark` — void img_overlay_kitty_mark(const void *pixels)
+- **`src/ui/img_overlay.c`**
+  - `img_overlay_kitty_ready` — `int img_overlay_kitty_ready(const void *pixels)`
+  - `img_overlay_kitty_mark` — `void img_overlay_kitty_mark(const void *pixels)`
+  - `img_overlay_show` — `void img_overlay_show(const ImgPlace *p)`
+  - `img_preview_pre_flush` — `void img_preview_pre_flush(App *app)`
+  - `img_preview_post_flush` — `void img_preview_post_flush(App *app)`
 - **`src/ui/img_preview.s`**
   - `img_draw_rgba` — Fits the picture into bw x (2*bh) half-block pixels (nearest sampling), centred in the box.
   - `img_blend` — uint32_t img_blend(uint32_t rgba /*eax*/, uint32_t bg /*edx, 0x01RRGGBB*/) -> 0x01RRGGBB

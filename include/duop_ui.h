@@ -69,6 +69,14 @@ void hdr_draw_git_badge(void *hdr, void *scr, const void *theme, int x, int y);
 void fp_draw_du_badge(FilePane *fp, ScreenBuffer *sb);
 void fp_draw_du_pane(FilePane *fp, ScreenBuffer *sb, const Theme *th);
 
+typedef struct App App;
+typedef struct ImgPlace ImgPlace;
+void img_overlay_show(const ImgPlace *p);
+void img_preview_pre_flush(App *app);
+void img_preview_post_flush(App *app);
+int img_overlay_kitty_ready(const void *pixels);
+void img_overlay_kitty_mark(const void *pixels);
+
 typedef struct Dialog Dialog;
 
 /* DialogVtbl (classes.inc): WidgetVtbl + the two button actions. Dialog_* defaults live in src/ui/dialogs*.s until Dialog is ported. */

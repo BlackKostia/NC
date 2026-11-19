@@ -55,7 +55,6 @@ SRCS := \
 	src/ui/file_pane_tabs.s \
 	src/ui/preview_pane.s \
 	src/ui/preview_mode.s \
-	src/ui/img_overlay.s \
 	src/ui/img_quad.s \
 	src/ui/img_braille.s \
 	src/ui/preview_pane_render.s \
@@ -226,6 +225,7 @@ C_SRCS := \
 	src/ui/dialogs_input_keys.c \
 	src/ui/git_render.c \
 	src/ui/du_render.c \
+	src/ui/img_overlay.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -432,6 +432,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_elf_inspect.py
 	python3 tests/test_c_dialogs_input_keys.py
 	python3 tests/test_c_git_du_render.py
+	python3 tests/test_c_img_overlay.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py
