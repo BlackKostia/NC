@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/ui/preview_pane_render.s (before C23 migration to src/ui/preview_pane{,_render}.c).
 # PreviewPane Widget (Inherits from Widget) — preview pane render (split from preview_pane.s)
 
 .intel_syntax noprefix

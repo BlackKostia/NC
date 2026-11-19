@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 648
+- **Exported `.global` Symbols**: 646
 
 ## Structs (`include/*.inc`)
 
@@ -756,18 +756,16 @@
   - `PreviewPane_thumb_req` — `uint32_t PreviewPane_thumb_req(PreviewPane *self, PvThumbReq *out)`
   - `PreviewPane_cycle_mode` — `void PreviewPane_cycle_mode(PreviewPane *self)`
   - `pv_mode_dispatch` — `int pv_mode_dispatch(PreviewPane *self, ScreenBuffer *scr, const Theme *theme)`
-- **`src/ui/preview_pane.s`**
-  - `PreviewPane_new` — PreviewPane *PreviewPane_new(App *app)
-  - `PreviewPane_dtor` — void PreviewPane_dtor(PreviewPane *this)
-  - `PreviewPane_load` — reader) followed by PreviewPane_accept, or calls PreviewPane_read_sync.
-  - `PreviewPane_read_sync` — void PreviewPane_read_sync(PreviewPane *this) -- fallback: head (+ block thumbnail) read now
-  - `PreviewPane_accept` — this->buf holds len head bytes; thumb points at tlen image payload bytes (tlen = 0: not an image).
-  - `pv_copy_line_strip_ansi` — char *pv_copy_line_strip_ansi(const char *p, const char *end, char *dst) -> next_p
-  - `PreviewPane_vtbl`
+- **`src/ui/preview_pane.c`**
+  - `PreviewPane_new` — `PreviewPane *PreviewPane_new(App *app)`
+  - `PreviewPane_load` — `int PreviewPane_load(PreviewPane *self, const char *full_path, const FileEntry *entry)`
+  - `PreviewPane_accept` — `void PreviewPane_accept(PreviewPane *self, size_t len, size_t tlen, const uint8_t *thumb)`
+  - `PreviewPane_read_sync` — `void PreviewPane_read_sync(PreviewPane *self)`
+  - `pv_copy_line_strip_ansi` — `const char *pv_copy_line_strip_ansi(const char *p, const char *end, char *dst)`
 - **`src/ui/preview_pane_mouse.c`**
   - `PreviewPane_on_mouse` — `int PreviewPane_on_mouse(Widget *self, void *evt)`
-- **`src/ui/preview_pane_render.s`**
-  - `PreviewPane_render` — void PreviewPane_render(PreviewPane *this, ScreenBuffer *scr, Theme *theme)
+- **`src/ui/preview_pane_render.c`**
+  - `PreviewPane_render` — `void PreviewPane_render(Widget *self, void *screen, void *theme)`
 - **`src/ui/progress_dialog.c`**
   - `ProgressDialog_title_for` — `const char *ProgressDialog_title_for(int op)`
   - `ProgressDialog_format_summary` — `void ProgressDialog_format_summary(const void *snap, char *buf)`

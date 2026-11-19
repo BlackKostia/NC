@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/ui/preview_pane.s (before C23 migration to src/ui/preview_pane{,_render}.c).
 # PreviewPane Widget (Inherits from Widget)
 # Displays live file content preview (text with line numbers, or hex dump for binary) or directory metadata.
 

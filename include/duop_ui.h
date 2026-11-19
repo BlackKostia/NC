@@ -94,6 +94,13 @@ typedef struct PvThumbReq PvThumbReq;
 uint32_t PreviewPane_thumb_req(PreviewPane *self, PvThumbReq *out);
 void PreviewPane_cycle_mode(PreviewPane *self);
 int pv_mode_dispatch(PreviewPane *self, ScreenBuffer *scr, const Theme *theme);
+extern const WidgetVtbl PreviewPane_vtbl;
+PreviewPane *PreviewPane_new(App *app);
+int PreviewPane_load(PreviewPane *self, const char *full_path, const FileEntry *entry);
+void PreviewPane_read_sync(PreviewPane *self);
+void PreviewPane_accept(PreviewPane *self, size_t len, size_t tlen, const uint8_t *thumb);
+void PreviewPane_render(Widget *self, void *screen, void *theme);
+const char *pv_copy_line_strip_ansi(const char *p, const char *end, char *dst);
 
 #define CH_BLOCK_FULL 0x2588u
 #define CH_SHADE_LIGHT 0x2591u
