@@ -43,6 +43,7 @@ int PreviewPane_on_mouse(Widget *self, void *evt);
 void hdr_draw_mode_and_git(void *hdr, void *scr, const void *theme, const void *ls);
 
 typedef struct FilePane FilePane;
+typedef struct FileEntry FileEntry;
 typedef struct FilePaneCols {
     int32_t name_w;
     int32_t size_w;
@@ -52,6 +53,7 @@ typedef struct FilePaneCols {
 FilePaneCols file_pane_compute_cols(int32_t w);
 void FilePane_layout(Widget *self, int x, int y, int w, int h);
 void FilePane_ensure_visible(FilePane *self);
+FileEntry *FilePane_get_selected_entry(FilePane *self);
 
 typedef struct ScreenBuffer ScreenBuffer;
 typedef struct Theme Theme;
@@ -147,6 +149,7 @@ extern const DialogVtbl ViewAsDialog_vtbl;
 extern const DialogVtbl BookmarkDialog_vtbl;
 extern const DialogVtbl SearchDialog_vtbl;
 extern const DialogVtbl UserMenuDialog_vtbl;
+extern const DialogVtbl BulkRenameDialog_vtbl;
 typedef struct ConfirmDialog ConfirmDialog;
 typedef struct InputDialog InputDialog;
 typedef struct ConflictDialog ConflictDialog;
@@ -157,6 +160,7 @@ typedef struct BookmarkDialog BookmarkDialog;
 typedef struct SearchDialog SearchDialog;
 typedef struct FuzzyDialog FuzzyDialog;
 typedef struct UserMenuDialog UserMenuDialog;
+typedef struct BulkRenameDialog BulkRenameDialog;
 void Dialog_init(Dialog *self, App *app, const char *title, uint32_t op_tag);
 void Dialog_draw_frame(Dialog *self, ScreenBuffer *scr, const Theme *theme, const char *b0_lbl, const char *b1_lbl);
 void dlg_layout_center_buttons(Dialog *self, const char *btn0, const char *btn1);
@@ -178,6 +182,7 @@ void fp_draw_search_badge(FilePane *pane, ScreenBuffer *scr);
 FuzzyDialog *FuzzyDialog_new(App *app, int mode, const char *base_path);
 uintptr_t FuzzyDialog_get_selected(FuzzyDialog *self);
 UserMenuDialog *UserMenuDialog_new(App *app);
+BulkRenameDialog *BulkRenameDialog_new(App *app, FilePane *pane);
 
 /* ---- allocation, destruction, run-time type checks ---- */
 #define DUOP_OBJ_VTBL(vtbl) ((const ObjectVtbl *)&(vtbl))

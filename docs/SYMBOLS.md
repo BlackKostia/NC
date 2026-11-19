@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 682
+- **Exported `.global` Symbols**: 677
 
 ## Structs (`include/*.inc`)
 
@@ -644,14 +644,8 @@
 - **`src/ui/bookmark_dlg.c`**
   - `BookmarkDialog_new` — `BookmarkDialog *BookmarkDialog_new(App *app, int mode)`
   - `BookmarkDialog_get_selected` — `const char *BookmarkDialog_get_selected(BookmarkDialog *self)`
-- **`src/ui/bulk_rename.s`**
-  - `BulkRenameDialog_new` — BulkRenameDialog *BulkRenameDialog_new(App *app, FilePane *pane)
-  - `br_compute_name` — void br_compute_name(BulkRenameDialog *dlg, int idx, const char *old, char *out, int cap)
-  - `br_draw_field` — void br_draw_field(scr, theme, dlg, int row_y, const char *lbl, const char *val, int focused)
-  - `BulkRenameDialog_vtbl`
-- **`src/ui/bulk_rename_ui.s`**
-  - `BulkRenameDialog_render` — void BulkRenameDialog_render(dlg, scr, theme)
-  - `BulkRenameDialog_on_key` — int BulkRenameDialog_on_key(dlg, Event *ev)
+- **`src/ui/bulk_rename.c`**
+  - `BulkRenameDialog_new` — `BulkRenameDialog *BulkRenameDialog_new(App *app, FilePane *pane)`
 - **`src/ui/conflict_dialog.c`**
   - `ConflictDialog_new` — `ConflictDialog *ConflictDialog_new(App *app, const char *name, uint64_t src_sz, uint64_t dst_sz)`
 - **`src/ui/dialog.c`**

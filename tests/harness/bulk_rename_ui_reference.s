@@ -1,3 +1,4 @@
+# Frozen reference oracle: original src/ui/bulk_rename_ui.s before C23 migration (v2.6.57).
 # src/ui/bulk_rename.s - Bulk Rename Dialog (templates {n}/{name}/{ext}, find/replace, live preview) — bulk rename ui (split from bulk_rename.s)
 
 .intel_syntax noprefix
