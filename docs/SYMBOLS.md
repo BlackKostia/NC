@@ -671,9 +671,9 @@
   - `HelpDialog_on_mouse`
 - **`src/ui/dialogs_input_keys.c`**
   - `InputDialog_on_key` — `int InputDialog_on_key(Widget *self, void *event)`
-- **`src/ui/du_progress_dlg.s`**
-  - `DuProgressDialog_new` — Dialog *DuProgressDialog_new(App *app)
-  - `DuProgressDialog_layout` — void DuProgressDialog_layout(Dialog *this, int x, int y, int w, int h) -- centred, DPD_H rows
+- **`src/ui/du_progress_dlg.c`**
+  - `DuProgressDialog_new` — `Dialog *DuProgressDialog_new(App *app)`
+  - `DuProgressDialog_layout` — `void DuProgressDialog_layout(Widget *self, int x, int y, int w, int h)`
 - **`src/ui/du_render.c`**
   - `fp_draw_du_badge` — `void fp_draw_du_badge(FilePane *fp, ScreenBuffer *sb)`
   - `fp_draw_du_pane` — `void fp_draw_du_pane(FilePane *fp, ScreenBuffer *sb, const Theme *th)`

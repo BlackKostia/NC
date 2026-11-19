@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/ui/du_progress_dlg.s (before C23 migration to src/ui/du_progress_dlg.c).
 # DuProgressDialog (Inherits from Dialog): the "Scanning disk usage" window shown while a long
 # Disk Usage walk runs -- folders done / total with a bar, then dirs / files / bytes scanned so far
 # and the Esc hint. It only renders: the app's progress callback (app_du.s) owns its lifetime and

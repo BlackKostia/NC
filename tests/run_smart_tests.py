@@ -94,6 +94,7 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/fs/disk_usage*", ("tests/test_disk_usage.py", "tests/test_du_progress.py", "tests/test_du_sizes.py", "tests/test_c_du_populate.py")),
     ("src/fs/du_*", ("tests/test_disk_usage.py", "tests/test_du_progress.py", "tests/test_du_sizes.py", "tests/test_c_du_tables.py", "tests/test_c_du_walk.py")),
     ("src/ui/du_render*", ("tests/test_c_git_du_render.py", "tests/test_disk_usage.py", "tests/test_du_progress.py", "tests/test_du_sizes.py")),
+    ("src/ui/du_progress_dlg*", ("tests/test_c_du_progress_dlg.py", "tests/test_disk_usage.py", "tests/test_du_progress.py", "tests/test_du_sizes.py")),
     ("src/ui/du_*", ("tests/test_disk_usage.py", "tests/test_du_progress.py", "tests/test_du_sizes.py")),
     ("src/app/app_du*", ("tests/test_disk_usage.py", "tests/test_du_progress.py", "tests/test_du_sizes.py")),
     ("src/fs/archive_*", ("tests/test_c_archive.py", "tests/test_archive_vfs.py", "tests/test_archive_hardening.py", "tests/test_pkg_manager.py")),
