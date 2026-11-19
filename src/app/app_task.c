@@ -146,7 +146,7 @@ static void task_finalize(App *app, int64_t result)
         app->active_dialog = 0;
         Object_free((Object *)ad);
     }
-    App_reload_panes(app, 0);
+    App_reload_panes(app, nullptr);
     if (result != 0) {
         task_status_errno(app, result);
     } else {

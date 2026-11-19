@@ -32,7 +32,8 @@ void App_cmd_mkdir(App *app);
 
 /* app_du.c & app_cmdline.c & app_layout.s / app_cmds.s */
 void App_render(App *app);
-void App_reload_panes(App *app, int keep_cursor);
+void App_reload_panes(App *app, const char *focus_name);
+void reload_both_panes(App *app, const char *focus_name);
 FilePane *get_inactive_pane(App *app);
 void App_du_init(App *app);
 void du_toggle(App *app);
@@ -46,3 +47,13 @@ void App_task_tick(App *app);
 void App_task_show(App *app);
 void App_task_shutdown(App *app);
 void App_task_conflict_done(App *app, int result, ConflictDialog *dlg);
+
+/* app_menu.c, app_open.c & remaining app_* commands */
+void App_cmd_usermenu(App *app);
+void App_dispatch_action(App *app, int act_id);
+void App_exec_menu_tmpl(App *app, const char *tmpl);
+void App_cmd_start_filter(App *app);
+void App_cmd_goto(App *app);
+void App_cmd_newfile(App *app);
+void App_cmd_shell(App *app);
+void app_jump_virtual_entry(App *app, FilePane *pane, const char *full_path);

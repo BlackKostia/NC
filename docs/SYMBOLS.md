@@ -876,15 +876,15 @@
   - `App_preview_fire` — void App_preview_fire(App *this) -- load preview now; file heads come from the async reader
 - **`src/app/app_loop.s`**
   - `App_run` — void App_run(App *this)
-- **`src/app/app_menu.s`**
-  - `App_cmd_usermenu` — void App_cmd_usermenu(App *this)
-  - `App_dispatch_action` — void App_dispatch_action(App *this, int act_id)
-  - `App_exec_menu_tmpl` — void App_exec_menu_tmpl(App *this, const char *tmpl)
-  - `App_run_pkg_action` — void App_run_pkg_action(App *this, PkgAction *act)
-- **`src/app/app_open.s`**
-  - `App_open_selected_entry` — void App_open_selected_entry(App *this, FilePane *pane)
-  - `App_reload_panes` — void App_reload_panes(App *this, const char *focus_name_or_null)
-  - `reload_both_panes`
+- **`src/app/app_menu.c`**
+  - `App_cmd_usermenu` — `void App_cmd_usermenu(App *app)`
+  - `App_dispatch_action` — `void App_dispatch_action(App *app, int act_id)`
+  - `App_exec_menu_tmpl` — `void App_exec_menu_tmpl(App *app, const char *tmpl)`
+  - `App_run_pkg_action` — `void App_run_pkg_action(App *app, PkgAction *act)`
+- **`src/app/app_open.c`**
+  - `App_open_selected_entry` — `void App_open_selected_entry(App *app, FilePane *pane)`
+  - `App_reload_panes` — `void App_reload_panes(App *app, const char *focus_name)`
+  - `reload_both_panes` — `void reload_both_panes(App *app, const char *focus_name)`
 - **`src/app/app_task.c`**
   - `task_status_errno` — `void task_status_errno(App *app, int64_t neg_errno)`
   - `App_task_start` — `void App_task_start(App *app, int op, const char *dst_input)`

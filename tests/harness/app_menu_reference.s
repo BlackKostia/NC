@@ -1,3 +1,4 @@
+# Frozen reference oracle: original src/app/app_menu.s before migration to src/app/app_menu.c.
 # src/app/app_menu.s - User Menu, Action Dispatch & Command Expansion
 .intel_syntax noprefix
 

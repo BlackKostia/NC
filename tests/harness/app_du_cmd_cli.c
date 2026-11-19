@@ -179,9 +179,9 @@ int fake_sys_exec_sh_arg(const char *script, const char *arg1, char **envp)
     return 0;
 }
 
-void App_reload_panes(App *app, int keep_cursor)
+void App_reload_panes(App *app, const char *focus)
 {
-    sc_put("call App_reload_panes "); sc_num(app != nullptr); sc_put(" keep="); sc_num(keep_cursor); sc_nl();
+    sc_put("call App_reload_panes "); sc_num(app != nullptr); sc_put(" keep="); sc_num(focus != nullptr); sc_nl();
 }
 
 const char *fs_errno_message(int neg_errno)

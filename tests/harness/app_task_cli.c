@@ -181,9 +181,9 @@ void App_set_status(App *app, const char *msg, int kind)
     sc_put(" m=|"); sc_put(msg ? msg : "(null)"); sc_put("|\n");
 }
 
-void App_reload_panes(App *app, int keep)
+void App_reload_panes(App *app, const char *focus)
 {
-    sc_put("call App_reload_panes "); sc_num(app != nullptr); sc_put(" k="); sc_num(keep); sc_nl();
+    sc_put("call App_reload_panes "); sc_num(app != nullptr); sc_put(" k="); sc_num(focus != nullptr); sc_nl();
 }
 
 void App_close_dialog(App *app, int result)

@@ -1,3 +1,4 @@
+# Frozen reference oracle: original src/app/app_open.s before migration to src/app/app_open.c.
 # App Controller Class (Inherits from Object) — app open (split from app.s)
 
 .intel_syntax noprefix

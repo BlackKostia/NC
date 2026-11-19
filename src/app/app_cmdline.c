@@ -90,7 +90,7 @@ static int ac_run(AcFrame *f)
     if (cwd[0] != '\0') (void)os_chdir(cwd);
     ScreenBuffer *scr = (ScreenBuffer *)(uintptr_t)f->app->screen;
     scr->force_full = 1;
-    App_reload_panes(f->app, 0);
+    App_reload_panes(f->app, nullptr);
     return 0;
 }
 
