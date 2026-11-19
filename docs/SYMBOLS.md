@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 639
+- **Exported `.global` Symbols**: 637
 
 ## Structs (`include/*.inc`)
 
@@ -673,16 +673,14 @@
   - `fp_draw_du_pane` — `void fp_draw_du_pane(FilePane *fp, ScreenBuffer *sb, const Theme *th)`
 - **`src/ui/elf_inspect.c`**
   - `elf_preview_try_render` — `int elf_preview_try_render(PreviewPane *pv, ScreenBuffer *scr, const Theme *theme)`
-- **`src/ui/file_pane.s`**
-  - `FilePane_new` — FilePane *FilePane_new(App *app, const char *initial_path, int id)
-  - `FilePane_dtor` — void FilePane_dtor(FilePane *this)
-  - `get_list_h` — Helper: int get_list_h(FilePane *this)
-  - `FilePane_ensure_visible` — void FilePane_ensure_visible(FilePane *this)
-  - `FilePane_get_selected_entry` — FileEntry *FilePane_get_selected_entry(FilePane *this)
-  - `FilePane_reload_keep_cursor` — void FilePane_reload_keep_cursor(FilePane *this, const char *focus_name_or_null)
-  - `FilePane_enter_parent` — Navigates to parent directory and selects the child directory we just came from.
-  - `compute_cols` — Helper: compute adaptive column layout into r8d=name_w, r9d=size_w, r10d=extra_w, r11d=extra_is_date(1)/perm(0)
-  - `FilePane_vtbl`
+- **`src/ui/file_pane.c`**
+  - `FilePane_new` — `FilePane *FilePane_new(App *app, const char *initial_path, int id)`
+  - `FilePane_dtor` — `void FilePane_dtor(Widget *self)`
+  - `get_list_h` — `int get_list_h(FilePane *self)`
+  - `FilePane_ensure_visible` — `void FilePane_ensure_visible(FilePane *self)`
+  - `FilePane_get_selected_entry` — `FileEntry *FilePane_get_selected_entry(FilePane *self)`
+  - `FilePane_reload_keep_cursor` — `void FilePane_reload_keep_cursor(FilePane *self, const char *focus_name)`
+  - `FilePane_enter_parent` — `void FilePane_enter_parent(FilePane *self)`
 - **`src/ui/file_pane_keys.c`**
   - `FilePane_on_key` — `int FilePane_on_key(Widget *self, void *event)`
   - `scrub_scrollbar` — `void scrub_scrollbar(FilePane *self, int my)`

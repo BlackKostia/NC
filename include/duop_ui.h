@@ -122,6 +122,10 @@ int pane_mouse_ext(App *app, Event *evt);
 void fp_render_rows(FilePane *fp, ScreenBuffer *scr, const Theme *th,
                     const FilePaneCols *cols, int list_h, int focused);
 void FilePane_render(Widget *self, void *screen, void *theme);
+extern const WidgetVtbl FilePane_vtbl;
+FilePane *FilePane_new(App *app, const char *initial_path, int id);
+void FilePane_dtor(Widget *self);
+void FilePane_reload_keep_cursor(FilePane *self, const char *focus_name);
 typedef struct ImgPlace ImgPlace;
 void img_overlay_show(const ImgPlace *p);
 void img_preview_pre_flush(App *app);

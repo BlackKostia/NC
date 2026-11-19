@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/ui/file_pane.s (before C23 migration to src/ui/file_pane.c).
 # FilePane Widget (Inherits from Widget)
 # Full-featured file list panel: TrueColor styling, adaptive columns, interactive
 # column-header sorting, double-click open, right-click mark, wheel & drag scrollbar.
