@@ -74,3 +74,6 @@ typedef struct Dialog Dialog;
 typedef struct DirModel DirModel;
 intptr_t App_close_dialog_ext(App *app, Dialog *dlg, FilePane *pane, DirModel *model, int dlg_res);
 int app_handle_ext_key(App *app, int key, int mods);
+
+/* app_layout.c */
+void App_preview_fire(App *app);

@@ -276,6 +276,8 @@ int App_cmd_packages(App *app);
 void App_pkg_install_confirm(App *app, InputDialog *dlg);
 ViewerDialog *ViewerDialog_new(App *app, const char *path);
 void ViewerDialog_render(Widget *self, void *screen, void *theme);
+typedef struct StatusBar StatusBar;
+void StatusBar_set_message(StatusBar *self, const char *msg, int kind, int ttl_ms);
 
 /* ---- allocation, destruction, run-time type checks ---- */
 #define DUOP_OBJ_VTBL(vtbl) ((const ObjectVtbl *)&(vtbl))

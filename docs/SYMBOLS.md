@@ -861,14 +861,14 @@
   - `app_handle_ext_key` — `int app_handle_ext_key(App *app, int key, int mods)`
 - **`src/app/app_keys.s`**
   - `handle_key` — Internal: handle key event
-- **`src/app/app_layout.s`**
-  - `App_layout` — void App_layout(App *this)
-  - `App_render` — void App_render(App *this)
-  - `App_set_status` — void App_set_status(App *this, const char *msg, int kind)
-  - `App_set_active_pane` — void App_set_active_pane(App *this, FilePane *pane)
-  - `get_inactive_pane` — FilePane *get_inactive_pane(App *this)
-  - `App_sync_preview` — void App_sync_preview(App *this) -- debounced: schedules App_preview_fire
-  - `App_preview_fire` — void App_preview_fire(App *this) -- load preview now; file heads come from the async reader
+- **`src/app/app_layout.c`**
+  - `App_layout` — `void App_layout(App *app)`
+  - `App_render` — `void App_render(App *app)`
+  - `App_set_status` — `void App_set_status(App *app, const char *msg, int kind)`
+  - `App_set_active_pane` — `void App_set_active_pane(App *app, FilePane *pane)`
+  - `get_inactive_pane` — `FilePane *get_inactive_pane(App *app)`
+  - `App_sync_preview` — `void App_sync_preview(App *app)`
+  - `App_preview_fire` — `void App_preview_fire(App *app)`
 - **`src/app/app_loop.s`**
   - `App_run` — void App_run(App *this)
 - **`src/app/app_menu.c`**
