@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/ui/file_pane_mouse.s (before C23 migration to src/ui/file_pane_mouse.c).
 # FilePane Widget (Inherits from Widget) — file pane mouse (split from file_pane.s)
 
 .intel_syntax noprefix

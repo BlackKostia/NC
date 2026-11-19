@@ -104,6 +104,8 @@ int get_list_h(FilePane *self);
 void FilePane_enter_parent(FilePane *self);
 int FilePane_on_key(Widget *self, void *event);
 void scrub_scrollbar(FilePane *self, int my);
+#define DBLCLICK_MS 420
+int FilePane_on_mouse(Widget *self, void *event);
 typedef struct ImgPlace ImgPlace;
 void img_overlay_show(const ImgPlace *p);
 void img_preview_pre_flush(App *app);

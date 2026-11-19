@@ -16,7 +16,6 @@
     "src/os/linux/x86_64/pal_simd.s:os_str_contains_ci_fast": 92,
     "src/os/linux/x86_64/pal_uring.s:os_batch_stat": 209,
     "src/os/linux/x86_64/pal_uring.s:os_uring_init": 140,
-    "src/ui/file_pane_mouse.s:FilePane_on_mouse": 156,
     "src/ui/file_pane_render.s:FilePane_render": 173,
     "tests/test_fs_reliability.py:run_adversarial_failure_tests": 251,
     "tests/test_fs_reliability.py:run_happy_scale_and_edge_tests": 199,

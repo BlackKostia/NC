@@ -689,8 +689,8 @@
 - **`src/ui/file_pane_layout.c`**
   - `file_pane_compute_cols` — `FilePaneCols file_pane_compute_cols(int32_t w)`
   - `FilePane_layout` — `void FilePane_layout(Widget *self, int x, int y, int w, int h)`
-- **`src/ui/file_pane_mouse.s`**
-  - `FilePane_on_mouse` — int FilePane_on_mouse(FilePane *this, Event *evt)
+- **`src/ui/file_pane_mouse.c`**
+  - `FilePane_on_mouse` — `int FilePane_on_mouse(Widget *self, void *event)`
 - **`src/ui/file_pane_render.s`**
   - `FilePane_render` — void FilePane_render(FilePane *this, ScreenBuffer *scr, Theme *theme)
 - **`src/ui/file_pane_tabs.c`**
