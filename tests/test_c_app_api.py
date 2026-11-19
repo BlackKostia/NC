@@ -34,8 +34,10 @@ def types(params: list[str]) -> list[str]:
 
 
 def used() -> dict[str, list[str]]:
-    """App_* symbols referenced by the UI/fs/tui/core sources and not defined by them (pkg_dialog.s owns App_cmd_packages)."""
-    own = {m for f in CALLERS if f.suffix == ".s" for m in re.findall(r"^(App_\w+):", f.read_text(encoding="utf-8", errors="replace"), re.M)}
+    """App_* symbols referenced by the UI/fs/tui/core sources and not defined by them (pkg_dialog.c owns App_cmd_packages)."""
+    own = {m for f in CALLERS for m in re.findall(
+        r"^(App_\w+):" if f.suffix == ".s" else r"^\w[\w \*]*\b(App_\w+)\(",
+        f.read_text(encoding="utf-8", errors="replace"), re.M)}
     seen: dict[str, list[str]] = {}
     for f in CALLERS:
         text = f.read_text(encoding="utf-8", errors="replace")

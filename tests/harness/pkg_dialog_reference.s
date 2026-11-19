@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/ui/pkg_dialog.s (before C23 migration to src/ui/pkg_dialog.c).
 # src/ui/pkg_dialog.s - TUI Package Manager Dialog (Alt+K)
 .intel_syntax noprefix
 .include "classes.inc"

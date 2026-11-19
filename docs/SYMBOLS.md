@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 658
+- **Exported `.global` Symbols**: 657
 
 ## Structs (`include/*.inc`)
 
@@ -741,11 +741,10 @@
   - `img_draw_quad` — `void img_draw_quad(ScreenBuffer *scr, int bx, int by, int bw, int bh, const ImgView *v)`
 - **`src/ui/info_dialog.c`**
   - `InfoDialog_new` — `InfoDialog *InfoDialog_new(App *app, const char *path)`
-- **`src/ui/pkg_dialog.s`**
-  - `PkgDialog_new`
-  - `PkgDialog_vtbl`
-  - `App_cmd_packages` — void App_cmd_packages(App *app)
-  - `App_pkg_install_confirm` — void App_pkg_install_confirm(App *app, InputDialog *dlg)
+- **`src/ui/pkg_dialog.c`**
+  - `PkgDialog_new` — `PkgDialog *PkgDialog_new(App *app)`
+  - `App_cmd_packages` — `int App_cmd_packages(App *app)`
+  - `App_pkg_install_confirm` — `void App_pkg_install_confirm(App *app, InputDialog *dlg)`
 - **`src/ui/popup_menu.s`**
   - `PopupMenu_new` — PopupMenuDialog *PopupMenu_new(App *app, int x, int y)
   - `pane_mouse_ext` — int pane_mouse_ext(App *app, Event *evt) -> 1 if handled, 0 else
