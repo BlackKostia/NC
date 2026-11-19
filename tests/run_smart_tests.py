@@ -65,6 +65,7 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/fs/dir_watch*", ("tests/test_event_loop.py", "tests/test_c_dir_watch.py")),
     ("src/ui/file_pane_layout*", ("tests/test_c_file_pane_layout.py", "tests/test_pty.py", "tests/test_ui_visual.py")),
     ("src/ui/file_pane_tabs*", ("tests/test_c_file_pane_tabs.py", "tests/test_nav_tabs.py", "tests/test_pty.py")),
+    ("src/ui/file_pane_keys*", ("tests/test_c_file_pane_keys.py", "tests/test_pty.py", "tests/test_pane_scrollbar.py")),
     ("src/ui/file_pane*", ("tests/test_pty.py", "tests/test_ui_visual.py", "tests/test_nav_tabs.py", "tests/test_pane_scrollbar.py")),
     ("src/fs/pkg_registry*", ("tests/test_c_pkg_registry.py", "tests/test_pkg_manager.py", "tests/test_pkg_improvements.py")),
     ("src/fs/pkg_verify*", ("tests/test_c_pkg_verify.py", "tests/test_pkg_manager.py", "tests/test_security_reliability.py")),

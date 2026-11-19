@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/ui/file_pane_keys.s (before C23 migration to src/ui/file_pane_keys.c).
 # FilePane Widget (Inherits from Widget) — file pane keys (split from file_pane.s)
 
 .intel_syntax noprefix

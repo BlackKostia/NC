@@ -683,9 +683,9 @@
   - `FilePane_enter_parent` — Navigates to parent directory and selects the child directory we just came from.
   - `compute_cols` — Helper: compute adaptive column layout into r8d=name_w, r9d=size_w, r10d=extra_w, r11d=extra_is_date(1)/perm(0)
   - `FilePane_vtbl`
-- **`src/ui/file_pane_keys.s`**
-  - `FilePane_on_key` — int FilePane_on_key(FilePane *this, Event *evt)
-  - `scrub_scrollbar` — Helper: scrub scroll from mouse y along scrollbar
+- **`src/ui/file_pane_keys.c`**
+  - `FilePane_on_key` — `int FilePane_on_key(Widget *self, void *event)`
+  - `scrub_scrollbar` — `void scrub_scrollbar(FilePane *self, int my)`
 - **`src/ui/file_pane_layout.c`**
   - `file_pane_compute_cols` — `FilePaneCols file_pane_compute_cols(int32_t w)`
   - `FilePane_layout` — `void FilePane_layout(Widget *self, int x, int y, int w, int h)`
