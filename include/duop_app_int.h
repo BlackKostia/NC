@@ -29,3 +29,11 @@ void App_task_confirm_quit(App *app);
 void App_cmd_rename(App *app);
 void App_cmd_edit(App *app);
 void App_cmd_mkdir(App *app);
+
+/* app_du.c & app_cmdline.c & app_layout.s / app_cmds.s */
+void App_render(App *app);
+void App_reload_panes(App *app, int keep_cursor);
+FilePane *get_inactive_pane(App *app);
+void App_du_init(App *app);
+void du_toggle(App *app);
+void App_run_expanded_cmd(App *app, const char *tmpl, const char *cur_name, const char *cur_path);

@@ -838,8 +838,8 @@
   - `App_close_dialog` — void App_close_dialog(App *this, int result)
   - `App_cmd_help` — ==============================================================================
   - `App_cmd_mkdir`
-- **`src/app/app_cmdline.s`**
-  - `App_run_expanded_cmd` — void App_run_expanded_cmd(App *this, const char *tmpl, const char *cur_name, const char *cur_path)
+- **`src/app/app_cmdline.c`**
+  - `App_run_expanded_cmd` — `void App_run_expanded_cmd(App *app, const char *tmpl, const char *cur_name, const char *cur_path)`
 - **`src/app/app_cmds.s`**
   - `App_cmd_newfile`
   - `App_cmd_start_filter`
@@ -851,9 +851,9 @@
   - `App_cmd_copy`
   - `App_cmd_move`
   - `App_cmd_delete`
-- **`src/app/app_du.s`**
-  - `App_du_init` — void App_du_init(App *app) -- register the progress callback (read DUOP_DU_PROGRESS_MS)
-  - `du_toggle` — void du_toggle(App *app) -- Disk Usage on/off for the active pane: measure the listing, or back to the plain one
+- **`src/app/app_du.c`**
+  - `App_du_init` — `void App_du_init(App *app)`
+  - `du_toggle` — `void du_toggle(App *app)`
 - **`src/app/app_events.s`**
   - `App_events_init` — void App_events_init(App *app)
   - `App_events_timeout` — int App_events_timeout(App *app) -> poll timeout in ms (-1 = sleep until an event)

@@ -1,3 +1,4 @@
+# Frozen reference oracle: original src/app/app_du.s before migration to src/app/app_du.c.
 # App side of the Disk Usage progress: the callback that du_parallel_walk runs on the main thread
 # about every 100 ms while worker threads walk folders. After DUOP_DU_PROGRESS_MS (default 300 ms)
 # it shows DuProgressDialog over the redrawn screen; Esc cancels the walk (status message), other

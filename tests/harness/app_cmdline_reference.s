@@ -1,3 +1,4 @@
+# Frozen reference oracle: original src/app/app_cmdline.s before migration to src/app/app_cmdline.c.
 # src/app/app_cmdline.s - run a User Menu / open-rule command template safely
 #
 # Collects the marked names (or the current one) into a NUL separated list, expands the template
