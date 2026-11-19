@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/ui/viewer_image.s (before C23 migration to src/ui/viewer_image.c).
 # ViewerDialog picture mode: decodes the mapped file once (img_decode), keeps a copy scaled to
 # the window (rebuilt on resize) and draws it with half-blocks; i / h / t switch Image / Hex / Text.
 

@@ -107,6 +107,11 @@ void vim_draw_zoom_badge(ViewerDialog *v, ScreenBuffer *scr, const Theme *th);
 int vim_kitty_pan(ViewerDialog *v, int proto, ImgPlace *p);
 void vim_place(ViewerDialog *v, ImgPlace *p);
 void vim_draw_picture(ViewerDialog *v, ScreenBuffer *scr, const Theme *theme);
+void ViewerDialog_on_btn0(ViewerDialog *v);
+void ViewerDialog_set_mode(ViewerDialog *v, int mode);
+void ViewerDialog_render_image(ViewerDialog *v, ScreenBuffer *scr);
+int viewer_mode_key(ViewerDialog *v, Event *e);
+void viewer_img_free(ViewerDialog *v);
 
 typedef struct Dialog Dialog;
 

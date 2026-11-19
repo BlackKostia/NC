@@ -816,11 +816,11 @@
   - `ViewerDialog_on_mouse` — int ViewerDialog_on_mouse(ViewerDialog *this, Event *evt)
 - **`src/ui/viewer_dialog_render.s`**
   - `ViewerDialog_render` — void ViewerDialog_render(ViewerDialog *this, ScreenBuffer *scr, Theme *theme)
-- **`src/ui/viewer_image.s`**
-  - `ViewerDialog_set_mode` — void ViewerDialog_set_mode(ViewerDialog *v, int mode /*PV_MODE_IMAGE / HEX / TEXT*/)
-  - `ViewerDialog_render_image` — void ViewerDialog_render_image(ViewerDialog *v, ScreenBuffer *scr)
-  - `viewer_mode_key` — int viewer_mode_key(ViewerDialog *v, Event *e) -> 1 when the key switched the view mode
-  - `viewer_img_free` — void viewer_img_free(ViewerDialog *v)
+- **`src/ui/viewer_image.c`**
+  - `ViewerDialog_set_mode` — `void ViewerDialog_set_mode(ViewerDialog *v, int mode)`
+  - `viewer_img_free` — `void viewer_img_free(ViewerDialog *v)`
+  - `viewer_mode_key` — `int viewer_mode_key(ViewerDialog *v, Event *e)`
+  - `ViewerDialog_render_image` — `void ViewerDialog_render_image(ViewerDialog *v, ScreenBuffer *scr)`
 - **`src/ui/viewer_pixels.c`**
   - `vim_place` — `void vim_place(ViewerDialog *v, ImgPlace *p)`
   - `vim_draw_picture` — `void vim_draw_picture(ViewerDialog *v, ScreenBuffer *scr, const Theme *theme)`
