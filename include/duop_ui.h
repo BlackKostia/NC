@@ -112,6 +112,8 @@ void ViewerDialog_set_mode(ViewerDialog *v, int mode);
 void ViewerDialog_render_image(ViewerDialog *v, ScreenBuffer *scr);
 int viewer_mode_key(ViewerDialog *v, Event *e);
 void viewer_img_free(ViewerDialog *v);
+void hex_edit_free(ViewerDialog *vd);
+int hex_edit_on_key(ViewerDialog *vd, Event *ev);
 
 typedef struct Dialog Dialog;
 

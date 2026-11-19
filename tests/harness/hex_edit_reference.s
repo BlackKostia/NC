@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/ui/hex_edit.s (before C23 migration to src/ui/hex_edit.c).
 # src/ui/hex_edit.s - In-place Hex editor (E to edit, 0-9a-f nibbles, Ctrl+Z undo, Ctrl+S save)
 .intel_syntax noprefix
 

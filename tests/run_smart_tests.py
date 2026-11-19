@@ -127,7 +127,7 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/ui/viewer_*", ("tests/test_viewer_pro.py", "tests/test_nav_viewer.py")),
     ("src/ui/view_as_dialog*", ("tests/test_viewer_pro.py",)),
     ("src/ui/syntax*", ("tests/test_c_syntax.py", "tests/test_viewer_pro.py")),
-    ("src/ui/hex_edit*", ("tests/test_viewer_pro.py",)),
+    ("src/ui/hex_edit*", ("tests/test_c_hex_edit.py", "tests/test_viewer_pro.py")),
     ("src/ui/elf_inspect*", ("tests/test_c_elf_inspect.py", "tests/test_viewer_pro.py", "tests/test_audit_regressions_parsers.py")),
     ("src/app/app_view*", ("tests/test_viewer_pro.py", "tests/test_nav_viewer.py")),
     ("src/ui/bulk_rename*", ("tests/test_c_bulk_rename.py", "tests/test_bulk_rename.py", "tests/test_medium_fixes.py", "tests/test_pty.py")),

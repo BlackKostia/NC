@@ -721,9 +721,9 @@
 - **`src/ui/header_bar_render.s`**
   - `HeaderBar_render` — void HeaderBar_render(HeaderBar *this, ScreenBuffer *scr, Theme *theme)
   - `HeaderBar_on_mouse` — int HeaderBar_on_mouse(HeaderBar *this, Event *evt)
-- **`src/ui/hex_edit.s`**
-  - `hex_edit_free` — void hex_edit_free(ViewerDialog *vd)
-  - `hex_edit_on_key` — int hex_edit_on_key(ViewerDialog *vd, Event *ev) -> 1 if handled, 0 else
+- **`src/ui/hex_edit.c`**
+  - `hex_edit_free` — `void hex_edit_free(ViewerDialog *vd)`
+  - `hex_edit_on_key` — `int hex_edit_on_key(ViewerDialog *vd, Event *ev)`
 - **`src/ui/img_braille.c`**
   - `img_draw_braille` — `void img_draw_braille(ScreenBuffer *scr, int bx, int by, int bw, int bh, const ImgView *v)`
 - **`src/ui/img_overlay.c`**
