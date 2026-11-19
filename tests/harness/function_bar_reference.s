@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/ui/function_bar.s (before C23 migration to src/ui/function_bar.c).
 # FunctionBar Widget (Inherits from Widget)
 # Bottom interactive F1..F10 action bar with hover highlights and mouse click dispatch.
 

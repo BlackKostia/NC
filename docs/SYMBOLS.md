@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 643
+- **Exported `.global` Symbols**: 642
 
 ## Structs (`include/*.inc`)
 
@@ -701,12 +701,11 @@
   - `FilePane_tab_new` — int FilePane_tab_new(FilePane *this) -- returns 1 if opened, 0 if at limit
   - `FilePane_tab_switch` — int FilePane_tab_switch(FilePane *this, int idx)
   - `FilePane_tab_close` — int FilePane_tab_close(FilePane *this, int idx_or_neg1)
-- **`src/ui/function_bar.s`**
-  - `FunctionBar_vtbl`
-  - `FunctionBar_new` — FunctionBar *FunctionBar_new(App *app)
-  - `FunctionBar_layout` — void FunctionBar_layout(FunctionBar *this, int x, int y, int w, int h)
-  - `FunctionBar_render` — void FunctionBar_render(FunctionBar *this, ScreenBuffer *scr, Theme *theme)
-  - `FunctionBar_on_mouse` — int FunctionBar_on_mouse(FunctionBar *this, Event *evt)
+- **`src/ui/function_bar.c`**
+  - `FunctionBar_new` — `FunctionBar *FunctionBar_new(App *app)`
+  - `FunctionBar_layout` — `void FunctionBar_layout(Widget *self, int x, int y, int w, int h)`
+  - `FunctionBar_render` — `void FunctionBar_render(Widget *self, void *screen, void *theme)`
+  - `FunctionBar_on_mouse` — `int FunctionBar_on_mouse(Widget *self, void *event)`
 - **`src/ui/fuzzy_dialog.c`**
   - `FuzzyDialog_new` — `FuzzyDialog *FuzzyDialog_new(App *app, int mode, const char *base_path)`
   - `FuzzyDialog_get_selected` — `uintptr_t FuzzyDialog_get_selected(FuzzyDialog *self)`
