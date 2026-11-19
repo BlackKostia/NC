@@ -99,7 +99,6 @@ SRCS := \
 	src/ui/popup_menu.s \
 	src/ui/pkg_dialog.s \
 	src/ui/term_pane.s \
-	src/ui/syntax.s \
 	src/ui/elf_inspect.s \
 	src/ui/hex_edit.s \
 	src/app/app.s \
@@ -226,6 +225,7 @@ C_SRCS := \
 	src/ui/preview_pane_mouse.c \
 	src/ui/header_bar_git.c \
 	src/ui/file_pane_layout.c \
+	src/ui/syntax.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -428,6 +428,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_status_bar.py
 	python3 tests/test_c_ui_leaf1.py
 	python3 tests/test_c_file_pane_layout.py
+	python3 tests/test_c_syntax.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

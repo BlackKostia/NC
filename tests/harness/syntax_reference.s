@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/ui/syntax.c replaced (tests/test_c_syntax.py diffs against it)
 # src/ui/syntax.s - Table-driven syntax highlighter for C, ASM, Python, Shell, JSON, Markdown, Makefile
 .intel_syntax noprefix
 

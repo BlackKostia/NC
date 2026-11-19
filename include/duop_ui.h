@@ -52,6 +52,12 @@ FilePaneCols file_pane_compute_cols(int32_t w);
 void FilePane_layout(Widget *self, int x, int y, int w, int h);
 void FilePane_ensure_visible(FilePane *self);
 
+typedef struct ScreenBuffer ScreenBuffer;
+typedef struct Theme Theme;
+int syntax_detect(const char *path);
+void syntax_draw_line(ScreenBuffer *scr, int x, int y, const char *line, int max_w,
+                      const char *path, const Theme *theme, uint32_t bg);
+
 typedef struct Dialog Dialog;
 
 /* DialogVtbl (classes.inc): WidgetVtbl + the two button actions. Dialog_* defaults live in src/ui/dialogs*.s until Dialog is ported. */

@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 714
+- **Exported `.global` Symbols**: 713
 
 ## Structs (`include/*.inc`)
 
@@ -843,9 +843,8 @@
   - `StatusBar_new` — `StatusBar *StatusBar_new(App *app)`
   - `StatusBar_set_message` — `void StatusBar_set_message(StatusBar *self, const char *msg, int kind, int ttl_ms)`
   - `StatusBar_render` — `void StatusBar_render(Widget *widget, void *screen, void *theme)`
-- **`src/ui/syntax.s`**
-  - `syntax_detect` — int syntax_detect(const char *path) -> 0=plain, 1=hash-comment(py/sh/mk/s), 2=c/json, 3=md
-  - `syntax_draw_line` — const char *path, Theme *theme, uint32_t bg)
+- **`src/ui/syntax.c`**
+  - `syntax_detect` — `int syntax_detect(const char *path)`
 - **`src/ui/term_keys.c`**
   - `term_key_encode` — `int term_key_encode(const void *evt, char *out)`
 - **`src/ui/term_pane.s`**
