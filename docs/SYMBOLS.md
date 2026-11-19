@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 708
+- **Exported `.global` Symbols**: 706
 
 ## Structs (`include/*.inc`)
 
@@ -691,9 +691,6 @@
   - `help_max_scroll` — int help_max_scroll(HelpDialog *this)
   - `HelpDialog_on_key`
   - `HelpDialog_on_mouse`
-- **`src/ui/dialogs_input.s`**
-  - `InputDialog_new` — ==============================================================================
-  - `InputDialog_vtbl`
 - **`src/ui/dialogs_input_keys.c`**
   - `InputDialog_on_key` — `int InputDialog_on_key(Widget *self, void *event)`
 - **`src/ui/du_progress_dlg.s`**

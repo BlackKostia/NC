@@ -1,3 +1,4 @@
+# Frozen reference oracle: original src/ui/dialogs_input.s before C23 migration (v2.6.48).
 # Modal Dialog Class Hierarchy (Dialog -> ConfirmDialog, InputDialog, HelpDialog; ViewerDialog: viewer_dialog.s) — dialogs input (split from dialogs.s)
 
 .intel_syntax noprefix

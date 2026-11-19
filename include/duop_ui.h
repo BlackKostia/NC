@@ -123,7 +123,9 @@ void Dialog_on_confirm(Dialog *self);
 void Dialog_on_cancel(Dialog *self);
 extern const DialogVtbl Dialog_vtbl;
 extern const DialogVtbl ConfirmDialog_vtbl;
+extern const DialogVtbl InputDialog_vtbl;
 typedef struct ConfirmDialog ConfirmDialog;
+typedef struct InputDialog InputDialog;
 void Dialog_init(Dialog *self, App *app, const char *title, uint32_t op_tag);
 void Dialog_draw_frame(Dialog *self, ScreenBuffer *scr, const Theme *theme, const char *b0_lbl, const char *b1_lbl);
 void dlg_layout_center_buttons(Dialog *self, const char *btn0, const char *btn1);
@@ -131,6 +133,7 @@ void dlg_layout_right_buttons(Dialog *self, const char *btn0, const char *btn1);
 ConfirmDialog *ConfirmDialog_new(App *app, const char *title, const char *message, const char *detail, uint32_t op_tag);
 void ConfirmDialog_layout(Widget *self, int x, int y, int w, int h);
 void ConfirmDialog_render(Widget *self, void *screen, void *theme);
+InputDialog *InputDialog_new(App *app, const char *title, const char *prompt, const char *initial_text, uint32_t op_tag);
 
 /* ---- allocation, destruction, run-time type checks ---- */
 #define DUOP_OBJ_VTBL(vtbl) ((const ObjectVtbl *)&(vtbl))
