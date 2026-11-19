@@ -855,11 +855,10 @@
   - `App_events_timeout` — int App_events_timeout(App *app) -> poll timeout in ms (-1 = sleep until an event)
   - `App_events_tick` — void App_events_tick(App *app) -- called once per loop iteration
   - `App_events_shutdown` — void App_events_shutdown(App *app)
-- **`src/app/app_ext.s`**
-  - `app_jump_virtual_entry` — void app_jump_virtual_entry(App *app, FilePane *pane, char *full_path)
-  - `App_close_dialog_ext` — int App_close_dialog_ext(App *app, Dialog *dlg, FilePane *pane, DirModel *model, int dlg_res)
-- **`src/app/app_ext_keys.s`**
-  - `app_handle_ext_key` — int app_handle_ext_key(App *app, int key, int mods) -> 1 if handled, 0 otherwise
+- **`src/app/app_ext.c`**
+  - `app_jump_virtual_entry` — `void app_jump_virtual_entry(App *app, FilePane *pane, const char *full_path)`
+  - `App_close_dialog_ext` — `intptr_t App_close_dialog_ext(App *app, Dialog *dlg, FilePane *pane, DirModel *model, int dlg_res)`
+  - `app_handle_ext_key` — `int app_handle_ext_key(App *app, int key, int mods)`
 - **`src/app/app_keys.s`**
   - `handle_key` — Internal: handle key event
 - **`src/app/app_layout.s`**

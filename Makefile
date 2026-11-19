@@ -50,9 +50,7 @@ SRCS := \
 	src/app/app_close_dialog.s \
 	src/app/app_keys.s \
 	src/app/app_loop.s \
-	src/app/app_events.s \
-	src/app/app_ext.s \
-	src/app/app_ext_keys.s
+	src/app/app_events.s
 
 # Freestanding C23 modules (docs/HYBRID_PORTABILITY_PLAN.md); migrated leaf-first from the .s list above
 C_SRCS := \
@@ -215,6 +213,7 @@ C_SRCS := \
 	src/app/app_open.c \
 	src/app/app_cmds.c \
 	src/app/app_attr.c \
+	src/app/app_ext.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -462,6 +461,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_app_menu_open.py
 	python3 tests/test_c_app_cmds.py
 	python3 tests/test_c_app_attr.py
+	python3 tests/test_c_app_ext.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

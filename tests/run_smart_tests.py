@@ -193,7 +193,7 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/app/app_keys*", ("tests/test_pty.py", "tests/test_kbd_layout.py")),
     ("src/app/app_open*", ("tests/test_c_app_menu_open.py", "tests/test_pty.py", "tests/test_archive_vfs.py")),
     ("src/app/app_toggles*", ("tests/test_c_app_leaf1.py", "tests/test_pty.py", "tests/test_ui_visual.py")),
-    ("src/app/app_ext*", ("tests/test_fuzzy_palette.py", "tests/test_diff_menu_clip.py")),
+    ("src/app/app_ext*", ("tests/test_c_app_ext.py", "tests/test_fuzzy_palette.py", "tests/test_diff_menu_clip.py")),
     ("src/app/app_layout*", ("tests/test_ui_visual.py", "tests/test_pty.py")),
     ("src/app/app_close_dialog*", ("tests/test_pty.py",)),
     (".agents/skills/duop-lean-modules/*", ("tests/test_lean_gate.py", "tests/test_lean_split.py")),

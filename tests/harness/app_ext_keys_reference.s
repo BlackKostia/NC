@@ -1,3 +1,4 @@
+# Frozen reference oracle: original src/app/app_ext_keys.s before migration to src/app/app_ext.c.
 # src/app/app_ext.s - Extended App dialog close & keybind routing — app ext keys (split from app_ext.s)
 
 .intel_syntax noprefix

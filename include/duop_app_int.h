@@ -68,3 +68,9 @@ void App_cmd_trash(App *app);
 void App_cmd_undo(App *app);
 void App_apply_chmod(App *app, ChmodDialog *dlg);
 void App_apply_link(App *app, InputDialog *dlg, int is_hard);
+
+/* app_ext.c */
+typedef struct Dialog Dialog;
+typedef struct DirModel DirModel;
+intptr_t App_close_dialog_ext(App *app, Dialog *dlg, FilePane *pane, DirModel *model, int dlg_res);
+int app_handle_ext_key(App *app, int key, int mods);
