@@ -166,6 +166,7 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/ui/view_as_dialog.c", ("tests/test_c_view_as_dialog.py", "tests/test_image_viewer.py", "tests/test_pty.py")),
     ("src/ui/bookmark_dlg.c", ("tests/test_c_bookmark_dlg.py", "tests/test_nav_tabs.py", "tests/test_pty.py")),
     ("src/ui/search_dialog.c", ("tests/test_c_search_dialog.py", "tests/test_search_virtual.py", "tests/test_pty.py")),
+    ("src/ui/fuzzy_dialog.c", ("tests/test_c_fuzzy_dialog.py", "tests/test_fuzzy_palette.py", "tests/test_pty.py")),
     ("src/ui/dialogs_input_keys*", ("tests/test_c_dialogs_input_keys.py", "tests/test_pty.py", "tests/test_fs_reliability.py")),
     ("src/ui/dialogs_help*", ("tests/test_help_instruction.py",)),
     ("src/ui/header_bar*", ("tests/test_ui_visual.py", "tests/test_pty.py")),

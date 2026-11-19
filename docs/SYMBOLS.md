@@ -719,9 +719,9 @@
   - `FunctionBar_layout` — void FunctionBar_layout(FunctionBar *this, int x, int y, int w, int h)
   - `FunctionBar_render` — void FunctionBar_render(FunctionBar *this, ScreenBuffer *scr, Theme *theme)
   - `FunctionBar_on_mouse` — int FunctionBar_on_mouse(FunctionBar *this, Event *evt)
-- **`src/ui/fuzzy_dialog.s`**
-  - `FuzzyDialog_new` — FuzzyDialog *FuzzyDialog_new(App *app, int mode, const char *base_path)
-  - `FuzzyDialog_get_selected`
+- **`src/ui/fuzzy_dialog.c`**
+  - `FuzzyDialog_new` — `FuzzyDialog *FuzzyDialog_new(App *app, int mode, const char *base_path)`
+  - `FuzzyDialog_get_selected` — `uintptr_t FuzzyDialog_get_selected(FuzzyDialog *self)`
 - **`src/ui/git_render.c`**
   - `hdr_draw_git_badge` — `void hdr_draw_git_badge(void *hdr, void *scr, const void *theme, int x, int y)`
 - **`src/ui/header_bar.s`**

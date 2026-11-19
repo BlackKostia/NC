@@ -130,6 +130,13 @@ enum {
     OP_INFO = 17, OP_SYMLINK = 18, OP_HARDLINK = 19, OP_PALETTE = 20, OP_FUZZY = 21, OP_VIEWAS = 22,
 };
 enum { PV_MODE_AUTO = 0, PV_MODE_IMAGE = 1, PV_MODE_HEX = 2, PV_MODE_TEXT = 3 };
+/* Configurable action IDs (config.inc: ACT_*) */
+enum {
+    ACT_QUIT = 1, ACT_HELP = 2, ACT_RENAME = 3, ACT_VIEW = 4, ACT_EDIT = 5, ACT_COPY = 6,
+    ACT_MOVE = 7, ACT_MKDIR = 8, ACT_DELETE = 9, ACT_PREVIEW = 10, ACT_HIDDEN = 11,
+    ACT_THEME = 12, ACT_LANG = 13, ACT_FILTER = 14, ACT_GOTO = 15, ACT_NEWFILE = 16,
+    ACT_SHELL = 17, ACT_REFRESH = 18, ACT_USERMENU = 19,
+};
 
 extern const DialogVtbl ConfirmDialog_vtbl;
 extern const DialogVtbl InputDialog_vtbl;
@@ -147,6 +154,7 @@ typedef struct InfoDialog InfoDialog;
 typedef struct ViewAsDialog ViewAsDialog;
 typedef struct BookmarkDialog BookmarkDialog;
 typedef struct SearchDialog SearchDialog;
+typedef struct FuzzyDialog FuzzyDialog;
 void Dialog_init(Dialog *self, App *app, const char *title, uint32_t op_tag);
 void Dialog_draw_frame(Dialog *self, ScreenBuffer *scr, const Theme *theme, const char *b0_lbl, const char *b1_lbl);
 void dlg_layout_center_buttons(Dialog *self, const char *btn0, const char *btn1);
@@ -165,6 +173,8 @@ SearchDialog *SearchDialog_new(App *app);
 int arc_nav_up(FilePane *fp);
 int fp_exit_virtual(FilePane *pane);
 void fp_draw_search_badge(FilePane *pane, ScreenBuffer *scr);
+FuzzyDialog *FuzzyDialog_new(App *app, int mode, const char *base_path);
+uintptr_t FuzzyDialog_get_selected(FuzzyDialog *self);
 
 /* ---- allocation, destruction, run-time type checks ---- */
 #define DUOP_OBJ_VTBL(vtbl) ((const ObjectVtbl *)&(vtbl))

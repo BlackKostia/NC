@@ -1,3 +1,4 @@
+# Frozen reference oracle: original src/ui/fuzzy_dialog.s before C23 migration (v2.6.55).
 # src/ui/fuzzy_dialog.s - Command Palette (Ctrl+K) & Fuzzy Finder (Ctrl+P)
 .intel_syntax noprefix
 
