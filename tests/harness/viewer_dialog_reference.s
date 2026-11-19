@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/ui/viewer_dialog.s (before C23 migration to src/ui/viewer_dialog{,_render}.c).
 # ViewerDialog (Inherits from Dialog): built-in Text / Hex file viewer for files of ANY size
 #
 # Regular files are mapped read-only (no copy into RAM, no size cap, O(1) open); other files

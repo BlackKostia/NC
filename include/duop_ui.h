@@ -162,6 +162,7 @@ extern const DialogVtbl ProgressDialog_vtbl;
 extern const DialogVtbl DuProgressDialog_vtbl;
 extern const DialogVtbl HelpDialog_vtbl;
 extern const DialogVtbl PkgDialog_vtbl;
+extern const DialogVtbl ViewerDialog_vtbl;
 typedef struct ConfirmDialog ConfirmDialog;
 typedef struct InputDialog InputDialog;
 typedef struct ConflictDialog ConflictDialog;
@@ -208,6 +209,8 @@ HelpDialog *HelpDialog_new(App *app);
 PkgDialog *PkgDialog_new(App *app);
 int App_cmd_packages(App *app);
 void App_pkg_install_confirm(App *app, InputDialog *dlg);
+ViewerDialog *ViewerDialog_new(App *app, const char *path);
+void ViewerDialog_render(Widget *self, void *screen, void *theme);
 
 /* ---- allocation, destruction, run-time type checks ---- */
 #define DUOP_OBJ_VTBL(vtbl) ((const ObjectVtbl *)&(vtbl))

@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/ui/viewer_dialog_end.s (before C23 migration to src/ui/viewer_dialog{,_render}.c).
 # ViewerDialog (Inherits from Dialog): built-in Text / Hex file viewer for files of ANY size — viewer dialog end (split from viewer_dialog.s)
 
 .intel_syntax noprefix

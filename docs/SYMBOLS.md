@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 657
+- **Exported `.global` Symbols**: 648
 
 ## Structs (`include/*.inc`)
 
@@ -800,22 +800,11 @@
   - `UserMenuDialog_new` — `UserMenuDialog *UserMenuDialog_new(App *app)`
 - **`src/ui/view_as_dialog.c`**
   - `ViewAsDialog_new` — `ViewAsDialog *ViewAsDialog_new(App *app, const char *path, int fmt)`
-- **`src/ui/viewer_dialog.s`**
-  - `ViewerDialog_new` — ViewerDialog *ViewerDialog_new(App *app, const char *path)
-  - `ViewerDialog_dtor` — void ViewerDialog_dtor(ViewerDialog *this)
-  - `ViewerDialog_layout` — void ViewerDialog_layout(ViewerDialog *this, int x, int y, int w, int h)
-  - `ViewerDialog_on_btn0` — Hex/Text toggle (button 0 / 'h'): hex keeps the byte position of the text view
-  - `vw_line_up` — Internal: int vw_line_up(ViewerDialog *this) -> 1 moved, 0 at first line
-  - `vw_scroll` — Internal: void vw_scroll(ViewerDialog *this, int64_t delta) -- lines (text) or rows (hex)
-  - `vw_home` — Internal: void vw_home(ViewerDialog *this)
-  - `ViewerDialog_vtbl`
-- **`src/ui/viewer_dialog_end.s`**
-  - `vw_end` — Internal: void vw_end(ViewerDialog *this) -- last page; counts lines once (SIMD)
-- **`src/ui/viewer_dialog_input.s`**
-  - `ViewerDialog_on_key` — int ViewerDialog_on_key(ViewerDialog *this, Event *evt)
-  - `ViewerDialog_on_mouse` — int ViewerDialog_on_mouse(ViewerDialog *this, Event *evt)
-- **`src/ui/viewer_dialog_render.s`**
-  - `ViewerDialog_render` — void ViewerDialog_render(ViewerDialog *this, ScreenBuffer *scr, Theme *theme)
+- **`src/ui/viewer_dialog.c`**
+  - `ViewerDialog_new` — `ViewerDialog *ViewerDialog_new(App *app, const char *path)`
+  - `ViewerDialog_on_btn0` — `void ViewerDialog_on_btn0(ViewerDialog *v)`
+- **`src/ui/viewer_dialog_render.c`**
+  - `ViewerDialog_render` — `void ViewerDialog_render(Widget *self, void *screen, void *theme)`
 - **`src/ui/viewer_image.c`**
   - `ViewerDialog_set_mode` — `void ViewerDialog_set_mode(ViewerDialog *v, int mode)`
   - `viewer_img_free` — `void viewer_img_free(ViewerDialog *v)`

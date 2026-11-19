@@ -56,10 +56,6 @@ SRCS := \
 	src/ui/preview_pane.s \
 	src/ui/preview_mode.s \
 	src/ui/preview_pane_render.s \
-	src/ui/viewer_dialog.s \
-	src/ui/viewer_dialog_end.s \
-	src/ui/viewer_dialog_render.s \
-	src/ui/viewer_dialog_input.s \
 	src/ui/popup_menu.s \
 	src/ui/term_pane.s \
 	src/app/app.s \
@@ -218,6 +214,8 @@ C_SRCS := \
 	src/ui/viewer_pixels.c \
 	src/ui/viewer_image.c \
 	src/ui/hex_edit.c \
+	src/ui/viewer_dialog.c \
+	src/ui/viewer_dialog_render.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -447,6 +445,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_viewer_pixels.py
 	python3 tests/test_c_viewer_image.py
 	python3 tests/test_c_hex_edit.py
+	python3 tests/test_c_viewer_dialog.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py
