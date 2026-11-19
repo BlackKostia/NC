@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/ui/preview_mode.s (before C23 migration to src/ui/preview_mode.c).
 # PreviewPane presentation modes: Image / Hex / Text for the file under the cursor (Alt+V),
 # thumbnail geometry for the async decoder and the mode bar drawn on the bottom border.
 

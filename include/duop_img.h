@@ -32,6 +32,8 @@ int img_decode(const uint8_t *d, size_t n, int fmt, Image *out);         /* 0, o
 typedef struct ImgFit { uint64_t w, h; } ImgFit;                         /* asm callers read eax = ow, edx = oh */
 ImgFit img_fit(int iw, int ih, int bw, int bh);                          /* aspect-preserving fit into the box, >= 1 x 1 */
 ImgFit img_box_pixels(int cols, int rows, int proto);                  /* output box pixels for cols x rows under IMG_PROTO_* */
+typedef struct PreviewPane PreviewPane;
+ImgFit pv_box_pixels(PreviewPane *self, int proto);                    /* preview image box pixels under IMG_PROTO_* */
 void img_scale(const Image *src, uint8_t *dst_rgba, int ow, int oh);
 void img_scale_rect(const Image *src, uint8_t *dst_rgba, int ow, int oh, const int *rect /* x, y, w, h */);
 int img_alloc(Image *img, int w, int h);   /* 0, IMG_E_CORRUPT (bad size), IMG_E_UNSUP (too many pixels) or IMG_E_NOMEM */

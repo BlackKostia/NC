@@ -750,12 +750,12 @@
   - `pane_mouse_ext` — int pane_mouse_ext(App *app, Event *evt) -> 1 if handled, 0 else
 - **`src/ui/popup_osc52.c`**
   - `osc52_copy_text` — `void osc52_copy_text(const char *str)`
-- **`src/ui/preview_mode.s`**
-  - `PreviewPane_thumb_req` — out = { w | h << 16 (pixels for the image box), IMG_PROTO_* | cols << 8, background 0xRRGGBB }
-  - `pv_box_pixels` — (int w, int h, int cols) pv_box_pixels(PreviewPane *this, int proto) -- the preview image box
-  - `img_box_pixels` — real cell size (Sixel guesses 6x12 when unknown; Kitty then asks the terminal to scale to cols).
-  - `PreviewPane_cycle_mode` — void PreviewPane_cycle_mode(PreviewPane *this) -- images: Image -> Hex -> Text; other files: Hex <-> Text
-  - `pv_mode_dispatch` — -> 0 when the content was drawn here (image / ELF summary), 1 = draw hex, 2 = draw text
+- **`src/ui/preview_mode.c`**
+  - `img_box_pixels` — `ImgFit img_box_pixels(int cols, int rows, int proto)`
+  - `pv_box_pixels` — `ImgFit pv_box_pixels(PreviewPane *self, int proto)`
+  - `PreviewPane_thumb_req` — `uint32_t PreviewPane_thumb_req(PreviewPane *self, PvThumbReq *out)`
+  - `PreviewPane_cycle_mode` — `void PreviewPane_cycle_mode(PreviewPane *self)`
+  - `pv_mode_dispatch` — `int pv_mode_dispatch(PreviewPane *self, ScreenBuffer *scr, const Theme *theme)`
 - **`src/ui/preview_pane.s`**
   - `PreviewPane_new` — PreviewPane *PreviewPane_new(App *app)
   - `PreviewPane_dtor` — void PreviewPane_dtor(PreviewPane *this)

@@ -89,6 +89,7 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/ui/img_quad*", ("tests/test_c_img_cells.py", "tests/test_img_preview.py", "tests/test_image_quality.py")),
     ("src/ui/img_braille*", ("tests/test_c_img_cells.py", "tests/test_img_preview.py", "tests/test_image_quality.py")),
     ("src/ui/img_*", ("tests/test_img_preview.py", "tests/test_image_quality.py")),
+    ("src/ui/preview_mode*", ("tests/test_c_preview_mode.py", "tests/test_img_preview.py", "tests/test_ui_visual.py")),
     ("src/ui/preview_pane_mouse*", ("tests/test_c_ui_leaf1.py", "tests/test_ui_visual.py")),
     ("src/ui/preview_*", ("tests/test_img_preview.py", "tests/test_ui_visual.py")),
     ("src/fs/disk_usage*", ("tests/test_disk_usage.py", "tests/test_du_progress.py", "tests/test_du_sizes.py", "tests/test_c_du_populate.py")),

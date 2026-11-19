@@ -90,6 +90,10 @@ void img_draw_rgba(ScreenBuffer *scr, int bx, int by, int bw, int bh, const ImgV
 void img_draw_quad(ScreenBuffer *scr, int bx, int by, int bw, int bh, const ImgView *v);
 void img_draw_braille(ScreenBuffer *scr, int bx, int by, int bw, int bh, const ImgView *v);
 int img_preview_try_render(PreviewPane *pv, ScreenBuffer *sb, const Theme *th);
+typedef struct PvThumbReq PvThumbReq;
+uint32_t PreviewPane_thumb_req(PreviewPane *self, PvThumbReq *out);
+void PreviewPane_cycle_mode(PreviewPane *self);
+int pv_mode_dispatch(PreviewPane *self, ScreenBuffer *scr, const Theme *theme);
 
 #define CH_BLOCK_FULL 0x2588u
 #define CH_SHADE_LIGHT 0x2591u
