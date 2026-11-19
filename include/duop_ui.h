@@ -72,6 +72,10 @@ void fp_draw_du_badge(FilePane *fp, ScreenBuffer *sb);
 void fp_draw_du_pane(FilePane *fp, ScreenBuffer *sb, const Theme *th);
 
 typedef struct App App;
+int term_height(int main_h);
+void term_toggle(App *app);
+void term_poll_read(App *app);
+void term_render(App *app, ScreenBuffer *scr, const Theme *theme);
 typedef struct ImgPlace ImgPlace;
 void img_overlay_show(const ImgPlace *p);
 void img_preview_pre_flush(App *app);

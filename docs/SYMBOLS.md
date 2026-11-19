@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 646
+- **Exported `.global` Symbols**: 643
 
 ## Structs (`include/*.inc`)
 
@@ -783,14 +783,11 @@
   - `syntax_detect` — `int syntax_detect(const char *path)`
 - **`src/ui/term_keys.c`**
   - `term_key_encode` — `int term_key_encode(const void *evt, char *out)`
-- **`src/ui/term_pane.s`**
-  - `term_height` — int term_height(int main_h) -> 0 if hidden, else max(6, main_h / 3)
-  - `term_toggle` — void term_toggle(App *app)
-  - `term_poll_read` — void term_poll_read(App *app)
-  - `term_render` — void term_render(App *app, ScreenBuffer *scr, Theme *theme)
-  - `g_term_visible`
-  - `g_term_inited`
-  - `g_term_fd`
+- **`src/ui/term_pane.c`**
+  - `term_height` — `int term_height(int main_h)`
+  - `term_toggle` — `void term_toggle(App *app)`
+  - `term_poll_read` — `void term_poll_read(App *app)`
+  - `term_render` — `void term_render(App *app, ScreenBuffer *scr, const Theme *theme)`
 - **`src/ui/term_pane_input.c`**
   - `term_on_key` — `int term_on_key(void *app, void *evt)`
   - `term_shutdown` — `void term_shutdown(void)`

@@ -136,6 +136,7 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/ui/bulk_rename*", ("tests/test_c_bulk_rename.py", "tests/test_bulk_rename.py", "tests/test_medium_fixes.py", "tests/test_pty.py")),
     ("src/ui/term_keys*", ("tests/test_c_ui_leaf1.py", "tests/test_term_pane.py")),
     ("src/ui/term_pane_input*", ("tests/test_c_ui_leaf1.py", "tests/test_term_pane.py")),
+    ("src/ui/term_pane*", ("tests/test_c_term_pane.py", "tests/test_term_pane.py", "tests/test_crash_regressions.py")),
     ("src/ui/term_*", ("tests/test_term_pane.py", "tests/test_crash_regressions.py")),
     ("src/ui/user_menu*", ("tests/test_config_usermenu.py",)),
     ("src/ui/bookmark*", ("tests/test_nav_tabs.py",)),

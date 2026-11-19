@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/ui/term_pane.s (before C23 migration to src/ui/term_pane.c).
 # Embedded Bottom PTY Terminal Pane (Ctrl+`)
 
 .intel_syntax noprefix
