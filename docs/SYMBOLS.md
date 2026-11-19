@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 692
+- **Exported `.global` Symbols**: 688
 
 ## Structs (`include/*.inc`)
 
@@ -641,14 +641,9 @@
 
 - **`src/ui/attr_dialogs.c`**
   - `ChmodDialog_new` — `ChmodDialog *ChmodDialog_new(App *app, const char *path)`
-- **`src/ui/bookmark_dlg.s`**
-  - `bmd_refresh_matches` — Internal: refresh match list when mode == 1 (Frecency)
-  - `BookmarkDialog_new` — BookmarkDialog *BookmarkDialog_new(App *app, int mode)
-  - `BookmarkDialog_get_selected` — const char *BookmarkDialog_get_selected(BookmarkDialog *this)
-  - `BookmarkDialog_vtbl`
-- **`src/ui/bookmark_dlg_input.s`**
-  - `BookmarkDialog_handle_key`
-  - `BookmarkDialog_handle_mouse`
+- **`src/ui/bookmark_dlg.c`**
+  - `BookmarkDialog_new` — `BookmarkDialog *BookmarkDialog_new(App *app, int mode)`
+  - `BookmarkDialog_get_selected` — `const char *BookmarkDialog_get_selected(BookmarkDialog *self)`
 - **`src/ui/bulk_rename.s`**
   - `BulkRenameDialog_new` — BulkRenameDialog *BulkRenameDialog_new(App *app, FilePane *pane)
   - `br_compute_name` — void br_compute_name(BulkRenameDialog *dlg, int idx, const char *old, char *out, int cap)

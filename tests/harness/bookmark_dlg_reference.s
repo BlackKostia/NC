@@ -1,3 +1,4 @@
+# Frozen reference oracle: original src/ui/bookmark_dlg.s before C23 migration (v2.6.53).
 # Duop Bookmarks (Hotlist) & Frecency (z) Dialog
 # Pure x86-64 GAS, zero .data, strict OOP vtable subclass of Dialog.
 

@@ -1,3 +1,4 @@
+# Frozen reference oracle: original src/ui/bookmark_dlg_input.s before C23 migration (v2.6.53).
 # Duop Bookmarks (Hotlist) & Frecency (z) Dialog — bookmark dlg input (split from bookmark_dlg.s)
 
 .intel_syntax noprefix

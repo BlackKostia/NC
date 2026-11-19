@@ -137,12 +137,14 @@ extern const DialogVtbl ConflictDialog_vtbl;
 extern const DialogVtbl ChmodDialog_vtbl;
 extern const DialogVtbl InfoDialog_vtbl;
 extern const DialogVtbl ViewAsDialog_vtbl;
+extern const DialogVtbl BookmarkDialog_vtbl;
 typedef struct ConfirmDialog ConfirmDialog;
 typedef struct InputDialog InputDialog;
 typedef struct ConflictDialog ConflictDialog;
 typedef struct ChmodDialog ChmodDialog;
 typedef struct InfoDialog InfoDialog;
 typedef struct ViewAsDialog ViewAsDialog;
+typedef struct BookmarkDialog BookmarkDialog;
 void Dialog_init(Dialog *self, App *app, const char *title, uint32_t op_tag);
 void Dialog_draw_frame(Dialog *self, ScreenBuffer *scr, const Theme *theme, const char *b0_lbl, const char *b1_lbl);
 void dlg_layout_center_buttons(Dialog *self, const char *btn0, const char *btn1);
@@ -155,6 +157,8 @@ ConflictDialog *ConflictDialog_new(App *app, const char *name, uint64_t src_sz, 
 ChmodDialog *ChmodDialog_new(App *app, const char *path);
 InfoDialog *InfoDialog_new(App *app, const char *path);
 ViewAsDialog *ViewAsDialog_new(App *app, const char *path, int fmt);
+BookmarkDialog *BookmarkDialog_new(App *app, int mode);
+const char *BookmarkDialog_get_selected(BookmarkDialog *self);
 
 /* ---- allocation, destruction, run-time type checks ---- */
 #define DUOP_OBJ_VTBL(vtbl) ((const ObjectVtbl *)&(vtbl))
