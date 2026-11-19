@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 713
+- **Exported `.global` Symbols**: 714
 
 ## Structs (`include/*.inc`)
 
@@ -720,8 +720,9 @@
 - **`src/ui/file_pane_keys.s`**
   - `FilePane_on_key` — int FilePane_on_key(FilePane *this, Event *evt)
   - `scrub_scrollbar` — Helper: scrub scroll from mouse y along scrollbar
-- **`src/ui/file_pane_layout.s`**
-  - `FilePane_layout` — void FilePane_layout(FilePane *this, int x, int y, int w, int h)
+- **`src/ui/file_pane_layout.c`**
+  - `file_pane_compute_cols` — `FilePaneCols file_pane_compute_cols(int32_t w)`
+  - `FilePane_layout` — `void FilePane_layout(Widget *self, int x, int y, int w, int h)`
 - **`src/ui/file_pane_mouse.s`**
   - `FilePane_on_mouse` — int FilePane_on_mouse(FilePane *this, Event *evt)
 - **`src/ui/file_pane_render.s`**

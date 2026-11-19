@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/ui/file_pane_layout.c replaced (tests/test_c_file_pane_layout.py diffs against it)
 # FilePane Widget (Inherits from Widget) — file pane layout (split from file_pane.s)
 
 .intel_syntax noprefix

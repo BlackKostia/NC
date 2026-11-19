@@ -41,6 +41,17 @@ void term_shutdown(void);
 int PreviewPane_on_mouse(Widget *self, void *evt);
 void hdr_draw_mode_and_git(void *hdr, void *scr, const void *theme, const void *ls);
 
+typedef struct FilePane FilePane;
+typedef struct FilePaneCols {
+    int32_t name_w;
+    int32_t size_w;
+    int32_t extra_w;
+    int32_t extra_is_date;
+} FilePaneCols;
+FilePaneCols file_pane_compute_cols(int32_t w);
+void FilePane_layout(Widget *self, int x, int y, int w, int h);
+void FilePane_ensure_visible(FilePane *self);
+
 typedef struct Dialog Dialog;
 
 /* DialogVtbl (classes.inc): WidgetVtbl + the two button actions. Dialog_* defaults live in src/ui/dialogs*.s until Dialog is ported. */
