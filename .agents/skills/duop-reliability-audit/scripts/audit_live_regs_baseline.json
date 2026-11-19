@@ -5,6 +5,7 @@
     "copy_reg_at -> fo_resolve_eexist_open rdx": "fo_resolve_eexist_open returns rax = fd and edx = 1 when the fd is an overwrite temp file (FoOpenResult in file_ops_copy.c)",
     "img_box_pixels -> term_cell_px rdx": "term_cell_px returns (eax = width, edx = height) in pixels",
     "img_draw_braille -> img_fit rdx": "img_fit returns (eax = ow, edx = oh); img_braille.c reads it as the ImgFit pair struct (duop_img.h)",
+    "img_preview_try_render -> pv_box_pixels rdx": "pv_box_pixels returns (eax = box_px_w, edx = box_px_h); img_preview_api.c reads it as the ImgFit pair struct",
     "input_poll_event -> utf8_decode rdx": "utf8_decode returns the byte count in rdx (documented in utf8.c: Utf8Dec struct return)",
     "pv_make_thumb -> img_fit rdx": "img_fit returns (eax = ow, edx = oh); preview_helper.c reads it as the ImgFit pair struct (duop_preview.h)"
   }

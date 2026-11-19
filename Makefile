@@ -85,7 +85,6 @@ SRCS := \
 	src/ui/attr_dialogs_input.s \
 	src/ui/info_dialog.s \
 	src/ui/fuzzy_dialog.s \
-	src/ui/img_preview_api.s \
 	src/ui/du_progress_dlg.s \
 	src/ui/bulk_rename.s \
 	src/ui/bulk_rename_ui.s \
@@ -226,6 +225,7 @@ C_SRCS := \
 	src/ui/img_preview.c \
 	src/ui/img_quad.c \
 	src/ui/img_braille.c \
+	src/ui/img_preview_api.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -434,6 +434,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_git_du_render.py
 	python3 tests/test_c_img_overlay.py
 	python3 tests/test_c_img_cells.py
+	python3 tests/test_c_img_preview_api.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

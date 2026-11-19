@@ -769,8 +769,8 @@
 - **`src/ui/img_preview.c`**
   - `img_blend` — `uint32_t img_blend(uint32_t rgba, uint32_t bg)`
   - `img_draw_rgba` — `void img_draw_rgba(ScreenBuffer *scr, int bx, int by, int bw, int bh, const ImgView *v)`
-- **`src/ui/img_preview_api.s`**
-  - `img_preview_try_render` — int img_preview_try_render(PreviewPane *pv, ScreenBuffer *sb, Theme *th)
+- **`src/ui/img_preview_api.c`**
+  - `img_preview_try_render` — `int img_preview_try_render(PreviewPane *pv, ScreenBuffer *sb, const Theme *th)`
 - **`src/ui/img_quad.c`**
   - `img_draw_quad` — `void img_draw_quad(ScreenBuffer *scr, int bx, int by, int bw, int bh, const ImgView *v)`
 - **`src/ui/info_dialog.s`**

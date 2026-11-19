@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/ui/img_preview_api.c replaced (tests/test_c_img_preview_api.py diffs against it)
 # Image preview placement: the payload produced by the preview helper is drawn as quadrant or
 # half blocks into cells, or handed to the overlay (Sixel / Kitty) centred in the image box.
 

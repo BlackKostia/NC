@@ -87,6 +87,7 @@ uint32_t img_blend(uint32_t rgba, uint32_t bg);
 void img_draw_rgba(ScreenBuffer *scr, int bx, int by, int bw, int bh, const ImgView *v);
 void img_draw_quad(ScreenBuffer *scr, int bx, int by, int bw, int bh, const ImgView *v);
 void img_draw_braille(ScreenBuffer *scr, int bx, int by, int bw, int bh, const ImgView *v);
+int img_preview_try_render(PreviewPane *pv, ScreenBuffer *sb, const Theme *th);
 
 typedef struct Dialog Dialog;
 
