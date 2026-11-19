@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 693
+- **Exported `.global` Symbols**: 692
 
 ## Structs (`include/*.inc`)
 
@@ -839,9 +839,8 @@
 - **`src/ui/user_menu_dlg.s`**
   - `UserMenuDialog_vtbl`
   - `UserMenuDialog_new` — UserMenuDialog *UserMenuDialog_new(App *app)
-- **`src/ui/view_as_dialog.s`**
-  - `ViewAsDialog_new` — ViewAsDialog *ViewAsDialog_new(App *app, const char *path, int fmt)
-  - `ViewAsDialog_vtbl`
+- **`src/ui/view_as_dialog.c`**
+  - `ViewAsDialog_new` — `ViewAsDialog *ViewAsDialog_new(App *app, const char *path, int fmt)`
 - **`src/ui/viewer_dialog.s`**
   - `ViewerDialog_new` — ViewerDialog *ViewerDialog_new(App *app, const char *path)
   - `ViewerDialog_dtor` — void ViewerDialog_dtor(ViewerDialog *this)

@@ -61,7 +61,6 @@ SRCS := \
 	src/ui/viewer_dialog.s \
 	src/ui/viewer_image.s \
 	src/ui/viewer_pixels.s \
-	src/ui/view_as_dialog.s \
 	src/ui/viewer_dialog_end.s \
 	src/ui/viewer_dialog_render.s \
 	src/ui/viewer_dialog_input.s \
@@ -224,6 +223,7 @@ C_SRCS := \
 	src/ui/conflict_dialog.c \
 	src/ui/attr_dialogs.c \
 	src/ui/info_dialog.c \
+	src/ui/view_as_dialog.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -440,6 +440,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_conflict_dialog.py
 	python3 tests/test_c_attr_dialogs.py
 	python3 tests/test_c_info_dialog.py
+	python3 tests/test_c_view_as_dialog.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

@@ -1,3 +1,4 @@
+# Frozen reference oracle: original src/ui/view_as_dialog.s before C23 migration (v2.6.52).
 # "Open as" dialog shown by F3 on an image: [ Image ] [ Hex ] [ Text ] (i / h / t, arrows +
 # Enter, mouse; Esc cancels). The choice is read by the app from ViewAsDialog.choice.
 
