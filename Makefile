@@ -64,8 +64,6 @@ SRCS := \
 	src/ui/viewer_dialog.s \
 	src/ui/viewer_image.s \
 	src/ui/viewer_pixels.s \
-	src/ui/viewer_zoom.s \
-	src/ui/viewer_zoom_rect.s \
 	src/ui/view_as_dialog.s \
 	src/ui/viewer_dialog_end.s \
 	src/ui/viewer_dialog_render.s \
@@ -226,6 +224,8 @@ C_SRCS := \
 	src/ui/img_braille.c \
 	src/ui/img_preview_api.c \
 	src/ui/viewer_scrollbar.c \
+	src/ui/viewer_zoom.c \
+	src/ui/viewer_zoom_rect.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -436,6 +436,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_img_cells.py
 	python3 tests/test_c_img_preview_api.py
 	python3 tests/test_c_viewer_scrollbar.py
+	python3 tests/test_c_viewer_zoom.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

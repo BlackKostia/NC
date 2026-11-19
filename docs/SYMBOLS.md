@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 712
+- **Exported `.global` Symbols**: 711
 
 ## Structs (`include/*.inc`)
 
@@ -891,14 +891,13 @@
   - `vw_draw_img_scrollbars` — `void vw_draw_img_scrollbars(ViewerDialog *v, ScreenBuffer *scr, const Theme *th)`
   - `vw_draw_text_scrollbar` — `void vw_draw_text_scrollbar(ViewerDialog *v, ScreenBuffer *scr, const Theme *th, int64_t end_off)`
   - `vw_img_scrollbar_mouse` — `int vw_img_scrollbar_mouse(ViewerDialog *v, Event *e)`
-- **`src/ui/viewer_zoom.s`**
-  - `vim_zoom_key` — int vim_zoom_key(ViewerDialog *v, Event *e) -> 1 if handled
-  - `vim_zoom_mouse` — int vim_zoom_mouse(ViewerDialog *v, Event *e) -> 1 if handled
-  - `vz_invalidate` — Internal: void vz_invalidate(ViewerDialog *v)
-- **`src/ui/viewer_zoom_rect.s`**
-  - `vim_zoom_rect` — int *out_tw, int *out_th, int *out_rect /*x,y,w,h*/)
-  - `vim_draw_zoom_badge` — void vim_draw_zoom_badge(ViewerDialog *v, ScreenBuffer *scr, Theme *th)
-  - `vim_kitty_pan` — int vim_kitty_pan(ViewerDialog *v, int proto, ImgPlace *p) -> 1 if handled
+- **`src/ui/viewer_zoom.c`**
+  - `vz_invalidate` — `void vz_invalidate(ViewerDialog *v)`
+  - `vim_zoom_key` — `int vim_zoom_key(ViewerDialog *v, Event *e)`
+  - `vim_zoom_mouse` — `int vim_zoom_mouse(ViewerDialog *v, Event *e)`
+- **`src/ui/viewer_zoom_rect.c`**
+  - `vim_draw_zoom_badge` — `void vim_draw_zoom_badge(ViewerDialog *v, ScreenBuffer *scr, const Theme *th)`
+  - `vim_kitty_pan` — `int vim_kitty_pan(ViewerDialog *v, int proto, ImgPlace *p)`
 
 ### App Controller & Entry (`src/app/`, `src/main.s`)
 

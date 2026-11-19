@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/ui/viewer_zoom.c replaced (tests/test_c_viewer_zoom.py diffs against it)
 # ViewerDialog image zoom & pan input: +/-/1/0/arrows/mouse wheel.
 
 .intel_syntax noprefix

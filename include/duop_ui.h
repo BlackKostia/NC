@@ -97,6 +97,13 @@ void vw_draw_img_scrollbars(ViewerDialog *v, ScreenBuffer *scr, const Theme *th)
 void vw_draw_text_scrollbar(ViewerDialog *v, ScreenBuffer *scr, const Theme *th, int64_t end_off);
 int vw_img_scrollbar_mouse(ViewerDialog *v, Event *e);
 void vz_invalidate(ViewerDialog *v);
+int vim_zoom_key(ViewerDialog *v, Event *e);
+int vim_zoom_mouse(ViewerDialog *v, Event *e);
+void vim_zoom_rect(ViewerDialog *v, int box_w, int box_h, int upscale,
+                   int *out_tw, int *out_th, int *out_rect);
+void vim_draw_zoom_badge(ViewerDialog *v, ScreenBuffer *scr, const Theme *th);
+int vim_kitty_pan(ViewerDialog *v, int proto, ImgPlace *p);
+void vim_place(ViewerDialog *v, ImgPlace *p);
 
 typedef struct Dialog Dialog;
 

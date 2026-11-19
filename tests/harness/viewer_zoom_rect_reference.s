@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/ui/viewer_zoom_rect.c replaced (tests/test_c_viewer_zoom.py diffs against it)
 # ViewerDialog image zoom crop geometry and zoom badge rendering.
 
 .intel_syntax noprefix
