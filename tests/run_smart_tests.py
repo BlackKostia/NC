@@ -157,6 +157,8 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("lang/*", ("tests/test_lang_packs.py", "tests/test_i18n_hook.py")),
     ("src/tui/kbd_*", ("tests/test_kbd_layout.py",)),
     ("layouts/*", ("tests/test_kbd_layout.py",)),
+    ("src/ui/dialog.c", ("tests/test_c_dialog_base.py", "tests/test_pty.py", "tests/test_ui_visual.py", "tests/test_fs_reliability.py")),
+    ("src/ui/dialog_confirm.c", ("tests/test_c_dialog_base.py", "tests/test_pty.py", "tests/test_fs_reliability.py")),
     ("src/ui/dialogs_input_keys*", ("tests/test_c_dialogs_input_keys.py", "tests/test_pty.py", "tests/test_fs_reliability.py")),
     ("src/ui/dialogs_help*", ("tests/test_help_instruction.py",)),
     ("src/ui/header_bar*", ("tests/test_ui_visual.py", "tests/test_pty.py")),

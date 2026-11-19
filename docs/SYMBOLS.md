@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 711
+- **Exported `.global` Symbols**: 708
 
 ## Structs (`include/*.inc`)
 
@@ -670,22 +670,19 @@
 - **`src/ui/conflict_dialog_input.s`**
   - `ConflictDialog_on_key`
   - `ConflictDialog_on_mouse`
-- **`src/ui/dialogs.s`**
-  - `Dialog_init` — --- Base Dialog Methods ---
-  - `Dialog_dtor`
-  - `Dialog_layout`
-  - `Dialog_on_confirm`
-  - `Dialog_on_cancel`
-  - `Dialog_draw_frame` — void Dialog_draw_frame(Dialog *this, ScreenBuffer *scr, Theme *theme, const char *b0_lbl, const char *b1_lbl)
-  - `Dialog_render`
-  - `Dialog_on_key`
-  - `Dialog_on_mouse`
-- **`src/ui/dialogs_confirm.s`**
-  - `ConfirmDialog_new` — ==============================================================================
-  - `dlg_layout_center_buttons` — rdi = Dialog*, rsi = btn0_str, rdx = btn1_str
-  - `dlg_layout_right_buttons` — rdi = Dialog*, rsi = btn0_str, rdx = btn1_str (or 0 for single button)
-  - `Dialog_vtbl`
-  - `ConfirmDialog_vtbl`
+- **`src/ui/dialog.c`**
+  - `Dialog_init` — `void Dialog_init(Dialog *self, App *app, const char *title, uint32_t op_tag)`
+  - `Dialog_layout` — `void Dialog_layout(Widget *self, int x, int y, int w, int h)`
+  - `Dialog_render` — `void Dialog_render(Widget *self, void *screen, void *theme)`
+  - `Dialog_on_confirm` — `void Dialog_on_confirm(Dialog *self)`
+  - `Dialog_on_cancel` — `void Dialog_on_cancel(Dialog *self)`
+  - `Dialog_on_key` — `int Dialog_on_key(Widget *self, void *event)`
+  - `Dialog_on_mouse` — `int Dialog_on_mouse(Widget *self, void *event)`
+  - `dlg_layout_center_buttons` — `void dlg_layout_center_buttons(Dialog *self, const char *btn0, const char *btn1)`
+  - `dlg_layout_right_buttons` — `void dlg_layout_right_buttons(Dialog *self, const char *btn0, const char *btn1)`
+- **`src/ui/dialog_confirm.c`**
+  - `ConfirmDialog_layout` — `void ConfirmDialog_layout(Widget *self, int x, int y, int w, int h)`
+  - `ConfirmDialog_render` — `void ConfirmDialog_render(Widget *self, void *screen, void *theme)`
 - **`src/ui/dialogs_help.s`**
   - `HelpDialog_new` — ==============================================================================
   - `HelpDialog_vtbl`

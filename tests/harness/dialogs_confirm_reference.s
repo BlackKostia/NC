@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/ui/dialog_confirm.c replaced (tests/test_c_dialog_base.py diffs against it)
 # Modal Dialog Class Hierarchy (Dialog -> ConfirmDialog, InputDialog, HelpDialog; ViewerDialog: viewer_dialog.s) — dialogs confirm (split from dialogs.s)
 
 .intel_syntax noprefix

@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/ui/dialog.c replaced (tests/test_c_dialog_base.py diffs against it)
 # Modal Dialog Class Hierarchy (Dialog -> ConfirmDialog, InputDialog, HelpDialog; ViewerDialog: viewer_dialog.s)
 # Demonstrates OOP inheritance, virtual rendering, keyboard & mouse hit-testing, and UTF-8 input.
 

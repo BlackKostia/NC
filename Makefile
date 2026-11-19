@@ -56,8 +56,6 @@ SRCS := \
 	src/ui/preview_pane.s \
 	src/ui/preview_mode.s \
 	src/ui/preview_pane_render.s \
-	src/ui/dialogs.s \
-	src/ui/dialogs_confirm.s \
 	src/ui/dialogs_input.s \
 	src/ui/dialogs_help.s \
 	src/ui/dialogs_help_input.s \
@@ -226,6 +224,8 @@ C_SRCS := \
 	src/ui/viewer_scrollbar.c \
 	src/ui/viewer_zoom.c \
 	src/ui/viewer_zoom_rect.c \
+	src/ui/dialog.c \
+	src/ui/dialog_confirm.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -437,6 +437,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_img_preview_api.py
 	python3 tests/test_c_viewer_scrollbar.py
 	python3 tests/test_c_viewer_zoom.py
+	python3 tests/test_c_dialog_base.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py
