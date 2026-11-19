@@ -56,8 +56,6 @@ SRCS := \
 	src/ui/preview_pane.s \
 	src/ui/preview_mode.s \
 	src/ui/preview_pane_render.s \
-	src/ui/dialogs_help.s \
-	src/ui/dialogs_help_input.s \
 	src/ui/viewer_dialog.s \
 	src/ui/viewer_image.s \
 	src/ui/viewer_pixels.s \
@@ -219,6 +217,7 @@ C_SRCS := \
 	src/ui/bulk_rename.c \
 	src/ui/progress_dialog.c \
 	src/ui/du_progress_dlg.c \
+	src/ui/dialog_help.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -443,6 +442,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_bulk_rename.py
 	python3 tests/test_c_progress_dialog.py
 	python3 tests/test_c_du_progress_dlg.py
+	python3 tests/test_c_dialog_help.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

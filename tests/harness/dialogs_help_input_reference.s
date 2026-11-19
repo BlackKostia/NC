@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/ui/dialogs_help_input.s (before C23 migration to src/ui/dialog_help.c).
 # HelpDialog input & scrolling (split from dialogs_help.s)
 
 .intel_syntax noprefix

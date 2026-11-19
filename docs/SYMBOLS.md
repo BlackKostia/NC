@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 663
+- **Exported `.global` Symbols**: 658
 
 ## Structs (`include/*.inc`)
 
@@ -661,14 +661,8 @@
 - **`src/ui/dialog_confirm.c`**
   - `ConfirmDialog_layout` — `void ConfirmDialog_layout(Widget *self, int x, int y, int w, int h)`
   - `ConfirmDialog_render` — `void ConfirmDialog_render(Widget *self, void *screen, void *theme)`
-- **`src/ui/dialogs_help.s`**
-  - `HelpDialog_new` — ==============================================================================
-  - `HelpDialog_vtbl`
-- **`src/ui/dialogs_help_input.s`**
-  - `help_active_count` — int help_active_count(HelpDialog *this)
-  - `help_max_scroll` — int help_max_scroll(HelpDialog *this)
-  - `HelpDialog_on_key`
-  - `HelpDialog_on_mouse`
+- **`src/ui/dialog_help.c`**
+  - `HelpDialog_new` — `HelpDialog *HelpDialog_new(App *app)`
 - **`src/ui/dialogs_input_keys.c`**
   - `InputDialog_on_key` — `int InputDialog_on_key(Widget *self, void *event)`
 - **`src/ui/du_progress_dlg.c`**

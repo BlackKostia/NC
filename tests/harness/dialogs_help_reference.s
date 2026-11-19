@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/ui/dialogs_help.s (before C23 migration to src/ui/dialog_help.c).
 # Modal Dialog Class Hierarchy (Dialog -> ConfirmDialog, InputDialog, HelpDialog; ViewerDialog: viewer_dialog.s) — help (split from dialogs.s)
 
 .intel_syntax noprefix

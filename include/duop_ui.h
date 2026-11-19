@@ -152,6 +152,7 @@ extern const DialogVtbl UserMenuDialog_vtbl;
 extern const DialogVtbl BulkRenameDialog_vtbl;
 extern const DialogVtbl ProgressDialog_vtbl;
 extern const DialogVtbl DuProgressDialog_vtbl;
+extern const DialogVtbl HelpDialog_vtbl;
 typedef struct ConfirmDialog ConfirmDialog;
 typedef struct InputDialog InputDialog;
 typedef struct ConflictDialog ConflictDialog;
@@ -164,6 +165,7 @@ typedef struct FuzzyDialog FuzzyDialog;
 typedef struct UserMenuDialog UserMenuDialog;
 typedef struct BulkRenameDialog BulkRenameDialog;
 typedef struct ProgressDialog ProgressDialog;
+typedef struct HelpDialog HelpDialog;
 void Dialog_init(Dialog *self, App *app, const char *title, uint32_t op_tag);
 void Dialog_draw_frame(Dialog *self, ScreenBuffer *scr, const Theme *theme, const char *b0_lbl, const char *b1_lbl);
 void dlg_layout_center_buttons(Dialog *self, const char *btn0, const char *btn1);
@@ -192,6 +194,7 @@ const char *ProgressDialog_title_for(int op);
 void ProgressDialog_format_summary(const void *snap, char *buf);
 Dialog *DuProgressDialog_new(App *app);
 void DuProgressDialog_layout(Widget *self, int x, int y, int w, int h);
+HelpDialog *HelpDialog_new(App *app);
 
 /* ---- allocation, destruction, run-time type checks ---- */
 #define DUOP_OBJ_VTBL(vtbl) ((const ObjectVtbl *)&(vtbl))
