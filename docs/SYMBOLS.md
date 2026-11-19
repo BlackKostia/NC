@@ -758,21 +758,21 @@
 - **`src/ui/hex_edit.s`**
   - `hex_edit_free` — void hex_edit_free(ViewerDialog *vd)
   - `hex_edit_on_key` — int hex_edit_on_key(ViewerDialog *vd, Event *ev) -> 1 if handled, 0 else
-- **`src/ui/img_braille.s`**
-  - `img_draw_braille` — void img_draw_braille(ScreenBuffer *scr, int bx, int by, int bw, int bh, const ImgView *v)
+- **`src/ui/img_braille.c`**
+  - `img_draw_braille` — `void img_draw_braille(ScreenBuffer *scr, int bx, int by, int bw, int bh, const ImgView *v)`
 - **`src/ui/img_overlay.c`**
   - `img_overlay_kitty_ready` — `int img_overlay_kitty_ready(const void *pixels)`
   - `img_overlay_kitty_mark` — `void img_overlay_kitty_mark(const void *pixels)`
   - `img_overlay_show` — `void img_overlay_show(const ImgPlace *p)`
   - `img_preview_pre_flush` — `void img_preview_pre_flush(App *app)`
   - `img_preview_post_flush` — `void img_preview_post_flush(App *app)`
-- **`src/ui/img_preview.s`**
-  - `img_draw_rgba` — Fits the picture into bw x (2*bh) half-block pixels (nearest sampling), centred in the box.
-  - `img_blend` — uint32_t img_blend(uint32_t rgba /*eax*/, uint32_t bg /*edx, 0x01RRGGBB*/) -> 0x01RRGGBB
+- **`src/ui/img_preview.c`**
+  - `img_blend` — `uint32_t img_blend(uint32_t rgba, uint32_t bg)`
+  - `img_draw_rgba` — `void img_draw_rgba(ScreenBuffer *scr, int bx, int by, int bw, int bh, const ImgView *v)`
 - **`src/ui/img_preview_api.s`**
   - `img_preview_try_render` — int img_preview_try_render(PreviewPane *pv, ScreenBuffer *sb, Theme *th)
-- **`src/ui/img_quad.s`**
-  - `img_draw_quad` — ImgView = { const uint8_t *rgba; int iw; int ih; uint32_t bg (0x01RRGGBB) }
+- **`src/ui/img_quad.c`**
+  - `img_draw_quad` — `void img_draw_quad(ScreenBuffer *scr, int bx, int by, int bw, int bh, const ImgView *v)`
 - **`src/ui/info_dialog.s`**
   - `InfoDialog_vtbl`
   - `InfoDialog_new` — InfoDialog *InfoDialog_new(App *app, const char *path)

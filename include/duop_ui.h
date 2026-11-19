@@ -77,6 +77,17 @@ void img_preview_post_flush(App *app);
 int img_overlay_kitty_ready(const void *pixels);
 void img_overlay_kitty_mark(const void *pixels);
 
+typedef struct ImgView {
+    const uint8_t *rgba;
+    int32_t iw;
+    int32_t ih;
+    uint32_t bg;
+} ImgView;
+uint32_t img_blend(uint32_t rgba, uint32_t bg);
+void img_draw_rgba(ScreenBuffer *scr, int bx, int by, int bw, int bh, const ImgView *v);
+void img_draw_quad(ScreenBuffer *scr, int bx, int by, int bw, int bh, const ImgView *v);
+void img_draw_braille(ScreenBuffer *scr, int bx, int by, int bw, int bh, const ImgView *v);
+
 typedef struct Dialog Dialog;
 
 /* DialogVtbl (classes.inc): WidgetVtbl + the two button actions. Dialog_* defaults live in src/ui/dialogs*.s until Dialog is ported. */

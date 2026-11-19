@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/ui/img_quad.c replaced (tests/test_c_img_cells.py diffs against it)
 # Quadrant-block image output: every cell shows 2x2 picture pixels with the best two-color split
 # (one of the 7 quadrant patterns or a uniform cell), doubling the horizontal detail of half
 # blocks without any terminal graphics support. Pixels are alpha blended over the background.

@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/ui/img_braille.c replaced (tests/test_c_img_cells.py diffs against it)
 # 2x4 Braille high-detail image output (U+2800..U+28FF): 8 subpixels per cell with adaptive
 # local luminance thresholding and two TrueColor colors (ink fg + background bg) per cell.
 

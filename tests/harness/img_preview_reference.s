@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/ui/img_preview.c replaced (tests/test_c_img_cells.py diffs against it)
 # Terminal image output: Kitty-mode detection, base64 for the Kitty protocol and the TrueColor
 # half-block (▀) renderer for any decoded RGBA picture (alpha blended over the theme surface).
 
