@@ -1,3 +1,4 @@
+# Frozen reference oracle: original src/ui/info_dialog.s before C23 migration (v2.6.51).
 # src/ui/info_dialog.s - Detailed File Info dialog (inode, nlink, mode, CRC32, SHA-256)
 .intel_syntax noprefix
 

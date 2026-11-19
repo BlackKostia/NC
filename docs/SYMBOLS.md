@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 697
+- **Exported `.global` Symbols**: 693
 
 ## Structs (`include/*.inc`)
 
@@ -756,12 +756,8 @@
   - `img_preview_try_render` — `int img_preview_try_render(PreviewPane *pv, ScreenBuffer *sb, const Theme *th)`
 - **`src/ui/img_quad.c`**
   - `img_draw_quad` — `void img_draw_quad(ScreenBuffer *scr, int bx, int by, int bw, int bh, const ImgView *v)`
-- **`src/ui/info_dialog.s`**
-  - `InfoDialog_vtbl`
-  - `InfoDialog_new` — InfoDialog *InfoDialog_new(App *app, const char *path)
-  - `InfoDialog_layout` — void InfoDialog_layout(InfoDialog *this, int x, int y, int cols, int rows)
-  - `InfoDialog_render` — void InfoDialog_render(InfoDialog *this, ScreenBuffer *scr, Theme *theme)
-  - `InfoDialog_on_key` — void InfoDialog_on_key(InfoDialog *this, Event *ev)
+- **`src/ui/info_dialog.c`**
+  - `InfoDialog_new` — `InfoDialog *InfoDialog_new(App *app, const char *path)`
 - **`src/ui/pkg_dialog.s`**
   - `PkgDialog_new`
   - `PkgDialog_vtbl`
