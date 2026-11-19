@@ -821,9 +821,9 @@
   - `ViewerDialog_render_image` — void ViewerDialog_render_image(ViewerDialog *v, ScreenBuffer *scr)
   - `viewer_mode_key` — int viewer_mode_key(ViewerDialog *v, Event *e) -> 1 when the key switched the view mode
   - `viewer_img_free` — void viewer_img_free(ViewerDialog *v)
-- **`src/ui/viewer_pixels.s`**
-  - `vim_draw_picture` — void vim_draw_picture(ViewerDialog *v, ScreenBuffer *scr, Theme *theme)
-  - `vim_place` — Internal: void vim_place(ViewerDialog *v, ImgPlace *p /*box px at [48]/[52]*/) -- centred cells
+- **`src/ui/viewer_pixels.c`**
+  - `vim_place` — `void vim_place(ViewerDialog *v, ImgPlace *p)`
+  - `vim_draw_picture` — `void vim_draw_picture(ViewerDialog *v, ScreenBuffer *scr, const Theme *theme)`
 - **`src/ui/viewer_scrollbar.c`**
   - `vw_draw_img_scrollbars` — `void vw_draw_img_scrollbars(ViewerDialog *v, ScreenBuffer *scr, const Theme *th)`
   - `vw_draw_text_scrollbar` — `void vw_draw_text_scrollbar(ViewerDialog *v, ScreenBuffer *scr, const Theme *th, int64_t end_off)`

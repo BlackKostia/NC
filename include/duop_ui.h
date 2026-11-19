@@ -106,6 +106,7 @@ void vim_zoom_rect(ViewerDialog *v, int box_w, int box_h, int upscale,
 void vim_draw_zoom_badge(ViewerDialog *v, ScreenBuffer *scr, const Theme *th);
 int vim_kitty_pan(ViewerDialog *v, int proto, ImgPlace *p);
 void vim_place(ViewerDialog *v, ImgPlace *p);
+void vim_draw_picture(ViewerDialog *v, ScreenBuffer *scr, const Theme *theme);
 
 typedef struct Dialog Dialog;
 

@@ -121,6 +121,7 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/ui/attr_dialogs*", ("tests/test_trash_undo_attr.py",)),
     ("src/ui/info_dialog*", ("tests/test_trash_undo_attr.py",)),
     ("src/ui/viewer_scrollbar*", ("tests/test_c_viewer_scrollbar.py", "tests/test_viewer_pro.py", "tests/test_nav_viewer.py")),
+    ("src/ui/viewer_pixels*", ("tests/test_c_viewer_pixels.py", "tests/test_viewer_pro.py", "tests/test_nav_viewer.py", "tests/test_img_preview.py")),
     ("src/ui/viewer_zoom*", ("tests/test_c_viewer_zoom.py", "tests/test_viewer_pro.py", "tests/test_nav_viewer.py")),
     ("src/ui/viewer_*", ("tests/test_viewer_pro.py", "tests/test_nav_viewer.py")),
     ("src/ui/view_as_dialog*", ("tests/test_viewer_pro.py",)),

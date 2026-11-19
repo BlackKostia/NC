@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/ui/viewer_pixels.s (before C23 migration to src/ui/viewer_pixels.c).
 # ViewerDialog picture output in the best available form: the decoded image is scaled to the
 # window (cached per size) and drawn as quadrant / half blocks, or encoded once into a Sixel /
 # Kitty stream (cached per protocol and size) that the overlay places over the window.
