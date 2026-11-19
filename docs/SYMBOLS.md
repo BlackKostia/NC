@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 706
+- **Exported `.global` Symbols**: 703
 
 ## Structs (`include/*.inc`)
 
@@ -664,12 +664,8 @@
 - **`src/ui/bulk_rename_ui.s`**
   - `BulkRenameDialog_render` — void BulkRenameDialog_render(dlg, scr, theme)
   - `BulkRenameDialog_on_key` — int BulkRenameDialog_on_key(dlg, Event *ev)
-- **`src/ui/conflict_dialog.s`**
-  - `ConflictDialog_new` — ConflictDialog *ConflictDialog_new(App *app, const char *name, uint64_t src_sz, uint64_t dst_sz)
-  - `ConflictDialog_vtbl`
-- **`src/ui/conflict_dialog_input.s`**
-  - `ConflictDialog_on_key`
-  - `ConflictDialog_on_mouse`
+- **`src/ui/conflict_dialog.c`**
+  - `ConflictDialog_new` — `ConflictDialog *ConflictDialog_new(App *app, const char *name, uint64_t src_sz, uint64_t dst_sz)`
 - **`src/ui/dialog.c`**
   - `Dialog_init` — `void Dialog_init(Dialog *self, App *app, const char *title, uint32_t op_tag)`
   - `Dialog_layout` — `void Dialog_layout(Widget *self, int x, int y, int w, int h)`

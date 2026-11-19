@@ -1,3 +1,4 @@
+# Frozen reference oracle: original src/ui/conflict_dialog_input.s before C23 migration (v2.6.49).
 # Duop File Conflict Dialog ([ Overwrite ] / [ Skip ] / [ Rename ] / [ For all ]) — conflict dialog input (split from conflict_dialog.s)
 
 .intel_syntax noprefix

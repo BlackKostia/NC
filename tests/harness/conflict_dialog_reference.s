@@ -1,3 +1,4 @@
+# Frozen reference oracle: original src/ui/conflict_dialog.s before C23 migration (v2.6.49).
 # Duop File Conflict Dialog ([ Overwrite ] / [ Skip ] / [ Rename ] / [ For all ])
 # Pure x86-64 GAS, zero .data, strict OOP vtable subclass of Dialog.
 

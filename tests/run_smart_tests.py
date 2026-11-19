@@ -160,6 +160,7 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/ui/dialog.c", ("tests/test_c_dialog_base.py", "tests/test_pty.py", "tests/test_ui_visual.py", "tests/test_fs_reliability.py")),
     ("src/ui/dialog_confirm.c", ("tests/test_c_dialog_base.py", "tests/test_pty.py", "tests/test_fs_reliability.py")),
     ("src/ui/dialog_input.c", ("tests/test_c_dialog_input.py", "tests/test_c_dialogs_input_keys.py", "tests/test_pty.py", "tests/test_fs_reliability.py")),
+    ("src/ui/conflict_dialog.c", ("tests/test_c_conflict_dialog.py", "tests/test_bg_tasks.py", "tests/test_pty.py")),
     ("src/ui/dialogs_input_keys*", ("tests/test_c_dialogs_input_keys.py", "tests/test_pty.py", "tests/test_fs_reliability.py")),
     ("src/ui/dialogs_help*", ("tests/test_help_instruction.py",)),
     ("src/ui/header_bar*", ("tests/test_ui_visual.py", "tests/test_pty.py")),
