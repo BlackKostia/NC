@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 713
+- **Exported `.global` Symbols**: 712
 
 ## Structs (`include/*.inc`)
 
@@ -702,9 +702,9 @@
 - **`src/ui/du_progress_dlg.s`**
   - `DuProgressDialog_new` — Dialog *DuProgressDialog_new(App *app)
   - `DuProgressDialog_layout` — void DuProgressDialog_layout(Dialog *this, int x, int y, int w, int h) -- centred, DPD_H rows
-- **`src/ui/du_render.s`**
-  - `fp_draw_du_badge` — void fp_draw_du_badge(FilePane *fp, ScreenBuffer *sb)
-  - `fp_draw_du_pane` — void fp_draw_du_pane(FilePane *fp, ScreenBuffer *sb, Theme *th)
+- **`src/ui/du_render.c`**
+  - `fp_draw_du_badge` — `void fp_draw_du_badge(FilePane *fp, ScreenBuffer *sb)`
+  - `fp_draw_du_pane` — `void fp_draw_du_pane(FilePane *fp, ScreenBuffer *sb, const Theme *th)`
 - **`src/ui/elf_inspect.c`**
   - `elf_preview_try_render` — `int elf_preview_try_render(PreviewPane *pv, ScreenBuffer *scr, const Theme *theme)`
 - **`src/ui/file_pane.s`**
@@ -744,9 +744,8 @@
 - **`src/ui/fuzzy_dialog.s`**
   - `FuzzyDialog_new` — FuzzyDialog *FuzzyDialog_new(App *app, int mode, const char *base_path)
   - `FuzzyDialog_get_selected`
-- **`src/ui/git_render.s`**
-  - `fp_draw_glyph_and_git` — Draws file glyph at x3, then if git status exists, draws M/A/?/D at x3 - 1
-  - `hdr_draw_git_badge` — void hdr_draw_git_badge(HeaderBar *hdr, ScreenBuffer *scr, Theme *theme, int x, int y)
+- **`src/ui/git_render.c`**
+  - `hdr_draw_git_badge` — `void hdr_draw_git_badge(void *hdr, void *scr, const void *theme, int x, int y)`
 - **`src/ui/header_bar.s`**
   - `HeaderBar_new` — HeaderBar *HeaderBar_new(App *app)
   - `HeaderBar_layout` — void HeaderBar_layout(HeaderBar *this, int x, int y, int w, int h)

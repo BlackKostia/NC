@@ -90,9 +90,7 @@ SRCS := \
 	src/ui/fuzzy_dialog.s \
 	src/ui/img_preview.s \
 	src/ui/img_preview_api.s \
-	src/ui/du_render.s \
 	src/ui/du_progress_dlg.s \
-	src/ui/git_render.s \
 	src/ui/bulk_rename.s \
 	src/ui/bulk_rename_ui.s \
 	src/ui/popup_menu.s \
@@ -226,6 +224,8 @@ C_SRCS := \
 	src/ui/syntax.c \
 	src/ui/elf_inspect.c \
 	src/ui/dialogs_input_keys.c \
+	src/ui/git_render.c \
+	src/ui/du_render.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -431,6 +431,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_syntax.py
 	python3 tests/test_c_elf_inspect.py
 	python3 tests/test_c_dialogs_input_keys.py
+	python3 tests/test_c_git_du_render.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

@@ -62,6 +62,13 @@ void syntax_draw_line(ScreenBuffer *scr, int x, int y, const char *line, int max
 int elf_preview_try_render(PreviewPane *pv, ScreenBuffer *scr, const Theme *theme);
 int InputDialog_on_key(Widget *self, void *event);
 
+typedef struct FileEntry FileEntry;
+void fp_draw_glyph_and_git(ScreenBuffer *scr, int x3, int y, uint32_t glyph,
+                           FilePane *fp, FileEntry *ent, const Theme *theme, uint32_t row_bg);
+void hdr_draw_git_badge(void *hdr, void *scr, const void *theme, int x, int y);
+void fp_draw_du_badge(FilePane *fp, ScreenBuffer *sb);
+void fp_draw_du_pane(FilePane *fp, ScreenBuffer *sb, const Theme *th);
+
 typedef struct Dialog Dialog;
 
 /* DialogVtbl (classes.inc): WidgetVtbl + the two button actions. Dialog_* defaults live in src/ui/dialogs*.s until Dialog is ported. */

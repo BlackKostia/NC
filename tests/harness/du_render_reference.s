@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/ui/du_render.c replaced (tests/test_c_git_du_render.py diffs against it)
 # src/ui/du_render.s - Disk Usage (ncdu) badge & TrueColor percentage bar renderer
 .intel_syntax noprefix
 
