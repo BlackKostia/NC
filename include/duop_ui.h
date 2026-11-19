@@ -23,6 +23,7 @@
 #define MSG_WARN 2
 #define MSG_ERR 3
 #define STATUS_MAX 512
+#define INPUT_MAX 512
 
 /* Dialog.result / App_close_dialog codes (include/config.inc) */
 #define DLG_OPEN 0
@@ -59,6 +60,7 @@ int syntax_detect(const char *path);
 void syntax_draw_line(ScreenBuffer *scr, int x, int y, const char *line, int max_w,
                       const char *path, const Theme *theme, uint32_t bg);
 int elf_preview_try_render(PreviewPane *pv, ScreenBuffer *scr, const Theme *theme);
+int InputDialog_on_key(Widget *self, void *event);
 
 typedef struct Dialog Dialog;
 

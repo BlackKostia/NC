@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/ui/dialogs_input_keys.c replaced (tests/test_c_dialogs_input_keys.py diffs against it)
 # Modal Dialog Class Hierarchy (Dialog -> ConfirmDialog, InputDialog, HelpDialog; ViewerDialog: viewer_dialog.s) — dialogs input keys (split from dialogs.s)
 
 .intel_syntax noprefix

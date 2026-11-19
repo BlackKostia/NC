@@ -62,7 +62,6 @@ SRCS := \
 	src/ui/dialogs.s \
 	src/ui/dialogs_confirm.s \
 	src/ui/dialogs_input.s \
-	src/ui/dialogs_input_keys.s \
 	src/ui/dialogs_help.s \
 	src/ui/dialogs_help_input.s \
 	src/ui/viewer_dialog.s \
@@ -226,6 +225,7 @@ C_SRCS := \
 	src/ui/file_pane_layout.c \
 	src/ui/syntax.c \
 	src/ui/elf_inspect.c \
+	src/ui/dialogs_input_keys.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -430,6 +430,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_file_pane_layout.py
 	python3 tests/test_c_syntax.py
 	python3 tests/test_c_elf_inspect.py
+	python3 tests/test_c_dialogs_input_keys.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

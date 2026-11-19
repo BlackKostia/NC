@@ -18,7 +18,6 @@
     "src/os/linux/x86_64/pal_uring.s:os_uring_init": 140,
     "src/ui/attr_dialogs_input.s:ChmodDialog_on_key": 91,
     "src/ui/bookmark_dlg_input.s:BookmarkDialog_handle_key": 102,
-    "src/ui/dialogs_input_keys.s:InputDialog_on_key": 128,
     "src/ui/file_pane_keys.s:FilePane_on_key": 122,
     "src/ui/file_pane_mouse.s:FilePane_on_mouse": 156,
     "src/ui/file_pane_render.s:FilePane_render": 173,

@@ -697,8 +697,8 @@
 - **`src/ui/dialogs_input.s`**
   - `InputDialog_new` — ==============================================================================
   - `InputDialog_vtbl`
-- **`src/ui/dialogs_input_keys.s`**
-  - `InputDialog_on_key`
+- **`src/ui/dialogs_input_keys.c`**
+  - `InputDialog_on_key` — `int InputDialog_on_key(Widget *self, void *event)`
 - **`src/ui/du_progress_dlg.s`**
   - `DuProgressDialog_new` — Dialog *DuProgressDialog_new(App *app)
   - `DuProgressDialog_layout` — void DuProgressDialog_layout(Dialog *this, int x, int y, int w, int h) -- centred, DPD_H rows
