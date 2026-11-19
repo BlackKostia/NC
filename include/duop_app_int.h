@@ -77,3 +77,6 @@ int app_handle_ext_key(App *app, int key, int mods);
 
 /* app_layout.c */
 void App_preview_fire(App *app);
+
+/* app_keys.c */
+void handle_key(App *app, Event *evt);

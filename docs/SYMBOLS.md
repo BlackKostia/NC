@@ -859,8 +859,8 @@
   - `app_jump_virtual_entry` — `void app_jump_virtual_entry(App *app, FilePane *pane, const char *full_path)`
   - `App_close_dialog_ext` — `intptr_t App_close_dialog_ext(App *app, Dialog *dlg, FilePane *pane, DirModel *model, int dlg_res)`
   - `app_handle_ext_key` — `int app_handle_ext_key(App *app, int key, int mods)`
-- **`src/app/app_keys.s`**
-  - `handle_key` — Internal: handle key event
+- **`src/app/app_keys.c`**
+  - `handle_key` — `void handle_key(App *app, Event *evt)`
 - **`src/app/app_layout.c`**
   - `App_layout` — `void App_layout(App *app)`
   - `App_render` — `void App_render(App *app)`
