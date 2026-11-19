@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 683
+- **Exported `.global` Symbols**: 682
 
 ## Structs (`include/*.inc`)
 
@@ -825,9 +825,8 @@
 - **`src/ui/term_pane_input.c`**
   - `term_on_key` — `int term_on_key(void *app, void *evt)`
   - `term_shutdown` — `void term_shutdown(void)`
-- **`src/ui/user_menu_dlg.s`**
-  - `UserMenuDialog_vtbl`
-  - `UserMenuDialog_new` — UserMenuDialog *UserMenuDialog_new(App *app)
+- **`src/ui/user_menu_dlg.c`**
+  - `UserMenuDialog_new` — `UserMenuDialog *UserMenuDialog_new(App *app)`
 - **`src/ui/view_as_dialog.c`**
   - `ViewAsDialog_new` — `ViewAsDialog *ViewAsDialog_new(App *app, const char *path, int fmt)`
 - **`src/ui/viewer_dialog.s`**

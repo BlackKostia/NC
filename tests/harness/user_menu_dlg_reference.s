@@ -1,3 +1,4 @@
+# Frozen reference oracle: original src/ui/user_menu_dlg.s before C23 migration (v2.6.56).
 # User Menu Dialog (inherits from Dialog)
 # Lists custom duoprc `menu` items (or built-in defaults) and runs selected command.
 

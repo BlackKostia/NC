@@ -146,6 +146,7 @@ extern const DialogVtbl InfoDialog_vtbl;
 extern const DialogVtbl ViewAsDialog_vtbl;
 extern const DialogVtbl BookmarkDialog_vtbl;
 extern const DialogVtbl SearchDialog_vtbl;
+extern const DialogVtbl UserMenuDialog_vtbl;
 typedef struct ConfirmDialog ConfirmDialog;
 typedef struct InputDialog InputDialog;
 typedef struct ConflictDialog ConflictDialog;
@@ -155,6 +156,7 @@ typedef struct ViewAsDialog ViewAsDialog;
 typedef struct BookmarkDialog BookmarkDialog;
 typedef struct SearchDialog SearchDialog;
 typedef struct FuzzyDialog FuzzyDialog;
+typedef struct UserMenuDialog UserMenuDialog;
 void Dialog_init(Dialog *self, App *app, const char *title, uint32_t op_tag);
 void Dialog_draw_frame(Dialog *self, ScreenBuffer *scr, const Theme *theme, const char *b0_lbl, const char *b1_lbl);
 void dlg_layout_center_buttons(Dialog *self, const char *btn0, const char *btn1);
@@ -175,6 +177,7 @@ int fp_exit_virtual(FilePane *pane);
 void fp_draw_search_badge(FilePane *pane, ScreenBuffer *scr);
 FuzzyDialog *FuzzyDialog_new(App *app, int mode, const char *base_path);
 uintptr_t FuzzyDialog_get_selected(FuzzyDialog *self);
+UserMenuDialog *UserMenuDialog_new(App *app);
 
 /* ---- allocation, destruction, run-time type checks ---- */
 #define DUOP_OBJ_VTBL(vtbl) ((const ObjectVtbl *)&(vtbl))
