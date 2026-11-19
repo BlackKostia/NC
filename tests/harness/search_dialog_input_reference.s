@@ -1,3 +1,4 @@
+# Frozen reference oracle: original src/ui/search_dialog_input.s before C23 migration (v2.6.54).
 # src/ui/search_dialog.s - Recursive search dialog (name mask + content grep) — search dialog input (split from search_dialog.s)
 
 .intel_syntax noprefix

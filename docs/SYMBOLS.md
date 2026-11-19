@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 688
+- **Exported `.global` Symbols**: 683
 
 ## Structs (`include/*.inc`)
 
@@ -802,16 +802,10 @@
   - `ProgressDialog_render` — void ProgressDialog_render(ProgressDialog *this, ScreenBuffer *scr, Theme *theme)
   - `pd_activate` — Internal: void pd_activate(ProgressDialog *this, int idx) -- 0 pause, 1 background, 2 cancel
   - `ProgressDialog_on_hide` — Dialog on_confirm / on_cancel: both send the dialog to background (never destructive)
-- **`src/ui/search_dialog.s`**
-  - `SearchDialog_vtbl`
-  - `SearchDialog_new` — ==============================================================================
-  - `fp_exit_virtual` — int fp_exit_virtual(FilePane *pane) -> 1 if exited virtual mode, 0 otherwise
-  - `fp_draw_search_badge` — void fp_draw_search_badge(FilePane *pane, ScreenBuffer *scr)
-  - `SearchDialog_layout` — ==============================================================================
-  - `SearchDialog_render` — ==============================================================================
-- **`src/ui/search_dialog_input.s`**
-  - `SearchDialog_on_key` — ==============================================================================
-  - `SearchDialog_on_mouse` — ==============================================================================
+- **`src/ui/search_dialog.c`**
+  - `SearchDialog_new` — `SearchDialog *SearchDialog_new(App *app)`
+  - `fp_exit_virtual` — `int fp_exit_virtual(FilePane *pane)`
+  - `fp_draw_search_badge` — `void fp_draw_search_badge(FilePane *pane, ScreenBuffer *scr)`
 - **`src/ui/status_bar.c`**
   - `StatusBar_new` — `StatusBar *StatusBar_new(App *app)`
   - `StatusBar_set_message` — `void StatusBar_set_message(StatusBar *self, const char *msg, int kind, int ttl_ms)`
