@@ -1,3 +1,4 @@
+# Frozen reference oracle: original src/app/app_close_dialog.s before migration to src/app/app_close_dialog.c.
 # App Controller Class (Inherits from Object) — app close dialog (split from app.s)
 
 .intel_syntax noprefix

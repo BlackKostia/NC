@@ -8,7 +8,6 @@
     "tests/test_fs_reliability.py": 710
   },
   "funcs": {
-    "src/app/app_close_dialog.s:App_close_dialog": 122,
     "src/app/app_keys.s:handle_key": 186,
     "src/main.s:_start": 190,
     "src/os/linux/x86_64/pal_simd.s:os_str_contains_ci_fast": 92,

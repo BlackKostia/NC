@@ -832,10 +832,10 @@
 - **`src/app/app_choosedir.c`**
   - `App_write_choosedir` — `void App_write_choosedir(App *app, const char *out_path)`
   - `app_mouse_hover` — `void app_mouse_hover(App *app, Event *evt)`
-- **`src/app/app_close_dialog.s`**
-  - `App_close_dialog` — void App_close_dialog(App *this, int result)
-  - `App_cmd_help` — ==============================================================================
-  - `App_cmd_mkdir`
+- **`src/app/app_close_dialog.c`**
+  - `App_close_dialog` — `void App_close_dialog(App *app, int result)`
+  - `App_cmd_help` — `void App_cmd_help(App *app)`
+  - `App_cmd_mkdir` — `void App_cmd_mkdir(App *app)`
 - **`src/app/app_cmdline.c`**
   - `App_run_expanded_cmd` — `void App_run_expanded_cmd(App *app, const char *tmpl, const char *cur_name, const char *cur_path)`
 - **`src/app/app_cmds.c`**
