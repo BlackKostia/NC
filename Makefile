@@ -45,8 +45,7 @@ VER_INC := $(BUILD)/version.inc
 
 SRCS := \
 	src/main.s \
-	src/app/app.s \
-	src/app/app_loop.s
+	src/app/app.s
 
 # Freestanding C23 modules (docs/HYBRID_PORTABILITY_PLAN.md); migrated leaf-first from the .s list above
 C_SRCS := \
@@ -214,6 +213,7 @@ C_SRCS := \
 	src/app/app_layout.c \
 	src/app/app_keys.c \
 	src/app/app_events.c \
+	src/app/app_loop.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -466,6 +466,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_app_layout.py
 	python3 tests/test_c_app_keys.py
 	python3 tests/test_c_app_events.py
+	python3 tests/test_c_app_loop.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

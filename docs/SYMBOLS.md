@@ -869,8 +869,8 @@
   - `get_inactive_pane` — `FilePane *get_inactive_pane(App *app)`
   - `App_sync_preview` — `void App_sync_preview(App *app)`
   - `App_preview_fire` — `void App_preview_fire(App *app)`
-- **`src/app/app_loop.s`**
-  - `App_run` — void App_run(App *this)
+- **`src/app/app_loop.c`**
+  - `App_run` — `void App_run(App *app)`
 - **`src/app/app_menu.c`**
   - `App_cmd_usermenu` — `void App_cmd_usermenu(App *app)`
   - `App_dispatch_action` — `void App_dispatch_action(App *app, int act_id)`
