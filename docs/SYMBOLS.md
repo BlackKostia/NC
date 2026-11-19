@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 637
+- **Exported `.global` Symbols**: 635
 
 ## Structs (`include/*.inc`)
 
@@ -840,17 +840,15 @@
   - `App_cmd_mkdir`
 - **`src/app/app_cmdline.c`**
   - `App_run_expanded_cmd` — `void App_run_expanded_cmd(App *app, const char *tmpl, const char *cur_name, const char *cur_path)`
-- **`src/app/app_cmds.s`**
-  - `App_cmd_newfile`
-  - `App_cmd_start_filter`
-  - `App_cmd_goto`
-  - `App_cmd_rename`
-  - `App_cmd_view`
-  - `App_cmd_edit`
-  - `App_cmd_shell`
-  - `App_cmd_copy`
-  - `App_cmd_move`
-  - `App_cmd_delete`
+- **`src/app/app_cmds.c`**
+  - `App_cmd_newfile` — `void App_cmd_newfile(App *app)`
+  - `App_cmd_start_filter` — `void App_cmd_start_filter(App *app)`
+  - `App_cmd_goto` — `void App_cmd_goto(App *app)`
+  - `App_cmd_rename` — `void App_cmd_rename(App *app)`
+  - `App_cmd_view` — `void App_cmd_view(App *app)`
+  - `App_cmd_edit` — `void App_cmd_edit(App *app)`
+  - `App_cmd_shell` — `void App_cmd_shell(App *app)`
+  - `App_cmd_delete` — `void App_cmd_delete(App *app)`
 - **`src/app/app_du.c`**
   - `App_du_init` — `void App_du_init(App *app)`
   - `du_toggle` — `void du_toggle(App *app)`

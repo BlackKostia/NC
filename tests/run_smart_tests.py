@@ -189,7 +189,7 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/tui/theme*", ("tests/test_ui_visual.py", "tests/test_pty.py")),
     ("src/tui/screen*", ("tests/test_ui_visual.py", "tests/test_event_loop.py")),
     ("src/tui/input*", ("tests/test_pty.py", "tests/test_kbd_layout.py")),
-    ("src/app/app_cmds*", ("tests/test_pty.py", "tests/test_fs_reliability.py")),
+    ("src/app/app_cmds*", ("tests/test_c_app_cmds.py", "tests/test_pty.py", "tests/test_fs_reliability.py")),
     ("src/app/app_keys*", ("tests/test_pty.py", "tests/test_kbd_layout.py")),
     ("src/app/app_open*", ("tests/test_c_app_menu_open.py", "tests/test_pty.py", "tests/test_archive_vfs.py")),
     ("src/app/app_toggles*", ("tests/test_c_app_leaf1.py", "tests/test_pty.py", "tests/test_ui_visual.py")),
