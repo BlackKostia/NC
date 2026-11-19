@@ -73,8 +73,6 @@ SRCS := \
 	src/ui/bookmark_dlg_input.s \
 	src/ui/search_dialog.s \
 	src/ui/search_dialog_input.s \
-	src/ui/attr_dialogs.s \
-	src/ui/attr_dialogs_input.s \
 	src/ui/info_dialog.s \
 	src/ui/fuzzy_dialog.s \
 	src/ui/du_progress_dlg.s \
@@ -225,6 +223,7 @@ C_SRCS := \
 	src/ui/dialog_confirm.c \
 	src/ui/dialog_input.c \
 	src/ui/conflict_dialog.c \
+	src/ui/attr_dialogs.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -439,6 +438,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_dialog_base.py
 	python3 tests/test_c_dialog_input.py
 	python3 tests/test_c_conflict_dialog.py
+	python3 tests/test_c_attr_dialogs.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

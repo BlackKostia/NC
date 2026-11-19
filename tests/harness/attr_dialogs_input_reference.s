@@ -1,3 +1,4 @@
+# Frozen reference oracle: original src/ui/attr_dialogs_input.s before C23 migration (v2.6.50).
 # src/ui/attr_dialogs.s - ChmodDialog (clickable rwx bits, octal mode, uid:gid) — attr dialogs input (split from attr_dialogs.s)
 
 .intel_syntax noprefix

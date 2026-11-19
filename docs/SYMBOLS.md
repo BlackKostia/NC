@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 703
+- **Exported `.global` Symbols**: 697
 
 ## Structs (`include/*.inc`)
 
@@ -639,15 +639,8 @@
 
 ### UI Widgets & Dialogs (`src/ui/`)
 
-- **`src/ui/attr_dialogs.s`**
-  - `ChmodDialog_vtbl`
-  - `ChmodDialog_new` — ChmodDialog *ChmodDialog_new(App *app, const char *path)
-  - `ChmodDialog_layout` — void ChmodDialog_layout(ChmodDialog *this, int x, int y, int cols, int rows)
-  - `cd_draw_bits` — Helper: void cd_draw_bits(ChmodDialog *this, ScreenBuffer *scr, Theme *th)
-- **`src/ui/attr_dialogs_input.s`**
-  - `ChmodDialog_render` — void ChmodDialog_render(ChmodDialog *this, ScreenBuffer *scr, Theme *theme)
-  - `ChmodDialog_on_key` — void ChmodDialog_on_key(ChmodDialog *this, Event *ev)
-  - `ChmodDialog_on_mouse` — void ChmodDialog_on_mouse(ChmodDialog *this, Event *ev)
+- **`src/ui/attr_dialogs.c`**
+  - `ChmodDialog_new` — `ChmodDialog *ChmodDialog_new(App *app, const char *path)`
 - **`src/ui/bookmark_dlg.s`**
   - `bmd_refresh_matches` — Internal: refresh match list when mode == 1 (Frecency)
   - `BookmarkDialog_new` — BookmarkDialog *BookmarkDialog_new(App *app, int mode)
