@@ -106,6 +106,10 @@ int FilePane_on_key(Widget *self, void *event);
 void scrub_scrollbar(FilePane *self, int my);
 #define DBLCLICK_MS 420
 int FilePane_on_mouse(Widget *self, void *event);
+typedef struct PopupMenuDialog PopupMenuDialog;
+typedef struct Event Event;
+PopupMenuDialog *PopupMenu_new(App *app, int x, int y);
+int pane_mouse_ext(App *app, Event *evt);
 typedef struct ImgPlace ImgPlace;
 void img_overlay_show(const ImgPlace *p);
 void img_preview_pre_flush(App *app);

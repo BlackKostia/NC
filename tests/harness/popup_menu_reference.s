@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/ui/popup_menu.s (before C23 migration to src/ui/popup_menu.c).
 # Popup Context Menu, OSC 52 Clipboard, and Mouse Drag-and-Drop between panes
 
 .intel_syntax noprefix

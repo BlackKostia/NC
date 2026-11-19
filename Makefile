@@ -47,7 +47,6 @@ SRCS := \
 	src/main.s \
 	src/ui/file_pane.s \
 	src/ui/file_pane_render.s \
-	src/ui/popup_menu.s \
 	src/app/app.s \
 	src/app/app_layout.s \
 	src/app/app_open.s \
@@ -215,6 +214,7 @@ C_SRCS := \
 	src/ui/file_pane_tabs.c \
 	src/ui/file_pane_keys.c \
 	src/ui/file_pane_mouse.c \
+	src/ui/popup_menu.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -453,6 +453,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_file_pane_tabs.py
 	python3 tests/test_c_file_pane_keys.py
 	python3 tests/test_c_file_pane_mouse.py
+	python3 tests/test_c_popup_menu.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

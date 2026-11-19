@@ -740,9 +740,9 @@
   - `PkgDialog_new` — `PkgDialog *PkgDialog_new(App *app)`
   - `App_cmd_packages` — `int App_cmd_packages(App *app)`
   - `App_pkg_install_confirm` — `void App_pkg_install_confirm(App *app, InputDialog *dlg)`
-- **`src/ui/popup_menu.s`**
-  - `PopupMenu_new` — PopupMenuDialog *PopupMenu_new(App *app, int x, int y)
-  - `pane_mouse_ext` — int pane_mouse_ext(App *app, Event *evt) -> 1 if handled, 0 else
+- **`src/ui/popup_menu.c`**
+  - `PopupMenu_new` — `PopupMenuDialog *PopupMenu_new(App *app, int x, int y)`
+  - `pane_mouse_ext` — `int pane_mouse_ext(App *app, Event *evt)`
 - **`src/ui/popup_osc52.c`**
   - `osc52_copy_text` — `void osc52_copy_text(const char *str)`
 - **`src/ui/preview_mode.c`**

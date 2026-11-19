@@ -120,7 +120,7 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/ui/fuzzy_dialog*", ("tests/test_fuzzy_palette.py",)),
     ("src/fs/dir_diff*", ("tests/test_diff_menu_clip.py",)),
     ("src/ui/popup_osc52*", ("tests/test_c_ui_leaf1.py", "tests/test_diff_menu_clip.py")),
-    ("src/ui/popup_menu*", ("tests/test_diff_menu_clip.py", "tests/test_pkg_extensions.py")),
+    ("src/ui/popup_menu*", ("tests/test_c_popup_menu.py", "tests/test_diff_menu_clip.py", "tests/test_pkg_extensions.py")),
     ("src/fs/trash_*", ("tests/test_trash_undo_attr.py", "tests/test_trash_spec.py", "tests/test_c_trash.py")),
     ("src/app/app_attr*", ("tests/test_trash_undo_attr.py",)),
     ("src/ui/attr_dialogs*", ("tests/test_trash_undo_attr.py",)),
