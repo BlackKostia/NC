@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 641
+- **Exported `.global` Symbols**: 639
 
 ## Structs (`include/*.inc`)
 
@@ -693,14 +693,12 @@
   - `FilePane_on_mouse` — int FilePane_on_mouse(FilePane *this, Event *evt)
 - **`src/ui/file_pane_render.s`**
   - `FilePane_render` — void FilePane_render(FilePane *this, ScreenBuffer *scr, Theme *theme)
-- **`src/ui/file_pane_tabs.s`**
-  - `fp_get_active_tab` — Internal: void *fp_get_active_tab(FilePane *this)
-  - `FilePane_nav_to` — int FilePane_nav_to(FilePane *this, const char *path) -- returns DirModel_chdir result
-  - `FilePane_hist_back` — int FilePane_hist_back(FilePane *this) -- returns 1 if navigated, 0 if empty
-  - `FilePane_hist_fwd` — int FilePane_hist_fwd(FilePane *this) -- returns 1 if navigated, 0 if empty
-  - `FilePane_tab_new` — int FilePane_tab_new(FilePane *this) -- returns 1 if opened, 0 if at limit
-  - `FilePane_tab_switch` — int FilePane_tab_switch(FilePane *this, int idx)
-  - `FilePane_tab_close` — int FilePane_tab_close(FilePane *this, int idx_or_neg1)
+- **`src/ui/file_pane_tabs.c`**
+  - `fp_get_active_tab` — `NavTab *fp_get_active_tab(FilePane *self)`
+  - `FilePane_nav_to` — `intptr_t FilePane_nav_to(FilePane *self, const char *path)`
+  - `FilePane_tab_new` — `int FilePane_tab_new(FilePane *self)`
+  - `FilePane_tab_switch` — `int FilePane_tab_switch(FilePane *self, int idx)`
+  - `FilePane_tab_close` — `int FilePane_tab_close(FilePane *self, int idx)`
 - **`src/ui/function_bar.c`**
   - `FunctionBar_new` — `FunctionBar *FunctionBar_new(App *app)`
   - `FunctionBar_layout` — `void FunctionBar_layout(Widget *self, int x, int y, int w, int h)`

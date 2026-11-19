@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/ui/file_pane_tabs.s (before C23 migration to src/ui/file_pane_tabs.c).
 # FilePane Widget (Inherits from Widget) — file pane tabs (split from file_pane.s)
 
 .intel_syntax noprefix
