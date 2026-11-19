@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/ui/progress_dialog_render.s (before C23 migration to src/ui/progress_dialog.c).
 # ProgressDialog (Inherits from Dialog) — progress dialog render (split from progress_dialog.s)
 
 .intel_syntax noprefix

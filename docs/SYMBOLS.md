@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 677
+- **Exported `.global` Symbols**: 663
 
 ## Structs (`include/*.inc`)
 
@@ -775,27 +775,11 @@
   - `PreviewPane_on_mouse` — `int PreviewPane_on_mouse(Widget *self, void *evt)`
 - **`src/ui/preview_pane_render.s`**
   - `PreviewPane_render` — void PreviewPane_render(PreviewPane *this, ScreenBuffer *scr, Theme *theme)
-- **`src/ui/progress_dialog.s`**
-  - `ProgressDialog_new` — ProgressDialog *ProgressDialog_new(App *app)
-  - `ProgressDialog_layout` — void ProgressDialog_layout(ProgressDialog *this, int x, int y, int w, int h)
-  - `ProgressDialog_title_for` — const char *ProgressDialog_title_for(int op) -- localized "Copying" / "Moving" / "Deleting"
-  - `pd_cat_u64` — Internal: void pd_cat_u64(char *buf, uint64_t v) -- appends decimal (buf cap PD_BUF)
-  - `pd_cat_size` — Internal: void pd_cat_size(char *buf, int64_t bytes) -- appends human-readable size
-  - `pd_cat` — Internal: void pd_cat(char *buf, const char *s)
-  - `pd_format_state` — "Canceling…" | "Paused" | "Scanning… N" | "[<speed>/s  ·  ]ETA m:ss"
-  - `ProgressDialog_format_summary` — " ⟳ Copying 45%  ·  5.1 M/s  ·  ETA 0:03"
-  - `pd_layout_buttons` — Centers [Pause|Resume] [Background] [Cancel] on row y + h - 2 using UTF-8 display widths.
-  - `str_pd_sp`
-  - `str_pd_pct`
-  - `str_pd_dot`
-  - `ProgressDialog_vtbl`
-- **`src/ui/progress_dialog_input.s`**
-  - `ProgressDialog_on_key` — int ProgressDialog_on_key(ProgressDialog *this, Event *evt)
-  - `ProgressDialog_on_mouse` — int ProgressDialog_on_mouse(ProgressDialog *this, Event *evt)
-- **`src/ui/progress_dialog_render.s`**
-  - `ProgressDialog_render` — void ProgressDialog_render(ProgressDialog *this, ScreenBuffer *scr, Theme *theme)
-  - `pd_activate` — Internal: void pd_activate(ProgressDialog *this, int idx) -- 0 pause, 1 background, 2 cancel
-  - `ProgressDialog_on_hide` — Dialog on_confirm / on_cancel: both send the dialog to background (never destructive)
+- **`src/ui/progress_dialog.c`**
+  - `ProgressDialog_title_for` — `const char *ProgressDialog_title_for(int op)`
+  - `ProgressDialog_format_summary` — `void ProgressDialog_format_summary(const void *snap, char *buf)`
+  - `ProgressDialog_layout` — `void ProgressDialog_layout(Widget *self, int x, int y, int w, int h)`
+  - `ProgressDialog_new` — `ProgressDialog *ProgressDialog_new(App *app)`
 - **`src/ui/search_dialog.c`**
   - `SearchDialog_new` — `SearchDialog *SearchDialog_new(App *app)`
   - `fp_exit_virtual` — `int fp_exit_virtual(FilePane *pane)`

@@ -52,7 +52,7 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/fs/task_worker*", ("tests/test_c_task.py", "tests/test_bg_tasks.py", "tests/test_fs_reliability.py")),
     ("src/fs/task*", ("tests/test_fs_reliability.py", "tests/test_bg_tasks.py", "tests/test_reliability_audit.py", "tests/test_copy_overwrite_atomic.py")),
     ("src/app/app_task*", ("tests/test_fs_reliability.py", "tests/test_bg_tasks.py", "tests/test_reliability_audit.py")),
-    ("src/ui/progress_dialog*", ("tests/test_bg_tasks.py",)),
+    ("src/ui/progress_dialog*", ("tests/test_c_progress_dialog.py", "tests/test_bg_tasks.py", "tests/test_pty.py")),
     ("src/ui/conflict_dialog*", ("tests/test_fs_reliability.py", "tests/test_reliability_audit.py")),
     ("src/fs/dir_model_load*", ("tests/test_c_dir_model_load.py", "tests/test_performance_dir.py", "tests/test_fastpath.py", "tests/test_event_loop.py")),
     ("src/fs/dir_model_stream*", ("tests/test_c_dir_model_load.py", "tests/test_performance_dir.py", "tests/test_fastpath.py", "tests/test_event_loop.py")),

@@ -1,3 +1,4 @@
+# Frozen reference oracle: src/ui/progress_dialog.s (before C23 migration to src/ui/progress_dialog.c).
 # ProgressDialog (Inherits from Dialog)
 # Non-modal-in-spirit progress view of the background worker: current item, progress bar,
 # bytes / entries, speed, ETA and [Pause|Resume] [Background] [Cancel] buttons (EN/UA,

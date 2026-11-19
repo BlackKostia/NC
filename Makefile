@@ -64,9 +64,6 @@ SRCS := \
 	src/ui/viewer_dialog_end.s \
 	src/ui/viewer_dialog_render.s \
 	src/ui/viewer_dialog_input.s \
-	src/ui/progress_dialog.s \
-	src/ui/progress_dialog_render.s \
-	src/ui/progress_dialog_input.s \
 	src/ui/du_progress_dlg.s \
 	src/ui/popup_menu.s \
 	src/ui/pkg_dialog.s \
@@ -221,6 +218,7 @@ C_SRCS := \
 	src/ui/fuzzy_dialog.c \
 	src/ui/user_menu_dlg.c \
 	src/ui/bulk_rename.c \
+	src/ui/progress_dialog.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -443,6 +441,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_fuzzy_dialog.py
 	python3 tests/test_c_user_menu_dlg.py
 	python3 tests/test_c_bulk_rename.py
+	python3 tests/test_c_progress_dialog.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

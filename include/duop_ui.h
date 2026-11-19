@@ -150,6 +150,7 @@ extern const DialogVtbl BookmarkDialog_vtbl;
 extern const DialogVtbl SearchDialog_vtbl;
 extern const DialogVtbl UserMenuDialog_vtbl;
 extern const DialogVtbl BulkRenameDialog_vtbl;
+extern const DialogVtbl ProgressDialog_vtbl;
 typedef struct ConfirmDialog ConfirmDialog;
 typedef struct InputDialog InputDialog;
 typedef struct ConflictDialog ConflictDialog;
@@ -161,6 +162,7 @@ typedef struct SearchDialog SearchDialog;
 typedef struct FuzzyDialog FuzzyDialog;
 typedef struct UserMenuDialog UserMenuDialog;
 typedef struct BulkRenameDialog BulkRenameDialog;
+typedef struct ProgressDialog ProgressDialog;
 void Dialog_init(Dialog *self, App *app, const char *title, uint32_t op_tag);
 void Dialog_draw_frame(Dialog *self, ScreenBuffer *scr, const Theme *theme, const char *b0_lbl, const char *b1_lbl);
 void dlg_layout_center_buttons(Dialog *self, const char *btn0, const char *btn1);
@@ -183,6 +185,10 @@ FuzzyDialog *FuzzyDialog_new(App *app, int mode, const char *base_path);
 uintptr_t FuzzyDialog_get_selected(FuzzyDialog *self);
 UserMenuDialog *UserMenuDialog_new(App *app);
 BulkRenameDialog *BulkRenameDialog_new(App *app, FilePane *pane);
+ProgressDialog *ProgressDialog_new(App *app);
+void ProgressDialog_layout(Widget *self, int x, int y, int w, int h);
+const char *ProgressDialog_title_for(int op);
+void ProgressDialog_format_summary(const void *snap, char *buf);
 
 /* ---- allocation, destruction, run-time type checks ---- */
 #define DUOP_OBJ_VTBL(vtbl) ((const ObjectVtbl *)&(vtbl))
