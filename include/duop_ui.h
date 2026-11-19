@@ -89,6 +89,15 @@ void img_draw_quad(ScreenBuffer *scr, int bx, int by, int bw, int bh, const ImgV
 void img_draw_braille(ScreenBuffer *scr, int bx, int by, int bw, int bh, const ImgView *v);
 int img_preview_try_render(PreviewPane *pv, ScreenBuffer *sb, const Theme *th);
 
+#define CH_BLOCK_FULL 0x2588u
+#define CH_SHADE_LIGHT 0x2591u
+typedef struct ViewerDialog ViewerDialog;
+typedef struct Event Event;
+void vw_draw_img_scrollbars(ViewerDialog *v, ScreenBuffer *scr, const Theme *th);
+void vw_draw_text_scrollbar(ViewerDialog *v, ScreenBuffer *scr, const Theme *th, int64_t end_off);
+int vw_img_scrollbar_mouse(ViewerDialog *v, Event *e);
+void vz_invalidate(ViewerDialog *v);
+
 typedef struct Dialog Dialog;
 
 /* DialogVtbl (classes.inc): WidgetVtbl + the two button actions. Dialog_* defaults live in src/ui/dialogs*.s until Dialog is ported. */

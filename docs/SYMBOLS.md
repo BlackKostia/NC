@@ -887,10 +887,10 @@
 - **`src/ui/viewer_pixels.s`**
   - `vim_draw_picture` — void vim_draw_picture(ViewerDialog *v, ScreenBuffer *scr, Theme *theme)
   - `vim_place` — Internal: void vim_place(ViewerDialog *v, ImgPlace *p /*box px at [48]/[52]*/) -- centred cells
-- **`src/ui/viewer_scrollbar.s`**
-  - `vw_draw_img_scrollbars` — void vw_draw_img_scrollbars(ViewerDialog *v, ScreenBuffer *scr, Theme *th)
-  - `vw_draw_text_scrollbar` — void vw_draw_text_scrollbar(ViewerDialog *v, ScreenBuffer *scr, Theme *th, long end_off)
-  - `vw_img_scrollbar_mouse` — int vw_img_scrollbar_mouse(ViewerDialog *v, Event *e) -> 1 if handled
+- **`src/ui/viewer_scrollbar.c`**
+  - `vw_draw_img_scrollbars` — `void vw_draw_img_scrollbars(ViewerDialog *v, ScreenBuffer *scr, const Theme *th)`
+  - `vw_draw_text_scrollbar` — `void vw_draw_text_scrollbar(ViewerDialog *v, ScreenBuffer *scr, const Theme *th, int64_t end_off)`
+  - `vw_img_scrollbar_mouse` — `int vw_img_scrollbar_mouse(ViewerDialog *v, Event *e)`
 - **`src/ui/viewer_zoom.s`**
   - `vim_zoom_key` — int vim_zoom_key(ViewerDialog *v, Event *e) -> 1 if handled
   - `vim_zoom_mouse` — int vim_zoom_mouse(ViewerDialog *v, Event *e) -> 1 if handled

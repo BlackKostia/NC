@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/ui/viewer_scrollbar.c replaced (tests/test_c_viewer_scrollbar.py diffs against it)
 # ViewerDialog scrollbars (vertical & horizontal for zoomed images; vertical for text/hex).
 
 .intel_syntax noprefix
