@@ -1,3 +1,4 @@
+# Frozen reference oracle: original src/app/app_events.s before migration to src/app/app_events.c.
 # App Event Sources: exact poll timeouts, debounced preview, async preview replies and
 # inotify-driven auto-refresh of both panes.
 #

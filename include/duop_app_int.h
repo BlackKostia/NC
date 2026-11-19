@@ -80,3 +80,9 @@ void App_preview_fire(App *app);
 
 /* app_keys.c */
 void handle_key(App *app, Event *evt);
+
+/* app_events.c */
+void App_events_init(App *app);
+int App_events_timeout(App *app);
+void App_events_tick(App *app);
+void App_events_shutdown(App *app);

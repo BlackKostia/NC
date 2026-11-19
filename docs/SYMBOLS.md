@@ -850,11 +850,11 @@
 - **`src/app/app_du.c`**
   - `App_du_init` — `void App_du_init(App *app)`
   - `du_toggle` — `void du_toggle(App *app)`
-- **`src/app/app_events.s`**
-  - `App_events_init` — void App_events_init(App *app)
-  - `App_events_timeout` — int App_events_timeout(App *app) -> poll timeout in ms (-1 = sleep until an event)
-  - `App_events_tick` — void App_events_tick(App *app) -- called once per loop iteration
-  - `App_events_shutdown` — void App_events_shutdown(App *app)
+- **`src/app/app_events.c`**
+  - `App_events_init` — `void App_events_init(App *app)`
+  - `App_events_shutdown` — `void App_events_shutdown(App *app)`
+  - `App_events_timeout` — `int App_events_timeout(App *app)`
+  - `App_events_tick` — `void App_events_tick(App *app)`
 - **`src/app/app_ext.c`**
   - `app_jump_virtual_entry` — `void app_jump_virtual_entry(App *app, FilePane *pane, const char *full_path)`
   - `App_close_dialog_ext` — `intptr_t App_close_dialog_ext(App *app, Dialog *dlg, FilePane *pane, DirModel *model, int dlg_res)`
