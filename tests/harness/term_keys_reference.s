@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/ui/term_keys.c replaced (tests/test_c_ui_leaf1.py diffs against it)
 # Embedded terminal key encoder: Event -> bytes for the child PTY (xterm-compatible).
 #
 # Printable Unicode is sent as UTF-8, Ctrl+ASCII as C0 controls, Alt as an ESC prefix and

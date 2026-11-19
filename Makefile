@@ -47,7 +47,6 @@ SRCS := \
 	src/main.s \
 	src/ui/header_bar.s \
 	src/ui/header_bar_render.s \
-	src/ui/header_bar_git.s \
 	src/ui/function_bar.s \
 	src/ui/file_pane.s \
 	src/ui/file_pane_layout.s \
@@ -61,7 +60,6 @@ SRCS := \
 	src/ui/img_quad.s \
 	src/ui/img_braille.s \
 	src/ui/preview_pane_render.s \
-	src/ui/preview_pane_mouse.s \
 	src/ui/dialogs.s \
 	src/ui/dialogs_confirm.s \
 	src/ui/dialogs_input.s \
@@ -100,11 +98,8 @@ SRCS := \
 	src/ui/bulk_rename.s \
 	src/ui/bulk_rename_ui.s \
 	src/ui/popup_menu.s \
-	src/ui/popup_osc52.s \
 	src/ui/pkg_dialog.s \
 	src/ui/term_pane.s \
-	src/ui/term_pane_input.s \
-	src/ui/term_keys.s \
 	src/ui/syntax.s \
 	src/ui/elf_inspect.s \
 	src/ui/hex_edit.s \
@@ -226,6 +221,11 @@ C_SRCS := \
 	src/fs/pkg_popup.c \
 	src/fs/pkg_preview.c \
 	src/ui/status_bar.c \
+	src/ui/popup_osc52.c \
+	src/ui/term_keys.c \
+	src/ui/term_pane_input.c \
+	src/ui/preview_pane_mouse.c \
+	src/ui/header_bar_git.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -426,6 +426,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_pkg_vfs_pane.py
 	python3 tests/test_c_pkg_popup.py
 	python3 tests/test_c_status_bar.py
+	python3 tests/test_c_ui_leaf1.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

@@ -35,7 +35,7 @@ if [[ "${DUOP_CHECKS_DONE:-0}" != "1" ]]; then
     python3 ./.agents/skills/duop-lean-modules/scripts/check_lean.py --root "$ROOT" ${DUOP_LEAN_STAGED:+--staged}
 fi
 # Whole tree, always: a changed header can break modules that were not staged (check_c_syntax compiles in parallel)
-python3 ./tools/check_c_syntax.py $(git ls-files 'src/*.c')
+python3 ./tools/check_c_syntax.py $(git ls-files --cached --others --exclude-standard 'src/*.c')
 python3 ./tools/faultlab/audit_null_alloc_c.py
 python3 ./tests/test_lean_gate.py
 python3 ./tests/test_lean_split.py
@@ -76,10 +76,10 @@ if [[ "$MODE" != "smart" || "${DUOP_SMART_MEMCHECK:-0}" == "1" ]]; then
 fi
 
 if [[ "$MODE" == "full" ]]; then
-    echo "==> [Extra] Rebuilding DWARF debug binary & running PTY tests..."
+    echo "==> [Extra] Rebuilding DWARF debug binary & running binary/PTY tests..."
     make -s clean
     make -s -j"$(nproc 2>/dev/null || echo 4)"
-    make -s test
+    python3 ./tests/run_tests.py --binary-only
 fi
 
 echo "ALL CHECKS PASSED (Duop v${VER}, mode=${MODE})."

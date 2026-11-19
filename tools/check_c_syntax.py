@@ -23,14 +23,17 @@ ROOT = Path(__file__).resolve().parents[1]
 ARCHS = {"x86_64": ("build", "gcc", None), "aarch64": ("build_aarch64", "clang", "aarch64-linux-gnu-ld")}
 
 
-def compile_command(rel: str, arch: str) -> list[str] | None:
-    """The compiler command line `make` would run for src/<x>.c on `arch`, or None when make cannot tell."""
+def compile_template(arch: str) -> list[str] | None:
+    """Query `make -n -B` once per arch to extract the exact project CFLAGS template (avoids 200+ make spawns)."""
     build, _, _ = ARCHS[arch]
-    obj = f"{build}/{rel[len('src/'):-2]}.o"
-    res = subprocess.run(["make", "-n", "-B", f"ARCH={arch}", obj], cwd=ROOT, capture_output=True, text=True, check=False)
+    sample_src = "src/core/utf8.c"
+    sample_obj = f"{build}/core/utf8.o"
+    res = subprocess.run(["make", "-n", "-B", f"ARCH={arch}", sample_obj], cwd=ROOT, capture_output=True, text=True, check=False)
     for line in res.stdout.splitlines():
         if line.split(" ", 1)[0] in ("gcc", "clang") and " -c " in line:
-            return shlex.split(line)
+            toks = shlex.split(line)
+            if sample_src in toks:
+                return [t for t in to_syntax_only(toks) if t != sample_src]
     return None
 
 
@@ -48,17 +51,9 @@ def to_syntax_only(cmd: list[str]) -> list[str]:
     return out + ["-fsyntax-only"]
 
 
-def check_one(rel: str, arch: str) -> int:
-    """0 when src/<x>.c compiles warning-free for `arch` (or the toolchain is absent), else 1."""
-    _, cc, ld = ARCHS[arch]
-    if not shutil.which(cc) or (ld and not shutil.which(ld)):
-        print(f"check_c_syntax: {arch} toolchain missing, skipped", file=sys.stderr)
-        return 0
-    cmd = compile_command(rel, arch)
-    if cmd is None:
-        print(f"check_c_syntax: no compile rule for {rel} [{arch}]", file=sys.stderr)
-        return 1
-    res = subprocess.run(to_syntax_only(cmd), cwd=ROOT, capture_output=True, text=True, check=False)
+def check_one(rel: str, arch: str, tmpl: list[str]) -> int:
+    """0 when src/<x>.c compiles warning-free for `arch`, else 1."""
+    res = subprocess.run([*tmpl, rel], cwd=ROOT, capture_output=True, text=True, check=False)
     if res.returncode != 0:
         print(f"C-SYNTAX FAILED [{arch}] {rel}:\n{(res.stderr or res.stdout).strip()}", file=sys.stderr)
         return 1
@@ -66,11 +61,23 @@ def check_one(rel: str, arch: str) -> int:
 
 
 def check(files: list[str], archs: list[str]) -> int:
-    for arch in archs:                                    # generated headers every module may include (version.h, i18n_slots.h)
-        build = ARCHS[arch][0]
-        subprocess.run(["make", "-s", f"ARCH={arch}", f"{build}/version.h", f"{build}/i18n_slots.h"], cwd=ROOT, check=False, capture_output=True)
-    tasks = [(rel, arch) for rel in files if rel.startswith("src/") and rel.endswith(".c") and (ROOT / rel).is_file() for arch in archs]
-    with ThreadPoolExecutor(max_workers=min(len(tasks), os.cpu_count() or 4) or 1) as pool:      # make -n + the compiler: independent processes
+    templates: dict[str, list[str]] = {}
+    for arch in archs:
+        build, cc, ld = ARCHS[arch]
+        if not shutil.which(cc) or (ld and not shutil.which(ld)):
+            print(f"check_c_syntax: {arch} toolchain missing, skipped", file=sys.stderr)
+            continue
+        subprocess.run(
+            ["make", "-s", f"ARCH={arch}", f"{build}/version.h", f"{build}/i18n_slots.h", f"{build}/duop_classes.h"],
+            cwd=ROOT, check=False, capture_output=True,
+        )
+        tmpl = compile_template(arch)
+        if tmpl is None:
+            print(f"check_c_syntax: no compile rule for [{arch}]", file=sys.stderr)
+            return 1
+        templates[arch] = tmpl
+    tasks = [(rel, arch, templates[arch]) for rel in files if rel.startswith("src/") and rel.endswith(".c") and (ROOT / rel).is_file() for arch in templates]
+    with ThreadPoolExecutor(max_workers=min(len(tasks), os.cpu_count() or 4) or 1) as pool:
         failed = sum(pool.map(lambda t: check_one(*t), tasks))
     return 1 if failed else 0
 

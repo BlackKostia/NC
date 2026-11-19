@@ -26,12 +26,12 @@ Every user-visible string MUST be added/updated immediately in **both** default 
 
 ## 3. OOP Widget / Dialog Contract & Mouse Zones
 
-- New modal dialogs (`ProgressDialog`, `FuzzyDialog`, `ChmodDialog`, etc.) go into dedicated `src/ui/<dialog>.c` files (assembly dialogs that are not migrated yet: `<dialog>.s`) inheriting `Dialog_vtbl` (`DIALOG_VTBL_SLOTS` in `include/classes.inc`; C view `include/duop_oop.h`, vtable in `.rodata`, slot order from the header). A UI module reaches the application only through the `App_*` service interface (`include/duop_app.h` once it exists).
+- New modal dialogs (`ProgressDialog`, `FuzzyDialog`, `ChmodDialog`, etc.) go into dedicated `src/ui/<dialog>.c` files (assembly dialogs that are not migrated yet: `<dialog>.s`) inheriting `Dialog_vtbl` (`DIALOG_VTBL` in `include/duop_ui.h`, layouts from `build/duop_classes.h`, vtable in `.rodata`). A UI module reaches the application only through the `App_*` service interface (`include/duop_app.h`).
 - Register clickable controls in `HitZone` arrays with `[x1, x2)` exclusive-right column intervals calculated dynamically from `utf8_display_width` (so translated EN/UA labels remain clickable without clipping).
-- Handle both EN and UA layouts when adding `Alt+<char>` shortcuts (matching how `Alt+L` / `Alt+д` works in `src/app/app.s`).
+- Match layout-independent hotkeys against `Event.lat` (populated by `src/tui/kbd_layout.c` from `layouts/*.layout` data files — never hardcode Cyrillic letters in code).
 
 ## 4. Verification
 
-- For a migrated widget, a render-diff test renders the asm oracle and the C widget into a `ScreenBuffer` on fixed theme / strings / models and compares the `Cell` arrays, key / mouse reactions and hit zones (harness pattern: `tests/harness/*_cli.c`).
+- For a migrated widget, use `tests/harness/ui_render.h` (synthetic 29-colour theme + cell-by-cell dump), `tests/harness/ui_event.h` (scripted `Event`s), `tests/harness/ui_app_stub.h` (zeroed `App`, mutable English `i18n_get`, call recorder), and `c_harness.perf_gate` for hot-render widgets (pattern: `tests/test_c_status_bar.py`, `tests/test_c_ui_leaf1.py`).
 - Add or extend a scenario in `tests/test_pty.py` testing BOTH English and Ukrainian modes (`--lang en` and `--lang ua` or `Alt+L` switch) plus mouse clicks (`\x1b[<btn;x;yM`) when applicable.
-- Run `./.agents/skills/duop-pty-verify/scripts/verify_build.sh`.
+- Run `./.agents/skills/duop-pty-verify/scripts/verify_build.sh --smart` during development and `verify_build.sh` before release.

@@ -29,6 +29,18 @@
 #define DLG_OK 1
 #define DLG_CANCEL 2
 
+/* Right-pane mode (include/config.inc) */
+#define RIGHT_MODE_PANE 0
+#define RIGHT_MODE_PREVIEW 1
+
+/* Leaf UI helpers (src/ui/) */
+void osc52_copy_text(const char *str);
+int term_key_encode(const void *evt, char *out);
+int term_on_key(void *app, void *evt);
+void term_shutdown(void);
+int PreviewPane_on_mouse(Widget *self, void *evt);
+void hdr_draw_mode_and_git(void *hdr, void *scr, const void *theme, const void *ls);
+
 typedef struct Dialog Dialog;
 
 /* DialogVtbl (classes.inc): WidgetVtbl + the two button actions. Dialog_* defaults live in src/ui/dialogs*.s until Dialog is ported. */

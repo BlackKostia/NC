@@ -4,6 +4,7 @@ A harness is a C file defining duop_main(); modules under test are compiled from
 product (Makefile CFLAGS). aarch64 binaries run under qemu-user. Nothing here links libc.
 """
 
+import hashlib
 import os
 import shutil
 import stat
@@ -42,29 +43,107 @@ def available(arch: str) -> bool:
     return all(shutil.which(x[0]) for x in (t["cc"], t["as_"], t["ld"])) and (not t["run"] or shutil.which(t["run"][0]))
 
 
+def _obj_cache_dir() -> Path:
+    base = Path("/dev/shm") if Path("/dev/shm").is_dir() and os.access("/dev/shm", os.W_OK) else Path(tempfile.gettempdir())
+    return base / f"duop_obj_cache_{os.getuid()}"
+
+
+OBJ_CACHE = _obj_cache_dir()
+
+
+def _header_stamp(arch: str) -> str:
+    """Fast fingerprint of all headers under include/ and build/ so cached objects invalidate immediately on any header edit."""
+    parts: list[str] = []
+    for base in (ROOT / "include", ROOT / f"include/os/linux/{arch}", ROOT / "build"):
+        if not base.is_dir():
+            continue
+        for p in sorted(base.iterdir()):
+            if p.suffix in (".h", ".inc") and p.is_file():
+                st = p.stat()
+                parts.append(f"{p.name}:{st.st_mtime_ns}:{st.st_size}")
+    return hashlib.sha256("\n".join(parts).encode()).hexdigest()[:16]
+
+
+def _can_cache_c(src: Path) -> bool:
+    """Cache only repo C modules (src/, build/, pal_shims.c); never cache harnesses/mutants under tests/harness/*_cli.c or /tmp."""
+    if os.environ.get("DUOP_NO_TEST_CACHE") == "1":
+        return False
+    try:
+        rel = src.resolve().relative_to(ROOT.resolve()).as_posix()
+    except ValueError:
+        return False
+    return rel.startswith(("src/", "build/")) or rel == SHIMS
+
+
+def _strip_harness_src_defs(flags: list[str] | None) -> list[str]:
+    return [f for f in (flags or ()) if not (f.startswith("-D") and "_SRC=" in f)]
+
+
+def _cached_compile(cmd_base: list[str], src: Path, out_fallback: Path, key_parts: list[str]) -> tuple[Path, Callable[[], None] | None]:
+    if os.environ.get("DUOP_NO_TEST_CACHE") == "1":
+        return out_fallback, lambda: subprocess.run([*cmd_base, str(src), "-o", str(out_fallback)], check=True, capture_output=True) and None
+    st = src.stat()
+    key = hashlib.sha256("\0".join([*key_parts, str(src), str(st.st_mtime_ns), str(st.st_size)]).encode()).hexdigest()[:24]
+    OBJ_CACHE.mkdir(parents=True, exist_ok=True)
+    cached = OBJ_CACHE / f"{src.stem}_{key}.o"
+    if cached.is_file():
+        return cached, None
+
+    def compile_atomic() -> None:
+        if cached.is_file():
+            return
+        tmp = OBJ_CACHE / f".{src.stem}_{key}.{os.getpid()}.{id(cmd_base)}.tmp.o"
+        try:
+            subprocess.run([*cmd_base, str(src), "-o", str(tmp)], check=True, capture_output=True)
+            os.replace(tmp, cached)
+        finally:
+            if tmp.exists():
+                tmp.unlink(missing_ok=True)
+
+    return cached, compile_atomic
+
+
 def build(arch: str, work: Path, c_files: list[str], extra_objs: list[Path] | None = None, cflags: list[str] | None = None,
           pal_override: dict[str, Path] | None = None) -> Path:
     """c_files: repo-relative or absolute .c paths (harness + modules under test); extra_objs: prebuilt objects to link too;
     pal_override: PAL file name -> replacement .s (mutation checks of the PAL itself)."""
     t = ARCHS[arch]
     pal = ROOT / f"src/os/linux/{arch}"
+    hdr_fp = _header_stamp(arch)
     jobs: list[Callable[[], None]] = []
     objs: list[str] = []
 
     def tool(cmd: list[str]) -> Callable[[], None]:
         return lambda: subprocess.run(cmd, check=True, capture_output=True) and None
 
+    as_base = [*t["as_"], "-I", str(ROOT / f"include/os/linux/{arch}"), "-I", str(ROOT / "include")]
     for name in PAL_FILES:
         o = work / f"{name}.o"
-        src = (pal_override or {}).get(name) or pal / f"{name}.s"
-        jobs.append(tool([*t["as_"], "-I", str(ROOT / f"include/os/linux/{arch}"), "-I", str(ROOT / "include"), str(src), "-o", str(o)]))
-        objs.append(str(o))
+        override = (pal_override or {}).get(name)
+        src = override or (pal / f"{name}.s")
+        if override is None:
+            cached, job = _cached_compile(as_base, src, o, [arch, "as", hdr_fp, *as_base])
+            if job:
+                jobs.append(job)
+            objs.append(str(cached))
+        else:
+            jobs.append(tool([*as_base, str(src), "-o", str(o)]))
+            objs.append(str(o))
+    cc_base = [*t["cc"], *COMMON, *t["extra"], *(cflags or []), "-c"]
+    cc_cached_base = [*t["cc"], *COMMON, *t["extra"], *_strip_harness_src_defs(cflags), "-c"]
     for i, c in enumerate([*c_files, SHIMS]):
         src = Path(c) if Path(c).is_absolute() else ROOT / c
         o = work / f"c{i}_{src.stem}.o"
-        jobs.append(tool([*t["cc"], *COMMON, *t["extra"], *(cflags or []), "-c", str(src), "-o", str(o)]))
-        objs.append(str(o))
-    parallel(jobs)
+        if _can_cache_c(src):
+            cached, job = _cached_compile(cc_cached_base, src, o, [arch, "cc", hdr_fp, *cc_cached_base])
+            if job:
+                jobs.append(job)
+            objs.append(str(cached))
+        else:
+            jobs.append(tool([*cc_base, str(src), "-o", str(o)]))
+            objs.append(str(o))
+    if jobs:
+        parallel(jobs)
     objs.extend(str(o) for o in extra_objs or [])
     exe = work / "prog"
     # pal_fault/pal_file reference mem_copy and try_rt helpers in some builds; --unresolved-symbols keeps unused paths gc'd
@@ -181,3 +260,25 @@ def diff_impls(exe: Path, *args: str, stdin: bytes = b"", env: dict[str, str] | 
         pairs = [(x, y) for x, y in zip(a.stdout.splitlines(), b.stdout.splitlines()) if x != y][:3]
         raise AssertionError(f"{impls[0]} and {impls[1]} differ for {args[:3]}: {pairs or (a.stderr[:200], b.stderr[:200])}")
     return b.stdout
+
+
+def perf_gate(exe: Path, *args: str, stdin: bytes = b"", max_ratio: float = 1.15, repeats: int = 3, retries: int = 2,
+              arch: str = "x86_64") -> tuple[float, float]:
+    """Compare best-of-`repeats` wall time of C vs frozen asm oracle (hot-render perf gate, plan U0b); retries on host jitter."""
+    import time
+    best_ref = best_c = float("inf")
+    for attempt in range(retries + 1):
+        refs, cs = [], []
+        for _ in range(repeats):
+            for impl, bucket in (("ref", refs), ("c", cs)):
+                t0 = time.perf_counter()
+                res = run_impl(arch, exe, impl, *args, stdin=stdin)
+                dt = time.perf_counter() - t0
+                assert res.returncode == 0, (impl, res.returncode, res.stderr[-200:])
+                bucket.append(dt)
+        best_ref, best_c = min(refs), min(cs)
+        if best_c <= best_ref * max_ratio:
+            return best_ref, best_c
+        if attempt == retries:
+            raise AssertionError(f"perf regression: C {best_c * 1e3:.2f} ms > {max_ratio:.2f}x asm {best_ref * 1e3:.2f} ms")
+    return best_ref, best_c

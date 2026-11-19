@@ -154,14 +154,15 @@ def handle_session_start(payload: dict, root: Path) -> dict:
     msg = (
         f"[Duop Workspace] VERSION={ver} | branch={branch or 'detached'} ({head or 'unborn'}) "
         f"| latest_tag={tag or 'none'} | dirty_files={dirty_count} | git_hooks={hooks_path or 'default'}.\n"
-        "Hybrid codebase: portable freestanding C23 (src/**/*.c, registered in Makefile C_SRCS, headers include/duop_*.h) over a per-OS/ISA "
-        "assembly PAL (src/os/<os>/<arch>/); remaining src/**/*.s modules are being migrated to C (skill duop-asm-to-c-migration). "
+        "Hybrid codebase: portable freestanding C23 (src/core, src/tui, src/fs complete; src/ui & src/app migrating, C_SRCS, include/duop_*.h, build/duop_classes.h) over a per-OS/ISA "
+        "assembly PAL (src/os/<os>/<arch>/); remaining src/{ui,app}/**/*.s & main.s move to C23 (duop-asm-to-c-migration + tests/harness/ui_{render,event,app_stub}.h). "
+        "Product roadmap: docs/DEVELOPMENT_PLAN_2026-11-17.md (streaming C23 archives, TaskQueue+SHA-256, Drop Stack, out-of-process VFS, Ed25519 registry, Linux AArch64). "
         "Use workspace rules in AGENTS.md and skills in .agents/skills/: "
         "duop-tdd-first, duop-asm-to-c-migration, duop-modular-asm, duop-lean-modules, duop-multiplatform-pal, duop-ui-i18n-widget, duop-pty-verify, duop-version-release. "
         "Keep modules lean: .s/.c <= 500 lines, routine/function <= 80 lines, exports <= 16 (duop-lean-modules gate); C: frame <= 4608 B, no libc or third-party libraries (initialised .data and binary size are not gated). "
         "Always design & write tests under tests/ before editing src/ or include/ (a differential test against a frozen asm oracle counts). "
-        "Pre-commit is tiered: module-local commits run the smart tests (tests/run_smart_tests.py); the full `make test` runs in pre-push and CI. "
-        "Verify with ./.agents/skills/duop-pty-verify/scripts/verify_build.sh, maintain SemVer in VERSION, "
+        "Pre-commit is tiered: module-local commits run the smart tests (tests/run_smart_tests.py); full `make test` (with tmpfs object cache) runs in pre-push and CI. "
+        "Verify with ./.agents/skills/duop-pty-verify/scripts/verify_build.sh [--smart|--release-only|--full], maintain SemVer in VERSION, "
         "and commit after verified changes."
     )
     return {"injectSteps": [{"systemMessage": {"systemMessage": msg}}]}
@@ -383,7 +384,7 @@ def handle_post_tool_use(payload: dict, root: Path) -> dict:
     elif name == "run_command" and not error:
         cmd = str(args.get("CommandLine") or args.get("command") or "")
         if re.search(
-            r"(?:verify_build\.sh|\bmake\b[^\n]*\b(?:verify|test)\b|tests/test_[A-Za-z0-9_]+\.py|test_pty\.py)",
+            r"(?:verify_build\.sh|\bmake\b[^\n]*\b(?:verify|test)\b|tests/(?:run_smart_tests|run_tests|test_[A-Za-z0-9_]+)\.py|test_pty\.py)",
             cmd,
         ):
             state["needs_verify"] = False

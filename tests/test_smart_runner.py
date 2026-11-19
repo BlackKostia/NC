@@ -67,10 +67,10 @@ def test_header_addition_is_local_but_edit_is_global() -> None:
 
 
 def test_local_registration_skips_full_suite() -> None:
-    full, tests = rsm.select_tests(["Makefile", "include/duop_fs.h", "src/fs/dir_fuzzy.c", "tests/test_c_dir_fuzzy.py"], local_ok=lambda rel: rel in ("Makefile", "include/duop_fs.h"))
+    full, tests = rsm.select_tests(["VERSION", "Makefile", "include/duop_fs.h", "src/fs/dir_fuzzy.c", "tests/test_c_dir_fuzzy.py"], local_ok=lambda rel: rel in ("Makefile", "include/duop_fs.h"))
     assert not full
     assert "tests/test_abi_layouts.py" in tests and "tests/test_abi_cross.py" in tests
-    assert "tests/test_c_stack_align.py" in tests and "tests/test_c_dir_fuzzy.py" in tests
+    assert "tests/test_c_stack_align.py" in tests and "tests/test_c_dir_fuzzy.py" in tests and "tests/test_headless.py" in tests
     full, _ = rsm.select_tests(["Makefile", "src/fs/dir_fuzzy.c"], local_ok=lambda rel: False)
     assert full                                                  # a non-registration Makefile change still needs everything
 

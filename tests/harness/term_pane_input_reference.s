@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/ui/term_pane_input.c replaced (tests/test_c_ui_leaf1.py diffs against it)
 # Embedded Bottom PTY Terminal Pane (Ctrl+`) — term pane input (split from term_pane.s)
 
 .intel_syntax noprefix

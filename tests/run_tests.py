@@ -18,6 +18,7 @@ import os
 import re
 import subprocess
 import sys
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -26,6 +27,9 @@ ROOT = Path(__file__).resolve().parent.parent
 TIMES = ROOT / "build/test_times.json"
 EXCLUSIVE = ("test_pal_selftest.py", "test_headless.py", "test_audit_live_regs.py", "test_memcheck.py")      # write shared build outputs
 PTY_MARKERS = ("PtySession", "import test_pty", "from test_pty", "pty.fork", "openpty")
+# Standalone harness/audit scripts that compile their own test binaries and do not depend on release vs debug ./duop
+HARNESS_PREFIXES = ("tests/test_c_", "tests/test_abi_", "tests/test_pal_", "tests/test_gen_abi",
+                    "tests/test_run_tests", "tests/test_smart_runner", "tests/test_headless")
 TIMEOUT = 1500
 
 
@@ -97,44 +101,53 @@ def run_one(rel: str) -> tuple[str, int, float, str]:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("-j", "--jobs", type=int, default=max(2, (os.cpu_count() or 4) - 2))
-    ap.add_argument("--pty-jobs", type=int, default=max(3, (os.cpu_count() or 4) // 2))
+    cpus = os.cpu_count() or 4
+    ap.add_argument("-j", "--jobs", type=int, default=max(2, min(6, cpus // 2)))
+    ap.add_argument("--pty-jobs", type=int, default=max(2, min(3, cpus // 4)))
     ap.add_argument("--only", nargs="*", default=[], help="run only tests whose path contains one of these substrings")
+    ap.add_argument("--binary-only", action="store_true", help="skip standalone harness/ABI tests that do not execute ./duop")
     ap.add_argument("--serial", action="store_true", help="one test at a time (the old behaviour)")
     ap.add_argument("--no-tmpfs", action="store_true", help="keep the default TMPDIR (a disk)")
     ap.add_argument("--no-retry", action="store_true", help="a failure in the parallel phase is final")
     ap.add_argument("--list", action="store_true")
     args = ap.parse_args()
     tests = [t for t in registry() if not args.only or any(s in t for s in args.only)]
+    if args.binary_only:
+        tests = [t for t in tests if not t.startswith(HARNESS_PREFIXES)]
     if args.list:
         print("\n".join(tests))
         return 0
     history = json.loads(TIMES.read_text()) if TIMES.exists() else {}
     tests.sort(key=lambda t: -history.get(t, 30.0))
-    lanes = {"exclusive": [], "pty": [], "free": []}
-    for t in tests:
-        lanes["exclusive" if t.endswith(EXCLUSIVE) else "pty" if is_pty(t) else "free"].append(t)
-    sizes = {"exclusive": 1, "pty": args.pty_jobs, "free": args.jobs}
-    if args.serial:
-        sizes = {k: 1 for k in sizes}
     if not args.no_tmpfs:
         setup_scratch()
-    CHILD_ENV["DUOP_TEST_JOBS"] = str(max(2, (os.cpu_count() or 4) // 3))          # nested parallelism inside one test stays modest
+    CHILD_ENV["DUOP_TEST_JOBS"] = "2"                                             # unified cap: total workers * 2 <= host threads
     t_start, failed, durations = time.monotonic(), [], {}
-    pools = {k: ThreadPoolExecutor(max_workers=sizes[k]) for k in lanes}
-    futures = [pools[k].submit(run_one, t) for k, ts in lanes.items() for t in ts]
-    done = 0
-    for fut in as_completed(futures):
-        rel, rc, dt, out = fut.result()
-        done += 1
-        durations[rel] = round(dt, 1)
-        print(f"[{done:3}/{len(futures)}] {'PASS' if rc == 0 else 'FAIL'} {dt:6.1f}s {rel}", flush=True)
-        if rc != 0:
-            failed.append(rel)
-            save_log(rel, out)
-            print("\n".join("    | " + ln for ln in out.splitlines()[-40:]), flush=True)
-    for p in pools.values():
-        p.shutdown()
+    total_workers = 1 if args.serial else max(1, args.jobs)
+    pty_sem = threading.Semaphore(1 if args.serial else max(1, min(args.pty_jobs, total_workers)))
+    excl_lock = threading.Lock()
+
+    def run_gated(rel: str) -> tuple[str, int, float, str]:
+        if rel.endswith(EXCLUSIVE):
+            with excl_lock:
+                return run_one(rel)
+        if is_pty(rel):
+            with pty_sem:
+                return run_one(rel)
+        return run_one(rel)
+
+    with ThreadPoolExecutor(max_workers=total_workers) as pool:
+        futures = [pool.submit(run_gated, t) for t in tests]
+        done = 0
+        for fut in as_completed(futures):
+            rel, rc, dt, out = fut.result()
+            done += 1
+            durations[rel] = round(dt, 1)
+            print(f"[{done:3}/{len(futures)}] {'PASS' if rc == 0 else 'FAIL'} {dt:6.1f}s {rel}", flush=True)
+            if rc != 0:
+                failed.append(rel)
+                save_log(rel, out)
+                print("\n".join("    | " + ln for ln in out.splitlines()[-40:]), flush=True)
     flaky: list[str] = []
     if failed and not args.no_retry and not args.serial:
         print(f"\nretrying {len(failed)} failed test(s) alone: {' '.join(Path(t).name for t in failed)}", flush=True)

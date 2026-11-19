@@ -145,6 +145,11 @@ void      os_raise_nofile(int want);                /* RLIMIT_NOFILE soft limit 
 void      os_uring_atfork_reset(void);              /* drop the inherited io_uring mappings / fd in a forked child */
 void      os_signals_install(void (*on_winch)(void), void (*on_int)(void), void (*on_term)(void));
 void      os_fault_guard_install_slot(void **try_frame_slot);
+int       os_pty_spawn(int *out_master_fd, int *out_pid, const char *cwd, char **envp, int cols, int rows);
+void      os_pty_resize(int master_fd, int cols, int rows);
+DUOP_NODISCARD intptr_t os_pty_read(int fd, void *buf, size_t len);
+DUOP_NODISCARD intptr_t os_pty_write(int fd, const void *buf, size_t len);
+void      os_pty_close(int fd);
 
 /* ---- TRY/CATCH fault guard for C (pal_fault.s). A TryFrame is setjmp-like: os_try_begin returns 0, and when a SIGSEGV / SIGBUS / SIGFPE
  * hits this thread before os_try_end the handler unlinks the frame, restores the callee-saved registers and sp and makes os_try_begin

@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/ui/header_bar_git.c replaced (tests/test_c_ui_leaf1.py diffs against it)
 # HeaderBar Widget (Inherits from Widget) — header bar git (split from header_bar.s)
 
 .intel_syntax noprefix

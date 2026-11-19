@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/ui/popup_osc52.c replaced (tests/test_c_ui_leaf1.py diffs against it)
 # OSC 52 Clipboard helper (split from popup_menu.s)
 .intel_syntax noprefix
 .include "pal.inc"

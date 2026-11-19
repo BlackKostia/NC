@@ -22,7 +22,6 @@ ROOT = Path(__file__).resolve().parent.parent
 FULL_SUITE_PATTERNS = (
     "include/*",
     "Makefile",
-    "VERSION",
     "src/main.s",
     "src/core/*",
     "src/os/*",
@@ -84,6 +83,7 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/fs/img_*", ("tests/test_img_preview.py", "tests/test_image_formats.py", "tests/test_image_quality.py", "tests/test_decoder_bounds.py")),
     ("src/fs/preview_*", ("tests/test_c_preview.py", "tests/test_img_preview.py", "tests/test_event_loop.py", "tests/test_medium_fixes.py")),
     ("src/ui/img_*", ("tests/test_img_preview.py", "tests/test_image_quality.py")),
+    ("src/ui/preview_pane_mouse*", ("tests/test_c_ui_leaf1.py", "tests/test_ui_visual.py")),
     ("src/ui/preview_*", ("tests/test_img_preview.py", "tests/test_ui_visual.py")),
     ("src/fs/disk_usage*", ("tests/test_disk_usage.py", "tests/test_du_progress.py", "tests/test_du_sizes.py", "tests/test_c_du_populate.py")),
     ("src/fs/du_*", ("tests/test_disk_usage.py", "tests/test_du_progress.py", "tests/test_du_sizes.py", "tests/test_c_du_tables.py", "tests/test_c_du_walk.py")),
@@ -96,7 +96,7 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/fs/git_status*", ("tests/test_c_git_status.py", "tests/test_git_status.py", "tests/test_git_trust.py")),
 ("src/fs/git_*", ("tests/test_git_status.py", "tests/test_git_trust.py")),
     ("src/ui/git_render*", ("tests/test_git_status.py",)),
-    ("src/ui/header_bar_git*", ("tests/test_git_status.py",)),
+    ("src/ui/header_bar_git*", ("tests/test_c_ui_leaf1.py", "tests/test_git_status.py")),
     ("src/fs/nav_state*", ("tests/test_nav_tabs.py", "tests/test_nav_viewer.py", "tests/test_choosedir.py", "tests/test_c_nav_state.py")),
     ("src/fs/nav_persist*", ("tests/test_nav_tabs.py", "tests/test_nav_viewer.py", "tests/test_choosedir.py", "tests/test_c_nav_state.py", "tests/test_medium_fixes.py")),
     ("src/app/app_choosedir*", ("tests/test_choosedir.py",)),
@@ -106,6 +106,7 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/ui/search_dialog*", ("tests/test_search_virtual.py",)),
     ("src/ui/fuzzy_dialog*", ("tests/test_fuzzy_palette.py",)),
     ("src/fs/dir_diff*", ("tests/test_diff_menu_clip.py",)),
+    ("src/ui/popup_osc52*", ("tests/test_c_ui_leaf1.py", "tests/test_diff_menu_clip.py")),
     ("src/ui/popup_menu*", ("tests/test_diff_menu_clip.py", "tests/test_pkg_extensions.py")),
     ("src/fs/trash_*", ("tests/test_trash_undo_attr.py", "tests/test_trash_spec.py", "tests/test_c_trash.py")),
     ("src/app/app_attr*", ("tests/test_trash_undo_attr.py",)),
@@ -118,6 +119,8 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/ui/elf_inspect*", ("tests/test_viewer_pro.py",)),
     ("src/app/app_view*", ("tests/test_viewer_pro.py", "tests/test_nav_viewer.py")),
     ("src/ui/bulk_rename*", ("tests/test_bulk_rename.py",)),
+    ("src/ui/term_keys*", ("tests/test_c_ui_leaf1.py", "tests/test_term_pane.py")),
+    ("src/ui/term_pane_input*", ("tests/test_c_ui_leaf1.py", "tests/test_term_pane.py")),
     ("src/ui/term_*", ("tests/test_term_pane.py", "tests/test_crash_regressions.py")),
     ("src/ui/user_menu*", ("tests/test_config_usermenu.py",)),
     ("src/ui/bookmark*", ("tests/test_nav_tabs.py",)),
@@ -127,8 +130,13 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/core/memcheck*", ("tests/test_c_memcheck.py", "tests/test_memcheck.py")),
     ("tests/harness/memcheck_*", ("tests/test_c_memcheck.py",)),
     ("tests/c_harness.py", ("tests/test_c_harness_utils.py", "tests/test_c_i18n_table.py", "tests/test_c_syscall.py", "tests/test_c_hash.py")),
+    ("tests/run_tests.py", ("tests/test_run_tests.py",)),
+    ("tests/run_smart_tests.py", ("tests/test_smart_runner.py",)),
     ("tests/harness/script_cli.h", ("tests/test_c_harness_utils.py",)),
+    ("tests/harness/ui_event.h", ("tests/test_c_ui_leaf1.py",)),
+    ("tests/harness/ui_app_stub.h", ("tests/test_c_ui_leaf1.py",)),
     ("src/app/cli_args*", ("tests/test_headless.py",)),
+    ("VERSION", ("tests/test_headless.py",)),
     ("src/app/license*", ("tests/test_headless.py",)),
     ("src/app/main_headless*", ("tests/test_headless.py",)),
     ("include/duop_cli.h", ("tests/test_headless.py",)),
@@ -267,6 +275,26 @@ def run_selected(tests: list[str], dry_run: bool = False) -> int:
             print(t)
         return 0
     t0 = time.time()
+    if len(tests) >= 2:
+        sys.path.insert(0, str(ROOT / "tests"))
+        import run_tests as rt  # noqa: E402
+        reg = set(rt.registry())
+        in_reg = [t for t in tests if t in reg]
+        extra = [t for t in tests if t not in reg]
+        for t in extra:
+            print(f"==> [smart-test] {t}")
+            res = subprocess.run([sys.executable, str(ROOT / t)], cwd=str(ROOT), check=False)
+            if res.returncode != 0:
+                print(f"FAILED: {t} (exit {res.returncode})", file=sys.stderr)
+                return res.returncode
+        if len(in_reg) >= 2:
+            print(f"==> [smart-test] running {len(in_reg)} suite(s) via tests/run_tests.py")
+            res = subprocess.run([sys.executable, str(ROOT / "tests/run_tests.py"), "--only", *in_reg], cwd=str(ROOT), check=False)
+            if res.returncode != 0:
+                return res.returncode
+            print(f"SMART TESTS PASSED ({len(tests)} suite(s) in {time.time() - t0:.2f}s).")
+            return 0
+        tests = in_reg
     for t in tests:
         print(f"==> [smart-test] {t}")
         res = subprocess.run([sys.executable, str(ROOT / t)], cwd=str(ROOT), check=False)

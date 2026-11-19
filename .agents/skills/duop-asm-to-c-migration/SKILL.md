@@ -22,7 +22,14 @@ callers keep working because the C honours the exact System V contract of the ol
    `c_harness.rename_defined_globals(objs, "ref_")` next to the C module; scripted via stdin, **one implementation per
    process** when state is global; real files in two identically built trees compared with a tree snapshot — never read a
    FIFO) and `tests/test_c_<topic>.py` (random + boundary + real-filesystem cases; assert the generator really reaches
-   interesting branches). Copy the pattern of `tests/test_c_trash.py`, `test_c_nav_state.py`, `test_c_du_walk.py`.
+   interesting branches).
+   - For **`src/ui/` & `src/app/`** migrations (`src/core`, `src/tui`, `src/fs` are 100% C23): reuse `tests/harness/ui_render.h`
+     (synthetic 29-colour theme + cell-by-cell dump), `tests/harness/ui_event.h` (scripted key/mouse/resize events),
+     `tests/harness/ui_app_stub.h` (zeroed `App`, mutable English `i18n_get`, call logger), `build/duop_classes.h`,
+     `include/duop_ui.h` (`WIDGET_VTBL`/`DIALOG_VTBL`/`DUOP_NEW`/`WIDGET_CALL`/`DIALOG_CALL`/`DUOP_TRY_BEGIN`),
+     `include/duop_app.h`, and `c_harness.perf_gate` for hot render paths. Copy `tests/test_c_status_bar.py` or `tests/test_c_ui_leaf1.py`.
+   - `tests/c_harness.py` caches compiled PAL and repo C objects in `/dev/shm/duop_obj_cache_<uid>` (atomic writes; bypass via `DUOP_NO_TEST_CACHE=1`),
+     so mutation checks only recompile the mutated/harness unit.
 4. **Write the C** under the layer rules (`AGENTS.md` §1) with prototypes in `include/duop_<layer>.h`; no libc headers.
 5. **Mutation check**: apply 6–10 one-line mutations (limits ±1, flags dropped, comparison flipped, lock removed) with `sed`
    and require the test to fail for each; add a targeted case for every survivor unless the mutant is behaviourally

@@ -750,8 +750,8 @@
   - `HeaderBar_new` — HeaderBar *HeaderBar_new(App *app)
   - `HeaderBar_layout` — void HeaderBar_layout(HeaderBar *this, int x, int y, int w, int h)
   - `HeaderBar_vtbl`
-- **`src/ui/header_bar_git.s`**
-  - `hdr_draw_mode_and_git`
+- **`src/ui/header_bar_git.c`**
+  - `hdr_draw_mode_and_git` — `void hdr_draw_mode_and_git(void *hdr, void *scr, const void *theme, const void *ls)`
 - **`src/ui/header_bar_render.s`**
   - `HeaderBar_render` — void HeaderBar_render(HeaderBar *this, ScreenBuffer *scr, Theme *theme)
   - `HeaderBar_on_mouse` — int HeaderBar_on_mouse(HeaderBar *this, Event *evt)
@@ -787,8 +787,8 @@
 - **`src/ui/popup_menu.s`**
   - `PopupMenu_new` — PopupMenuDialog *PopupMenu_new(App *app, int x, int y)
   - `pane_mouse_ext` — int pane_mouse_ext(App *app, Event *evt) -> 1 if handled, 0 else
-- **`src/ui/popup_osc52.s`**
-  - `osc52_copy_text` — void osc52_copy_text(const char *str)
+- **`src/ui/popup_osc52.c`**
+  - `osc52_copy_text` — `void osc52_copy_text(const char *str)`
 - **`src/ui/preview_mode.s`**
   - `PreviewPane_thumb_req` — out = { w | h << 16 (pixels for the image box), IMG_PROTO_* | cols << 8, background 0xRRGGBB }
   - `pv_box_pixels` — (int w, int h, int cols) pv_box_pixels(PreviewPane *this, int proto) -- the preview image box
@@ -803,8 +803,8 @@
   - `PreviewPane_accept` — this->buf holds len head bytes; thumb points at tlen image payload bytes (tlen = 0: not an image).
   - `pv_copy_line_strip_ansi` — char *pv_copy_line_strip_ansi(const char *p, const char *end, char *dst) -> next_p
   - `PreviewPane_vtbl`
-- **`src/ui/preview_pane_mouse.s`**
-  - `PreviewPane_on_mouse` — int PreviewPane_on_mouse(PreviewPane *this, Event *evt)
+- **`src/ui/preview_pane_mouse.c`**
+  - `PreviewPane_on_mouse` — `int PreviewPane_on_mouse(Widget *self, void *evt)`
 - **`src/ui/preview_pane_render.s`**
   - `PreviewPane_render` — void PreviewPane_render(PreviewPane *this, ScreenBuffer *scr, Theme *theme)
 - **`src/ui/progress_dialog.s`**
@@ -845,8 +845,8 @@
 - **`src/ui/syntax.s`**
   - `syntax_detect` — int syntax_detect(const char *path) -> 0=plain, 1=hash-comment(py/sh/mk/s), 2=c/json, 3=md
   - `syntax_draw_line` — const char *path, Theme *theme, uint32_t bg)
-- **`src/ui/term_keys.s`**
-  - `term_key_encode` — ->    -1 : not a terminal key (let the file manager handle it, e.g. F1..F12)
+- **`src/ui/term_keys.c`**
+  - `term_key_encode` — `int term_key_encode(const void *evt, char *out)`
 - **`src/ui/term_pane.s`**
   - `term_height` — int term_height(int main_h) -> 0 if hidden, else max(6, main_h / 3)
   - `term_toggle` — void term_toggle(App *app)
@@ -855,9 +855,9 @@
   - `g_term_visible`
   - `g_term_inited`
   - `g_term_fd`
-- **`src/ui/term_pane_input.s`**
-  - `term_on_key` — int term_on_key(App *app, Event *evt) -> 1 if consumed
-  - `term_shutdown`
+- **`src/ui/term_pane_input.c`**
+  - `term_on_key` — `int term_on_key(void *app, void *evt)`
+  - `term_shutdown` — `void term_shutdown(void)`
 - **`src/ui/user_menu_dlg.s`**
   - `UserMenuDialog_vtbl`
   - `UserMenuDialog_new` — UserMenuDialog *UserMenuDialog_new(App *app)

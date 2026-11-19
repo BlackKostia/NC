@@ -17,7 +17,7 @@ def build_and_run(arch: str, runner: list[str]) -> str:
     res = subprocess.run(build, cwd=ROOT, capture_output=True, text=True)
     assert res.returncode == 0, f"{arch} selftest build failed:\n{res.stdout}{res.stderr}"
     exe = ROOT / binary(arch)
-    out = subprocess.run(runner + [str(exe)], cwd=ROOT, capture_output=True, text=True, timeout=60)
+    out = subprocess.run(runner + [str(exe)], cwd=ROOT, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=60)
     assert out.returncode == 0 and "PAL SELFTEST PASSED" in out.stdout, f"{arch}: rc={out.returncode}\n{out.stdout}{out.stderr}"
     return out.stdout.strip()
 

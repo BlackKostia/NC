@@ -1,3 +1,4 @@
+# Frozen reference oracle: the hand-written asm that src/ui/preview_pane_mouse.c replaced (tests/test_c_ui_leaf1.py diffs against it)
 # PreviewPane Widget (Inherits from Widget) — preview pane mouse (split from preview_pane.s)
 
 .intel_syntax noprefix

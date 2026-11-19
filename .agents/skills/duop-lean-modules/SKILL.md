@@ -46,8 +46,8 @@ python3 .agents/skills/duop-lean-modules/scripts/check_lean.py --update   # tigh
    feature is a separate concern, create `src/<layer>/<topic>.c` (register in `Makefile`
    `C_SRCS`; assembly only for the PAL via `PAL_SRCS`; layer rules in `duop-modular-asm`).
 2. **Split by responsibility, not by size**: widget rendering vs. input handling vs. layout
-   (`file_pane_render.s`, `file_pane_input.s`), model loading vs. sorting vs. caching
-   (`dir_model.s`, `dir_sort.s`, `dir_cache.s`), parser vs. applier.
+   (`file_pane_render.s`, `file_pane_keys.s`, `file_pane_layout.s`), model loading vs. sorting vs. caching
+   (`dir_model.c`, `dir_sort.c`, `dir_cache.c`), parser vs. applier.
 3. **Long routine → named helpers**: extract each commented block (`# Row 3: progress bar`)
    into a local routine (`pd_draw_bar:`); keep the parent as a short sequence of calls.
 4. **Narrow API**: export only what other modules call; helpers stay unexported labels.
