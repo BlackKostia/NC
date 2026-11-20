@@ -2,13 +2,13 @@
 
 **English** | [Українська](README.uk.md)
 
-An ultra-fast, compact dual-pane CLI/TUI file manager for Linux, built on a **hybrid zero-`libc` architecture**: a **pure assembly PAL + SIMD layer** (`src/os/`) beneath **portable freestanding C23** (`src/core/`, `src/tui/`, `src/fs/`…) with **zero external runtime dependencies** — no `libc`, no `ncurses`, only direct kernel syscalls and a vtable-based OOP runtime.
+An ultra-fast, compact dual-pane CLI/TUI file manager for Linux (`x86_64` & `aarch64`), built on a **hybrid zero-`libc` architecture**: a **pure assembly PAL + SIMD layer** (`src/os/`, 28 `.s` files) beneath **100% portable freestanding C23** (`src/core/`, `src/tui/`, `src/fs/`, `src/ui/`, `src/app/`, 171 `.c` files) with **zero external runtime dependencies** — no `libc`, no `ncurses`, only direct kernel syscalls and a vtable-based OOP runtime.
 
-> **Architecture & target status:** Migrating from pure x86-64 GNU Assembler to **Asm PAL + freestanding `no-libc` C23** ([HYBRID_PORTABILITY_PLAN.md](docs/HYBRID_PORTABILITY_PLAN.md)). Currently `src/core/`, `src/tui/`, and `src/fs/inflate.c` run in portable C23 while remaining `src/fs/`, `src/ui/`, and `src/app/` modules are in x86-64 assembly; **Linux x86-64** is the supported runtime target during migration, and the AArch64 PAL backend (`src/os/linux/aarch64/`) is compile-time object-verified.
+> **Architecture & target status:** Migration from pure x86-64 GNU Assembler to **Asm PAL + freestanding `no-libc` C23** ([HYBRID_PORTABILITY_PLAN.md](docs/HYBRID_PORTABILITY_PLAN.md)) is **complete** (`v2.6.90+`, zero non-PAL assembly files remain). Both **Linux x86-64** and **Linux AArch64** build full static zero-`libc` `duop` binaries (`.data = 0`, NX-safe) verified via 182 automated test suites including real PTY sessions on x86-64 and under `qemu-aarch64`.
 
 ## Highlights
 
-- **Tiny Static ELF64**: ~193 KB stripped binary at v2.6.7 (no `libc`, no third-party libraries; size and `.data` are tracked, not gated), ~0.32 ms cold start, ~112.5 ms first frame on a 100,000-file directory (via [`scripts/bench.sh`](scripts/bench.sh)).
+- **Tiny Static ELF64**: ~183 KB stripped binary on `x86_64` (~210 KB on `aarch64`, `.data = 0`, no `libc`, no third-party libraries), ~0.32 ms cold start, ~112.5 ms first frame on a 100,000-file directory (via [`scripts/bench.sh`](scripts/bench.sh)).
 - **High-Throughput Core**:
   - Compact 32-byte `FileEntry` + contiguous `name_pool` + 4-byte `order[]` index sorting (Introsort + LSD Radix Sort).
   - Lazy `d_type` open + rolling `io_uring` (`IORING_OP_STATX`) batch statting + `copy_file_range` / `FICLONE` fast-path copy.
@@ -37,9 +37,9 @@ Or run the benchmark suite:
 ### Build Options (Compile-Time PAL)
 
 ```bash
-make OS=linux ARCH=x86_64 release   # Supported runtime target: Linux x86-64 static ELF
-make OS=linux ARCH=aarch64          # AArch64 PAL objects only (compile-time check with aarch64-linux-gnu-as; full binary is x86-64 only)
-make verify                         # Run modularity, lean-gate, and PTY test suites
+make OS=linux ARCH=x86_64 release   # Full Linux x86-64 static ELF64 (zero-libc)
+make OS=linux ARCH=aarch64 release  # Full Linux AArch64 static ELF64 (zero-libc, clang + aarch64-linux-gnu-binutils)
+make verify                         # Run modularity, lean-gate, ELF hardening, and PTY test suites
 ```
 
 ## Keybindings

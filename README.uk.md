@@ -1,8 +1,8 @@
 # Duop (`duop`)
 
-Ультрашвидкий, компактний двопанельний CLI/TUI файловий менеджер для Linux, побудований на **гібридній архітектурі без `libc`**: **чистий асемблерний шар PAL + SIMD** (`src/os/`) під **портативним freestanding C23** (`src/core/`, `src/tui/`, `src/fs/`…) без жодних сторонніх бібліотечних залежностей (ні `libc`, ні `ncurses` — лише прямі системні виклики ядра та vtable-ООП рантайм).
+Ультрашвидкий, компактний двопанельний CLI/TUI файловий менеджер для Linux (`x86_64` та `aarch64`), побудований на **гібридній архітектурі без `libc`**: **чистий асемблерний шар PAL + SIMD** (`src/os/`, 28 файлів `.s`) під **100 % портативним freestanding C23** (`src/core/`, `src/tui/`, `src/fs/`, `src/ui/`, `src/app/`, 171 файл `.c`) без жодних сторонніх бібліотечних залежностей (ні `libc`, ні `ncurses` — лише прямі системні виклики ядра та vtable-ООП рантайм).
 
-> **Архітектура та статус платформ:** Проєкт перебуває у процесі поетапної міграції з чистого x86-64 GNU Assembler на гібрид **Asm PAL + freestanding `no-libc` C23** ([HYBRID_PORTABILITY_PLAN.md](docs/HYBRID_PORTABILITY_PLAN.md)). Модулі `src/core/`, `src/tui/` та `src/fs/inflate.c` уже перенесено на портативний C23, а решта `src/fs/`, `src/ui/` та `src/app/` поки лишаються на x86-64 асемблері; на етапі міграції основною runtime-платформою є **Linux x86-64**, а PAL-бекенд для AArch64 (`src/os/linux/aarch64/`) верифікується на рівні асемблювання.
+> **Архітектура та статус платформ:** Поетапну міграцію з чистого x86-64 GNU Assembler на гібрид **Asm PAL + freestanding `no-libc` C23** ([HYBRID_PORTABILITY_PLAN.md](docs/HYBRID_PORTABILITY_PLAN.md)) **завершено** (`v2.6.90+`, поза `src/os/` не лишилося жодного `.s`-файлу). І **Linux x86-64**, і **Linux AArch64** збирають повний статичний ELF64-бінарник `duop` (`.data = 0`, NX-safe), перевірений 182 тестовими сюїтами включно з реальними PTY-сесіями на x86-64 та під `qemu-aarch64`.
 
 ## Чому гібрид (Asm PAL + Freestanding C23)
 
@@ -58,13 +58,12 @@ duop/
 │   ├── types.inc             # Структури даних (Rect, Cell, Event, HitZone, FileEntry, Theme, LangStrings)
 │   └── classes.inc           # Повна специфікація класів і vtable
 ├── src/
-│   ├── main.s                # Точка входу _start (прапорці --lang / -l / -h / --help / -V / --version / -L / --license)
-│   ├── os/linux/x86_64/      # pal_os.s, pal_uring.s (io_uring IORING_OP_STATX пакетний stat з fallback), pal_simd.s (SSE2 memcpy/memset/memcmp/strlen/ci-пошук)
-│   ├── core/                 # memory.s (slab-алокатор 64 Б–64 КіБ + mmap для великих), string.s, utf8.c, oop_rt.s, syscall.s
-│   ├── tui/                  # theme.c (3 TrueColor теми), i18n_en.lang + i18n_*.c (EN таблиця, мовні пакети), screen*.c, input*.c (клавіатура + SGR 1006)
-│   ├── fs/                   # dir_model*.s, dir_sort*.s, dir_cache*.s, file_ops*.s, task*.s, dir_watch.s, archive_vfs.s, inflate*.s, disk_usage.s, img_*.s, pkg_*.s, nav_state*.s
-│   ├── ui/                   # header_bar*.s, function_bar.s, status_bar*.s, file_pane*.s, preview_pane*.s, dialogs*.s, viewer_*.s, term_pane*.s, bulk_rename*.s, pkg_dialog.s, fuzzy_dialog.s, syntax.s, hex_edit.s
-│   └── app/                  # app*.s (головний цикл, команди, задачі, події, діалоги)
+│   ├── os/linux/{x86_64,aarch64}/ # pal_os.s, pal_start.s, pal_uring.s (io_uring), pal_simd.s (SSE2/NEON), pal_fault/pty/thread/du/time/file/sys_*.s
+│   ├── core/                 # memory.c (slab-алокатор 64 Б–64 КіБ + mmap), string*.c, utf8.c, oop_rt.c, syscall.c, config*.c, hash*.c, try_rt.c, tmpfile.c, memcheck.c
+│   ├── tui/                  # theme.c (3 TrueColor теми), i18n_en.lang + i18n_*.c (EN таблиця, мовні пакети), screen*.c, input*.c (клавіатура + SGR 1006), kbd_*.c, term_caps.c
+│   ├── fs/                   # dir_model*.c, dir_sort*.c, dir_cache.c, file_ops*.c, task*.c, dir_watch.c, archive_*.c, inflate.c, disk_usage.c, du_*.c, img_*.c, pkg_*.c, nav_*.c, trash_*.c, git_*.c, preview_*.c
+│   ├── ui/                   # header_bar*.c, function_bar.c, status_bar.c, file_pane*.c, preview_pane*.c, dialog*.c, *_dialog.c, *_dlg.c, viewer_*.c, term_pane*.c, bulk_rename.c, popup_*.c, syntax.c, elf_inspect.c, hex_edit.c
+│   └── app/                  # main.c (duop_main), cli_args.c, license.c, app.c, app_loop.c, app_events.c, app_keys.c, app_layout.c, app_cmds.c, app_attr.c, app_task.c, app_open.c, app_menu.c, app_ext.c, app_close_dialog.c, app_du.c, app_cmdline.c, app_choosedir.c, app_arc.c, app_view.c, app_toggles.c
 └── tests/
     ├── test_pal_architecture.py # Перевірка compile-time PAL, ізоляції сисколів, макросів OS_* та статичного ELF
     ├── test_pty.py           # Наскрізні тести в реальному PTY (клавіатура, миша, resize, ФС)
@@ -80,12 +79,13 @@ duop/
 ## Збірка, запуск та тестування
 
 ```bash
-make          # Зібрати ./duop (з DWARF debug-інформацією)
-make release  # Зібрати оптимізований stripped-бінарник
-make run      # Запустити ./duop
-make test     # Запустити наскрізні PTY-тести
-make verify   # Повна перевірка (модульність + release + debug + статичний ELF без libc/dynamic + PTY)
-make hooks    # Активувати Git-хуки з .githooks/ та права на скрипти
+make                        # Зібрати ./duop для Linux x86-64 (з DWARF debug-інформацією)
+make release                # Зібрати оптимізований stripped-бінарник x86-64
+make ARCH=aarch64 release   # Зібрати повний статичний бінарник Linux AArch64 (zero-libc)
+make run                    # Запустити ./duop
+make test                   # Запустити всі 182 тестові сюїти (PTY, диференційні, AArch64, ФС, надійність)
+make verify                 # Повна перевірка (модульність + release + debug + статичний ELF без libc/dynamic + PTY)
+make hooks                  # Активувати Git-хуки з .githooks/ та права на скрипти
 ```
 
 Можна передавати початкові каталоги та мову інтерфейсу (`ua` або `en`; також автовизначення з `LC_ALL`/`LC_MESSAGES`/`LANG`), або перевірити версію/ліцензію через `-V`/`--version` та `-L`/`--license`:

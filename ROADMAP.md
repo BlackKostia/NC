@@ -1,19 +1,19 @@
 # План розвитку Duop (`ROADMAP`)
 
-Цей документ описує покрокову архітектурну дорожню карту розвитку **Duop (`duop`)** — двопанельного TUI-менеджера на чистому x86-64 GNU Assembler (`.intel_syntax noprefix`, нуль `libc`, прямі системні виклики Linux).
+Цей документ описує покрокову архітектурну дорожню карту розвитку **Duop (`duop`)** — двопанельного TUI-менеджера на гібридній архітектурі без `libc`: **асемблерний PAL + SIMD** (`src/os/`, Linux `x86_64` і `aarch64`) під **100 % портативним freestanding C23** (`src/core|tui|fs|ui|app/*.c`, прямі системні виклики Linux, нуль `libc`).
 
 **Головна стратегічна перевага проєкту**, яку необхідно зберігати й підсилювати на кожному етапі: **миттєвий старт (~1 мс), мізерне споживання RAM, один переносимий статичний ELF без жодних залежностей** (працює будь-де: rescue-диски, мінімальні контейнери, embedded, SSH-сервери без встановлених пакетів).
 
 ---
 
-## Поточна база (`v1.0` — реалізовано)
+## Поточна база (`v1.0` — `v2.6.91` — реалізовано)
 
-- **Кодова база**: `v1.0` починалася з `13 356` рядків і ~50 КБ (`text=45445, data=0, bss=680`); актуальний `v2.6+` із декодерами зображень (JPEG/PNG/GIF/BMP/PNM/TGA), Kitty/Sixel, Package Manager, `io_uring` та Archive VFS (ZIP64) — stripped static ELF ~193 КБ (`.data=0`, `bss` ~785 КБ, нуль `libc`).
-- **ООП-рантайм** ([oop.inc](include/oop.inc), [oop_rt.s](src/core/oop_rt.s), [classes.inc](include/classes.inc)): `Object`, `ScreenBuffer`, `DirModel`, `App`, `Widget` → `HeaderBar`, `FunctionBar`, `StatusBar`, `FilePane`, `PreviewPane`, `Dialog` → `ConfirmDialog`, `InputDialog`, `ViewerDialog`, `HelpDialog`.
-- **Графіка та ввід**: 24-біт TrueColor diff-рендер ([screen.s](src/tui/screen.s)), 3 теми ([theme.s](src/tui/theme.s)), повний декодер клавіатури (включно з `Alt + UTF-8`) і миші `SGR 1006` ([input.s](src/tui/input.s)).
+- **Кодова база**: `v1.0` починалася з `13 356` рядків і ~50 КБ (`text=45445, data=0, bss=680`); актуальний `v2.6.91` (171 C23-модуль + 28 асемблерних PAL-модулів, **0 не-PAL `.s` файлів**) із декодерами зображень (JPEG/PNG/GIF/BMP/PNM/TGA/QOI), Kitty/Sixel, Package Manager, `io_uring` та Archive VFS (ZIP64) — stripped static ELF **~183 КБ на `x86_64`** (`text=182683, data=0`) та **~210 КБ на `aarch64`** (`text=210213, data=0`, повний static ELF64 без `libc`).
+- **ООП-рантайм** ([duop_oop.h](include/duop_oop.h), [duop_ui.h](include/duop_ui.h), [oop_rt.c](src/core/oop_rt.c), [classes.inc](include/classes.inc)): `Object`, `ScreenBuffer`, `DirModel`, `App`, `Widget` → `HeaderBar`, `FunctionBar`, `StatusBar`, `FilePane`, `PreviewPane`, `Dialog` → `ConfirmDialog`, `InputDialog`, `ViewerDialog`, `HelpDialog`, `ProgressDialog`, `ConflictDialog`, `ChmodDialog`, `InfoDialog`, `ViewAsDialog`, `BookmarkDialog`, `SearchDialog`, `FuzzyDialog`, `UserMenuDialog`, `BulkRenameDialog`, `PkgDialog`.
+- **Графіка та ввід**: 24-біт TrueColor diff-рендер ([screen.c](src/tui/screen.c)), 3 теми ([theme.c](src/tui/theme.c)), повний декодер клавіатури (включно з `Alt + UTF-8`) і миші `SGR 1006` ([input.c](src/tui/input.c)).
 - **Двомовність (UA / EN)** ([i18n_en.lang](src/tui/i18n_en.lang)): `--lang ua|en`, автовизначення `LC_ALL`/`LC_MESSAGES`/`LANG`, миттєве перемикання `Alt+L` (`Alt+д`) або кнопкою у шапці, динамічні UTF-8 хіт-зони (`utf8_display_width`).
-- **Файлова підсистема** ([dir_model.c](src/fs/dir_model.c), [file_ops.c](src/fs/file_ops.c)): `getdents64`, `newfstatat`, QuickSort, живий фільтр, рекурсивні `copy`/`move`/`delete`, Text/Hex viewer і live preview.
-- **Автотести** ([test_pty.py](tests/test_pty.py)): 50 тестових модулів у `tests/` (PTY, ФС-надійність, `io_uring`, продуктивність, fault-injection, PAL).
+- **Файлова підсистема** ([dir_model.c](src/fs/dir_model.c), [file_ops.c](src/fs/file_ops.c)): `getdents64`, `newfstatat`, Introsort + LSD Radix Sort, живий фільтр, рекурсивні `copy`/`move`/`delete`, Text/Hex viewer і live preview.
+- **Автотести** ([test_pty.py](tests/test_pty.py), [test_aarch64_full.py](tests/test_aarch64_full.py)): 182 тестові сюїти у `tests/` (PTY, диференційні тести C vs frozen asm + мутації, повний AArch64 під `qemu-aarch64`, ФС-надійність, `io_uring`, продуктивність, fault-injection, PAL).
 
 ---
 

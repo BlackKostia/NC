@@ -8,6 +8,8 @@ description: >-
 
 # Duop asm → C migration (`duop-asm-to-c-migration`)
 
+> **Status (v2.6.90):** Migration of all non-PAL modules (`core`, `tui`, `fs`, `ui`, `app`, `main`) is **complete** (`SRCS` is empty; only `src/os/<os>/<arch>/pal_*.s` remain assembly). Keep this method as reference for maintaining the frozen oracles (`tests/harness/*_reference.s`) and differential harnesses.
+
 One module (or one tightly coupled cluster) per commit. The C replaces the `.s` **symbol for symbol**; the unchanged asm
 callers keep working because the C honours the exact System V contract of the old routine.
 

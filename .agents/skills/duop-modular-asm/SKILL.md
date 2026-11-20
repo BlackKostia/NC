@@ -8,9 +8,7 @@ description: >-
 
 # Duop Modular Workflow (C23 + assembly PAL)
 
-Keep every Duop subsystem small, decoupled, zero-libc, single-purpose. **New modules are C**; assembly is written only for
-`src/os/<os>/<arch>/` (syscalls, signals, SIMD, thread/pty/uring) and for modules that have not been migrated yet
-(`docs/HYBRID_PORTABILITY_PLAN.md`). Migrating a module: see `duop-asm-to-c-migration`.
+Keep every Duop subsystem small, decoupled, zero-libc, single-purpose. **All application modules (`core/tui/fs/ui/app`) are freestanding C23**; assembly lives exclusively in `src/os/<os>/<arch>/` (syscalls, signals, SIMD, thread/pty/uring, `_start`) and `Makefile` `SRCS` is empty (`docs/HYBRID_PORTABILITY_PLAN.md`).
 
 ## Layer Ownership & Dependency Matrix
 
@@ -22,7 +20,7 @@ Keep every Duop subsystem small, decoupled, zero-libc, single-purpose. **New mod
 | TUI | `src/tui/` | + `core/*` | `fs/*`, `ui/*`, `app/*` |
 | FS | `src/fs/` | + `core/*`, `i18n_get` | `ScreenBuffer_*`, `Input_*`, `theme_*`, `ui/*`, `app/*` |
 | UI | `src/ui/` | + `tui/*`, `fs/*`, the `App_*` service interface (`include/duop_app.h`) | raw `syscall`, app internals |
-| App | `src/app/`, `src/main.s` | all layers below | raw `syscall`, god-functions |
+| App | `src/app/` (`main.c`, `app*.c`) | all layers below | raw `syscall`, god-functions |
 
 ## Adding a module (C, the default)
 
@@ -41,6 +39,6 @@ Keep every Duop subsystem small, decoupled, zero-libc, single-purpose. **New mod
 ## Adding assembly (PAL / SIMD only)
 
 `.intel_syntax noprefix` (x86-64) or GNU ARM syntax (AArch64), immutable data in `.rodata`, mutable in `.bss` (or initialised `.data`), System V /
-AAPCS64 registers and alignment, `.global` only for the public API, registered in `PAL_SRCS` for **every** `ARCH` with the
-same symbols. Remaining non-PAL `.s` modules go in `SRCS`; after editing run `audit_stack_abi/cfg_stack/syscall_clobber/
+AAPCS64 registers and alignment, `.global` only for the public API, registered in `PAL_SRCS` (or `PAL_START_SRCS`) for **every** `ARCH` with the
+same symbols. Never add new non-PAL `.s` modules (`SRCS` must remain empty); after editing PAL assembly run `audit_stack_abi/cfg_stack/syscall_clobber/
 abi_regs/oop_vtables/fd_eintr` (`make audit-all`).
