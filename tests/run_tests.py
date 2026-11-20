@@ -159,7 +159,11 @@ def main() -> int:
                 failed.remove(rel)
                 flaky.append(rel)
             else:
-                print("\n".join("    | " + ln for ln in out.splitlines()[-40:]), flush=True)
+                tail = out.splitlines()[-40:]
+                print("\n".join("    | " + ln for ln in tail), flush=True)
+                if os.environ.get("GITHUB_ACTIONS"):
+                    msg = " | ".join(ln.strip() for ln in tail[-6:] if ln.strip())
+                    print(f"::error title={rel}::{msg}", flush=True)
     if not args.only:
         TIMES.parent.mkdir(exist_ok=True)
         TIMES.write_text(json.dumps({**history, **durations}, indent=0))

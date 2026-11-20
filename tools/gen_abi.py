@@ -23,6 +23,7 @@ import argparse
 import glob
 import json
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -176,7 +177,8 @@ def evaluate(structs: list[Struct], sources: list[str], incdirs: list[Path]) -> 
         body = "".join(f'.include "{s}"\n' for s in sources)
         src.write_text(".intel_syntax noprefix\n" + body + ".section .text\n" +
                        "".join(f".globl V_{i}\n.set V_{i}, {n}\n" for i, n in enumerate(syms)))
-        cmd = ["as", *[a for d in incdirs for a in ("-I", str(d))], str(src), "-o", str(Path(t) / "layout.o")]
+        as_bin = shutil.which("x86_64-linux-gnu-as") or "as"
+        cmd = [as_bin, *[a for d in incdirs for a in ("-I", str(d))], str(src), "-o", str(Path(t) / "layout.o")]
         res = subprocess.run(cmd, capture_output=True, text=True)
         if res.returncode != 0:
             raise GenError("assembler rejected the layout:\n" + res.stderr.strip() + offending_lines(res.stderr))
