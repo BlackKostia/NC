@@ -1,0 +1,16 @@
+name: Interface Translation / Keyboard Layout
+description: Contribute a new language pack (`lang/*.lang`) or keyboard map (`layouts/*.layout`)
+labels: ["i18n", "good first issue"]
+body:
+  - type: input
+    id: locale
+    attributes:
+      label: Language / Layout code and name
+      placeholder: "de (Deutsch) / pl (Polski) / es (Español)"
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Details
+      description: Link to your draft or note whether you are adding `lang/<id>.lang`, `layouts/<id>.layout`, or both.

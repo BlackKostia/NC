@@ -1,0 +1,36 @@
+name: Bug Report
+description: Report a crash, rendering glitch, or unexpected behavior in Duop
+labels: ["bug"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Duop version & architecture
+      description: Output of `duop --version` and `uname -m`
+      placeholder: "Duop v2.7.0 (x86-64 Linux ELF64, zero-libc)"
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Terminal & Linux kernel
+      description: Terminal emulator (`$TERM`, Kitty/Alacritty/WezTerm/etc.) and `uname -sr`
+      placeholder: "Kitty 0.36, Linux 6.12 x86_64"
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Exact key sequence or command line that triggers the issue
+      placeholder: |
+        1. Run `duop /tmp /tmp`
+        2. Press `Ctrl+K` ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs. actual behavior
+    validations:
+      required: true

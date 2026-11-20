@@ -1,18 +1,26 @@
 # Maintainer: Kostiantyn Nedbailo <ChessPlayerSedoy@gmail.com>
 pkgname=duop
-pkgver=2.0.0
+pkgver=2.7.0
 pkgrel=1
-pkgdesc="Dual-pane TUI file manager in pure x86-64 GNU Assembler (zero libc)"
-arch=('x86_64')
-url="https://github.com/ChessPlayerSedoy/duop"
+pkgdesc="Ultra-fast zero-libc dual-pane TUI file manager (static ~190 KB ELF, C23 + assembly PAL)"
+arch=('x86_64' 'aarch64')
+url="https://github.com/BlackKostia/duop"
 license=('MIT')
-makedepends=('binutils' 'make')
+makedepends=('binutils' 'make' 'python')
+makedepends_x86_64=('gcc>=13')
+makedepends_aarch64=('clang')
+options=('!buildflags' '!lto' '!debug')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
+# Run `updpkgsums` once the v$pkgver tag is published on GitHub
 sha256sums=('SKIP')
 
 build() {
   cd "$srcdir/$pkgname-$pkgver"
-  make release
+  if [[ $CARCH == aarch64 ]]; then
+    make release ARCH=aarch64 AS=as LD=ld   # native toolchain, not the aarch64-linux-gnu- cross names
+  else
+    make release ARCH=x86_64
+  fi
 }
 
 package() {
@@ -21,5 +29,6 @@ package() {
   install -Dm755 scripts/duop-cd.sh "$pkgdir/usr/share/duop/duop-cd.sh"
   install -Dm644 -t "$pkgdir/usr/share/duop/layouts" layouts/*.layout
   install -Dm644 -t "$pkgdir/usr/share/duop/lang" lang/*.lang
+  install -Dm644 -t "$pkgdir/usr/share/doc/duop" README.md docs/USER_GUIDE.md docs/HOTKEYS.md
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }

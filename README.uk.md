@@ -1,25 +1,97 @@
 # Duop (`duop`)
 
-Ультрашвидкий, компактний двопанельний CLI/TUI файловий менеджер для Linux (`x86_64` та `aarch64`), побудований на **гібридній архітектурі без `libc`**: **чистий асемблерний шар PAL + SIMD** (`src/os/`, 28 файлів `.s`) під **100 % портативним freestanding C23** (`src/core/`, `src/tui/`, `src/fs/`, `src/ui/`, `src/app/`, 171 файл `.c`) без жодних сторонніх бібліотечних залежностей (ні `libc`, ні `ncurses` — лише прямі системні виклики ядра та vtable-ООП рантайм).
+[![CI](https://github.com/BlackKostia/duop/actions/workflows/ci.yml/badge.svg)](https://github.com/BlackKostia/duop/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/BlackKostia/duop?label=release)](https://github.com/BlackKostia/duop/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Static ELF](https://img.shields.io/badge/static_ELF-187_KiB_(x86__64)_%7C_209_KiB_(aarch64)-success)](#порівняння-та-бенчмарки)
 
-> **Архітектура та статус платформ:** Поетапну міграцію з чистого x86-64 GNU Assembler на гібрид **Asm PAL + freestanding `no-libc` C23** ([HYBRID_PORTABILITY_PLAN.md](docs/HYBRID_PORTABILITY_PLAN.md)) **завершено** (`v2.6.90+`, поза `src/os/` не лишилося жодного `.s`-файлу). І **Linux x86-64**, і **Linux AArch64** збирають повний статичний ELF64-бінарник `duop` (`.data = 0`, NX-safe), перевірений 182 тестовими сюїтами включно з реальними PTY-сесіями на x86-64 та під `qemu-aarch64`.
+[English](README.md) | **Українська**
+
+**Ультрашвидкий двопанельний файловий менеджер для термінала Linux (`x86_64` та `aarch64`) розміром ~190 КіБ без `libc`.**
+Єдиний статичний ELF-бінарник — без `libc`, без `ncurses`, без жодних зовнішніх залежностей. Відкриває каталог на 4,8 мільйона файлів за **26 мс** (15,4 МіБ RSS) і містить нечіткий пошук, піксельне прев'ю зображень, git-статуси, hex-редактор, інспектор ELF64, архівну VFS та вбудований PTY-термінал прямо з коробки.
+
+![Duop — український інтерфейс (тема Tokyo Night)](docs/media/ukrainian.svg)
+
+<details>
+<summary><strong>Більше скриншотів: Live Preview, Палітра команд, Тема Catppuccin, Англійський інтерфейс</strong></summary>
+
+#### Живий перегляд коду з підсвіткою синтаксису (`F9`)
+![Duop live preview](docs/media/preview.svg)
+
+#### Палітра команд (`Ctrl+K`)
+![Duop command palette](docs/media/palette.svg)
+
+#### Тема Catppuccin (`Alt+T`) та Англійський інтерфейс (`Alt+L`)
+| Тема Catppuccin | English UI (`--lang en`) |
+| --- | --- |
+| ![Catppuccin](docs/media/theme.svg) | ![English UI](docs/media/main.svg) |
+
+*(Усі скриншоти генеруються детерміновано з реальної PTY-сесії скриптом [`tools/screenshot_svg.py`](tools/screenshot_svg.py).)*
+</details>
+
+---
+
+## Встановлення
+
+### Встановлення однією командою (готовий статичний бінарник + перевірка SHA-256, або збірка з коду)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/BlackKostia/duop/main/scripts/install.sh | bash
+```
+
+### Готові статичні бінарники (`x86_64` та `aarch64`)
+
+Завантажте `duop-linux-x86_64.tar.gz` або `duop-linux-aarch64.tar.gz` (разом із `SHA256SUMS`) зі сторінки [**GitHub Releases**](https://github.com/BlackKostia/duop/releases/latest).
+
+### Пакетні менеджери
+
+| Платформа | Команда / Рецепт |
+| --- | --- |
+| **Arch Linux (AUR)** | `makepkg -si` у каталозі [`packaging/aur/`](packaging/aur/PKGBUILD) |
+| **Debian / Ubuntu (`.deb`)** | `./packaging/deb/build-deb.sh && sudo dpkg -i build/deb/duop_*.deb` |
+| **Nix (Flakes)** | `nix run github:BlackKostia/duop` або `nix profile install github:BlackKostia/duop` |
+| **Homebrew (Linux)** | `brew install --build-from-source ./Formula/duop.rb` |
+
+### Збірка з вихідного коду та тестування
+
+Потрібні `binutils`, `make`, `python3` та `gcc >= 13` (на `x86_64`) або `clang` (на `aarch64`):
+
+```bash
+make                        # Зібрати ./duop для Linux x86-64 (з DWARF debug-інформацією)
+make release                # Зібрати оптимізований stripped-бінарник x86-64 (187 КіБ)
+make ARCH=aarch64 release   # Крос-компіляція статичного бінарника Linux AArch64 (209 КіБ)
+make test                   # Запустити всі 186 тестових сюїт (PTY, диференційні, AArch64, ФС)
+make verify                 # Повна перевірка (модульність + release + debug + аудит ELF + PTY)
+make hooks                  # Активувати Git-хуки з .githooks/
+```
+
+---
+
+## Порівняння та бенчмарки
+
+| Характеристика / Метрика | **Duop (`v2.7.0`)** | `mc` | `yazi` | `lf` | `nnn` |
+| --- | --- | --- | --- | --- | --- |
+| **Розмір бінарника (`x86_64`)** | **187 КіБ** (статичний) | ~1,4 МіБ + бібліотеки | ~12–20 МіБ | ~4,5 МіБ | ~120 КіБ + `libc`/`ncurses` |
+| **Зовнішні залежності** | **0 (zero-`libc` static ELF)** | `libc`, `glib2`, `ncurses` | `libc` (+ CLI-утиліти) | `libc` | `libc`, `ncurses` |
+| **Компонування** | **2 панелі + Вкладки + Прев'ю** | 2 панелі | Колонки Міллера | Колонки Міллера | 1 панель |
+| **Каталог на 4 798 976 файлів (перший кадр)** | **26,4 мс** (15,4 МіБ RSS) | > 60 с (таймаут) | > 60 с (таймаут) | > 60 с (таймаут) | > 60 с (таймаут) |
+| **Каталог на 100 000 файлів (перший кадр)** | **112,7 мс** | ~1,5–3 с | ~0,4–0,9 с | ~0,5–1,2 с | ~0,25–0,5 с |
+| **Холодний старт (`--version`, `hyperfine -N`)** | **2,6 мс** (`/bin/true`: 2,3 мс) | 9,9 мс | ~6–12 мс | ~4–7 мс | ~2,8 мс |
+| **Вбудоване прев'ю зображень (без утиліт)** | **Kitty / Sixel / блоки** | Зовнішнє | Вбудоване + плагіни | Зовнішнє | Плагіни |
+| **Вбудований Hex-редактор та інспектор ELF64** | **Так (із Undo)** | Лише перегляд | Зовнішній | Зовнішній | Зовнішній |
+
+Повний звіт порівняльного тестування на 4,8 млн файлів: [`docs/BENCHMARK_20M_2026-11-17.md`](docs/BENCHMARK_20M_2026-11-17.md). Локальний прогін: `./scripts/bench.sh ./duop`.
+
+---
 
 ## Чому гібрид (Asm PAL + Freestanding C23)
 
-- **Мінімальний статичний ELF64 без `libc`**: у C23 використовується режим `-ffreestanding -nostdlib` (лише `stdint.h`/`stddef.h` і `include/duop_abi.h`), без динамічних бібліотек без сторонніх бібліотек; ініціалізований `.data` дозволений, розмір бінарника вимірюється, але не є гейтом.
-- **Низькорівнева швидкість там, де вона критична**: прямі системні виклики, `io_uring`, обробники сигналів (`SIGBUS`), PTY та SSE2/NEON SIMD залишаються на чистому асемблері у `src/os/<os>/<arch>/`.
-- **Синтаксис Intel без синтаксичного шуму**: для x86-64 асемблерних модулів використовується `.intel_syntax noprefix`, `.struct` та `.macro` для декларативних `vtable` і сумісності з C ABI.
+> **Архітектура та статус платформ:** Поетапну міграцію з чистого x86-64 GNU Assembler на гібрид **Asm PAL + freestanding `no-libc` C23** ([HYBRID_PORTABILITY_PLAN.md](docs/HYBRID_PORTABILITY_PLAN.md)) **завершено** (`v2.6.90+`, поза `src/os/` не лишилося жодного `.s`-файлу). І **Linux x86-64**, і **Linux AArch64** збирають повний статичний ELF64-бінарник `duop` (`.data = 0`, NX-safe), перевірений **186 тестовими сюїтами** включно з реальними PTY-сесіями на x86-64 та під `qemu-aarch64`.
 
-## ООП-архітектура на асемблері
+- **Мінімальний статичний ELF64 без `libc`**: у C23 використовується режим `-ffreestanding -nostdlib` (лише компіляторні заголовки `stdint.h`/`stddef.h` та `include/duop_abi.h`), без динамічних чи сторонніх бібліотек.
+- **Низькорівнева швидкість там, де вона критична**: прямі системні виклики, `io_uring`, обробники сигналів (`SIGBUS`), PTY та SSE2/NEON SIMD залишаються на чистому асемблері у `src/os/<os>/<arch>/` (`28` файлів `.s` під `171` файлом `.c`).
 
-Система ООП реалізована у [`include/oop.inc`](include/oop.inc), [`include/classes.inc`](include/classes.inc) та [`src/core/oop_rt.s`](src/core/oop_rt.s):
-
-- **Інкапсуляція та пам'ять об'єктів**: кожен екземпляр починається з `Object.vptr` (offset `0`), вказівник `this` передається у `rdi` згідно з System V AMD64 ABI. Життєвий цикл керується макросами `NEW_OBJ` та `DELETE_OBJ` (віртуальний деструктор + звільнення пам'яті).
-- **Наслідування полів**: `CLASS_BEGIN` / `EXTENDS` / `FIELD` / `CLASS_END` будують сумісні макети структур у пам'яті.
-- **Поліморфізм та `vtable`**: `VTBL_BEGIN` / `VTBL_EXTENDS` / `VTBL_SLOT` визначають розкладку таблиці методів, а макроси `WIDGET_VTBL_SLOTS` і `DIALOG_VTBL_SLOTS` дозволяють класам-нащадкам перевизначати лише потрібні методи (`render=FilePane_render, on_mouse=FilePane_on_mouse`), автоматично успадковуючи решту від базового класу.
-- **Віртуальний виклик та RTTI**: `VCALL` / `VCALL_REG`, `SUPER_CALL`, а також `IS_INSTANCE` (обхід ланцюжка `super` у `vtable`).
-
-### Ієрархія класів
+### Ієрархія класів (vtable-ООП)
 
 ```text
 Object
@@ -31,105 +103,29 @@ Object
        ├── FunctionBar   (нижня панель кнопок 1..0 з hover-підсвічуванням і кліком)
        ├── StatusBar     (таймерні статус-сповіщення, деталі файлу, ціль symlink)
        ├── FilePane      (файлова панель, скролбар, сортування кліком по шапці, double-click)
-       ├── PreviewPane   (живий попередній перегляд тексту / hex-дампу)
-       └── Dialog
-             ├── ConfirmDialog  (модальне підтвердження видалення)
-             ├── InputDialog    (UTF-8 редактор рядка для Mkdir/Rename/Copy/Move/Filter/GoTo)
-             ├── ViewerDialog   (вбудований переглядач файлів у режимах Text та Hex)
-             ├── HelpDialog     (довідка по клавішах, миші та архітектурі)
-             └── ProgressDialog (прогрес фонової операції: файл, смуга, байти/файли, швидкість, ETA, Пауза/У фоні/Скасувати)
-```
-
-## Структура проєкту
-
-```text
-duop/
-├── AGENTS.md                 # Правила модульної архітектури, SemVer і комітів
-├── LICENSE                   # Відкрита ліцензія MIT
-├── VERSION                   # Поточна SemVer-версія (див. файл VERSION)
-├── Makefile                  # Збірка (OS/ARCH compile-time PAL, all / release / run / test / verify / hooks / clean)
-├── .agents/                  # Antigravity скіли (duop-*) та lifecycle-хуки (hooks.json)
-├── .githooks/                # Git-хуки (pre-commit, commit-msg, post-commit)
-├── include/
-│   ├── pal.inc               # Платформо-незалежний PAL-контракт (FileStat)
-│   ├── os/linux/x86_64/      # pal_target.inc: номери системних викликів і inline-макроси OS_*
-│   ├── config.inc            # Ліміти, коди клавіш/миші, UTF-8 гліфи інтерфейсу
-│   ├── oop.inc               # Макроси ООП-системи (CLASS_*, VTBL_*, VCALL, NEW_OBJ)
-│   ├── types.inc             # Структури даних (Rect, Cell, Event, HitZone, FileEntry, Theme, LangStrings)
-│   └── classes.inc           # Повна специфікація класів і vtable
-├── src/
-│   ├── os/linux/{x86_64,aarch64}/ # pal_os.s, pal_start.s, pal_uring.s (io_uring), pal_simd.s (SSE2/NEON), pal_fault/pty/thread/du/time/file/sys_*.s
-│   ├── core/                 # memory.c (slab-алокатор 64 Б–64 КіБ + mmap), string*.c, utf8.c, oop_rt.c, syscall.c, config*.c, hash*.c, try_rt.c, tmpfile.c, memcheck.c
-│   ├── tui/                  # theme.c (3 TrueColor теми), i18n_en.lang + i18n_*.c (EN таблиця, мовні пакети), screen*.c, input*.c (клавіатура + SGR 1006), kbd_*.c, term_caps.c
-│   ├── fs/                   # dir_model*.c, dir_sort*.c, dir_cache.c, file_ops*.c, task*.c, dir_watch.c, archive_*.c, inflate.c, disk_usage.c, du_*.c, img_*.c, pkg_*.c, nav_*.c, trash_*.c, git_*.c, preview_*.c
-│   ├── ui/                   # header_bar*.c, function_bar.c, status_bar.c, file_pane*.c, preview_pane*.c, dialog*.c, *_dialog.c, *_dlg.c, viewer_*.c, term_pane*.c, bulk_rename.c, popup_*.c, syntax.c, elf_inspect.c, hex_edit.c
-│   └── app/                  # main.c (duop_main), cli_args.c, license.c, app.c, app_loop.c, app_events.c, app_keys.c, app_layout.c, app_cmds.c, app_attr.c, app_task.c, app_open.c, app_menu.c, app_ext.c, app_close_dialog.c, app_du.c, app_cmdline.c, app_choosedir.c, app_arc.c, app_view.c, app_toggles.c
-└── tests/
-    ├── test_pal_architecture.py # Перевірка compile-time PAL, ізоляції сисколів, макросів OS_* та статичного ELF
-    ├── test_pty.py           # Наскрізні тести в реальному PTY (клавіатура, миша, resize, ФС)
-    ├── test_fs_reliability.py # Стрес- та відмовостійкі тести copy/move/delete/rename/EXDEV
-    ├── test_performance_dir.py # Тести 32B/pool, lazy stat, Radix/Introsort, huge-mode [FS-order] та Esc-скасування
-    ├── test_bg_tasks.py      # Фонові операції: неблокуючий UI, прогрес, пауза/скасування, EBUSY, вихід, EN/UA
-    ├── test_event_loop.py    # 0 пробуджень у простої, inotify-автооновлення, дебаунс/асинхронне прев'ю, DEC 2026
-    ├── test_nav_viewer.py    # LRU-кеш тек без chdir/getcwd, mmap-переглядач + SIGBUS-захист, rolling io_uring, чергування стрімінгу
-    ├── test_fastpath.py      # Бюджет сисколів (strace): slab, copy_file_range, d_type-видалення; prefix-сортування, звуження фільтра
-    └── bench_million.py       # Бенчмарк відкриття великих директорій (TTFF, Full, RSS, syscalls)
-```
-
-## Збірка, запуск та тестування
-
-```bash
-make                        # Зібрати ./duop для Linux x86-64 (з DWARF debug-інформацією)
-make release                # Зібрати оптимізований stripped-бінарник x86-64
-make ARCH=aarch64 release   # Зібрати повний статичний бінарник Linux AArch64 (zero-libc)
-make run                    # Запустити ./duop
-make test                   # Запустити всі 182 тестові сюїти (PTY, диференційні, AArch64, ФС, надійність)
-make verify                 # Повна перевірка (модульність + release + debug + статичний ELF без libc/dynamic + PTY)
-make hooks                  # Активувати Git-хуки з .githooks/ та права на скрипти
-```
-
-Можна передавати початкові каталоги та мову інтерфейсу (`ua` або `en`; також автовизначення з `LC_ALL`/`LC_MESSAGES`/`LANG`), або перевірити версію/ліцензію через `-V`/`--version` та `-L`/`--license`:
-```bash
-./duop --lang ua /path/to/left /path/to/right
-./duop --version
-./duop --license
+       ├── PreviewPane   (живий попередній перегляд коду, зображень, ELF та hex-дампу)
+       └── Dialog        (ConfirmDialog, InputDialog, ViewerDialog, HelpDialog, ProgressDialog, Fuzzy/Palette/Package/BulkRename...)
 ```
 
 ## Керування
 
 ### Клавіатура
-- `↑` / `↓`, `j` / `k`, `PgUp` / `PgDn`, `Home` / `End` — навігація по списку
-- `Tab` — перемикання активної панелі
-- `Enter` — увійти в директорію або відкрити файл у вбудованому переглядачі (`Text`/`Hex`)
-- `Backspace` / `~` — на рівень вище / у `$HOME`
-- `Space` / `Insert` / `*` / `Ctrl+A` — позначити файл або перемкнути виділення всіх
-- `/` — швидкий фільтр у реальному часі (`Esc` — очистити фільтр)
-- `.` або `Ctrl+H` — показ прихованих файлів
-- `Alt+T` — перемикання теми (`Tokyo Night`, `Catppuccin`, `Emerald`)
-- `Alt+L` (або кнопка `Мова:UA`/`Lang:EN` у верхній панелі) — наступна встановлена мова інтерфейсу по колу, працює навіть при увімкненій українській розкладці (`Alt+д`)
-- **Мовні пакети інтерфейсу** — переклади не вшиті в код: англійська вбудована (основа й запасний варіант для кожного відсутнього ключа), решта мов — файли `*.lang`, що читаються під час запуску. Нова мова — новий файл без перекомпіляції: скопіюйте [`lang/uk.lang`](lang/uk.lang) у `~/.config/duop/lang/<id>.lang`, змініть `code`/`name` і перекладіть рядки `ключ = значення` (ключі — поля `LangStrings` з `include/types.inc`; `"..."` зберігає пробіли з країв, екранування `\n \t \" \\`, `{version}` — версія Duop). Мова обирається через `--lang <id|code>`, `lang = <id>` у `duoprc` або `LC_ALL`/`LC_MESSAGES`/`LANG` (`uk_UA.UTF-8` → `uk`). Пошук: `$DUOP_LANGS` (каталоги через `:`, замінює типові) або `~/.config/duop/lang`, далі `lang/` і `../share/duop/lang` поруч із бінарником, `/usr/local/share/duop/lang`, `/usr/share/duop/lang`
-- **Розкладки клавіатури** — це дані, а не код: гарячі клавіші (`Alt+…`, `Ctrl+…`, `j`/`k`, літери в діалогах і переглядачі) прив'язані до фізичної клавіші через файли `*.layout`, що читаються під час запуску. Нова розкладка — це новий файл, без перекомпіляції: кожен рядок `chars = …` перелічує, що друкує розкладка на клавішах попереднього рядка `keys = …` (ASCII-символи ігноруються, текст у полях введення не змінюється). Пошук: `$DUOP_LAYOUTS` (каталоги через `:`, замінює типові) або `~/.config/duop/layouts` (`$XDG_CONFIG_HOME`), далі `layouts/` і `../share/duop/layouts` поруч із бінарником, `/usr/local/share/duop/layouts`, `/usr/share/duop/layouts`. Українська постачається як [`layouts/uk.layout`](layouts/uk.layout)
-- `F1` — довідка, `F2` — перейменування, `F3` — перегляд (для зображень спершу питає: Зображення / HEX / Текст; `i`/`h`/`t` перемикають режим), `Alt+V` — режим прев'ю Зображення / HEX / Текст (PNG, JPEG, GIF, BMP, TGA, PNM, QOI; справжні пікселі через Kitty або Sixel — визначається автоматично, інакше блоки 2×2; примусово: `DUOP_IMG_MODE=kitty|sixel|blocks|halfblock`), `F4` — зовнішній `$EDITOR`, `F5` — копіювання, `F6` — переміщення, `F7` — створити каталог, `F8` / `Del` — видалення, `F9` / `Ctrl+P` — режим Live Preview, `Ctrl+N` — новий файл, `Ctrl+G` — перейти за шляхом, `Ctrl+O` — shell, `Ctrl+\`` — вбудований термінал, `Ctrl+K` — палітра команд, `Alt+P` — нечіткий пошук (Fuzzy Finder), `Ctrl+F` — рекурсивний пошук/grep, `Alt+K` — менеджер пакетів, `Alt+U` — меню користувача, `Alt+D` — аналіз диска, `Alt+B` — масове перейменування, `Alt+=` — порівняння панелей, `Ctrl+Z` — Undo, `F10` / `q` — вихід (повний перелік у [`docs/HOTKEYS.md`](docs/HOTKEYS.md))
-- **Автооновлення панелей**: зміни на диску (створення, видалення, перейменування, зміна розміру) з'являються самі через `inotify`, без `Ctrl+R`; позначені файли ніколи не скидаються. У простої процес не прокидається взагалі (0 % CPU)
-- **Фонові операції** (`F5`/`F6`/`F8` виконуються в окремому `fork`-процесі, інтерфейс не блокується): `ProgressDialog` з'являється для операцій довших за 300 мс — поточний файл, прогрес-бар, байти/файли, швидкість, ETA; `P`/`Space` — пауза/продовження (`SIGSTOP`/`SIGCONT`), `Esc`/`B` — у фон (прогрес лишається у статус-рядку), `C` — скасувати (недописаний файл видаляється), `Alt+J` або клік по статус-рядку — повернути діалог. В українській розкладці працюють `з`/`и`/`с`/`Alt+о` (з `layouts/uk.layout`). Вихід під час операції просить підтвердження й коректно зупиняє воркер
+- `↑` / `↓`, `j` / `k`, `PgUp` / `PgDn`, `Home` / `End` — навігація по списку; `Tab` — перемикання панелі; `Enter` — увійти в теку / відкрити файл; `Backspace` / `~` — на рівень вище / у `$HOME`
+- `Space` / `Insert` / `*` / `Ctrl+A` — позначити файл або перемкнути виділення всіх; `/` — швидкий фільтр; `.` або `Ctrl+H` — приховані файли
+- `Alt+T` — перемикання теми (`Tokyo Night`, `Catppuccin`, `Emerald`); `Alt+L` — наступна мова інтерфейсу (`*.lang` пакети без перекомпіляції; працюють у будь-якій розкладці завдяки `layouts/*.layout`)
+- `F1` — довідка, `F2` — перейменування, `F3` — перегляд (Текст / HEX / Зображення: Kitty, Sixel, блоки 2×2 для PNG, JPEG, GIF, BMP, TGA, PNM, QOI), `F4` — зовнішній `$EDITOR`, `F5` — копіювання, `F6` — переміщення, `F7` — створити каталог, `F8` / `Del` — видалення (XDG Trash + `Ctrl+Z` Undo), `F9` / `Ctrl+P` — Live Preview, `F10` / `q` — вихід
+- `Ctrl+K` — палітра команд, `Alt+P` — рекурсивний Fuzzy Finder, `Ctrl+F` — рекурсивний пошук/grep у віртуальну панель, `Ctrl+T` / `Ctrl+W` — вкладки, `Ctrl+D` / `z` — закладки та frecency, `Ctrl+\`` — вбудований PTY-термінал, `Alt+D` — аналіз диска, `Alt+B` — масове перейменування, `Alt+=` — порівняння панелей, `Alt+K` / `Alt+U` — менеджер пакетів та меню користувача (повний перелік у [`docs/HOTKEYS.md`](docs/HOTKEYS.md))
 
 ### Миша (SGR 1006)
-- **Лівий клік / Подвійний клік** — вибір панелі й рядка / вхід у директорію або відкриття переглядача
-- **Правий клік** — позначення/зняття виділення файлу
-- **Колесо миші** — прокрутка панелі під курсором, вікна перегляду чи довідки
-- **Клік по заголовках колонок (`Name`, `Size`, `Modified`)** — зміна поля й напрямку сортування (`▲`/`▼`)
-- **Перетягування скролбару** — швидка прокрутка великих директорій
-- **Hover та клік по кнопках** у верхньому барі, нижньому F-барі та діалогових вікнах
+- Лівий клік / подвійний клік / перетягування (drag-and-drop між панелями), правий клік (контекстне меню або позначення), колесо прокрутки, сортування кліком по заголовках колонок (`Name`, `Size`, `Modified`), перетягування скролбару.
 
-## План розвитку
+## Документація та участь у розробці
 
-Детальну архітектурну дорожню карту та статус реалізації задокументовано у [`ROADMAP.md`](ROADMAP.md), а посібник користувача та гарячі клавіші — у [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) та [`docs/HOTKEYS.md`](docs/HOTKEYS.md).
+- Посібник користувача та гарячі клавіші: [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md), [`docs/HOTKEYS.md`](docs/HOTKEYS.md), [`docs/EXTENSIONS_GUIDE.md`](docs/EXTENSIONS_GUIDE.md)
+- Дорожня карта та продуктова стратегія: [`ROADMAP.md`](ROADMAP.md), [`docs/PRODUCT_STRATEGY_2026-11-20.md`](docs/PRODUCT_STRATEGY_2026-11-20.md), [`docs/DEVELOPMENT_PLAN_2026-11-17.md`](docs/DEVELOPMENT_PLAN_2026-11-17.md)
+- Як долучитися (переклади `*.lang`, теми, пакети, C23-модулі): [`CONTRIBUTING.md`](CONTRIBUTING.md)
 
-## Розробник
+## Розробник та ліцензія
 
-- **Автор**: Недбайло Костянтин Геннадійович (`Kostiantyn Nedbailo`)
-- **E-mail**: [ChessPlayerSedoy@gmail.com](mailto:ChessPlayerSedoy@gmail.com)
-
-## Ліцензія
-
-**Duop** — це програмне забезпечення з відкритим вихідним кодом (Open Source), яке поширюється за ліцензією [**MIT License**](LICENSE).
+- **Автор**: Недбайло Костянтин Геннадійович (`Kostiantyn Nedbailo`) — [ChessPlayerSedoy@gmail.com](mailto:ChessPlayerSedoy@gmail.com)
+- **Ліцензія**: [**MIT License**](LICENSE)

@@ -13,15 +13,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install toolchain
-        run: sudo apt-get update && sudo apt-get install -y binutils make python3
+        run: sudo apt-get update && sudo apt-get install -y binutils gcc make python3
       - name: Build release and run full verification
         run: ./.agents/skills/duop-pty-verify/scripts/verify_build.sh --release-only
-      - name: Upload release artifact
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@v4
-        with:
-          name: duop-linux-x86_64
-          path: duop
 
   headless-x86-qemu:
     # M1: the portable C23 layers + PAL on both ISAs; aarch64 runs under qemu-user, outputs compared with the assembly entry point
@@ -55,3 +49,25 @@ jobs:
           ./build_aarch64/duop_headless -L | cmp - LICENSE
           make -j4 ARCH=aarch64 build_selftest/aarch64/selftest
           ./build_selftest/aarch64/selftest
+
+  release:
+    # Tag push vX.Y.Z: stripped static binaries + tarballs for x86_64 and aarch64, SHA256SUMS, GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [ build-and-verify, headless-x86-qemu, headless-arm64-native ]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: sudo apt-get update && sudo apt-get install -y binutils binutils-aarch64-linux-gnu gcc clang make python3
+      - name: Check tag matches VERSION
+        run: test "${GITHUB_REF_NAME}" = "v$(tr -d ' \n' < VERSION)"
+      - name: Build release assets
+        run: ./scripts/make_dist.sh
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/release/*
+          body_path: docs/launch/RELEASE_NOTES.md
+          fail_on_unmatched_files: true

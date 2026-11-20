@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 948 554" font-family="'JetBrains Mono','DejaVu Sans Mono',Menlo,Consolas,monospace" font-size="14">
+<title>Duop — palette</title>
+<rect width="100%" height="100%" rx="10" fill="#1d202f"/>
+<circle cx="18" cy="15" r="5" fill="#ff5f57"/><circle cx="36" cy="15" r="5" fill="#febc2e"/><circle cx="54" cy="15" r="5" fill="#28c840"/>
+<g transform="translate(12,32)">
+<rect x="25.2" y="0" width="126.0" height="17" fill="#bb9af7"/>
+<text x="0.0" y="13" fill="#bb9af7" textLength="25.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve">╭──</text>
+<text x="25.2" y="13" fill="#15161e" textLength="126.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve">Command Palette</text>
+<text x="151.2" y="13" fill="#bb9af7" textLength="772.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">───────────────────────────────────────────────────────────────────────────────────────────╮</text>
+<text x="0.0" y="30" fill="#bb9af7" textLength="924.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│                                                                                                            │</text>
+<rect x="16.8" y="34" width="588.0" height="17" fill="#1f2335"/>
+<text x="0.0" y="47" fill="#bb9af7" textLength="16.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│ </text>
+<text x="25.2" y="47" fill="#7aa2f7" textLength="16.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">&gt; </text>
+<text x="604.8" y="47" fill="#bb9af7" textLength="319.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve">                                     │</text>
+<text x="0.0" y="64" fill="#bb9af7" textLength="924.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│                                                                                                            │</text>
+<rect x="16.8" y="68" width="588.0" height="17" fill="#283457"/>
+<text x="0.0" y="81" fill="#bb9af7" textLength="16.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│ </text>
+<text x="25.2" y="81" fill="#15161e" textLength="268.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">Theme: Cycle Color Theme (Alt+T)</text>
+<text x="604.8" y="81" fill="#bb9af7" textLength="319.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve">                                     │</text>
+<text x="0.0" y="98" fill="#bb9af7" textLength="16.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│ </text>
+<text x="16.8" y="98" fill="#c0caf5" textLength="588.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve"> Language: Next Interface Language (Alt+L)                            </text>
+<text x="604.8" y="98" fill="#bb9af7" textLength="319.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve">                                     │</text>
+<text x="0.0" y="115" fill="#bb9af7" textLength="16.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│ </text>
+<text x="16.8" y="115" fill="#c0caf5" textLength="588.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve"> Preview: Toggle Pane (F9)                                            </text>
+<text x="604.8" y="115" fill="#bb9af7" textLength="319.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve">                                     │</text>
+<text x="0.0" y="132" fill="#bb9af7" textLength="16.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│ </text>
+<text x="16.8" y="132" fill="#c0caf5" textLength="588.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve"> Dotfiles: Toggle Hidden (.)                                          </text>
+<text x="604.8" y="132" fill="#bb9af7" textLength="319.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve">                                     │</text>
+<text x="0.0" y="149" fill="#bb9af7" textLength="16.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│ </text>
+<text x="16.8" y="149" fill="#c0caf5" textLength="588.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve"> Help: Show Keybindings (F1)                                          </text>
+<text x="604.8" y="149" fill="#bb9af7" textLength="319.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve">                                     │</text>
+<text x="0.0" y="166" fill="#bb9af7" textLength="16.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│ </text>
+<text x="16.8" y="166" fill="#c0caf5" textLength="588.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve"> Rename: Rename Entry (F2)                                            </text>
+<text x="604.8" y="166" fill="#bb9af7" textLength="319.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve">                                     │</text>
+<text x="0.0" y="183" fill="#bb9af7" textLength="16.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│ </text>
+<text x="16.8" y="183" fill="#c0caf5" textLength="588.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve"> View: Open File Viewer (F3)                                          </text>
+<text x="604.8" y="183" fill="#bb9af7" textLength="319.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve">                                     │</text>
+<text x="0.0" y="200" fill="#bb9af7" textLength="16.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│ </text>
+<text x="16.8" y="200" fill="#c0caf5" textLength="588.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve"> Edit: Open in $EDITOR (F4)                                           </text>
+<text x="604.8" y="200" fill="#bb9af7" textLength="319.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve">                                     │</text>
+<text x="0.0" y="217" fill="#bb9af7" textLength="16.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│ </text>
+<text x="16.8" y="217" fill="#c0caf5" textLength="588.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve"> Copy: Copy to Opposite Pane (F5)                                     </text>
+<text x="604.8" y="217" fill="#bb9af7" textLength="319.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve">                                     │</text>
+<text x="0.0" y="234" fill="#bb9af7" textLength="16.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│ </text>
+<text x="16.8" y="234" fill="#c0caf5" textLength="588.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve"> Move: Move to Opposite Pane (F6)                                     </text>
+<text x="604.8" y="234" fill="#bb9af7" textLength="319.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve">                                     │</text>
+<text x="0.0" y="251" fill="#bb9af7" textLength="16.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│ </text>
+<text x="16.8" y="251" fill="#c0caf5" textLength="588.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve"> Mkdir: Create Directory (F7)                                         </text>
+<text x="604.8" y="251" fill="#bb9af7" textLength="319.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve">                                     │</text>
+<text x="0.0" y="268" fill="#bb9af7" textLength="16.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│ </text>
+<text x="16.8" y="268" fill="#c0caf5" textLength="588.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve"> Delete: Permanent Delete (F8)                                        </text>
+<text x="604.8" y="268" fill="#bb9af7" textLength="319.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve">                                     │</text>
+<text x="0.0" y="285" fill="#bb9af7" textLength="16.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│ </text>
+<text x="16.8" y="285" fill="#c0caf5" textLength="588.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve"> New File: Create Empty File (Ctrl+N)                                 </text>
+<text x="604.8" y="285" fill="#bb9af7" textLength="319.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve">                                     │</text>
+<text x="0.0" y="302" fill="#bb9af7" textLength="16.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│ </text>
+<text x="16.8" y="302" fill="#c0caf5" textLength="588.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve"> Filter: Live Filter (/)                                              </text>
+<text x="604.8" y="302" fill="#bb9af7" textLength="319.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve">                                     │</text>
+<text x="0.0" y="319" fill="#bb9af7" textLength="924.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│                                                                                                            │</text>
+<text x="0.0" y="336" fill="#bb9af7" textLength="16.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│ </text>
+<text x="16.8" y="336" fill="#565f89" textLength="495.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve">Type: Filter   Up/Dn: Select   Enter: Run/Jump   Esc: Close</text>
+<text x="512.4" y="336" fill="#bb9af7" textLength="411.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve">                                                │</text>
+<text x="0.0" y="353" fill="#bb9af7" textLength="924.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│                                                                                                            │</text>
+<text x="0.0" y="370" fill="#bb9af7" textLength="924.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│                                                                                                            │</text>
+<text x="0.0" y="387" fill="#bb9af7" textLength="924.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│                                                                                                            │</text>
+<text x="0.0" y="404" fill="#bb9af7" textLength="924.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│                                                                                                            │</text>
+<text x="0.0" y="421" fill="#bb9af7" textLength="924.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│                                                                                                            │</text>
+<text x="0.0" y="438" fill="#bb9af7" textLength="924.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│                                                                                                            │</text>
+<text x="0.0" y="455" fill="#bb9af7" textLength="924.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│                                                                                                            │</text>
+<text x="0.0" y="472" fill="#bb9af7" textLength="924.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│                                                                                                            │</text>
+<text x="0.0" y="489" fill="#bb9af7" textLength="924.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve">│                                                                                                            │</text>
+<text x="0.0" y="506" fill="#bb9af7" textLength="924.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve">╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</text>
+</g></svg>

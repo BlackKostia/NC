@@ -137,15 +137,16 @@
 
 ## Рівень 3 — Популяризація, дистрибуція та переносимість
 
-1. **Англомовний `README.md` + переклад ✅**: головний [README.md](README.md) англійською мовою та окремий [README.uk.md](README.uk.md). ✅
+1. **Англомовний `README.md` + переклад та візуальні матеріали ✅**: головний [README.md](README.md) англійською мовою, окремий [README.uk.md](README.uk.md), детермінований генератор SVG-скриншотів [tools/screenshot_svg.py](tools/screenshot_svg.py) (`docs/media/*.svg`) та порівняльна таблиця з конкурентами. ✅
 2. **Публічні бенчмарки у `README` ✅**:
-   - розмір stripped ELF-бінарника (~193 КБ, `.data=0`), час холодного старту (`0.32 ms`), швидкість відкриття `100 000` файлів (`112.5 ms`) через [scripts/bench.sh](scripts/bench.sh). ✅
+   - розмір stripped ELF-бінарника (`191 528 Б` / `187 КіБ` на `x86_64`, `214 128 Б` / `209 КіБ` на `aarch64`, `.data=0`), час холодного старту (`2.6 ms` через `hyperfine -N`), швидкість відкриття `100 000` файлів (`112.7 ms`, [scripts/bench.sh](scripts/bench.sh)) та `4 798 976` файлів (`26.4 ms`, `15.4 MiB RSS`, [docs/BENCHMARK_20M_2026-11-17.md](docs/BENCHMARK_20M_2026-11-17.md)). ✅
 3. **CI та дистрибуція ✅**:
-   - GitHub Actions CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)); ✅
-   - пакети для `AUR` ([packaging/aur/PKGBUILD](packaging/aur/PKGBUILD)), `.deb` ([packaging/deb/](packaging/deb/build-deb.sh)), `Nix` ([flake.nix](flake.nix)), `Homebrew` ([Formula/duop.rb](Formula/duop.rb)) та однорядковий [scripts/install.sh](scripts/install.sh). ✅
-4. **Порт на AArch64 (compile-time PAL ✅, повний runtime-бінарник ⏳)**:
-   - повний compile-time PAL-бекенд у [include/os/linux/aarch64/pal_target.inc](include/os/linux/aarch64/pal_target.inc) та [src/os/linux/aarch64/](src/os/linux/aarch64/pal_os.s) (`pal_os.s`, `pal_simd.s` NEON, `pal_uring.s` fallback, `pal_pty.s`), верифікований через `aarch64-linux-gnu-as` (`P4`); основною та єдиною зібраною runtime-платформою наразі є `linux/x86_64`.
-5. **⏳ Публічні анонси та реліз `v2.6.6`**: фіналізація тегу `v2.6.6` після зеленого CI та публікація на Hacker News, `r/linux`, `r/commandline`, `r/asm`, `lobste.rs`.
+   - GitHub Actions CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) із автоматичним `release`-job та генератором релізних артефактів [scripts/make_dist.sh](scripts/make_dist.sh) (`x86_64` + `aarch64` + `SHA256SUMS`); ✅
+   - пакети для `AUR` ([packaging/aur/PKGBUILD](packaging/aur/PKGBUILD)), `.deb` ([packaging/deb/](packaging/deb/build-deb.sh)), `Nix` ([flake.nix](flake.nix)), `Homebrew` ([Formula/duop.rb](Formula/duop.rb)) та однорядковий [scripts/install.sh](scripts/install.sh) із перевіркою `SHA256SUMS`. ✅
+4. **Порт на AArch64 (compile-time PAL ✅, повний runtime-бінарник ✅)**:
+   - повний compile-time PAL-бекенд у [include/os/linux/aarch64/pal_target.inc](include/os/linux/aarch64/pal_target.inc) та [src/os/linux/aarch64/](src/os/linux/aarch64/pal_os.s) разом зі 100% портативними C23-шарами (`v2.6.90+`) збирають повний статичний ELF64-бінарник `duop` для `linux/aarch64`, верифікований під `qemu-aarch64` та на нативному ARM64 runner у CI. ✅
+5. **Підготовка релізу `v2.7.0` та Go-to-Market матеріали ✅ (публікація тегу й анонсів ⏳)**:
+   - продуктова стратегія та SWOT-аналіз у [docs/PRODUCT_STRATEGY_2026-11-20.md](docs/PRODUCT_STRATEGY_2026-11-20.md), інструкція для контриб'юторів [CONTRIBUTING.md](CONTRIBUTING.md), шаблони Issues/PR у `.github/` та готові тексти анонсів (Hacker News, Reddit, Lobsters, DOU) у `docs/launch/`.
 
 ---
 
