@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install toolchain
-        run: sudo apt-get update && sudo apt-get install -y binutils gcc make python3
+        run: sudo apt-get update && sudo apt-get install -y binutils binutils-aarch64-linux-gnu gcc clang make python3 qemu-user
       - name: Build release and run full verification
         run: ./.agents/skills/duop-pty-verify/scripts/verify_build.sh --release-only
 
@@ -40,15 +40,15 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y binutils clang make python3
       - name: Build and run the native aarch64 full binary, headless binary, and PAL self-test
         run: |
-          make -j4 ARCH=aarch64
+          make -j4 ARCH=aarch64 AS=as LD=ld
           python3 .agents/skills/duop-reliability-audit/scripts/audit_elf_hardening.py duop
           ./duop --version
           ./duop -L | cmp - LICENSE
-          make -j4 ARCH=aarch64 headless
+          make -j4 ARCH=aarch64 AS=as LD=ld headless
           ./build_aarch64/duop_headless --version
           ./build_aarch64/duop_headless -L | cmp - LICENSE
-          make -j4 ARCH=aarch64 build_selftest/aarch64/selftest
-          ./build_selftest/aarch64/selftest
+          make -j4 ARCH=aarch64 AS=as LD=ld build_selftest/aarch64/selftest
+          ./build_selftest/aarch64/selftest </dev/null
 
   release:
     # Tag push vX.Y.Z: stripped static binaries + tarballs for x86_64 and aarch64, SHA256SUMS, GitHub Release
