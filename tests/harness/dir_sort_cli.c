@@ -46,7 +46,8 @@ static bool g_ref;
 static DirModel g_m;
 static FileEntry g_ent[MAXN];
 static uint32_t g_order[MAXN], g_base[MAXN];
-static char g_pool[MAXN * 48];
+static uint8_t g_seen[MAXN];
+static char g_pool[MAXN * 64];
 static size_t g_n;
 static uint64_t g_rng;
 
@@ -75,11 +76,27 @@ static int64_t num(const char *s)
 static const char g_alpha[] = "aAbBcCzZ09._-~ ";
 static const char *const g_utf8[] = {"\xc3\xa9", "\xd0\xb0", "\xe2\x82\xac", "\xff", "\x7f"};
 
-/* kind 0: short ASCII, 1: long names sharing 8-12 byte prefixes, 2: with UTF-8 / high bytes, 3: extensions */
+/* kind 0: short ASCII, 1: long names sharing 8-12 byte prefixes, 2: with UTF-8 / high bytes, 3: extensions,
+ *      4: 24-byte shared camera-like prefix, 5: adversarial equal / near-equal names */
 static size_t make_name(char *out, int kind)
 {
     size_t n = 0, len = 1 + rnd() % (kind == 1 ? 20 : 9);
     if (kind == 1) { const char *pre = rnd() & 1 ? "SameprefiX" : "sameprefix"; while (*pre) out[n++] = *pre++; len += 2; }
+    if (kind == 4) {
+        const char *pre = "camera_photo_2026_11_20_";
+        while (*pre) out[n++] = *pre++;
+        for (int d = 0; d < 6; d++) out[n++] = (char)('0' + rnd() % 10);
+        const char *suf = ".jpg";
+        while (*suf) out[n++] = *suf++;
+        out[n] = 0;
+        return n;
+    }
+    if (kind == 5) {
+        const char *s = rnd() % 3 ? "SameFileName" : "samefilename";
+        while (*s) out[n++] = *s++;
+        out[n] = 0;
+        return n;
+    }
     while (n < len) {
         if (kind == 2 && rnd() % 4 == 0) { for (const char *u = g_utf8[rnd() % 5]; *u;) out[n++] = *u++; continue; }
         out[n++] = g_alpha[rnd() % (sizeof g_alpha - 1)];
@@ -125,18 +142,57 @@ static void cmd_listing(char **f)
     sc_put("E "); sc_num((int64_t)g_n);
 }
 
-static uint64_t fnv_order(size_t n)
+static uint64_t fnv_keys(size_t n, uint32_t mode, bool check_dirs)
 {
     uint64_t h = 1469598103934665603ull;
-    for (size_t i = 0; i < n; i++) h = (h ^ g_order[i]) * 1099511628211ull;
+    for (size_t i = 0; i < n; i++) {
+        const FileEntry *e = &g_ent[g_order[i]];
+        if (check_dirs) {
+            uint64_t d = (e->flags & (FE_IS_DIR | FE_LINK_DIR)) ? 1u : 0u;
+            h = (h ^ d) * 1099511628211ull;
+        }
+        if (mode == SORT_SIZE) h = (h ^ (uint64_t)e->size) * 1099511628211ull;
+        else if (mode == SORT_MTIME) h = (h ^ (uint64_t)e->mtime) * 1099511628211ull;
+        else if (mode == SORT_EXT) h = (h ^ (uint64_t)e->ext_offset) * 1099511628211ull;
+        for (const uint8_t *p = (const uint8_t *)g_pool + e->name_off; *p; p++)
+            h = (h ^ *p) * 1099511628211ull;
+        h = (h ^ 0xffu) * 1099511628211ull;
+    }
     return h;
 }
 
-static void put_order(size_t n)
+static int verify_order(size_t start, size_t count, uint32_t mode, uint32_t desc, bool check_dirs)
 {
-    sc_put(" h="); sc_num((int64_t)(fnv_order(n) >> 1)); sc_put(" [");
-    for (size_t i = 0; i < n && i < 24; i++) { sc_put(" "); sc_num(g_order[i]); }
-    sc_put(" ]");
+    for (size_t i = 0; i < count; i++) g_seen[g_base[i]] = 1;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t idx = g_order[i];
+        if (idx >= g_n || !g_seen[idx]) return 0;
+        g_seen[idx] = 0;
+    }
+    for (size_t i = count; i < g_n; i++) if (g_order[i] != g_base[i]) return 0;
+    if (start == 1 && count >= 1 && g_order[0] != g_base[0]) return 0;
+    if (count <= start + 1) return 1;
+    bool in_files = false;
+    for (size_t i = start; i < count; i++) {
+        bool is_dir = (g_ent[g_order[i]].flags & (FE_IS_DIR | FE_LINK_DIR)) != 0;
+        if (check_dirs) {
+            if (!is_dir) in_files = true;
+            else if (in_files) return 0;
+        }
+        if (i > start) {
+            bool prev_dir = (g_ent[g_order[i - 1]].flags & (FE_IS_DIR | FE_LINK_DIR)) != 0;
+            if (!check_dirs || prev_dir == is_dir) {
+                if (cmp_indices(g_order[i - 1], g_order[i], g_ent, g_pool, mode, desc) > 0) return 0;
+            }
+        }
+    }
+    return 1;
+}
+
+static void put_order(size_t start, size_t count, uint32_t mode, uint32_t desc, bool check_dirs)
+{
+    int ok = verify_order(start, count, mode, desc, check_dirs);
+    sc_put(" ok="); sc_num(ok); sc_put(" h="); sc_num((int64_t)(fnv_keys(g_n, mode, check_dirs) >> 1));
 }
 
 static void reset_order(void) { for (size_t i = 0; i < g_n; i++) g_order[i] = g_base[i]; }
@@ -150,7 +206,7 @@ static void cmd_sort(char **f)
     g_stats_calls = 0;
     CALL(DirModel_sort, &g_m);
     sc_put("M stats="); sc_num(g_stats_calls); sc_put(" unsorted="); sc_num(g_m.is_unsorted);
-    put_order(g_n);
+    put_order((size_t)g_m.has_dotdot, (size_t)g_m.count, (uint32_t)g_m.sort_mode, (uint32_t)g_m.sort_desc, true);
 }
 
 static void cmd_slice(char kind, char **f)
@@ -163,7 +219,7 @@ static void cmd_slice(char kind, char **f)
     else if (kind == 'I') CALL(insertion_sort_u32, g_order, len, g_ent, g_pool, mode, desc);
     else CALL(radix_sort_u32, g_order, len, g_ent, g_pool, mode, desc);
     char t[3] = {kind, 0, 0};
-    sc_put(t); put_order(g_n);
+    sc_put(t); put_order(0, len, mode, desc, false);
 }
 
 static void cmd_keys(char **f)
@@ -203,6 +259,34 @@ int duop_main(int argc, char **argv, char **envp, const uintptr_t *auxv)
                 if (dt < best) best = dt;
             }
             sc_put("T "); sc_num(best);
+            break;
+        }
+        case 'P': {
+            int64_t best = INT64_MAX;
+            int32_t mode = (int32_t)num(f[1]), desc = (int32_t)num(f[2]), pre = (int32_t)num(f[3]);
+            for (int64_t r = 0; r < num(f[4]); r++) {
+                reset_order();
+                g_m.entries = g_ent; g_m.order = g_order; g_m.name_pool = g_pool; g_m.count = g_n; g_m.has_dotdot = 0;
+                g_m.sort_mode = mode; g_m.sort_desc = pre; g_m.stats_complete = 1;
+                CALL(DirModel_sort, &g_m);
+                g_m.sort_desc = desc;
+                int64_t t0 = os_clock_ms();
+                CALL(DirModel_sort, &g_m);
+                int64_t dt = os_clock_ms() - t0;
+                if (dt < best) best = dt;
+            }
+            sc_put("P "); sc_num(best);
+            break;
+        }
+        case 'Q': {
+            reset_order();
+            g_m.entries = g_ent; g_m.order = g_order; g_m.name_pool = g_pool; g_m.count = g_n; g_m.has_dotdot = 0;
+            g_m.sort_mode = (int32_t)num(f[1]); g_m.sort_desc = (int32_t)num(f[3]); g_m.stats_complete = 1;
+            CALL(DirModel_sort, &g_m);
+            g_m.sort_desc = (int32_t)num(f[2]);
+            CALL(DirModel_sort, &g_m);
+            sc_put("Q");
+            put_order(0, g_n, (uint32_t)g_m.sort_mode, (uint32_t)g_m.sort_desc, true);
             break;
         }
         default: continue;

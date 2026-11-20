@@ -451,8 +451,8 @@
   - `heapsort_u32` — `void heapsort_u32(uint32_t *arr, size_t n, const FileEntry *entries, const char *pool, uint32_t mode, uint32_t desc)`
   - `introsort_u32` — `void introsort_u32(uint32_t *arr, size_t len, const FileEntry *entries, const char *pool, uint32_t mode, uint32_t desc)`
 - **`src/fs/dir_sort_radix.c`**
-  - `radix_sort_u32` — `void radix_sort_u32(uint32_t *arr, size_t len, const FileEntry *entries, const char *pool, uint32_t mode, uint32_t desc)`
   - `make_prefix_key` — `uint64_t make_prefix_key(uint32_t idx, const FileEntry *entries, const char *pool, uint32_t mode, uint32_t desc)`
+  - `radix_sort_u32` — `void radix_sort_u32(uint32_t *arr, size_t len, const FileEntry *entries, const char *pool, uint32_t mode, uint32_t desc)`
   - `DirModel_sort` — `void DirModel_sort(DirModel *m)`
 - **`src/fs/dir_watch.c`**
   - `dirwatch_init` — `int dirwatch_init(void)`

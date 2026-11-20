@@ -1,57 +1,71 @@
-/* src/fs/dir_sort_radix.c - byte-skipping LSD radix sorts and DirModel_sort (freestanding C23; replaces dir_sort_radix.s +
- * dir_sort_prefix.s, kept as tests/harness/dir_sort_radix_reference.s and dir_sort_prefix_reference.s).
+/* src/fs/dir_sort_radix.c - single-extract, single-histogram-pass byte-skipping LSD radix sorts (numeric keys and
+ * multi-stage 8-byte prefix keys) and DirModel_sort (freestanding C23).
  *
- * SORT_SIZE / SORT_MTIME from RADIX_MIN_N entries: radix over the 64-bit key (byte lanes that never differ are skipped), then
- * equal-key runs by name. SORT_NAME / SORT_EXT from PREFIX_MIN_N entries: radix over an order-preserving 8-byte prefix key
- * (16-byte {key, idx} records, one sequential pass over the name pool), then the full comparator on equal-prefix runs only.
- * Without memory for the scratch arrays both fall back to introsort. */
+ * SORT_SIZE / SORT_MTIME from RADIX_MIN_N entries: one pass over FileEntry[] builds 16-byte {key, idx} records and
+ * all 8 byte-lane histograms, skips constant lanes, scatters sequentially, and breaks large equal-key runs with
+ * prefix radix (reusing the same buffer). SORT_NAME / SORT_EXT from PREFIX_MIN_N entries: multi-stage 8-byte prefix
+ * radix (advancing offset on long shared prefixes, switching completed SORT_EXT runs straight to SORT_NAME ascending).
+ * Without memory for the scratch buffer both fall back to pdqsort (introsort_u32). */
 #include "duop_fs.h"
 #include "duop_string.h"
 
 #define RADIX_MIN_N 64
-#define PREFIX_MIN_N 512
+#define PREFIX_MIN_N 256
+#define MAX_PREFIX_OFF 24u
+#define HIST_BYTES (8u * 256u * sizeof(uint32_t))
 
-typedef struct PrefixRec { uint64_t key; uint32_t idx, pad; } PrefixRec;
+typedef struct RadixRec { uint64_t key; uint32_t idx, pad; } RadixRec;
 
-/* one counting pass of byte `shift / 8` from src to dst (n elements, the key of element i is key_of(i)) */
-#define DS_RADIX_PASS(n, shift, keyexpr, place)                                   \
-    do {                                                                          \
-        size_t hist[256] = {0};                                                   \
-        for (size_t i = 0; i < (n); i++) hist[(uint8_t)((keyexpr) >> (shift))]++; \
-        size_t sum = 0;                                                           \
-        for (int b = 0; b < 256; b++) { size_t t = hist[b]; hist[b] = sum; sum += t; } \
-        for (size_t i = 0; i < (n); i++) {                                        \
-            size_t at = hist[(uint8_t)((keyexpr) >> (shift))]++;                  \
-            place;                                                                \
-        }                                                                         \
-    } while (0)
-
-void radix_sort_u32(uint32_t *arr, size_t len, const FileEntry *entries, const char *pool, uint32_t mode, uint32_t desc)
+static inline void radix_hist_add(uint32_t hist[8][256], uint64_t k)
 {
-    uint32_t *scratch = mem_alloc(len * 4);
-    if (!scratch) {
-        introsort_u32(arr, len, entries, pool, mode, desc);
-        return;
+    hist[0][(uint8_t)(k)]++;
+    hist[1][(uint8_t)(k >> 8)]++;
+    hist[2][(uint8_t)(k >> 16)]++;
+    hist[3][(uint8_t)(k >> 24)]++;
+    hist[4][(uint8_t)(k >> 32)]++;
+    hist[5][(uint8_t)(k >> 40)]++;
+    hist[6][(uint8_t)(k >> 48)]++;
+    hist[7][(uint8_t)(k >> 56)]++;
+}
+
+static void radix_reverse(RadixRec *a, size_t len)
+{
+    for (size_t lo = 0, hi = len - 1; lo < hi; lo++, hi--) {
+        RadixRec t = a[lo];
+        a[lo] = a[hi];
+        a[hi] = t;
     }
-    uint64_t first = extract_radix_key(arr[0], entries, mode, desc), diff = 0;
-    for (size_t i = 1; i < len; i++) diff |= extract_radix_key(arr[i], entries, mode, desc) ^ first;
-    uint32_t *src = arr, *dst = scratch;
-    for (unsigned shift = 0; shift < 64; shift += 8) {
-        if (!(uint8_t)(diff >> shift)) continue;                      /* this byte lane is the same everywhere */
-        DS_RADIX_PASS(len, shift, extract_radix_key(src[i], entries, mode, desc), dst[at] = src[i]);
-        uint32_t *t = src;
+}
+
+/* Runs only non-constant byte lanes using precomputed histograms; returns the buffer holding the sorted records. */
+static RadixRec *radix_pass_recs(RadixRec *src, RadixRec *dst, size_t len, uint32_t hist[8][256])
+{
+    for (unsigned p = 0; p < 8; p++) {
+        uint32_t *h = hist[p];
+        unsigned shift = p * 8;
+        if ((size_t)h[(uint8_t)(src[0].key >> shift)] == len) continue;   /* byte lane identical everywhere */
+        uint32_t sum = 0;
+        for (int b = 0; b < 256; b++) { uint32_t t = h[b]; h[b] = sum; sum += t; }
+        for (size_t i = 0; i < len; i++) {
+            RadixRec r = src[i];
+            dst[h[(uint8_t)(r.key >> shift)]++] = r;
+        }
+        RadixRec *t = src;
         src = dst;
         dst = t;
     }
-    if (src != arr) mem_copy(arr, src, len * 4);
-    mem_free(scratch);
-    for (size_t i = 0; i < len;) {                                    /* equal sizes / times: by name, ascending */
-        uint64_t k = extract_radix_key(arr[i], entries, mode, desc);
-        size_t j = i + 1;
-        while (j < len && extract_radix_key(arr[j], entries, mode, desc) == k) j++;
-        if (j - i >= 2) introsort_u32(arr + i, j - i, entries, pool, SORT_NAME, 0);
-        i = j;
-    }
+    return src;
+}
+
+static void *radix_alloc(size_t len, RadixRec **out_a, RadixRec **out_b, uint32_t (**out_h)[256])
+{
+    if (len > (SIZE_MAX - HIST_BYTES) / (2u * sizeof(RadixRec))) return nullptr;
+    void *buf = mem_alloc(len * 2u * sizeof(RadixRec) + HIST_BYTES);
+    if (!buf) return nullptr;
+    *out_a = (RadixRec *)buf;
+    *out_b = *out_a + len;
+    *out_h = (uint32_t (*)[256])(*out_b + len);
+    return buf;
 }
 
 uint64_t make_prefix_key(uint32_t idx, const FileEntry *entries, const char *pool, uint32_t mode, uint32_t desc)
@@ -67,50 +81,150 @@ uint64_t make_prefix_key(uint32_t idx, const FileEntry *entries, const char *poo
         take = 7;
     }
     for (unsigned c = 0; c < take; c++) {
-        uint8_t b = *s;
-        if (b) {
-            s++;
-            if (b >= 'A' && b <= 'Z') b += 32;
-        }
-        key = key << 8 | b;                                           /* NUL padded once the name ends */
+        uint8_t b = s[c];
+        if (!b) { key <<= (take - c) * 8; break; }                    /* NUL padded once the name ends */
+        if ((uint8_t)(b - 'A') <= 25) b += 32;
+        key = (key << 8) | b;
     }
     return desc ? ~key : key;
 }
 
-static void prefix_sort_u32(uint32_t *arr, size_t len, const FileEntry *entries, const char *pool, uint32_t mode, uint32_t desc)
+/* Continuation 8-byte prefix key at byte offset `off > 0` (only called when previous chunk had no NUL). */
+static uint64_t make_prefix_key_at(uint32_t idx, const FileEntry *entries, const char *pool, uint32_t mode, uint32_t desc, unsigned off)
 {
-    PrefixRec *recs = mem_alloc(len * 32);                            /* two record arrays */
-    if (!recs) {
+    const FileEntry *e = &entries[idx];
+    const uint8_t *s = (const uint8_t *)pool + e->name_off + (mode == SORT_EXT ? (size_t)e->ext_offset + 1u : 0u) + off;
+    uint64_t key = 0;
+    for (unsigned c = 0; c < 8; c++) {
+        uint8_t b = s[c];
+        if (!b) { key <<= (8u - c) * 8; break; }
+        if ((uint8_t)(b - 'A') <= 25) b += 32;
+        key = (key << 8) | b;
+    }
+    return desc ? ~key : key;
+}
+
+static void prefix_sort_buf(uint32_t *arr, size_t len, const FileEntry *entries, const char *pool,
+                            uint32_t mode, uint32_t desc, unsigned off, RadixRec *a, RadixRec *b, uint32_t hist[8][256])
+{
+    mem_zero(hist, HIST_BYTES);
+    bool asc = true, rev = true;
+    uint64_t prev = 0;
+    for (size_t i = 0; i < len; i++) {
+        uint64_t k = off ? make_prefix_key_at(arr[i], entries, pool, mode, desc, off)
+                         : make_prefix_key(arr[i], entries, pool, mode, desc);
+        a[i] = (RadixRec){k, arr[i], 0};
+        radix_hist_add(hist, k);
+        if (i) { if (k < prev) asc = false; if (k > prev) rev = false; }
+        prev = k;
+    }
+    RadixRec *res = asc ? a : rev ? (radix_reverse(a, len), a) : radix_pass_recs(a, b, len, hist);
+    RadixRec *other = (res == a) ? b : a;
+    if (!asc) for (size_t i = 0; i < len; i++) arr[i] = res[i].idx;
+    size_t big_i = 0, big_len = 0;
+    uint32_t big_mode = 0, big_desc = 0;
+    unsigned big_off = 0;
+    for (size_t i = 0; i < len;) {
+        size_t j = i + 1;
+        while (j < len && res[j].key == res[i].key) j++;
+        size_t run = j - i;
+        if (run >= 2) {
+            uint64_t raw = desc ? ~res[i].key : res[i].key;
+            uint32_t sm = mode, sd = desc;
+            unsigned soff = 0;
+            bool sub_radix = false;
+            if (mode == SORT_EXT && !(raw & 0xFFu)) {
+                sm = SORT_NAME; sd = 0; sub_radix = (run >= PREFIX_MIN_N);
+            } else if ((raw & 0xFFu) && run >= PREFIX_MIN_N && off < MAX_PREFIX_OFF) {
+                soff = (mode == SORT_EXT && !off) ? 7u : off + 8u;
+                sub_radix = true;
+            }
+            if (!sub_radix) introsort_u32(arr + i, run, entries, pool, sm, sd);
+            else if (run <= len / 2) prefix_sort_buf(arr + i, run, entries, pool, sm, sd, soff, other, other + run, hist);
+            else { big_i = i; big_len = run; big_mode = sm; big_desc = sd; big_off = soff; }
+        }
+        i = j;
+    }
+    if (big_len) prefix_sort_buf(arr + big_i, big_len, entries, pool, big_mode, big_desc, big_off, a, b, hist);
+}
+
+void radix_sort_u32(uint32_t *arr, size_t len, const FileEntry *entries, const char *pool, uint32_t mode, uint32_t desc)
+{
+    if (len < 2) return;
+    RadixRec *a, *b;
+    uint32_t (*hist)[256];
+    void *buf = radix_alloc(len, &a, &b, &hist);
+    if (!buf) {
         introsort_u32(arr, len, entries, pool, mode, desc);
         return;
     }
-    uint64_t diff = 0;
+    bool asc = true, rev = true;
+    uint64_t prev = 0;
     for (size_t i = 0; i < len; i++) {
-        recs[i] = (PrefixRec){make_prefix_key(arr[i], entries, pool, mode, desc), arr[i], 0};
-        diff |= recs[i].key ^ recs[0].key;
+        uint64_t k = extract_radix_key(arr[i], entries, mode, desc);
+        a[i] = (RadixRec){k, arr[i], 0};
+        radix_hist_add(hist, k);
+        if (i) { if (k < prev) asc = false; if (k > prev) rev = false; }
+        prev = k;
     }
-    PrefixRec *src = recs, *dst = recs + len;
-    for (unsigned shift = 0; shift < 64; shift += 8) {
-        if (!(uint8_t)(diff >> shift)) continue;
-        DS_RADIX_PASS(len, shift, src[i].key, dst[at] = src[i]);
-        PrefixRec *t = src;
-        src = dst;
-        dst = t;
-    }
-    for (size_t i = 0; i < len; i++) arr[i] = src[i].idx;
-    for (size_t i = 0; i < len;) {                                    /* equal prefixes: the full comparator */
+    RadixRec *res = asc ? a : rev ? (radix_reverse(a, len), a) : radix_pass_recs(a, b, len, hist);
+    RadixRec *other = (res == a) ? b : a;
+    if (!asc) for (size_t i = 0; i < len; i++) arr[i] = res[i].idx;
+    size_t big_i = 0, big_len = 0;
+    for (size_t i = 0; i < len;) {                                    /* equal sizes / times: by name, ascending */
         size_t j = i + 1;
-        while (j < len && src[j].key == src[i].key) j++;
-        if (j - i >= 2) introsort_u32(arr + i, j - i, entries, pool, mode, desc);
+        while (j < len && res[j].key == res[i].key) j++;
+        size_t run = j - i;
+        if (run >= 2) {
+            if (run < PREFIX_MIN_N) introsort_u32(arr + i, run, entries, pool, SORT_NAME, 0);
+            else if (run <= len / 2) prefix_sort_buf(arr + i, run, entries, pool, SORT_NAME, 0, 0, other, other + run, hist);
+            else { big_i = i; big_len = run; }
+        }
         i = j;
     }
-    mem_free(recs);
+    if (big_len) prefix_sort_buf(arr + big_i, big_len, entries, pool, SORT_NAME, 0, 0, a, b, hist);
+    mem_free(buf);
+}
+
+static void prefix_sort_u32(uint32_t *arr, size_t len, const FileEntry *entries, const char *pool, uint32_t mode, uint32_t desc)
+{
+    RadixRec *a, *b;
+    uint32_t (*hist)[256];
+    void *buf = radix_alloc(len, &a, &b, &hist);
+    if (!buf) {
+        introsort_u32(arr, len, entries, pool, mode, desc);
+        return;
+    }
+    prefix_sort_buf(arr, len, entries, pool, mode, desc, 0, a, b, hist);
+    mem_free(buf);
+}
+
+/* O(1) expected on unsorted input, O(n) with zero allocation on already-sorted or reversed slices. */
+static bool try_presorted(uint32_t *arr, size_t len, const FileEntry *entries, const char *pool, uint32_t mode, uint32_t desc)
+{
+    bool asc = true, rev = true;
+    for (size_t i = 1; i < len && (asc || rev); i++) {
+        int r = cmp_indices(arr[i - 1], arr[i], entries, pool, mode, desc);
+        if (r > 0) asc = false;
+        else if (r < 0) rev = false;
+    }
+    if (asc) return true;
+    if (rev) {
+        for (size_t lo = 0, hi = len - 1; lo < hi; lo++, hi--) {
+            uint32_t t = arr[lo];
+            arr[lo] = arr[hi];
+            arr[hi] = t;
+        }
+        return true;
+    }
+    return false;
 }
 
 static void sort_half(uint32_t *arr, size_t len, const DirModel *m)
 {
     if (len < 2) return;
     uint32_t mode = (uint32_t)m->sort_mode, desc = (uint32_t)m->sort_desc;
+    if (len >= RADIX_MIN_N && try_presorted(arr, len, m->entries, m->name_pool, mode, desc)) return;
     if (mode == SORT_SIZE || mode == SORT_MTIME) {
         if (len >= RADIX_MIN_N) radix_sort_u32(arr, len, m->entries, m->name_pool, mode, desc);
         else introsort_u32(arr, len, m->entries, m->name_pool, mode, desc);

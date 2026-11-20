@@ -57,13 +57,15 @@ def sort_script(rng: random.Random) -> str:
                 dot = rng.randrange(2)
                 count = n if rng.random() < 0.8 else rng.randrange(0, n + 1)
                 s.append(f"M {mode} {desc} {dot} {max(count, 0)} {rng.randrange(2)}\n")
-    for kind in range(4):                                                # big listings: radix / prefix passes over many lanes
+    for kind in range(6):                                                # big listings: radix / prefix / long-prefix / equal-name
         s.append(f"E 60000 {rng.randrange(1 << 40)} {kind} {rng.choice([0, 20])} 15\n")
         for mode in (0, 1, 2, 3):
             s.append(f"M {mode} {rng.randrange(2)} 1 60000 1\n")
     for keys in (1, 2):                                                  # an odd number of radix passes: the result is copied back
         for n in (64, 300, 5000):
             s.append(f"E {n} {rng.randrange(1 << 40)} 0 {rng.choice([0, 30])} 10 {keys}\n" + "".join(f"M {m} {d} 0 {n} 1\n" for m in (1, 2) for d in (0, 1)))
+    for n in (40, 2000):                                                 # presorted & reverse-sorted correctness (pdqsort + radix)
+        s.append(f"E {n} {rng.randrange(1 << 40)} 0 0 10\n" + "".join(f"Q {m} {d} {p}\n" for m in range(4) for d in (0, 1) for p in (0, 1)))
     s.append("E 5 1 0 0 0\nM 0 0 1 0 1\nM 1 0 1 1 0\nM 2 1 0 2 0\n")    # empty filtered view (count < has_dotdot) and tiny views
     return "".join(s)
 
@@ -96,46 +98,57 @@ def test_differential(exe: Path, sorts: str, pieces: str) -> tuple[str, str]:
     b = diff(exe, pieces, "pieces")
     ms = [ln for ln in a.splitlines() if ln.startswith("M ")]
     assert any("stats=1" in ln for ln in ms) and any("stats=0" in ln for ln in ms) and all(" unsorted=0 " in ln for ln in ms)
+    assert all(" ok=1 " in ln for ln in ms), "DirModel_sort invariant failure"
+    slices = [ln for ln in b.splitlines() if ln[:2] in ("H ", "I ", "R ")]
+    assert all(" ok=1 " in ln for ln in slices), "slice sort invariant failure"
     ks = [ln.split() for ln in b.splitlines() if ln.startswith("K ")]
     assert {k[1] for k in ks} == {"-1", "0", "1"}, "comparator outcomes"
     print(f"[PASS] DS1. DirModel_sort identical to the asm in {len(ms)} sorts (all modes / directions, '..', thresholds 16 / 64 / 512, "
-          "60000-entry radix and prefix sorts, empty views)")
+          "60000-entry radix / prefix / long-prefix / equal-name sorts, empty views)")
     print(f"[PASS] DS2. cmp_indices / keys on {len(ks)} pairs, heapsort / insertion / radix slices and scratch OOM identical to the asm")
     return a, b
 
 
 def test_speed(exe: Path) -> None:
-    s = "".join(f"E 150000 {seed} {kind} 10 10\n" + "".join(f"T {mode} 0 5\n" for mode in range(4)) for seed, kind in ((11, 0), (12, 3)))
+    s = (
+        "".join(f"E 150000 {seed} {kind} 10 10\n" + "".join(f"T {mode} 0 5\n" for mode in range(4)) for seed, kind in ((11, 0), (12, 3)))
+        + "E 150000 13 4 0 10\nT 0 0 5\n"
+        + "E 150000 14 0 0 10\nP 0 0 0 5\nP 0 1 0 5\nP 1 0 0 5\n"
+    )
     best = {impl: None for impl in ("ref", "c")}
     for _ in range(2):
         for impl in best:
-            ts = [int(ln.split()[1]) for ln in run(exe, impl, s).splitlines() if ln.startswith("T ")]
+            ts = [int(ln.split()[1]) for ln in run(exe, impl, s).splitlines() if ln[:2] in ("T ", "P ")]
             best[impl] = ts if best[impl] is None else [min(x, y) for x, y in zip(best[impl], ts)]
-    for r, c in zip(best["ref"], best["c"]):
-        assert c <= r * 1.10 + 2, f"DirModel_sort slower than the asm: asm {best['ref']} ms, C {best['c']} ms"
-    print(f"[PASS] DS3. DirModel_sort on 150000 entries (name / size / mtime / ext, two name kinds): asm {best['ref']} ms, C {best['c']} ms")
+    ref_t, c_t = best["ref"], best["c"]
+    for i, (r, c) in enumerate(zip(ref_t, c_t)):
+        assert c <= r * 1.10 + 2, f"DirModel_sort[{i}] slower than the asm: asm {ref_t} ms, C {c_t} ms"
+    # Optimal algorithms must be >= 2x faster on size (1,5), ext (3,7), long-prefix (8), and presorted/reversed (9,10,11)
+    for idx in (1, 3, 5, 7, 8, 9, 10, 11):
+        assert c_t[idx] * 2 <= ref_t[idx] + 4, (
+            f"Expected >= 2x speedup on workload[{idx}]: asm {ref_t[idx]} ms, C {c_t[idx]} ms (all asm={ref_t}, C={c_t})"
+        )
+    print(f"[PASS] DS3. DirModel_sort on 150000 entries (k0/k3 name,size,mtime,ext + long-prefix + presorted/rev): asm {ref_t} ms, C {c_t} ms")
 
 
 MUTANTS = [
-    ("src/fs/dir_sort.c", "insertion threshold", "#define INSERTION_MIN_N 16", "#define INSERTION_MIN_N 15"),
-    ("src/fs/dir_sort.c", "tie keeps direction", "        desc = 0;                                                    /* equal", "        (void)0;                                                     /* equal"),
-    ("src/fs/dir_sort.c", "no case-sensitive tie", "if (!r) r = str_cmp(na, nb);", ""),
-    ("src/fs/dir_sort.c", "ext without ext first", "if (!xa) r = xb ? -1 : 0;", "if (!xa) r = xb ? 1 : 0;"),
-    ("src/fs/dir_sort.c", "size compare", "return a > b ? 1 : -1;", "return a < b ? 1 : -1;"),
+    ("src/fs/dir_sort.c", "tie keeps direction", "return ds_cmp_name(na, nb);                                  /* equal", "return desc ? -ds_cmp_name(na, nb) : ds_cmp_name(na, nb);    /* equal"),
+    ("src/fs/dir_sort.c", "no case-sensitive tie", "if (!tie) tie = (int)cx - (int)cy;", ""),
+    ("src/fs/dir_sort.c", "ext without ext first", "int r = !xa ? (xb ? -1 : 0)", "int r = !xa ? (xb ? 1 : 0)"),
+    ("src/fs/dir_sort.c", "size compare", "int r = ka > kb ? 1 : -1;", "int r = ka < kb ? 1 : -1;"),
     ("src/fs/dir_sort.c", "radix key bias", "^ 0x8000000000000000ull", "^ 0"),
-    ("src/fs/dir_sort.c", "median of three", "if (ds_cmp(c, arr[0], arr[hi]) > 0) ds_swap(arr, 0, hi);", ""),
-    ("src/fs/dir_sort.c", "depth", "2 * (size_t)(63 - __builtin_clzll(len))", "(size_t)(63 - __builtin_clzll(len))"),
     ("src/fs/dir_sort.c", "heap right child", "if (child + 1 < n && ", "if (child + 1 < n - 1 && "),
-    ("src/fs/dir_sort_radix.c", "radix threshold", "#define RADIX_MIN_N 64", "#define RADIX_MIN_N 65"),
-    ("src/fs/dir_sort_radix.c", "prefix threshold", "#define PREFIX_MIN_N 512", "#define PREFIX_MIN_N 513"),
-    ("src/fs/dir_sort_radix.c", "radix ties by name", "introsort_u32(arr + i, j - i, entries, pool, SORT_NAME, 0);", "(void)0;"),
-    ("src/fs/dir_sort_radix.c", "prefix fold", "if (b >= 'A' && b <= 'Z') b += 32;", ""),
+    ("src/fs/dir_sort.c", "pdq equal left", "arr += eq;\n            len -= eq;", "arr += eq + 1;\n            len -= eq;"),
+    ("src/fs/dir_sort.c", "pdq reverse swap", "for (size_t lo = 0, hi = len - 1; lo < hi; lo++, hi--) ds_swap(arr, lo, hi);", ""),
+    ("src/fs/dir_sort_radix.c", "radix ties by name", "if (run < PREFIX_MIN_N) introsort_u32(arr + i, run, entries, pool, SORT_NAME, 0);", "if (run < PREFIX_MIN_N) (void)0;"),
+    ("src/fs/dir_sort_radix.c", "prefix fold", "if ((uint8_t)(b - 'A') <= 25) b += 32;", ""),
     ("src/fs/dir_sort_radix.c", "prefix ext flag", "key = 1;                                                      /* has", "key = 0;                                                      /* has"),
-    ("src/fs/dir_sort_radix.c", "prefix ties skipped", "if (j - i >= 2) introsort_u32(arr + i, j - i, entries, pool, mode, desc);", "(void)0;"),
+    ("src/fs/dir_sort_radix.c", "prefix ties skipped", "if (!sub_radix) introsort_u32(arr + i, run, entries, pool, sm, sd);", "if (!sub_radix) (void)0;"),
     ("src/fs/dir_sort_radix.c", "link dirs are files", "(FE_IS_DIR | FE_LINK_DIR)", "FE_IS_DIR"),
     ("src/fs/dir_sort_radix.c", "stats skipped", "&& !m->stats_complete) DirModel_ensure_all_stats(m);", "&& false) DirModel_ensure_all_stats(m);"),
     ("src/fs/dir_sort_radix.c", "dotdot sorted", "uint32_t *s = m->order + (uint32_t)m->has_dotdot;", "uint32_t *s = m->order;"),
-    ("src/fs/dir_sort_radix.c", "copy back", "if (src != arr) mem_copy(arr, src, len * 4);", ""),
+    ("src/fs/dir_sort_radix.c", "ext tie desc", "sm = SORT_NAME; sd = 0; sub_radix = (run >= PREFIX_MIN_N);", "sm = SORT_NAME; sd = desc; sub_radix = (run >= PREFIX_MIN_N);"),
+    ("src/fs/dir_sort_radix.c", "radix writeback", "if (!asc) for (size_t i = 0; i < len; i++) arr[i] = res[i].idx;", ""),
 ]
 
 
