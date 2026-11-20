@@ -277,6 +277,7 @@ void App_pkg_install_confirm(App *app, InputDialog *dlg);
 ViewerDialog *ViewerDialog_new(App *app, const char *path);
 void ViewerDialog_render(Widget *self, void *screen, void *theme);
 typedef struct StatusBar StatusBar;
+StatusBar *StatusBar_new(App *app);
 void StatusBar_set_message(StatusBar *self, const char *msg, int kind, int ttl_ms);
 
 /* ---- allocation, destruction, run-time type checks ---- */

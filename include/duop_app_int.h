@@ -89,3 +89,9 @@ void App_events_shutdown(App *app);
 
 /* app_loop.c */
 void App_run(App *app);
+
+/* app.c */
+typedef struct ObjectVtbl ObjectVtbl;
+extern const ObjectVtbl App_vtbl;
+App *App_new(const char *left_path, const char *right_path, char **envp, int lang_override);
+void App_dtor(App *app);

@@ -7,7 +7,7 @@
 - **Structs (`.struct`)**: 16
 - **OOP Classes (`CLASS_BEGIN`)**: 25
 - **Vtable Contracts (`VTBL_*`)**: 3
-- **Exported `.global` Symbols**: 633
+- **Exported `.global` Symbols**: 632
 
 ## Structs (`include/*.inc`)
 
@@ -815,10 +815,9 @@
 
 ### App Controller & Entry (`src/app/`, `src/main.s`)
 
-- **`src/app/app.s`**
-  - `App_new` — App *App_new(const char *left_path, const char *right_path, char **envp, int lang_override)
-  - `App_dtor` — void App_dtor(App *this)
-  - `App_vtbl`
+- **`src/app/app.c`**
+  - `App_new` — `App *App_new(const char *left_path, const char *right_path, char **envp, int lang_override)`
+  - `App_dtor` — `void App_dtor(App *app)`
 - **`src/app/app_arc.c`**
   - `arc_nav_up` — `int arc_nav_up(FilePane *fp)`
   - `arc_handle_enter` — `int arc_handle_enter(App *app)`

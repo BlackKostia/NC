@@ -1,3 +1,4 @@
+# Frozen reference oracle: original src/app/app.s before C23 migration (A3.4).
 # App Controller Class (Inherits from Object)
 # Coordinates layout, polymorphic widget rendering, input routing, dialogs, and FS actions.
 
