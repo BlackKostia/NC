@@ -37,7 +37,7 @@ def test_envp_owned_by_core() -> None:
         out = subprocess.run(["nm", str(H.ROOT / "build" / obj)], capture_output=True, text=True, check=True).stdout
         return {ln.split()[-1]: ln.split()[-2] for ln in out.splitlines() if len(ln.split()) >= 2}
     assert symbols("core/syscall.o").get("g_envp") == "B", "g_envp must be a .bss symbol of src/core/syscall.c"
-    assert symbols("main.o").get("g_envp") == "U", "main.s only fills g_envp in"
+    assert symbols("app/main.o").get("g_envp") == "U", "main.c only fills g_envp in"
     for obj in ("fs/git_status.o", "fs/preview_helper.o"):
         assert symbols(obj).get("g_envp") == "U", obj
     print("[PASS] Y-envp. g_envp is owned by src/core/syscall.c; main.s and the fs helpers only reference it")

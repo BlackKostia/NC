@@ -51,10 +51,11 @@ def strip_asm_comment_and_strings(line: str) -> str:
 
 def parse_makefile_var(makefile_path: Path, var_name: str, suffix: str = ".s") -> list[str]:
     text = makefile_path.read_text(encoding="utf-8")
-    m = re.search(rf"^{re.escape(var_name)}\s*:=\s*(.*?)(?:\n\n|\n[A-Z_]+\s*[:+]?=)", text, re.S | re.M)
+    m = re.search(rf"^{re.escape(var_name)}\s*:=[ \t]*(.*?)(?:\n\n|\n[A-Z_]+\s*[:+]?=)", text, re.S | re.M)
     if not m:
         raise ValueError(f"Could not locate {var_name} := block in Makefile")
-    block = m.group(1).replace("\\\n", " ")
+    lines = [ln.split("#", 1)[0] for ln in m.group(1).splitlines()]
+    block = "\n".join(lines).replace("\\\n", " ")
     return [tok.strip() for tok in block.split() if tok.strip().endswith(suffix)]
 
 
@@ -228,7 +229,7 @@ def main() -> int:
         errors.append(str(exc))
         mk_srcs, mk_pal_srcs = [], []
 
-    if mk_srcs:
+    if mk_srcs or shared_disk_srcs:
         missing_in_mk = sorted(set(shared_disk_srcs) - set(mk_srcs))
         missing_on_disk = sorted(set(mk_srcs) - set(shared_disk_srcs))
         if missing_in_mk:

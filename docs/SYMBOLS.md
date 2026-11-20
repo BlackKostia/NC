@@ -904,7 +904,7 @@
 - **`src/app/cli_args.c`**
   - `cli_parse` — `void cli_parse(int argc, char **argv, CliArgs *out)`
   - `cli_print_info` — `bool cli_print_info(const CliArgs *args, char **envp)`
+- **`src/app/main.c`**
+  - `duop_main` — `int duop_main(int argc, char **argv, char **envp, const uintptr_t *auxv)`
 - **`src/app/main_headless.c`**
   - `duop_main` — `int duop_main(int argc, char **argv, char **envp, const uintptr_t *auxv)`
-- **`src/main.s`**
-  - `_start`

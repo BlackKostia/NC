@@ -8,7 +8,6 @@
     "tests/test_fs_reliability.py": 710
   },
   "funcs": {
-    "src/main.s:_start": 190,
     "src/os/linux/x86_64/pal_simd.s:os_str_contains_ci_fast": 92,
     "src/os/linux/x86_64/pal_uring.s:os_batch_stat": 209,
     "src/os/linux/x86_64/pal_uring.s:os_uring_init": 140,

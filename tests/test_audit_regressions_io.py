@@ -182,7 +182,7 @@ def link_asm_harness(work_dir: str, asm_src: str) -> str:
     ])
     objs = sorted(
         p for p in glob.glob(os.path.join(ROOT, "build/**/*.o"), recursive=True)
-        if not p.endswith("/main.o")
+        if not p.endswith("/main.o") and not p.endswith("/pal_start.o")
     )
     subprocess.check_call(["ld", o_path] + objs + ["-o", b_path])
     return b_path

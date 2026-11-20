@@ -29,7 +29,7 @@ def build_harness(work: str) -> str | None:
     objs = []
     for root, _, files in os.walk(os.path.join(REPO_ROOT, "build")):
         for f in files:
-            if f.endswith(".o") and f not in ("main.o", "memory.o"):
+            if f.endswith(".o") and f not in ("main.o", "pal_start.o", "memory.o"):
                 objs.append(os.path.join(root, f))
     mem = os.path.join(work, "memory_ren.o")
     subprocess.run(["objcopy", "--redefine-sym", "mem_alloc=orig_mem_alloc", "--redefine-sym", "mem_free=orig_mem_free",

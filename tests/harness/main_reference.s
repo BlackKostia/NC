@@ -1,3 +1,4 @@
+# Frozen reference oracle: original src/main.s before C23 migration (A3.5).
 # Duop Entry Point (_start)
 # Pure Linux x86-64 ELF64 binary with zero libc dependencies.
 

@@ -185,9 +185,9 @@ def test_m6_ppoll_error_exits_cleanly() -> None:
         inp = f.read()
     with open(os.path.join(REPO_ROOT, "src/tui/input_parse.c")) as f:
         ip = f.read()
-    with open(os.path.join(REPO_ROOT, "src/app/app_loop.s")) as f:
+    with open(os.path.join(REPO_ROOT, "src/app/app_loop.c")) as f:
         al = f.read()
-    assert "return -2" in inp and "r == -2" in ip and ".Larun_fatal_evt" in al, (
+    assert "return -2" in inp and "r == -2" in ip and "if (er < 0) { app->running = 0; }" in al, (
         "Fatal ppoll error must propagate to App_run exit"
     )
     print("[PASS] M6. Persistent ppoll error exits UI cleanly")

@@ -194,6 +194,7 @@ PATH_TEST_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("src/app/app_events*", ("tests/test_c_app_events.py", "tests/test_event_loop.py", "tests/test_pty.py")),
     ("src/app/app_loop*", ("tests/test_c_app_loop.py", "tests/test_event_loop.py", "tests/test_pty.py")),
     ("src/app/app.c", ("tests/test_c_app.py", "tests/test_pty.py", "tests/test_event_loop.py")),
+    ("src/app/main.c", ("tests/test_c_main.py", "tests/test_headless.py", "tests/test_pty.py")),
     ("src/app/app_open*", ("tests/test_c_app_menu_open.py", "tests/test_pty.py", "tests/test_archive_vfs.py")),
     ("src/app/app_toggles*", ("tests/test_c_app_leaf1.py", "tests/test_pty.py", "tests/test_ui_visual.py")),
     ("src/app/app_ext*", ("tests/test_c_app_ext.py", "tests/test_fuzzy_palette.py", "tests/test_diff_menu_clip.py")),

@@ -43,8 +43,7 @@ endif
 
 VER_INC := $(BUILD)/version.inc
 
-SRCS := \
-	src/main.s
+SRCS :=
 
 # Freestanding C23 modules (docs/HYBRID_PORTABILITY_PLAN.md); migrated leaf-first from the .s list above
 C_SRCS := \
@@ -214,6 +213,9 @@ C_SRCS := \
 	src/app/app_events.c \
 	src/app/app_loop.c \
 	src/app/app.c \
+	src/app/cli_args.c \
+	src/app/license.c \
+	src/app/main.c \
 	src/fs/file_ops_read.c
 
 PAL_SRCS := \
@@ -238,7 +240,7 @@ PAL_START_SRCS := \
 # C generated at build time into $(BUILD) (tools/gen_i18n.py: the English table + key names from src/tui/i18n_en.lang)
 GEN_OBJS := $(BUILD)/i18n_en.o
 
-OBJS := $(patsubst src/%.s,$(BUILD)/%.o,$(SRCS) $(PAL_SRCS)) $(patsubst src/%.c,$(BUILD)/%.o,$(C_SRCS)) $(GEN_OBJS)
+OBJS := $(patsubst src/%.s,$(BUILD)/%.o,$(SRCS) $(PAL_SRCS) $(PAL_START_SRCS)) $(patsubst src/%.c,$(BUILD)/%.o,$(C_SRCS)) $(GEN_OBJS)
 INCS := $(wildcard include/*.inc) $(wildcard $(PAL_INC)/*.inc)
 
 .PHONY: all release run test test-serial memcheck verify hooks symbols symbols-check clean pal-selftest check-toolchain headless
@@ -294,9 +296,9 @@ $(BUILD)/i18n_en.o: $(BUILD)/i18n_en.c $(wildcard include/*.h) | $(BUILD)/versio
 # pal_start and every portable C module of the selected ARCH, so it runs the C23 layers natively (x86_64) or under qemu-aarch64. Its own
 # objects live in $(BUILD)_headless/ so tests that glob $(BUILD)/**/*.o never see a second entry point.
 HB            := $(BUILD)_headless
-HEADLESS_C    := src/app/cli_args.c src/app/license.c src/app/main_headless.c
+HEADLESS_C    := src/app/main_headless.c
 HEADLESS_OBJS := $(patsubst src/%.s,$(HB)/%.o,$(PAL_START_SRCS)) $(patsubst src/%.c,$(HB)/%.o,$(HEADLESS_C)) \
-	$(patsubst src/%.s,$(BUILD)/%.o,$(PAL_SRCS)) $(patsubst src/%.c,$(BUILD)/%.o,$(C_SRCS)) $(GEN_OBJS)
+	$(patsubst src/%.s,$(BUILD)/%.o,$(PAL_SRCS)) $(patsubst src/%.c,$(BUILD)/%.o,$(filter-out src/app/main.c,$(C_SRCS))) $(GEN_OBJS)
 
 headless: $(BUILD)/duop_headless
 
@@ -468,6 +470,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_app_events.py
 	python3 tests/test_c_app_loop.py
 	python3 tests/test_c_app.py
+	python3 tests/test_c_main.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py
