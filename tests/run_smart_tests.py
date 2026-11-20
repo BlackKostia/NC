@@ -22,12 +22,12 @@ ROOT = Path(__file__).resolve().parent.parent
 FULL_SUITE_PATTERNS = (
     "include/*",
     "Makefile",
-    "src/main.s",
     "src/core/*",
     "src/os/*",
-    "src/app/app.s",
-    "src/app/app_loop.s",
-    "src/app/app_events.s",
+    "src/app/main.c",
+    "src/app/app.c",
+    "src/app/app_loop.c",
+    "src/app/app_events.c",
 )
 
 # A module migration only *registers* itself in the Makefile (a source in SRCS / C_SRCS, a test in `test:`) and appends

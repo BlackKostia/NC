@@ -1,10 +1,10 @@
-# Duop — Multi-Platform Pure Assembly Project Makefile (compile-time OS & ARCH selection)
+# Duop — Hybrid Assembly PAL + Freestanding C23 Makefile (compile-time OS & ARCH selection)
 
 OS      ?= linux
 ARCH    ?= x86_64
 JOBS    ?= $(shell nproc 2>/dev/null || echo 4)
 MEMCHECK ?= 0
-TARGET  := duop
+TARGET  ?= duop
 BUILD   := build
 VERSION := $(strip $(shell cat VERSION))
 PAL_INC := include/os/$(OS)/$(ARCH)
@@ -19,6 +19,16 @@ LD      := aarch64-linux-gnu-ld
 CC      := clang
 CTARGET := --target=aarch64-linux-gnu -mno-outline-atomics -Wno-unused-command-line-argument
 endif
+
+ifneq ($(ARCH),x86_64)
+BUILD   := build_$(ARCH)
+endif
+
+ifeq ($(MEMCHECK),1)
+TARGET  := duop_memcheck
+BUILD   := build_mc
+endif
+
 ASFLAGS := -I $(PAL_INC) -I include -I $(BUILD) -g --strip-local-absolute
 LDFLAGS := -z noexecstack --gc-sections
 # Freestanding C23 (docs/HYBRID_PORTABILITY_PLAN.md "ABI-прапорці збірки"); no libc, no PIE/CET/unwind tables
@@ -30,19 +40,14 @@ ifneq ($(ARCH),aarch64)
 CFLAGS  += -fno-stack-clash-protection
 endif
 
-ifneq ($(ARCH),x86_64)
-BUILD   := build_$(ARCH)
-endif
-
 ifeq ($(MEMCHECK),1)
-TARGET  := duop_memcheck
-BUILD   := build_mc
 ASFLAGS += --defsym MEMCHECK=1
 CFLAGS  += -DMEMCHECK=1
 endif
 
 VER_INC := $(BUILD)/version.inc
 
+# Legacy non-PAL assembly list (empty: 100% of core/tui/fs/ui/app is freestanding C23; assembly is PAL-only under src/os/)
 SRCS :=
 
 # Freestanding C23 modules (docs/HYBRID_PORTABILITY_PLAN.md); migrated leaf-first from the .s list above
@@ -233,7 +238,7 @@ PAL_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_sys_proc.s \
 	src/os/$(OS)/$(ARCH)/pal_sys_mem.s
 
-# Process entry for C-main builds; the asm build still starts in src/main.s (_start) until Stage 4
+# Process entry (_start -> duop_main -> os_exit) for full, headless, and PAL selftest builds
 PAL_START_SRCS := \
 	src/os/$(OS)/$(ARCH)/pal_start.s
 
@@ -471,6 +476,7 @@ test-serial: $(TARGET)
 	python3 tests/test_c_app_loop.py
 	python3 tests/test_c_app.py
 	python3 tests/test_c_main.py
+	python3 tests/test_aarch64_full.py
 	python3 tests/test_c_stack_align.py
 	python3 tests/test_c_guards.py
 	python3 tests/test_abi_layouts.py

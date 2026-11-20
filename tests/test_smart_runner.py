@@ -76,7 +76,7 @@ def test_local_registration_skips_full_suite() -> None:
 
 
 def test_core_and_inc_stay_global() -> None:
-    for rel in ("src/core/memory.c", "src/os/linux/x86_64/pal_os.s", "include/types.inc", "src/main.s", "src/app/app_loop.s"):
+    for rel in ("src/core/memory.c", "src/os/linux/x86_64/pal_os.s", "include/types.inc", "src/app/main.c", "src/app/app_loop.c"):
         full, _ = rsm.select_tests([rel], local_ok=lambda r: True if r == "Makefile" else False)
         assert full, rel
 
