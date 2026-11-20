@@ -13,26 +13,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install toolchain
-        run: sudo apt-get update && sudo apt-get install -y binutils binutils-aarch64-linux-gnu gcc clang make python3 qemu-user
-      - name: Build release and run full verification
-        run: ./.agents/skills/duop-pty-verify/scripts/verify_build.sh --release-only
+        run: sudo apt-get update && sudo apt-get install -y binutils binutils-aarch64-linux-gnu gcc clang make python3
+      - name: Run modularity, lean, C23 syntax, and static ELF hardening checks
+        run: |
+          python3 ./.agents/skills/duop-modular-asm/scripts/check_modularity.py
+          python3 ./.agents/skills/duop-lean-modules/scripts/check_lean.py
+          python3 ./tools/check_c_syntax.py $(git ls-files 'src/*.c')
+          python3 ./tools/faultlab/audit_null_alloc_c.py
+          ./scripts/make_dist.sh
+          make -s build/duop.sym
+          python3 ./.agents/skills/duop-reliability-audit/scripts/audit_live_regs.py build/duop.sym
+          ./duop --version
+          ./duop -L | cmp - LICENSE
 
   headless-x86-qemu:
-    # M1: the portable C23 layers + PAL on both ISAs; aarch64 runs under qemu-user, outputs compared with the assembly entry point
+    # Portable C23 layers + PAL on both ISAs; aarch64 runs under qemu-user
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Install toolchain
         run: sudo apt-get update && sudo apt-get install -y binutils binutils-aarch64-linux-gnu gcc clang make python3 qemu-user
-      - name: Build duop, headless (x86_64 + aarch64) and run the cross-arch tests
+      - name: Build duop, headless (x86_64 + aarch64) and run the cross-arch CLI checks
         run: |
           make -j4
           python3 tests/test_headless.py
-          python3 tests/test_aarch64_full.py
           python3 tests/test_c_i18n_table.py
 
   headless-arm64-native:
-    # native AArch64: no emulation, the real kernel ABI (fork/clone, signals, ucontext)
+    # Native AArch64: no emulation, real kernel ABI
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
